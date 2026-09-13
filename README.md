@@ -1,88 +1,16 @@
 # Hardware Pulse
 
-[简体中文](#zh-cn) · [English](#en)
+[English](#en) · [简体中文](#zh-cn)
 
-**[下载最新 EXE / Download Latest EXE](https://github.com/medking82/hardware-pulse/releases/latest/download/HardwarePulse-Setup.exe)** · [Release Notes](https://github.com/medking82/hardware-pulse/releases/latest)
+**[Download Latest EXE / 下载最新 EXE](https://github.com/medking82/hardware-pulse/releases/latest/download/HardwarePulse-Setup.exe)** · [Release Notes](https://github.com/medking82/hardware-pulse/releases/latest)
 
-Author：**[Marck Wong](https://github.com/medking82)**
-
-<a id="zh-cn"></a>
-
-## 简体中文
-
-当前 source version 为 **0.3.0**（multi-language UI）；GitHub 最新 installer 仍为 **0.2.0**，0.3.0 installer 尚未发布。
-
-适用于 **Windows 10 22H2 / Windows 11 x64** 的轻量桌面硬件 widget，集中显示 CPU、GPU、Memory、NVMe 和 Fan readings，以及实时 RAM/VRAM usage。
-
-采用 WPF glass background、原创 SVG icons 和 Segoe UI typography，支持调整 background opacity、随窗口宽度缩放，以及保存 card order。运行时不需要 HWiNFO、browser、Codex 或 cloud service；需要 Windows 自带的 .NET Framework 4.8 和 Windows PowerShell 5.1。
-
-### 使用方式
-
-- **Settings → Language** 可即时切换 English、简体中文和繁體中文，自动保存选择；默认 English。设备型号、自定义名称和单位保持原样。
-
-- 拖动 card header 的六点 drag handle 即可排序，松手保存；Esc 取消当前 drag。
-- 右键 card 可选择 **Move Up / Move Down**；聚焦 drag handle 后也可按 Shift+F10 打开 menu。
-- 拖动 Pulse title 移动窗口。松手后，距离 12 pixels 内的 screen edge 或相邻窗口 edge 会吸附，包括 top/bottom alignment。按住 Alt 可跳过；窗口不会跟随另一个 app 移动。
-- **Live** 显示当前 readings；**Session Max** 记录本次 session 的峰值。
-- 点击 gear 打开 **Settings**，调整 Opacity、Solid Background、Larger Text、Always on Top 和 Hardware Names。自定义名称留空时使用自动读取的设备信息。
-- Windows 10 无法使用 Windows 11 backdrop API 时，自动使用 solid background。
-- DIMM 和两块 NVMe 采用等宽 columns。RAM/VRAM usage 在 Session Max 中仍实时更新；GB 使用 binary units，分母为 OS/driver 报告的可用 capacity，可能小于实际安装的 capacity。
-- **GPU Fan Speed** 显示的是 RPM telemetry channels，不代表实体风扇的数量。
-
-### Hardware discovery 与范围
-
-根据同一设备内的 sensor name/type 自动匹配一个 CPU、一个 GPU、最多两条支持温度读取的 DIMM，以及两块 NVMe。多 GPU 环境优先选择 NVIDIA，其次为 discrete AMD，再次为 integrated graphics。未知或有歧义的 readings 显示 `—`；Voltage 不会使用 VID 代替。
-
-DIMM 品牌、型号和已安装的 slots 来自 SMBIOS。**SPD #1/#3 是 sensor address，不等于 A2/B2**：不能仅凭相同型号，将两条 Memory 的 temperature sensor 对应到实体 slot。已安装的 slots 会单独列出；确认 sensor 对应关系后，再自定义 slot label。NVMe drive letter 只在 disk model 能唯一匹配时显示；fan header 名称不能说明风扇实际安装在机箱哪个位置。
-
-目前已在 9700X / RTX 5080 / B850M Mortar 机器上进行 live validation，并保留其已验证的 SYS1/SYS3 mapping 和原有自定义名称。其他 CPU/GPU 有 automated fixture coverage，但尚未在其他实体机器上验证。
-
-所有 sensor access 均为 read-only；app 不调整 fan curve 或 Curve Optimizer。
-
-### Installer 与自动启动
-
-Installer 会预先检查 .NET Framework 4.8 和 Windows PowerShell 5.1。PawnIO library 或 driver registration 缺失时，会自动运行内置的官方 installer，并在完成后再次检查；失败时不会继续注册 startup。Windows 自带的 components 若缺失或损坏，需要先修复 Windows；installer 不会自动修改 Windows features 或 security settings。这些 checks 验证安装状态，不保证 driver 能在所有 security policies 下加载。
-
-Release 中的 `HardwarePulse-Setup.exe`（version 0.3.0）包含 app、固定 version 的 LibreHardwareMonitor libraries、license notices/source archives，以及官方 PawnIO 2.2.0 prerequisite installer，无需在运行时下载 dependencies。目标 Windows versions 自带 .NET Framework 4.8 和 Windows PowerShell 5.1；setup 会检查 .NET requirement。
-
-请使用当前 Windows administrator account 安装，并确认 UAC。代码安装到 Program Files；installer 会注册当前用户的 interactive collector task，以及普通权限的 widget task。Widget 在登录后延迟 10 秒启动。Uninstall 会保留共享 PawnIO 和用户设置。此 version 不支持使用另一个 administrator account，为 standard user 代为安装。
-
-设置保存在 `%LocalAppData%\HardwarePulse`，共享 sensor snapshots 保存在 `%ProgramData%\HardwarePulse\<UserSID>\runtime`。后者用于避免 package-local AppData view 隐藏 collector 更新。窗口位置、大小、Pin、Opacity、Solid Background、Larger Text 和 card order 会保留；位置、大小与设置在操作停止 750 ms 后自动保存，不依赖 restart 前正常关闭窗口。Collector failure 会显示为 **STALE/OFFLINE**。
-
-### Signature
-
-Release app 和 installer 使用 **self-signed Authenticode certificate，CN=Marck Wong**。这不是经 public CA 验证的 publisher identity：Windows/SmartScreen 仍可能拦截或提示，antivirus detection 也独立于 signing。
-
-安装过程不会添加 Root/TrustedPublisher certificate 或 security exclusion。不可导出的 private key 留在作者本机的 Windows certificate store，不随软件分发。Release 附带 checksums 和可供检查的 public certificate；当前 self-signed build 没有 timestamp。参见 [Microsoft signing options](https://learn.microsoft.com/windows/apps/package-and-deploy/code-signing-options)。
-
-### Build、Encoding 与 License
-
-在 Windows 11 上使用 PowerShell 7 进行 build；PowerShell 7 仅为 build tool，不是 runtime requirement。
-
-```powershell
-./scripts/Validate.ps1
-./scripts/Build.ps1 -Installer
-# Optional: use your own certificate in CurrentUser\My.
-./scripts/Build.ps1 -Installer -SigningCertificateThumbprint <thumbprint>
-```
-
-Dependencies 通过 `dependencies.lock.json` 中的 SHA-256 固定。Build 会准备指定的 Inno Setup compiler，并在不显示 console window 的情况下运行子进程。Build outputs、下载的 dependencies、个人设置和 sensor logs 不进入 Git。SVG/ICO 在 `assets` 中；运行时使用 WPF geometry 渲染 SVG path。
-
-文本统一为 **UTF-8**。为兼容 Windows PowerShell 5.1，`.ps1` 使用 UTF-8 with BOM；JSON 显式使用 UTF-8 读写，由 `.editorconfig` 和 validation 检查相关规则。
-
-Third-party source locations 和 notices 位于 `licenses`；LibreHardwareMonitor 的完整 upstream source archive 随包提供且未修改，dependencies 保留各自 upstream licenses。**Repo 为 Public 不等于原始 Hardware Pulse 代码已获得 open-source license。**
-
-### Validation boundary
-
-已检查 sensor parsing regression、script/XML validation、native/installer compilation、真实 WPF Settings navigation、autosave/restore、discovery fixtures、usage units、snap geometry，以及当前机器上的安装。最小窗口为 240 × 340 logical pixels；高度不足时使用 scroll。
-
-Windows 10 compatibility 基于 API baseline 和 fallback，**尚未进行 Windows 10 实机验证**。Clean-machine installation、multi-monitor DPI changes、uninstall/reinstall，以及新 widget task 的下一次完整 reboot 仍未验证。详见 [Validation Notes](VALIDATION.md)。
+Author:**[Marck Wong](https://github.com/medking82)**
 
 <a id="en"></a>
 
 ## English
 
-The current source version is **0.3.0** with multilingual UI. The latest GitHub installer is still **0.2.0**; the 0.3.0 installer has not been published yet.
+The current version is **0.3.0** with multilingual UI. Use the download link above for the latest installer.
 
 A compact hardware widget by **[Marck Wong](https://github.com/medking82)** for **Windows 10 22H2 / Windows 11 x64**.
 
@@ -157,3 +85,75 @@ Public repository visibility alone does not grant an open-source license to the 
 
 Sensor parsing regressions, script/XML validation, native compilation, installer compilation,
 real WPF Settings navigation, autosave/restore, discovery fixtures, usage units, snap geometry and current-machine installation are checked locally. The supported minimum window is 240 x 340 logical pixels; smaller heights scroll. Windows 10 compatibility is based on the API baseline and fallback, not a Windows 10 machine test. Clean-machine installation, multi-monitor DPI changes, uninstall/reinstall and a fresh reboot of the new widget task remain unverified. See [validation notes](VALIDATION.md).
+
+<a id="zh-cn"></a>
+
+## 简体中文
+
+当前 version 为 **0.3.0**，包含 multi-language UI。使用上方 download link 获取最新 installer。
+
+适用于 **Windows 10 22H2 / Windows 11 x64** 的轻量桌面硬件 widget，集中显示 CPU、GPU、Memory、NVMe 和 Fan readings，以及实时 RAM/VRAM usage。
+
+采用 WPF glass background、原创 SVG icons 和 Segoe UI typography，支持调整 background opacity、随窗口宽度缩放，以及保存 card order。运行时不需要 HWiNFO、browser、Codex 或 cloud service；需要 Windows 自带的 .NET Framework 4.8 和 Windows PowerShell 5.1。
+
+### 使用方式
+
+- **Settings → Language** 可即时切换 English、简体中文和繁體中文，自动保存选择；默认 English。设备型号、自定义名称和单位保持原样。
+
+- 拖动 card header 的六点 drag handle 即可排序，松手保存；Esc 取消当前 drag。
+- 右键 card 可选择 **Move Up / Move Down**；聚焦 drag handle 后也可按 Shift+F10 打开 menu。
+- 拖动 Pulse title 移动窗口。松手后，距离 12 pixels 内的 screen edge 或相邻窗口 edge 会吸附，包括 top/bottom alignment。按住 Alt 可跳过；窗口不会跟随另一个 app 移动。
+- **Live** 显示当前 readings；**Session Max** 记录本次 session 的峰值。
+- 点击 gear 打开 **Settings**，调整 Opacity、Solid Background、Larger Text、Always on Top 和 Hardware Names。自定义名称留空时使用自动读取的设备信息。
+- Windows 10 无法使用 Windows 11 backdrop API 时，自动使用 solid background。
+- DIMM 和两块 NVMe 采用等宽 columns。RAM/VRAM usage 在 Session Max 中仍实时更新；GB 使用 binary units，分母为 OS/driver 报告的可用 capacity，可能小于实际安装的 capacity。
+- **GPU Fan Speed** 显示的是 RPM telemetry channels，不代表实体风扇的数量。
+
+### Hardware discovery 与范围
+
+根据同一设备内的 sensor name/type 自动匹配一个 CPU、一个 GPU、最多两条支持温度读取的 DIMM，以及两块 NVMe。多 GPU 环境优先选择 NVIDIA，其次为 discrete AMD，再次为 integrated graphics。未知或有歧义的 readings 显示 `—`；Voltage 不会使用 VID 代替。
+
+DIMM 品牌、型号和已安装的 slots 来自 SMBIOS。**SPD #1/#3 是 sensor address，不等于 A2/B2**：不能仅凭相同型号，将两条 Memory 的 temperature sensor 对应到实体 slot。已安装的 slots 会单独列出；确认 sensor 对应关系后，再自定义 slot label。NVMe drive letter 只在 disk model 能唯一匹配时显示；fan header 名称不能说明风扇实际安装在机箱哪个位置。
+
+目前已在 9700X / RTX 5080 / B850M Mortar 机器上进行 live validation，并保留其已验证的 SYS1/SYS3 mapping 和原有自定义名称。其他 CPU/GPU 有 automated fixture coverage，但尚未在其他实体机器上验证。
+
+所有 sensor access 均为 read-only；app 不调整 fan curve 或 Curve Optimizer。
+
+### Installer 与自动启动
+
+Installer 会预先检查 .NET Framework 4.8 和 Windows PowerShell 5.1。PawnIO library 或 driver registration 缺失时，会自动运行内置的官方 installer，并在完成后再次检查；失败时不会继续注册 startup。Windows 自带的 components 若缺失或损坏，需要先修复 Windows；installer 不会自动修改 Windows features 或 security settings。这些 checks 验证安装状态，不保证 driver 能在所有 security policies 下加载。
+
+Release 中的 `HardwarePulse-Setup.exe`（version 0.3.0）包含 app、固定 version 的 LibreHardwareMonitor libraries、license notices/source archives，以及官方 PawnIO 2.2.0 prerequisite installer，无需在运行时下载 dependencies。目标 Windows versions 自带 .NET Framework 4.8 和 Windows PowerShell 5.1；setup 会检查 .NET requirement。
+
+请使用当前 Windows administrator account 安装，并确认 UAC。代码安装到 Program Files；installer 会注册当前用户的 interactive collector task，以及普通权限的 widget task。Widget 在登录后延迟 10 秒启动。Uninstall 会保留共享 PawnIO 和用户设置。此 version 不支持使用另一个 administrator account，为 standard user 代为安装。
+
+设置保存在 `%LocalAppData%\HardwarePulse`，共享 sensor snapshots 保存在 `%ProgramData%\HardwarePulse\<UserSID>\runtime`。后者用于避免 package-local AppData view 隐藏 collector 更新。窗口位置、大小、Pin、Opacity、Solid Background、Larger Text 和 card order 会保留；位置、大小与设置在操作停止 750 ms 后自动保存，不依赖 restart 前正常关闭窗口。Collector failure 会显示为 **STALE/OFFLINE**。
+
+### Signature
+
+Release app 和 installer 使用 **self-signed Authenticode certificate，CN=Marck Wong**。这不是经 public CA 验证的 publisher identity：Windows/SmartScreen 仍可能拦截或提示，antivirus detection 也独立于 signing。
+
+安装过程不会添加 Root/TrustedPublisher certificate 或 security exclusion。不可导出的 private key 留在作者本机的 Windows certificate store，不随软件分发。Release 附带 checksums 和可供检查的 public certificate；当前 self-signed build 没有 timestamp。参见 [Microsoft signing options](https://learn.microsoft.com/windows/apps/package-and-deploy/code-signing-options)。
+
+### Build、Encoding 与 License
+
+在 Windows 11 上使用 PowerShell 7 进行 build；PowerShell 7 仅为 build tool，不是 runtime requirement。
+
+```powershell
+./scripts/Validate.ps1
+./scripts/Build.ps1 -Installer
+# Optional: use your own certificate in CurrentUser\My.
+./scripts/Build.ps1 -Installer -SigningCertificateThumbprint <thumbprint>
+```
+
+Dependencies 通过 `dependencies.lock.json` 中的 SHA-256 固定。Build 会准备指定的 Inno Setup compiler，并在不显示 console window 的情况下运行子进程。Build outputs、下载的 dependencies、个人设置和 sensor logs 不进入 Git。SVG/ICO 在 `assets` 中；运行时使用 WPF geometry 渲染 SVG path。
+
+文本统一为 **UTF-8**。为兼容 Windows PowerShell 5.1，`.ps1` 使用 UTF-8 with BOM；JSON 显式使用 UTF-8 读写，由 `.editorconfig` 和 validation 检查相关规则。
+
+Third-party source locations 和 notices 位于 `licenses`；LibreHardwareMonitor 的完整 upstream source archive 随包提供且未修改，dependencies 保留各自 upstream licenses。**Repo 为 Public 不等于原始 Hardware Pulse 代码已获得 open-source license。**
+
+### Validation boundary
+
+已检查 sensor parsing regression、script/XML validation、native/installer compilation、真实 WPF Settings navigation、autosave/restore、discovery fixtures、usage units、snap geometry，以及当前机器上的安装。最小窗口为 240 × 340 logical pixels；高度不足时使用 scroll。
+
+Windows 10 compatibility 基于 API baseline 和 fallback，**尚未进行 Windows 10 实机验证**。Clean-machine installation、multi-monitor DPI changes、uninstall/reinstall，以及新 widget task 的下一次完整 reboot 仍未验证。详见 [Validation Notes](VALIDATION.md)。
