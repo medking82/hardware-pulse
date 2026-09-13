@@ -1,0 +1,37 @@
+[
+  {
+    "file": "LibreHardwareMonitor-0.9.6.zip",
+    "url": "https://github.com/LibreHardwareMonitor/LibreHardwareMonitor/releases/download/v0.9.6/LibreHardwareMonitor.zip",
+    "name": "LibreHardwareMonitor",
+    "sha256": "086d9f1b5a99e643edc2cfaaac16051685b551e4c5ac0b32a57c58c0e529c001",
+    "version": "0.9.6"
+  },
+  {
+    "file": "LibreHardwareMonitor-source-0.9.6.zip",
+    "url": "https://codeload.github.com/LibreHardwareMonitor/LibreHardwareMonitor/zip/refs/tags/v0.9.6",
+    "name": "LibreHardwareMonitor Source",
+    "sha256": "28100b87fcd7a9a213c58fabe1174e4f3064975b5ab11799224766993ca1fbfc",
+    "version": "0.9.6"
+  },
+  {
+    "file": "PawnIO-2.2.0.exe",
+    "url": "https://github.com/namazso/PawnIO.Setup/releases/download/2.2.0/PawnIO_setup.exe",
+    "name": "PawnIO",
+    "sha256": "1f519a22e47187f70a1379a48ca604981c4fcf694f4e65b734aaa74a9fba3032",
+    "version": "2.2.0"
+  },
+  {
+    "file": "innosetup-6.7.3.exe",
+    "url": "https://github.com/jrsoftware/issrc/releases/download/is-6_7_3/innosetup-6.7.3.exe",
+    "name": "Inno Setup",
+    "sha256": "9c73c3bae7ed48d44112a0f48e66742c00090bdb5bef71d9d3c056c66e97b732",
+    "version": "6.7.3"
+  },
+  {
+    "file": "PawnIO-source-2.2.0.zip",
+    "url": "https://codeload.github.com/namazso/PawnIO/zip/refs/tags/2.2.0",
+    "sha256": "93aa5d410b76c71e9004cac406ed19d0550a735410a9abe4d0c9a838b8b98eac",
+    "name": "PawnIO Source",
+    "version": "2.2.0"
+  }
+]

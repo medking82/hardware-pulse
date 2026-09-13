@@ -1,0 +1,11 @@
+vendor/
+build/
+dist/
+runtime/
+*.log
+*-error.txt
+widget-settings.json
+*.user
+*.pfx
+*.p12
+*.key
