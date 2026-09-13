@@ -20,15 +20,15 @@ foreach($group in @(@(0,@(@('Load','cpuLoad'),@('Fan','cpuFan'),@('Vcore','vcore
     $card.Child.Children.Insert(2,$grid)
     $script:compactGroups+=@{grid=$grid;rows=$rows}
 }
-function Update-CardDensity {
+function Set-CardDensity([int]$level) {
     if(-not $script:densityCards){return}
-    $compact=(-not $script:showDetails -and $window.ActualHeight -lt 820)
+    $compact=$level -ge 2; $tight=$level -ge 1
     foreach($card in $script:densityCards){
-        $card.Padding=if($compact){[Windows.Thickness]::new(7,5,7,5)}else{[Windows.Thickness]::new(10)}
-        $card.Margin=if($compact){[Windows.Thickness]::new(0,0,0,3)}else{[Windows.Thickness]::new(0,0,0,6)}
+        $card.Padding=if($tight){[Windows.Thickness]::new(7,5,7,5)}else{[Windows.Thickness]::new(10)}
+        $card.Margin=if($tight){[Windows.Thickness]::new(0,0,0,3)}else{[Windows.Thickness]::new(0,0,0,6)}
     }
     foreach($key in @('CPU','GPU','Memory','NVMe','Airflow')){
-        $script:labels[$key].Visibility=if($compact){'Collapsed'}else{'Visible'}
+        $script:labels[$key].Visibility=if($level -ge 3){'Collapsed'}else{'Visible'}
     }
     foreach($card in $script:densityCards){$card.ToolTip=$card.Child.Children[1].Text}
     foreach($group in $script:compactGroups){
@@ -43,4 +43,34 @@ function Update-CardDensity {
     }
     foreach($key in @('cpu','gpu','system')){$script:cells[$key][0].FontSize=if($compact){21}else{23}}
     foreach($entry in $script:usageCells.Values){$entry[0].Parent.Margin=if($compact){[Windows.Thickness]::new(0,3,0,0)}else{[Windows.Thickness]::new(0,8,0,0)}}
+}
+
+function Update-CardDensity([switch]$Animate) {
+    if($script:measuringDensity -or -not $script:densityCards){return}
+    $scroll=$window.FindName('CardScroll')
+    if($scroll.ActualHeight -le 0 -or $scroll.ActualWidth -le 0){return}
+    $script:measuringDensity=$true
+    try {
+        $previous=$script:densityLevel
+        $level=0
+        # Measure logical WPF space, including hidden cards, wrapping and font size.
+        # Reserve the scrollbar width so a disappearing scrollbar cannot flip density.
+        $width=[Math]::Max(1,$scroll.ActualWidth-12)
+        while($true){
+            Set-CardDensity $level
+            $cards.UpdateLayout()
+            $cards.Measure([Windows.Size]::new($width,[double]::PositiveInfinity))
+            if($script:showDetails -or $cards.DesiredSize.Height -le $scroll.ActualHeight-2 -or $level -eq 3){break}
+            $level++
+        }
+        $script:densityLevel=$level
+        if($Animate -and $null -ne $previous -and $level -ne $previous){
+            $cards.BeginAnimation([Windows.UIElement]::OpacityProperty,$null)
+            if([Windows.SystemParameters]::ClientAreaAnimation){
+                $fade=[Windows.Media.Animation.DoubleAnimation]::new(0.82,1,[Windows.Duration]::new([TimeSpan]::FromMilliseconds(180)))
+                $fade.FillBehavior='Stop'
+                $cards.BeginAnimation([Windows.UIElement]::OpacityProperty,$fade)
+            }
+        }
+    } finally {$script:measuringDensity=$false}
 }

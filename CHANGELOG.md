@@ -2,6 +2,14 @@
 
 English first; 简体中文 follows each version. Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
+## 0.4.1 — 2026-09-13 (Pre-release)
+
+- Auto density now measures the actual card viewport in logical WPF units instead of hiding hardware names below a fixed window height.
+- It preserves full information first, then reduces padding, then uses compact metric rows. Device descriptions are hidden only when those layouts still do not fit. Hidden cards are excluded from measurement.
+- Details keeps full information available. Switching density through Details uses a short opacity transition that respects Windows reduced-motion settings.
+- Regression covers resizing down and back up, plus the existing logical display-size matrix.
+- 自动 density 根据实际 viewport 测量：优先完整信息，依次压缩留白、调整 metrics 排列，最后才隐藏设备说明。窗口放大后自动恢复；Details 切换增加轻量过渡并尊重 reduced motion。
+
 ## 0.4.0 — 2026-09-13 (Pre-release)
 
 ### Added

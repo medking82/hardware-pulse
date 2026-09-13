@@ -88,6 +88,17 @@ $window.Width=310;$window.Height=690
 $script:showDetails=$true;Update-CardDensity;$window.UpdateLayout()
 if($script:labels.CPU.Visibility -ne 'Visible' -or $script:cells.vcore[0].Parent.Visibility -ne 'Visible'){throw 'Details did not restore full readings'}
 $script:showDetails=$false;Update-CardDensity
+$window.Height=900;$window.UpdateLayout();Update-CardDensity;$window.UpdateLayout()
+if($script:labels.CPU.Visibility -ne 'Visible'){throw ('Spacious auto layout: level='+$script:densityLevel+' card='+$cards.DesiredSize.Height+' viewport='+$window.FindName('CardScroll').ActualHeight+' win='+$window.ActualHeight)}
+$fullHeight=$cards.DesiredSize.Height
+$window.Height=650;$window.UpdateLayout();Update-CardDensity;$window.UpdateLayout()
+if($cards.DesiredSize.Height -gt $window.FindName('CardScroll').ActualHeight+1){throw 'Measured auto layout does not fit'}
+Capture-TestView 'density-tight'
+$window.Height=900;$window.UpdateLayout();Update-CardDensity;$window.UpdateLayout()
+if($script:labels.CPU.Visibility -ne 'Visible' -or $script:densityLevel -ne 0){throw 'Growing window did not restore full information'}
+'PASS: density measures available space and restores hardware details as the window grows'
+Capture-TestView 'density-spacious'
+$window.Height=690;$window.UpdateLayout()
 foreach($language in @('zh-CN','zh-TW','en','zh-TW')){
     $window.FindName('LanguagePicker').SelectedItem=@($window.FindName('LanguagePicker').Items | Where-Object {$_.Tag -eq $language})[0]
     if($window.FindName('Live').Content -ne (Get-PulseText 'Live')){throw 'Live label did not switch language'}

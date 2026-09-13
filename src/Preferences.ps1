@@ -63,7 +63,7 @@ $updateTimer.Add_Tick({
             if($script:updater.Pending.IsFaulted){throw 'Network error'}
             $release=$script:updater.Pending.Result | ConvertFrom-Json
             $remote=[version]([string]$release.tag_name -replace '^v','')
-            $hasUpdate=$remote -gt [version]'0.4.0'
+            $hasUpdate=$remote -gt [version]'0.4.1'
             $window.FindName('UpdateStatus').Text=if($hasUpdate){(Get-PulseText 'Update available')+' · '+$remote}else{Get-PulseText 'You are up to date'}
             $window.FindName('GetUpdate').Visibility=if($hasUpdate){'Visible'}else{'Collapsed'}
             if($hasUpdate -and $script:tray){$script:tray.ShowBalloonTip(5000,'Hardware Pulse',(Get-PulseText 'Update available')+' · '+$remote,[Windows.Forms.ToolTipIcon]::Info)}

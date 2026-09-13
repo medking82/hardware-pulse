@@ -10,9 +10,9 @@
 
 [Dependency maintenance and Linux/macOS roadmap](docs/DEPENDENCIES.md)
 
-**[Try 0.4.0 Pre-release / 下载 0.4.0 测试版 EXE](https://github.com/medking82/hardware-pulse/releases/download/v0.4.0/HardwarePulse-Setup.exe)** · [0.4.0 release notes](https://github.com/medking82/hardware-pulse/releases/tag/v0.4.0)
+**[Try 0.4.1 Pre-release / 下载 0.4.1 测试版 EXE](https://github.com/medking82/hardware-pulse/releases/download/v0.4.1/HardwarePulse-Setup.exe)** · [0.4.1 release notes](https://github.com/medking82/hardware-pulse/releases/tag/v0.4.1)
 
-**0.4.0 Pre-release** adds compact cards, tray, experimental game overlay, startup and appearance/update preferences, and fixes the upgrade installer. Local upgrade passed with Bitdefender protection unchanged. The installer is self-signed; SignPath approval is pending. Fresh-machine and live-game testing remain limited. / 新增 compact cards、tray、实验性 game overlay 和 Settings，修复 upgrade installer。本机安装已通过，未修改 Bitdefender protection；仍为 self-signed，欢迎测试反馈。
+**0.4.1 Pre-release** adds compact cards, tray, experimental game overlay, startup and appearance/update preferences, and fixes the upgrade installer. Local upgrade passed with Bitdefender protection unchanged. The installer is self-signed; SignPath approval is pending. Fresh-machine and live-game testing remain limited. / 新增 compact cards、tray、实验性 game overlay 和 Settings，修复 upgrade installer。本机安装已通过，未修改 Bitdefender protection；仍为 self-signed，欢迎测试反馈。
 
 Latest: **0.3.1** — animated card reordering. See the changelog for version history.
 
