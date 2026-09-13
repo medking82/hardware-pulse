@@ -1,4 +1,4 @@
-﻿<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="Hardware Pulse Glass" Width="280" Height="650" MinWidth="240" MinHeight="340" WindowStyle="None" ResizeMode="CanResizeWithGrip" Background="#182332" Foreground="#F0F5FA" FontFamily="Segoe UI" FontSize="12" UseLayoutRounding="True" SnapsToDevicePixels="True" WindowStartupLocation="CenterScreen">
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="Hardware Pulse Glass" Width="280" Height="650" MinWidth="240" MinHeight="340" WindowStyle="None" ResizeMode="CanResizeWithGrip" Background="#182332" Foreground="#F0F5FA" FontFamily="Segoe UI" FontSize="12" UseLayoutRounding="True" SnapsToDevicePixels="True" WindowStartupLocation="CenterScreen">
  <Window.Resources>
   <Style TargetType="TextBlock"><Setter Property="TextWrapping" Value="Wrap"/></Style>
   <Style TargetType="Button"><Setter Property="Foreground" Value="#F3F7FC"/><Setter Property="Background" Value="#223B536B"/><Setter Property="Padding" Value="10,5"/><Setter Property="Margin" Value="0,0,6,0"/><Setter Property="MinHeight" Value="28"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button"><Border x:Name="Plate" Background="{TemplateBinding Background}" BorderBrush="#496F829A" BorderThickness="1" CornerRadius="15" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Plate" Property="Background" Value="#505E829D"/></Trigger><Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Plate" Property="BorderBrush" Value="#BFEAF9"/><Setter TargetName="Plate" Property="BorderThickness" Value="2"/></Trigger><Trigger Property="IsPressed" Value="True"><Setter TargetName="Plate" Property="Background" Value="#8078A5B9"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter></Style>
@@ -18,6 +18,12 @@
     <StackPanel Orientation="Horizontal" Margin="0,0,0,20"><Button x:Name="Back" ToolTip="Back to Monitor" AutomationProperties.Name="Back to Monitor" Width="32" Padding="7"/><TextBlock Text="Settings" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center" Margin="4,0,0,0"/></StackPanel>
     <Border Background="#3031485B" BorderBrush="#426D8B9F" BorderThickness="1" CornerRadius="14" Padding="12" Margin="0,0,0,12"><StackPanel>
      <TextBlock Text="Appearance" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,16"/>
+     <TextBlock Text="Language" Margin="0,0,0,6"/>
+     <ComboBox x:Name="LanguagePicker" AutomationProperties.Name="Language" MinHeight="30" Margin="0,0,0,16" Foreground="#182332" FontFamily="Segoe UI, Microsoft YaHei UI, Microsoft JhengHei UI">
+      <ComboBoxItem Tag="en" Content="English"/>
+      <ComboBoxItem Tag="zh-CN" Content="简体中文"/>
+      <ComboBoxItem Tag="zh-TW" Content="繁體中文"/>
+     </ComboBox>
      <Grid Margin="0,0,0,8"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="Background Opacity" Margin="0,0,8,0"/><TextBlock x:Name="OpacityValue" Grid.Column="1" Text="70%"/></Grid>
      <Slider x:Name="OpacitySlider" Minimum="15" Maximum="100" Value="70" SmallChange="5" LargeChange="10" AutomationProperties.Name="Background opacity" Margin="0,0,0,18"/>
      <CheckBox x:Name="Solid" Content="Solid Background" Margin="0,0,0,14"/>
@@ -36,7 +42,7 @@
     <TextBlock Text="Changes save automatically." FontSize="11" Foreground="#ADC1D2" Margin="2,16,0,12"/>
     <Border BorderBrush="#426D8B9F" BorderThickness="0,1,0,0" Padding="0,14,0,10" Margin="0,8,0,0"><StackPanel>
      <TextBlock Text="About Pulse" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,8"/>
-     <TextBlock Text="Version 0.2.0 · Marck Wong" FontSize="11" Foreground="#ADC1D2" Margin="0,0,0,8"/>
+     <TextBlock Text="Version 0.3.0 · Marck Wong" FontSize="11" Foreground="#ADC1D2" Margin="0,0,0,8"/>
      <Button x:Name="GitHub" Content="GitHub" HorizontalAlignment="Left" ToolTip="github.com/medking82/hardware-pulse"/>
      <TextBlock Text="Sensors by LibreHardwareMonitor. Shared driver by PawnIO." FontSize="10" Foreground="#ADC1D2" Margin="0,10,0,0"/>
     </StackPanel></Border>

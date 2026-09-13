@@ -1,5 +1,12 @@
 # Widget and installer boundary
 
+## Version 0.3.0
+
+- Add instant English, Simplified Chinese and Traditional Chinese UI selection in Settings, persisted across restarts. Keep device identities, units, custom names and card IDs unchanged.
+- Translate monitor labels/status, Settings, reorder menus, tooltips and accessibility names. Unsupported saved language codes fall back to English; existing settings keep English.
+- Add PowerShell prerequisite checks and verify PawnIO library/driver registration after its bundled installer completes.
+- Validate language switching and restore through isolated WPF sessions, including 240-pixel layout captures.
+
 Extract the existing Hardware Pulse implementation into its own repository without
 moving or deleting PC maintenance history. Add original SVG icons, consistent Segoe UI type,
 Title Case labels, and drag reordering with keyboard button fallback. Keep equal RAM/NVMe columns.

@@ -1,5 +1,14 @@
 # Local validation — 2026-09-13
 
+## 0.3.0 candidate
+
+- English, Simplified Chinese and Traditional Chinese switch immediately in isolated real WPF sessions. Language selection autosaves and restores in a second process; custom Unicode names and stable card order IDs survive switching.
+- Rendered and inspected 240-pixel Simplified Chinese monitor and Traditional Chinese Settings captures. Test sessions also render all three languages at that width.
+- Script/sensor/settings/snap regression checks, UTF-8 BOM checks and version consistency checks pass. The native EXE and 0.3.0 installer compile and carry the existing self-signed author certificate (untrusted chain, not public CA trust).
+- This candidate has not upgraded the installed app or replaced GitHub release 0.2.0. Earlier installed-machine results below describe the previous version.
+
+## Earlier installed validation
+
 - PowerShell syntax, XAML/SVG parsing and sensor regression passed.
 - Snap geometry tests passed: work-area edges, adjacent window edges, negative monitor coordinates,
   non-overlapping targets, movement outside the 12-pixel attraction threshold and dragging away from a snapped edge.
@@ -29,3 +38,8 @@ Version 0.2.0 app/installer carry a SHA-256 Authenticode signature from the user
 A development-time PowerShell SVG generation command was blocked by Bitdefender's heuristic scanner. That command was not retried or excluded; the SVG was edited directly as source. This does not establish a malware verdict or a clean-antivirus guarantee for the app. The installed app continued running.
 
 Windows 10 22H2 compatibility uses the supported OS API baseline and a solid backdrop fallback; no Windows 10 host is available for live verification. Fresh-machine driver installation, uninstall/reinstall, multi-monitor DPI changes and a second complete reboot remain outside the verified boundary.
+# Prerequisite checks (local candidate)
+
+The installer now checks .NET Framework 4.8 and Windows PowerShell 5.1 before installation, and requires both the PawnIO library and driver registration before skipping its bundled installer. A missing prerequisite after PawnIO setup prevents startup registration.
+
+Inno Setup compilation and `scripts/Validate.ps1` pass. Read-only checks on the development host confirm .NET Release 533509, PowerShell 5.1, the PowerShell executable, PawnIOLib.dll and PawnIO service registration. This does not exercise missing-dependency installation, damaged Windows components or blocked driver loading; those require a disposable Windows machine. The candidate has not replaced the published 0.2.0 installer.

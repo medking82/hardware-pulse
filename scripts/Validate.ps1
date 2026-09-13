@@ -1,5 +1,11 @@
 ﻿$ErrorActionPreference='Stop'
 $root=Split-Path $PSScriptRoot
+$hostSource=[IO.File]::ReadAllText("$root/src/WidgetHost.cs")
+$version=[regex]::Match($hostSource,'AssemblyVersion\("(\d+\.\d+\.\d+)\.0"\)').Groups[1].Value
+if(-not $version){throw 'Missing application version'}
+foreach($check in @(@('installer/HardwarePulse.iss',"AppVersion=$version"),@('scripts/Build.ps1',"HardwarePulse-$version-Setup.exe"),@('src/Panel.xaml',"Version $version"),@('src/Localization.ps1',"Version $version"))){
+    if(-not [IO.File]::ReadAllText((Join-Path $root $check[0])).Contains($check[1])){throw "Version mismatch in $($check[0])"}
+}
 foreach($file in Get-ChildItem "$root/src","$root/scripts" -Filter *.ps1){
     $bytes=[IO.File]::ReadAllBytes($file.FullName)
     $null=[Text.UTF8Encoding]::new($false,$true).GetString($bytes)

@@ -5,6 +5,7 @@ trap { $_.Exception.ToString() | Set-Content "$script:stateRoot\glass-error.txt"
 Add-Type -AssemblyName PresentationFramework,PresentationCore,WindowsBase
 . "$PSScriptRoot\Sensors.ps1"
 . "$PSScriptRoot\Icons.ps1"
+. "$PSScriptRoot\Localization.ps1"
 $mutex=New-Object Threading.Mutex($false,'Local\HardwarePulseGlass')
 if(-not $mutex.WaitOne(0)){exit}
 [xml]$xml=Get-Content "$PSScriptRoot\Panel.xaml" -Raw -Encoding UTF8
@@ -27,6 +28,7 @@ try {
     $window.FontSize=if($saved.large){14}else{12}
     if($null -ne $saved.opacity){$window.FindName('OpacitySlider').Value=[Math]::Max(15,[Math]::Min(100,[double]$saved.opacity))}
 } catch {}
+$script:language=Resolve-PulseLanguage $saved.language
 if((Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize' -Name EnableTransparency -ErrorAction SilentlyContinue).EnableTransparency -eq 0){$window.FindName('Solid').IsChecked=$true}
 'Building cards' | Set-Content "$script:stateRoot\glass-stage.txt"
 $script:cells=@{}; $script:peaks=@{}; $script:lastIdentity=''; $script:mode='live'
@@ -117,16 +119,16 @@ Add-UsageRow $cards.Children[1] 'vram' 'VRAM' '#A7CBFF'
 Add-UsageRow $cards.Children[2] 'ram' 'RAM' '#E7C5A4'
 function Update-DeviceNames {
     foreach($key in $script:labels.Keys){
-        $text=if($script:nameOverrides.ContainsKey($key) -and $script:nameOverrides[$key]){$script:nameOverrides[$key]}else{$script:autoNames[$key]}
+        $text=if($script:nameOverrides.ContainsKey($key) -and $script:nameOverrides[$key]){$script:nameOverrides[$key]}else{Get-PulseText $script:autoNames[$key]}
         $script:labels[$key].Text=$text;$script:labels[$key].ToolTip=$text
-        if($script:nameEditors.ContainsKey($key)){$script:nameEditors[$key].ToolTip='Automatic: '+$script:autoNames[$key]}
+        if($script:nameEditors.ContainsKey($key)){$script:nameEditors[$key].ToolTip=(Get-PulseText 'Automatic: ')+$script:autoNames[$key]}
     }
 }
 Update-DeviceNames
 function Save-WidgetSettings {
     $bounds=$window.RestoreBounds
     if($bounds.IsEmpty){return}
-    $settings=@{width=$bounds.Width;height=$bounds.Height;left=$bounds.Left;top=$bounds.Top;pin=$window.Topmost;solid=[bool]$window.FindName('Solid').IsChecked;large=[bool]$window.FindName('Large').IsChecked;opacity=$window.FindName('OpacitySlider').Value;cardOrder=@($cards.Children | ForEach-Object {$_.Tag});names=$script:nameOverrides} | ConvertTo-Json -Depth 4
+    $settings=@{language=$script:language;width=$bounds.Width;height=$bounds.Height;left=$bounds.Left;top=$bounds.Top;pin=$window.Topmost;solid=[bool]$window.FindName('Solid').IsChecked;large=[bool]$window.FindName('Large').IsChecked;opacity=$window.FindName('OpacitySlider').Value;cardOrder=@($cards.Children | ForEach-Object {$_.Tag});names=$script:nameOverrides} | ConvertTo-Json -Depth 4
     $temp=$script:settingsPath+'.tmp'
     [IO.File]::WriteAllText($temp,$settings)
     if([IO.File]::Exists($script:settingsPath)){
@@ -196,14 +198,14 @@ function Update-Panel {
             $cell[0].Text=('{0}  {1:F1} / {2:F1} GB · {3:F0}%' -f $cell[3],$usage.used,$usage.total,$usage.percent)
             $cell[2].Width=[Math]::Max(0,$cell[1].ActualWidth*$usage.percent/100)
         }else{$cell[0].Text=$cell[3]+' —';$cell[2].Width=0}
-        $cell[0].ToolTip='Current used / usable capacity (GB, binary units). Usage stays live in Session Max.'
+        $cell[0].ToolTip=Get-PulseText 'Current used / usable capacity (GB, binary units). Usage stays live in Session Max.'
     }
     if($data.state -eq 'LIVE' -and $data.identity -ne $script:lastIdentity){
         foreach($key in $data.values.Keys){if(-not $script:peaks.ContainsKey($key) -or $data.values[$key] -gt $script:peaks[$key]){$script:peaks[$key]=$data.values[$key]}}
         $script:lastIdentity=$data.identity
     }
-    $status.Text=if($data.state -eq 'LIVE'){'● Live · '+$data.time.ToLocalTime().ToString('HH:mm:ss')+' · '+$data.values.Count+'/'+$script:SensorMap.Count+' sensors'}else{'● '+$data.state+' · Waiting for collector'}
-    if($script:mode -eq 'max'){$status.Text+=' · Session peaks'}
+    $status.Text=if($data.state -eq 'LIVE'){'● '+(Get-PulseText 'Live')+' · '+$data.time.ToLocalTime().ToString('HH:mm:ss')+' · '+$data.values.Count+'/'+$script:SensorMap.Count+' '+(Get-PulseText 'sensors')}else{'● '+(Get-PulseText $data.state)+' · '+(Get-PulseText 'Waiting for collector')}
+    if($script:mode -eq 'max'){$status.Text+=' · '+(Get-PulseText 'Session peaks')}
     $status.Foreground=if($data.state -eq 'LIVE'){[Windows.Media.Brushes]::Aquamarine}else{[Windows.Media.Brushes]::PeachPuff}
     $values=if($script:mode -eq 'max'){$script:peaks}else{$data.values}
     foreach($key in $script:cells.Keys) {
@@ -212,12 +214,12 @@ function Update-Panel {
     }
     $window.FindName('Live').Background=if($script:mode -eq 'live'){[Windows.Media.BrushConverter]::new().ConvertFromString('#607898A8')}else{[Windows.Media.Brushes]::Transparent}
     if($data.state -eq 'LIVE'){$script:gpuFanCount=$data.gpuFanCount}
-    $script:gpuFanLabel.Text='Fan Speed'
+    $script:gpuFanLabel.Text=Get-PulseText 'Fan Speed'
     if($script:gpuFanCount -gt 1){
         $first=if($values.ContainsKey('gpuFan')){'{0:F0}' -f $values.gpuFan}else{'—'}
         $second=if($values.ContainsKey('gpuFan2')){'{0:F0}' -f $values.gpuFan2}else{'—'}
         $script:cells.gpuFan[0].Text=$first+' / '+$second+' RPM'
-        $script:cells.gpuFan[0].ToolTip='GPU Fan 1 / GPU Fan 2 telemetry channels. These do not count physical fans.'
+        $script:cells.gpuFan[0].ToolTip=Get-PulseText 'GPU Fan 1 / GPU Fan 2 telemetry channels. These do not count physical fans.'
     }
     $window.FindName('Max').Background=if($script:mode -eq 'max'){[Windows.Media.BrushConverter]::new().ConvertFromString('#607898A8')}else{[Windows.Media.Brushes]::Transparent}
     @{updated=[DateTimeOffset]::Now.ToString('o');state=$data.state;mode=$script:mode;sensors=$data.values.Count} | ConvertTo-Json | Set-Content "$script:stateRoot\view-status.json"
@@ -245,7 +247,7 @@ function Set-Material {
     $opacity=$window.FindName('OpacitySlider').Value
     $alpha=[byte][Math]::Round($opacity*255/100)
     $window.FindName('OpacitySlider').IsEnabled=(-not $solid -and $result -eq 0)
-    $window.FindName('OpacitySlider').ToolTip=if($result -ne 0){'System glass background is unavailable on this Windows version.'}else{'Background opacity'}
+    $window.FindName('OpacitySlider').ToolTip=if($result -ne 0){Get-PulseText 'System glass background is unavailable on this Windows version.'}else{Get-PulseText 'Background Opacity'}
     $window.FindName('OpacityValue').Text=if($solid -or $result -ne 0){'100%'}else{([Math]::Round($opacity)).ToString()+'%'}
     $window.Background=if($solid -or $result -ne 0){[Windows.Media.BrushConverter]::new().ConvertFromString('#182332')}else{[Windows.Media.SolidColorBrush]::new([Windows.Media.Color]::FromArgb($alpha,24,35,50))}
 }
@@ -294,7 +296,9 @@ foreach($name in @('Pin','Solid','Large')){
     $window.FindName($name).Add_Checked($queueSettings)
     $window.FindName($name).Add_Unchecked($queueSettings)
 }
+$script:nameEditorTitles=@{}
 foreach($pair in @(@('CPU','CPU Name'),@('GPU','GPU Name'),@('Memory','Memory Details'),@('ramA','Module 1 Label'),@('ramB','Module 2 Label'),@('NVMe','NVMe Details'),@('diskC','Drive 1 Name'),@('diskD','Drive 2 Name'),@('Airflow','Case / Motherboard'),@('cpuFan','CPU Fan Name'),@('bottom','System Fan 1'),@('top','System Fan 2'))){
+    $script:nameEditorTitles[$pair[0]]=$pair[1]
     $label=[Windows.Controls.TextBlock]::new();$label.Text=$pair[1];$label.FontSize=11;$label.Margin='0,0,0,4'
     $editor=[Windows.Controls.TextBox]::new();$editor.Tag=$pair[0];$editor.MaxLength=160;$editor.Padding=6;$editor.Margin='0,0,0,12'
     $editor.Background=[Windows.Media.BrushConverter]::new().ConvertFromString('#5031485B');$editor.Foreground=[Windows.Media.Brushes]::White;$editor.BorderBrush=[Windows.Media.BrushConverter]::new().ConvertFromString('#60748B9F')
@@ -311,4 +315,15 @@ $window.Add_Closed({
     $timer.Stop()
     Save-WidgetSettings
 })
-try{Update-Panel;'Showing window' | Set-Content "$script:stateRoot\glass-stage.txt";$null=$window.ShowDialog()}finally{$mutex.ReleaseMutex();$mutex.Dispose()}
+$script:localizedControls=[Collections.Generic.List[object]]::new()
+Register-PulseText $window
+$languagePicker=$window.FindName('LanguagePicker')
+foreach($item in $languagePicker.Items){if($item.Tag -eq $script:language){$languagePicker.SelectedItem=$item}}
+$languagePicker.Add_SelectionChanged({
+    if($languagePicker.SelectedItem){
+        $script:language=Resolve-PulseLanguage ([string]$languagePicker.SelectedItem.Tag)
+        Update-PulseLanguage
+        if($window.IsLoaded){$settingsTimer.Stop();$settingsTimer.Start()}
+    }
+})
+try{Update-PulseLanguage;'Showing window' | Set-Content "$script:stateRoot\glass-stage.txt";$null=$window.ShowDialog()}finally{$mutex.ReleaseMutex();$mutex.Dispose()}

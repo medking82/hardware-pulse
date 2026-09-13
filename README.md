@@ -10,11 +10,15 @@ Author：**[Marck Wong](https://github.com/medking82)**
 
 ## 简体中文
 
+当前 source version 为 **0.3.0**（multi-language UI）；GitHub 最新 installer 仍为 **0.2.0**，0.3.0 installer 尚未发布。
+
 适用于 **Windows 10 22H2 / Windows 11 x64** 的轻量桌面硬件 widget，集中显示 CPU、GPU、Memory、NVMe 和 Fan readings，以及实时 RAM/VRAM usage。
 
 采用 WPF glass background、原创 SVG icons 和 Segoe UI typography，支持调整 background opacity、随窗口宽度缩放，以及保存 card order。运行时不需要 HWiNFO、browser、Codex 或 cloud service；需要 Windows 自带的 .NET Framework 4.8 和 Windows PowerShell 5.1。
 
 ### 使用方式
+
+- **Settings → Language** 可即时切换 English、简体中文和繁體中文，自动保存选择；默认 English。设备型号、自定义名称和单位保持原样。
 
 - 拖动 card header 的六点 drag handle 即可排序，松手保存；Esc 取消当前 drag。
 - 右键 card 可选择 **Move Up / Move Down**；聚焦 drag handle 后也可按 Shift+F10 打开 menu。
@@ -37,7 +41,9 @@ DIMM 品牌、型号和已安装的 slots 来自 SMBIOS。**SPD #1/#3 是 sensor
 
 ### Installer 与自动启动
 
-Release 中的 `HardwarePulse-Setup.exe`（version 0.2.0）包含 app、固定 version 的 LibreHardwareMonitor libraries、license notices/source archives，以及官方 PawnIO 2.2.0 prerequisite installer，无需在运行时下载 dependencies。目标 Windows versions 自带 .NET Framework 4.8 和 Windows PowerShell 5.1；setup 会检查 .NET requirement。
+Installer 会预先检查 .NET Framework 4.8 和 Windows PowerShell 5.1。PawnIO library 或 driver registration 缺失时，会自动运行内置的官方 installer，并在完成后再次检查；失败时不会继续注册 startup。Windows 自带的 components 若缺失或损坏，需要先修复 Windows；installer 不会自动修改 Windows features 或 security settings。这些 checks 验证安装状态，不保证 driver 能在所有 security policies 下加载。
+
+Release 中的 `HardwarePulse-Setup.exe`（version 0.3.0）包含 app、固定 version 的 LibreHardwareMonitor libraries、license notices/source archives，以及官方 PawnIO 2.2.0 prerequisite installer，无需在运行时下载 dependencies。目标 Windows versions 自带 .NET Framework 4.8 和 Windows PowerShell 5.1；setup 会检查 .NET requirement。
 
 请使用当前 Windows administrator account 安装，并确认 UAC。代码安装到 Program Files；installer 会注册当前用户的 interactive collector task，以及普通权限的 widget task。Widget 在登录后延迟 10 秒启动。Uninstall 会保留共享 PawnIO 和用户设置。此 version 不支持使用另一个 administrator account，为 standard user 代为安装。
 
@@ -76,6 +82,8 @@ Windows 10 compatibility 基于 API baseline 和 fallback，**尚未进行 Windo
 
 ## English
 
+The current source version is **0.3.0** with multilingual UI. The latest GitHub installer is still **0.2.0**; the 0.3.0 installer has not been published yet.
+
 A compact hardware widget by **[Marck Wong](https://github.com/medking82)** for **Windows 10 22H2 / Windows 11 x64**.
 
 [Download Latest EXE](https://github.com/medking82/hardware-pulse/releases/latest/download/HardwarePulse-Setup.exe) · [Release Notes](https://github.com/medking82/hardware-pulse/releases/latest)
@@ -86,6 +94,8 @@ width-adaptive layout and persistent card order. No HWiNFO, browser, Codex or cl
 required to run it. Windows .NET Framework 4.8 and Windows PowerShell 5.1 are OS prerequisites.
 
 ### Use
+
+- **Settings → Language** switches instantly between English, Simplified Chinese and Traditional Chinese and saves your selection. English is the default. Device models, custom names and units stay unchanged.
 
 - Drag the six-dot handle in a card header to reorder it. Release to save; Esc cancels.
 - Right-click a card for Move Up / Move Down; Shift+F10 opens the menu from its focused handle.
@@ -105,7 +115,9 @@ Sensors are read-only; this app does not tune fan curves or Curve Optimizer.
 
 ### Installer
 
-The release asset `HardwarePulse-Setup.exe` (version 0.2.0) bundles the application, pinned LibreHardwareMonitor libraries,
+Setup checks .NET Framework 4.8 and Windows PowerShell 5.1 before installation. If the PawnIO library or driver registration is missing, it runs the bundled official installer and checks again before registering startup. Missing or damaged Windows components require Windows repair; setup does not change Windows features or security settings. These checks establish installation presence, not successful driver loading under every security policy.
+
+The release asset `HardwarePulse-Setup.exe` (version 0.3.0) bundles the application, pinned LibreHardwareMonitor libraries,
 license notices/source archives and official PawnIO 2.2.0 prerequisite installer. No runtime downloads. The target Windows versions include .NET Framework 4.8 and Windows PowerShell 5.1; setup checks the .NET requirement.
 The installer requires UAC elevation and is intended for installation by the current administrator
 account. It installs protected code in Program Files and registers the current-user interactive

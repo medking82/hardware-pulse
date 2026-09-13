@@ -1,7 +1,7 @@
 [Setup]
 AppId={{75E8FDDA-D799-4D8A-882D-972DC72151C2}
 AppName=Hardware Pulse
-AppVersion=0.2.0
+AppVersion=0.3.0
 AppPublisher=Marck Wong
 AppPublisherURL=https://github.com/medking82
 AppSupportURL=https://github.com/medking82/hardware-pulse/issues
@@ -13,7 +13,7 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 MinVersion=10.0.19045
 OutputDir=..\dist
-OutputBaseFilename=HardwarePulse-0.2.0-Setup
+OutputBaseFilename=HardwarePulse-0.3.0-Setup
 SetupIconFile=..\assets\pulse.ico
 UninstallDisplayIcon={app}\HardwarePulse.exe
 Compression=lzma2
@@ -38,19 +38,35 @@ Filename: "{app}\HardwarePulse.exe"; Parameters: "--remove-startup"; Flags: runh
 [Code]
 function InitializeSetup(): Boolean;
 var Release: Cardinal;
+    PSVersion: String;
 begin
   Result := RegQueryDWordValue(HKLM, 'SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full', 'Release', Release) and (Release >= 528040);
-  if not Result then MsgBox('Hardware Pulse requires the Windows .NET Framework 4.8 component. Repair or enable it in Windows, then run setup again.', mbError, MB_OK);
+  if not Result then begin
+    MsgBox('The Windows .NET Framework 4.8 component is missing or damaged. It is included with supported Windows versions. Repair Windows components, then run setup again.', mbError, MB_OK);
+    Exit;
+  end;
+  Result := FileExists(ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe')) and
+    RegQueryStringValue(HKLM, 'SOFTWARE\Microsoft\PowerShell\3\PowerShellEngine', 'PowerShellVersion', PSVersion);
+  if Result then Result := Pos('5.1.', PSVersion + '.') = 1;
+  if not Result then MsgBox('Windows PowerShell 5.1 is missing or damaged. Restore this Windows component, then run setup again. PowerShell 7 is not a substitute.', mbError, MB_OK);
+end;
+
+function PawnIOPresent(): Boolean;
+begin
+  Result := FileExists(ExpandConstant('{autopf}\PawnIO\PawnIOLib.dll')) and
+    RegKeyExists(HKLM, 'SYSTEM\CurrentControlSet\Services\PawnIO');
 end;
 
 procedure CurStepChanged(CurStep: TSetupStep);
 var Code: Integer;
 begin
   if CurStep = ssPostInstall then begin
-    if not FileExists(ExpandConstant('{autopf}\PawnIO\PawnIOLib.dll')) then begin
+    if not PawnIOPresent() then begin
       if not Exec(ExpandConstant('{tmp}\PawnIO-2.2.0.exe'), '-install', '', SW_HIDE, ewWaitUntilTerminated, Code) then
         RaiseException('Could not launch the PawnIO prerequisite installer.');
       if Code <> 0 then RaiseException('PawnIO installation failed. Exit code: ' + IntToStr(Code));
+      if not PawnIOPresent() then
+        RaiseException('PawnIO setup finished, but its library or driver registration is missing. Hardware Pulse startup was not registered. Check the PawnIO installation and run setup again.');
     end;
     if not Exec(ExpandConstant('{app}\HardwarePulse.exe'), '--install-startup', '', SW_HIDE, ewWaitUntilTerminated, Code) then
       RaiseException('Could not register Hardware Pulse startup.');
