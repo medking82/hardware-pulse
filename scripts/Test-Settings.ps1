@@ -61,6 +61,26 @@ foreach($language in @('zh-CN','zh-TW','en','zh-TW')){
 }
 if($window.FindName('Live').Content -ne '即時'){throw 'Traditional Chinese text mismatch'}
 if((Resolve-PulseLanguage 'unknown') -ne 'en' -or (Get-PulseText 'Unknown Device Model') -ne 'Unknown Device Model'){throw 'Language fallback failed'}
+$firstCard=$cards.Children[0]
+$script:dragSaved=0
+$gesture=[CardDrag+Gesture]::new($cards,$firstCard,[Action]{$script:dragSaved++},$false)
+$gesture.Begin(12);$gesture.Move(5000)
+if($cards.Children[0] -ne $firstCard){throw 'Preview changed persisted card order'}
+if($cards.Children[1].RenderTransform.Children[1].Y -ge 0){throw 'Neighbors did not make space'}
+$gesture.Complete($true)
+if($script:dragSaved -ne 0 -or $cards.Children[0] -ne $firstCard){throw 'Cancel committed a drag'}
+foreach($card in $cards.Children){if($card.RenderTransform.Children[1].Y -ne 0){throw 'Reduced-motion cancel left an offset'}}
+$gesture.Begin(12);$gesture.Move(5000);$gesture.Complete($false)
+if($cards.Children[4] -ne $firstCard -or $script:dragSaved -ne 1){throw 'Drop did not commit exactly once'}
+$gesture=[CardDrag+Gesture]::new($cards,$firstCard,[Action]{$script:dragSaved++},$true)
+$start=[Windows.Controls.Primitives.LayoutInformation]::GetLayoutSlot($firstCard).Top+12
+$gesture.Begin($start);$gesture.Move(-5000);$gesture.Complete($false)
+# Re-grab during the settling animation and cancel without losing the committed order.
+$gesture.Begin(12);$gesture.Move(60);$gesture.Complete($true)
+Pump
+if($cards.Children[0] -ne $firstCard -or $script:dragSaved -ne 2){throw 'Interrupted settling lost order'}
+foreach($card in $cards.Children){if([Math]::Abs($card.RenderTransform.Children[1].Y) -gt 0.01){throw 'Animation did not settle'}}
+'PASS: reorder preview, cancel, reduced motion, commit and interrupted settling'
 Pump
 if(-not(Test-Path $script:settingsPath)){throw 'Settings were not saved while window remained open'}
 $saved=Get-Content $script:settingsPath -Raw -Encoding UTF8 | ConvertFrom-Json

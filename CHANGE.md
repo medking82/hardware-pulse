@@ -1,5 +1,12 @@
 # Widget and installer boundary
 
+## Version 0.3.1 (Unreleased)
+
+Add card lift, animated reorder preview and interruptible settling; preserve pointer tracking,
+cancel semantics, stable IDs and one save per successful drop. Use native WPF transforms and
+the Windows client-area animation preference. Gesture regression covers reduced motion and
+re-grabbing before settling finishes. Public version history now lives in CHANGELOG.md.
+
 ## Version 0.3.0
 
 - Add instant English, Simplified Chinese and Traditional Chinese UI selection in Settings, persisted across restarts. Keep device identities, units, custom names and card IDs unchanged.

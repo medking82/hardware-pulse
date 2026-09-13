@@ -1,5 +1,9 @@
 # Hardware Pulse
 
+[Changelog / 更新记录](CHANGELOG.md)
+
+Source: **0.3.1 (Unreleased)** — animated card reordering. Latest published installer: **0.3.0**.
+
 [English](#en) · [简体中文](#zh-cn)
 
 **[Download Latest EXE / 下载最新 EXE](https://github.com/medking82/hardware-pulse/releases/latest/download/HardwarePulse-Setup.exe)** · [Release Notes](https://github.com/medking82/hardware-pulse/releases/latest)

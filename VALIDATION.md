@@ -1,5 +1,13 @@
 # Local validation — 2026-09-13
 
+## 0.3.1 candidate
+
+WPF gesture tests pass for preview displacement without order mutation, cancel without save,
+reduced-motion reset, exactly one successful-drop callback, reverse reordering, and re-grab
+during settling followed by cancellation. Existing sensor/settings/snap/language regression
+also passes. Hand-operated pointer feel and edge autoscroll remain unverified. The installed
+app and published 0.3.0 release are not replaced by this source update.
+
 ## 0.3.0 candidate
 
 - English, Simplified Chinese and Traditional Chinese switch immediately in isolated real WPF sessions. Language selection autosaves and restores in a second process; custom Unicode names and stable card order IDs survive switching.
