@@ -97,6 +97,15 @@ Capture-TestView 'density-tight'
 $window.Height=900;$window.UpdateLayout();Update-CardDensity;$window.UpdateLayout()
 if($script:labels.CPU.Visibility -ne 'Visible' -or $script:densityLevel -ne 0){throw 'Growing window did not restore full information'}
 'PASS: density measures available space and restores hardware details as the window grows'
+$script:language='zh-CN'
+if((Get-PulseDeviceText 'Demo · System Temperature') -ne 'Demo · 系统温度'){throw 'Generated temperature descriptor not translated'}
+if((Get-PulseDeviceText '32 GB DDR5-6000 configured · Slots A2 / B2') -ne '32 GB DDR5-6000 已配置 · 槽位 A2 / B2'){throw 'Memory metadata translation failed'}
+if((Get-PulseText 'VRAM Junction') -ne '显存温度'){throw 'VRAM wording regression'}
+$script:language='zh-TW'
+if((Get-PulseDeviceText 'Bottom Intake · SYS1') -ne '底部進風 · SYS1'){throw 'Traditional fan descriptor not translated'}
+$script:language='en'
+if((Get-PulseDeviceText 'Demo · Composite Temperature') -ne 'Demo · Composite Temperature'){throw 'English descriptor changed'}
+'PASS: generated hardware descriptors and VRAM terminology in three languages'
 Capture-TestView 'density-spacious'
 $window.Height=690;$window.UpdateLayout()
 foreach($language in @('zh-CN','zh-TW','en','zh-TW')){

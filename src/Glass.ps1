@@ -104,6 +104,7 @@ function Add-Card($title,$subtitle,$accent,$hero,$rows) {
 }
 Add-Card 'CPU' 'Processor' '#A5E7D5' 'cpu' @(@('Utilization','cpuLoad','%'),@('Vcore · Motherboard','vcore','V'),@('CPU Fan','cpuFan','RPM'))
 Add-Card 'GPU' 'Graphics' '#A7CBFF' 'gpu' @(@('Utilization','gpuLoad','%'),@('VRAM Junction','vram','°C'),@('Core Voltage','gpuVolt','V'),@('Fan Speed','gpuFan','RPM'))
+$script:cells.vram[0].Parent.ToolTip='Memory-chip internal temperature (junction sensor when available); separate from GPU core temperature.'
 function Add-PairCard($title,$subtitle,$leftLabel,$leftKey,$rightLabel,$rightKey,$accent) {
     $border=New-Object Windows.Controls.Border;$border.CornerRadius=14;$border.Padding=10;$border.Margin='0,0,0,6';$border.BorderThickness=1
     $border.BorderBrush=[Windows.Media.BrushConverter]::new().ConvertFromString('#426D8B9F');$border.Background=[Windows.Media.BrushConverter]::new().ConvertFromString('#5031485B')
@@ -140,9 +141,11 @@ Add-UsageRow $cards.Children[2] 'ram' 'RAM' '#E7C5A4'
 . "$PSScriptRoot\Density.ps1"
 function Update-DeviceNames {
     foreach($key in $script:labels.Keys){
-        $text=if($script:nameOverrides.ContainsKey($key) -and $script:nameOverrides[$key]){$script:nameOverrides[$key]}else{Get-PulseText $script:autoNames[$key]}
+        $text=if($script:nameOverrides.ContainsKey($key) -and $script:nameOverrides[$key]){
+            if($legacyDefaults.ContainsKey($key) -and $script:nameOverrides[$key] -eq $legacyDefaults[$key]){Get-PulseDeviceText $script:nameOverrides[$key]}else{$script:nameOverrides[$key]}
+        }else{Get-PulseDeviceText $script:autoNames[$key]}
         $script:labels[$key].Text=$text;$script:labels[$key].ToolTip=$text
-        if($script:nameEditors.ContainsKey($key)){$script:nameEditors[$key].ToolTip=(Get-PulseText 'Automatic: ')+$script:autoNames[$key]}
+        if($script:nameEditors.ContainsKey($key)){$script:nameEditors[$key].ToolTip=(Get-PulseText 'Automatic: ')+(Get-PulseDeviceText $script:autoNames[$key])}
     }
 }
 Update-DeviceNames
@@ -218,9 +221,9 @@ function Update-Panel {
     foreach($key in $script:usageCells.Keys){
         $cell=$script:usageCells[$key];$usage=if($data.state -eq 'LIVE'){$data.usage[$key]}else{$null}
         if($usage){
-            $cell[0].Text=('{0}  {1:F1} / {2:F1} GB · {3:F0}%' -f $cell[3],$usage.used,$usage.total,$usage.percent)
+            $cell[0].Text=('{0}  {1:F1} / {2:F1} GB · {3:F0}%' -f (Get-PulseText $cell[3]),$usage.used,$usage.total,$usage.percent)
             $cell[2].Width=[Math]::Max(0,$cell[1].ActualWidth*$usage.percent/100)
-        }else{$cell[0].Text=$cell[3]+' —';$cell[2].Width=0}
+        }else{$cell[0].Text=(Get-PulseText $cell[3])+' —';$cell[2].Width=0}
         $cell[0].ToolTip=Get-PulseText 'Current used / usable capacity (GB, binary units). Usage stays live in Session Max.'
     }
     if($data.state -eq 'LIVE' -and $data.identity -ne $script:lastIdentity){

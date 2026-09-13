@@ -10,11 +10,11 @@
 
 [Dependency maintenance and Linux/macOS roadmap](docs/DEPENDENCIES.md)
 
-**[Download 0.4.1 / 下载 0.4.1 EXE](https://github.com/medking82/hardware-pulse/releases/download/v0.4.1/HardwarePulse-Setup.exe)** · [0.4.1 release notes](https://github.com/medking82/hardware-pulse/releases/tag/v0.4.1)
+**[Download 0.4.2 / 下载 0.4.2 EXE](https://github.com/medking82/hardware-pulse/releases/download/v0.4.2/HardwarePulse-Setup.exe)** · [0.4.2 release notes](https://github.com/medking82/hardware-pulse/releases/tag/v0.4.2)
 
-**0.4.1** adds compact cards, tray, experimental game overlay, startup and appearance/update preferences, and fixes the upgrade installer. Local upgrade passed with Bitdefender protection unchanged. The installer is self-signed; SignPath approval is pending. Fresh-machine and live-game testing remain limited. / 新增 compact cards、tray、实验性 game overlay 和 Settings，修复 upgrade installer。本机安装已通过，未修改 Bitdefender protection；仍为 self-signed，欢迎测试反馈。
+**0.4.2** adds compact cards, tray, experimental game overlay, startup and appearance/update preferences, and fixes the upgrade installer. Local upgrade passed with Bitdefender protection unchanged. The installer is self-signed; SignPath approval is pending. Fresh-machine and live-game testing remain limited. / 新增 compact cards、tray、实验性 game overlay 和 Settings，修复 upgrade installer。本机安装已通过，未修改 Bitdefender protection；仍为 self-signed，欢迎测试反馈。
 
-Latest: **0.4.1** — animated card reordering. See the changelog for version history.
+Latest: **0.4.2** — animated card reordering. See the changelog for version history.
 
 [English](#en) · [简体中文](#zh-cn)
 
@@ -26,7 +26,7 @@ Author:**[Marck Wong](https://github.com/medking82)**
 
 ## English
 
-The published version is **0.4.1** with multilingual UI and animated card reordering. Use the download link above for the latest installer.
+The published version is **0.4.2** with multilingual UI and animated card reordering. Use the download link above for the latest installer.
 
 A compact hardware widget by **[Marck Wong](https://github.com/medking82)** for **Windows 10 22H2 / Windows 11 x64**.
 

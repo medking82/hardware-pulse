@@ -8,7 +8,16 @@ No cards shown. Choose cards in Settings.|未显示卡片，请在设置中选�
 Show full hardware details|显示完整硬件明细|顯示完整硬體明細
 Load|负载|負載
 Fan|风扇|風扇
-Vcore|Vcore|Vcore
+Vcore|核心电压|核心電壓
+RAM|内存|記憶體
+VRAM|显存|顯存
+System Temperature|系统温度|系統溫度
+Composite Temperature|综合温度|綜合溫度
+Bottom Intake|底部进风|底部進風
+Top Exhaust|顶部排风|頂部排風
+Slots|槽位|插槽
+configured|已配置|已設定
+Memory-chip internal temperature (junction sensor when available); separate from GPU core temperature.|显存芯片内部温度（支持时读取结温传感器），不同于 GPU 核心温度。|顯存晶片內部溫度（支援時讀取接面溫度感測器），不同於 GPU 核心溫度。
 Voltage|电压|電壓
 VRAM Temp|显存温度|顯存溫度
 Background Color|背景颜色|背景顏色
@@ -60,7 +69,7 @@ Leave a name blank to use device information. Hover over a field to see its auto
 SPD numbers identify sensor addresses, not physical slots. Installed slots are reported separately; assign a slot name only after confirming its sensor.|SPD 编号代表传感器地址，并非实体插槽。已安装插槽单独显示；确认对应关系后再命名。|SPD 編號代表感測器位址，並非實體插槽。已安裝插槽單獨顯示；確認對應關係後再命名。
 Changes save automatically.|更改自动保存。|變更自動儲存。
 About Pulse|关于 Pulse|關於 Pulse
-Version 0.4.1 · Marck Wong|版本 0.4.1 · Marck Wong|版本 0.4.1 · Marck Wong
+Version 0.4.2 · Marck Wong|版本 0.4.2 · Marck Wong|版本 0.4.2 · Marck Wong
 Sensors by LibreHardwareMonitor. Shared driver by PawnIO.|传感器：LibreHardwareMonitor。共享驱动：PawnIO。|感測器：LibreHardwareMonitor。共用驅動程式：PawnIO。
 Language|语言 / Language|語言 / Language
 Minimize|最小化|最小化
@@ -72,8 +81,8 @@ Processor|处理器|處理器
 Graphics|显卡|顯示卡
 Motherboard|主板|主機板
 Utilization|使用率|使用率
-Vcore · Motherboard|Vcore · 主板|Vcore · 主機板
-VRAM Junction|显存结温|顯存接面溫度
+Vcore · Motherboard|核心电压 · 主板|核心電壓 · 主機板
+VRAM Junction|显存温度|顯存溫度
 Core Voltage|核心电压|核心電壓
 Fan Speed|风扇转速|風扇轉速
 CPU Fan|CPU 风扇|CPU 風扇
@@ -119,6 +128,15 @@ function Get-PulseText([string]$text) {
     if($script:language -eq 'en' -or -not $script:translations.ContainsKey($text)){return $text}
     $index=if($script:language -eq 'zh-TW'){1}else{0}
     return $script:translations[$text][$index]
+}
+function Get-PulseDeviceText([string]$text) {
+    # Translate known generated descriptors, never arbitrary model substrings.
+    $result=Get-PulseText $text
+    foreach($phrase in @('System Temperature','Composite Temperature','Bottom Intake','Top Exhaust','Slots','configured')){
+        $pattern='(?<![\p{L}\p{N}])'+[regex]::Escape($phrase)+'(?![\p{L}\p{N}])'
+        $result=[regex]::Replace($result,$pattern,(Get-PulseText $phrase))
+    }
+    return $result
 }
 # Capture original UI strings once. Device names and user input are deliberately excluded.
 function Register-PulseText($node) {

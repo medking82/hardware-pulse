@@ -2,6 +2,12 @@
 
 English first; 简体中文 follows each version. Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
+## 0.4.2 — 2026-09-13
+
+- Translate generated system/storage temperature descriptions, intake/exhaust labels, memory slots/configuration and RAM/VRAM usage labels in Simplified and Traditional Chinese. Preserve model identifiers and user-defined names.
+- Use clearer Chinese wording for VRAM temperature, with a tooltip distinguishing memory-chip temperature from GPU core temperature.
+- 补齐动态硬件说明、进出风、内存槽位及用量标签的简繁体翻译；“显存结温”改为“显存温度”，tooltip 说明其含义，型号与自定义名称保持原样。
+
 ## 0.4.1 — 2026-09-13
 
 Promoted to stable / Latest with maintainer authorization after local regression and in-place upgrade passed. The installer binary is unchanged.
