@@ -207,7 +207,15 @@ if($saved.width -ne 320){throw 'Atomic replacement of existing settings failed'}
 if($saved.opacity -ne 0 -or $saved.background -ne '#F2F4F7' -or $saved.autoUpdates){throw 'Appearance/update settings persistence failed'}
 $null=New-Item -ItemType Directory -Path $script:runtime -Force
 [IO.File]::WriteAllText((Join-Path $script:runtime 'snapshot.json'),'{}')
-$window.Close()
+$stopPath=Join-Path $script:runtime 'STOP'
+[IO.File]::WriteAllText($stopPath,'Old startup marker')
+$script:stopBlocked=$true;$script:ignoredStopTime=[IO.File]::GetLastWriteTimeUtc($stopPath).Ticks
+Update-Panel
+if(-not $window.IsVisible){throw 'Old blocked startup marker closed window'}
+[IO.File]::SetLastWriteTimeUtc($stopPath,[IO.File]::GetLastWriteTimeUtc($stopPath).AddSeconds(2))
+Update-Panel
+if($window.IsVisible){throw 'Fresh installer STOP ignored after startup access failure'}
+'PASS: fresh installer stop request overrides an undeletable startup marker'
 'PASS: live WPF geometry and preference autosave before close, and atomic replacement'
 '@
 $scriptText=$scriptText.Replace('$null=Start-PulseLoop',$exercise)

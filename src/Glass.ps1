@@ -11,9 +11,10 @@ if(-not $mutex.WaitOne(0)){exit}
 $script:exitRequested=$false
 $script:collectorStartFailed=$false
 $script:stopBlocked=$false
+$script:ignoredStopTime=0L
 try{
     if(Test-Path "$runtime\STOP"){
-        try{Remove-Item -LiteralPath "$runtime\STOP" -ErrorAction Stop}catch{$script:stopBlocked=$true;throw}
+        try{Remove-Item -LiteralPath "$runtime\STOP" -ErrorAction Stop}catch{$script:stopBlocked=$true;$script:ignoredStopTime=[IO.File]::GetLastWriteTimeUtc("$runtime\STOP").Ticks;throw}
     }
     if((Get-PulseSnapshot "$runtime\snapshot.json").state -ne 'LIVE'){
         $task=Get-ScheduledTask -TaskName 'Hardware Pulse Collector' -ErrorAction Stop
@@ -219,7 +220,9 @@ $cards.Children.Clear();foreach($card in $ordered){$null=$cards.Children.Add($ca
 Update-OrderButtons
 'Preparing backdrop' | Set-Content "$script:stateRoot\glass-stage.txt"
 function Update-Panel {
-    if(-not $script:stopBlocked -and (Test-Path "$script:runtime\STOP")){$script:exitRequested=$true;$window.Close();return}
+    if(Test-Path "$script:runtime\STOP"){
+        if(-not $script:stopBlocked -or [IO.File]::GetLastWriteTimeUtc("$script:runtime\STOP").Ticks -ne $script:ignoredStopTime){$script:exitRequested=$true;$window.Close();return}
+    }else{$script:stopBlocked=$false}
     $data=Get-PulseSnapshot "$script:runtime\snapshot.json"
     if($data.names){foreach($key in $data.names.Keys){if($data.names[$key]){$script:autoNames[$key]=$data.names[$key]}};Update-DeviceNames}
     foreach($key in $script:usageCells.Keys){

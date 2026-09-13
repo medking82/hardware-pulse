@@ -11,7 +11,7 @@ using System.Security.Principal;
 [assembly: AssemblyProduct("Hardware Pulse")]
 [assembly: AssemblyCompany("Marck Wong")]
 [assembly: AssemblyCopyright("Copyright 2026 Marck Wong")]
-[assembly: AssemblyVersion("0.4.4.0")]
+[assembly: AssemblyVersion("0.4.5.0")]
 internal static class WidgetHost {
     [STAThread]
     private static int Main(string[] args) {

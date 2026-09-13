@@ -2,6 +2,11 @@
 
 English first; 简体中文 follows each version. Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
+## 0.4.5 — 2026-09-14
+
+- Honor a fresh installer shutdown request even when an old startup STOP marker could not be deleted. This fixes a hidden widget retaining files during upgrade.
+- 修复启动时无法删除旧 STOP 文件后忽略新退出请求的问题，避免 widget 隐藏到 tray 后继续占用安装文件。
+
 ## 0.4.4 — 2026-09-14
 
 - Fix edge snapping trapping slow drags: derive movement from total cursor displacement since drag start instead of Windows' rebased moving rectangle. Pull away normally without Alt; retain the 24-DIP attraction range.
