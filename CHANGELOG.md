@@ -2,7 +2,9 @@
 
 English first; 简体中文 follows each version. Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
-## 0.4.1 — 2026-09-13 (Pre-release)
+## 0.4.1 — 2026-09-13
+
+Promoted to stable / Latest with maintainer authorization after local regression and in-place upgrade passed. The installer binary is unchanged.
 
 - Auto density now measures the actual card viewport in logical WPF units instead of hiding hardware names below a fixed window height.
 - It preserves full information first, then reduces padding, then uses compact metric rows. Device descriptions are hidden only when those layouts still do not fit. Hidden cards are excluded from measurement.
