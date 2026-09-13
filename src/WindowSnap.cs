@@ -6,6 +6,7 @@ using System.Windows.Input;
 using System.Windows.Interop;
 
 public static class WindowSnap {
+    public static readonly DependencyProperty PositionLockedProperty = DependencyProperty.RegisterAttached("PositionLocked",typeof(bool),typeof(WindowSnap),new PropertyMetadata(false));
     [StructLayout(LayoutKind.Sequential)] public struct Rect { public int Left,Top,Right,Bottom; }
 
     [StructLayout(LayoutKind.Sequential)] struct MonitorInfo { public int Size; public Rect Monitor,Work; public uint Flags; }
@@ -18,7 +19,9 @@ public static class WindowSnap {
     [DllImport("user32.dll")] static extern int GetWindowTextLength(IntPtr hwnd);
     [DllImport("user32.dll")] static extern IntPtr MonitorFromRect(ref Rect rect,uint flags);
     [DllImport("user32.dll")] static extern bool GetMonitorInfo(IntPtr monitor,ref MonitorInfo info);
+    [DllImport("user32.dll")] static extern uint GetDpiForWindow(IntPtr hwnd);
     [DllImport("dwmapi.dll")] static extern int DwmGetWindowAttribute(IntPtr hwnd,int attribute,out int value,int size);
+    [DllImport("dwmapi.dll",EntryPoint="DwmGetWindowAttribute")] static extern int DwmGetFrame(IntPtr hwnd,int attribute,out Rect value,int size);
 
     public static Rect Snap(Rect rect,Rect work,IEnumerable<Rect> windows,int threshold) {
         int dx=threshold+1,dy=threshold+1;
@@ -51,19 +54,33 @@ public static class WindowSnap {
         IntPtr own=new WindowInteropHelper(window).Handle;
 
         HwndSource.FromHwnd(own).AddHook(delegate(IntPtr hwnd,int message,IntPtr w,IntPtr l,ref bool handled){
-            // Snap only after the user releases the drag. Never constrain movement.
-            if(message!=0x0232 || (Keyboard.Modifiers & ModifierKeys.Alt)!=0)return IntPtr.Zero;
-            Rect rect;if(!GetWindowRect(own,out rect))return IntPtr.Zero;
+            if((bool)window.GetValue(PositionLockedProperty)) {
+                long command=w.ToInt64() & 0xFFF0;
+                if(message==0x0112 && (command==0xF010 || command==0xF000)){handled=true;return IntPtr.Zero;}
+                if(message==0x0232)return IntPtr.Zero;
+            }
+            // Use the proposed drag rectangle, not the previously snapped window position.
+            // This leaves the pointer free to pull out of the magnetic range without accumulating offsets.
+            bool moving=message==0x0216;
+            if((!moving && message!=0x0232) || (Keyboard.Modifiers & ModifierKeys.Alt)!=0)return IntPtr.Zero;
+            if((bool)window.GetValue(PositionLockedProperty))return IntPtr.Zero;
+            Rect rect;
+            if(moving)rect=(Rect)Marshal.PtrToStructure(l,typeof(Rect));
+            else if(!GetWindowRect(own,out rect))return IntPtr.Zero;
             MonitorInfo monitor=new MonitorInfo();monitor.Size=Marshal.SizeOf(typeof(MonitorInfo));
             if(!GetMonitorInfo(MonitorFromRect(ref rect,2),ref monitor))return IntPtr.Zero;
             var targets=new List<Rect>();
             EnumWindows(delegate(IntPtr candidate,IntPtr state){
                 if(candidate==own || !IsWindowVisible(candidate) || IsIconic(candidate) || GetWindowTextLength(candidate)==0)return true;
                 int cloaked; if(DwmGetWindowAttribute(candidate,14,out cloaked,4)==0 && cloaked!=0)return true;
-                Rect other;if(GetWindowRect(candidate,out other) && other.Right>other.Left && other.Bottom>other.Top)targets.Add(other);
+                Rect other;bool found=DwmGetFrame(candidate,9,out other,Marshal.SizeOf(typeof(Rect)))==0;
+                if(!found)found=GetWindowRect(candidate,out other);
+                if(found && other.Right>other.Left && other.Bottom>other.Top)targets.Add(other);
                 return true;
             },IntPtr.Zero);
-            Rect snapped=Snap(rect,monitor.Work,targets,12);
+            int threshold=(int)Math.Round(24.0 * Math.Max(96,GetDpiForWindow(own)) / 96.0);
+            Rect snapped=Snap(rect,monitor.Work,targets,threshold);
+            if(moving){Marshal.StructureToPtr(snapped,l,false);handled=true;return new IntPtr(1);}
             if(snapped.Left!=rect.Left || snapped.Top!=rect.Top)SetWindowPos(own,IntPtr.Zero,snapped.Left,snapped.Top,0,0,0x0015);
             return IntPtr.Zero;
         });

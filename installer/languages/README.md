@@ -1,0 +1,1 @@
+Inno Setup translations from https://github.com/jrsoftware/issrc/tree/1ae7bf81dc0d2013235dfe4bb0b6f4e4a0b6b25c/Files/Languages. Original notices are retained; see LICENSE.txt.

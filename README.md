@@ -10,11 +10,11 @@
 
 [Dependency maintenance and Linux/macOS roadmap](docs/DEPENDENCIES.md)
 
-**[Download 0.4.2 / 下载 0.4.2 EXE](https://github.com/medking82/hardware-pulse/releases/download/v0.4.2/HardwarePulse-Setup.exe)** · [0.4.2 release notes](https://github.com/medking82/hardware-pulse/releases/tag/v0.4.2)
+**[Download 0.4.3 / 下载 0.4.3 EXE](https://github.com/medking82/hardware-pulse/releases/download/v0.4.3/HardwarePulse-Setup.exe)** · [0.4.3 release notes](https://github.com/medking82/hardware-pulse/releases/tag/v0.4.3)
 
-**0.4.2** adds compact cards, tray, experimental game overlay, startup and appearance/update preferences, and fixes the upgrade installer. Local upgrade passed with Bitdefender protection unchanged. The installer is self-signed; SignPath approval is pending. Fresh-machine and live-game testing remain limited. / 新增 compact cards、tray、实验性 game overlay 和 Settings，修复 upgrade installer。本机安装已通过，未修改 Bitdefender protection；仍为 self-signed，欢迎测试反馈。
+**0.4.3** adds in-app update downloads, stable transparency, position lock, stronger edge snapping and localized setup. The installer is self-signed; SignPath approval is pending. Fresh-machine and live-game testing remain limited. / 新增 app 内下载更新、稳定透明效果、位置锁定、更强 edge snap 和三语言 installer；仍为 self-signed，SignPath 审核中。
 
-Latest: **0.4.2** — animated card reordering. See the changelog for version history.
+Latest: **0.4.3** — in-app update downloads, stable transparency, position lock and localized setup. See the changelog for version history.
 
 [English](#en) · [简体中文](#zh-cn)
 
@@ -25,8 +25,16 @@ Author:**[Marck Wong](https://github.com/medking82)**
 <a id="en"></a>
 
 ## English
+### Updates and desktop placement / 更新与桌面位置
 
-The published version is **0.4.2** with multilingual UI and animated card reordering. Use the download link above for the latest installer.
+- General offers optional background update checks and downloads. The installer is validated against the fixed GitHub repository, expected size and SHA-256 before **Install and Restart** launches it. Installation requires a click and Windows elevation; failure or cancellation can be retried.
+- **Lock Position and Size** disables window movement, resizing and card reordering. Locked Monitor uses one-quarter of your saved background opacity and disables blur; Settings remains readable. Unlock in Settings or the tray to restore the previous appearance. Solid/high-contrast preferences take precedence. This does not embed Pulse into the desktop layer.
+- App language defaults to **Auto (System)**, with English fallback; installer supports English, Simplified and Traditional Chinese, preselected from Windows UI language.
+- General 支持可选的后台 update check/download，校验 GitHub repo、文件大小和 SHA-256 后，点击 **Install and Restart** 安装；失败或取消可以重试。
+- **Lock Position and Size** 禁用移动、resize 和 card reorder。锁定 Monitor 的背景 opacity 降为原设置的四分之一并关闭 blur；Settings 保持可读。从 tray 或 Settings 解锁后恢复；Solid/high contrast 优先。这还不是 desktop layer 嵌入。
+- App 默认 **Auto (System)**，installer 也根据 Windows UI language 预选 English、简体或繁体中文。
+
+The published version is **0.4.3** with multilingual UI and animated card reordering. Use the download link above for the latest installer.
 
 A compact hardware widget by **[Marck Wong](https://github.com/medking82)** for **Windows 10 22H2 / Windows 11 x64**.
 
@@ -39,14 +47,14 @@ required to run it. Windows .NET Framework 4.8 and Windows PowerShell 5.1 are OS
 
 ### Use
 
-- **Settings → Language** switches instantly between English, Simplified Chinese and Traditional Chinese and saves your selection. English is the default. Device models, custom names and units stay unchanged.
+- **Settings → Language** switches instantly between English, Simplified Chinese and Traditional Chinese and saves your selection. Auto (System) is the default; explicit choices are preserved. Device models, custom names and units stay unchanged.
 
 - Drag the six-dot handle in a card header to reorder it. Release to save; Esc cancels.
 - Right-click a card for Move Up / Move Down; Shift+F10 opens the menu from its focused handle.
-- Drag the Pulse title to move the window. After release, edges snap within 12 pixels to screen edges or adjacent windows, including top/bottom alignment. Hold Alt to bypass. Windows do not follow each other.
+- Drag the Pulse title to move the window. During dragging and on release, edges snap within 24 DPI-scaled logical pixels to screen edges or adjacent windows, including top/bottom alignment. Hold Alt to bypass. Windows do not follow each other.
 - Live shows current readings; Session Max collects peaks since the widget opened.
 - Open the gear for Settings: opacity, Solid Background, Larger Text, Always on Top and Hardware Names. Leave a name blank for automatic device information.
-- Windows 10 uses a solid fallback where the Windows 11 backdrop API is unavailable.
+- Glass stays translucent when inactive. Unsupported composition uses a solid fallback.
 - DIMMs and the two NVMe readings use equal columns. RAM/VRAM usage stays live in Session Max; GB uses binary units and OS/driver-reported usable capacity, which may be smaller than installed capacity.
 - GPU Fan Speed lists reported RPM channels, not the number of physical fans.
 
@@ -114,14 +122,14 @@ real WPF Settings navigation, autosave/restore, discovery fixtures, usage units,
 
 ### 使用方式
 
-- **Settings → Language** 可即时切换 English、简体中文和繁體中文，自动保存选择；默认 English。设备型号、自定义名称和单位保持原样。
+- **Settings → Language** 可即时切换 English、简体中文和繁體中文，自动保存选择；默认 Auto (System)，保留手动选择。设备型号、自定义名称和单位保持原样。
 
 - 拖动 card header 的六点 drag handle 即可排序，松手保存；Esc 取消当前 drag。
 - 右键 card 可选择 **Move Up / Move Down**；聚焦 drag handle 后也可按 Shift+F10 打开 menu。
-- 拖动 Pulse title 移动窗口。松手后，距离 12 pixels 内的 screen edge 或相邻窗口 edge 会吸附，包括 top/bottom alignment。按住 Alt 可跳过；窗口不会跟随另一个 app 移动。
+- 拖动 Pulse title 移动窗口。拖动时及松手后，距离 24 DIP（随 DPI 缩放）内的 screen edge 或相邻窗口 edge 会吸附，包括 top/bottom alignment。按住 Alt 可跳过；窗口不会跟随另一个 app 移动。
 - **Live** 显示当前 readings；**Session Max** 记录本次 session 的峰值。
 - 点击 gear 打开 **Settings**，调整 Opacity、Solid Background、Larger Text、Always on Top 和 Hardware Names。自定义名称留空时使用自动读取的设备信息。
-- Windows 10 无法使用 Windows 11 backdrop API 时，自动使用 solid background。
+- Glass 在 inactive 时保持透明；不支持的 composition 使用 solid fallback。
 - DIMM 和两块 NVMe 采用等宽 columns。RAM/VRAM usage 在 Session Max 中仍实时更新；GB 使用 binary units，分母为 OS/driver 报告的可用 capacity，可能小于实际安装的 capacity。
 - **GPU Fan Speed** 显示的是 RPM telemetry channels，不代表实体风扇的数量。
 

@@ -2,6 +2,18 @@
 
 English first; 简体中文 follows each version. Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
+## 0.4.3 — 2026-09-14
+
+- Group Settings into collapsible sections with wrapping switch labels; center the gear and replace its dotted focus decoration.
+- Keep glass translucent when inactive. Opacity now includes card and gradient layers; zero opacity disables blur.
+- Lock window movement, resize and card order. Locked Monitor reduces background opacity without fading readings; unlock restores the saved appearance. Tray adds Settings, Always on Top and Lock actions.
+- Strengthen left/right and other edge magnets to 24 DPI-scaled logical pixels, apply during drag, and align to visible adjacent-window frames. Alt bypass remains available.
+- Add Auto (System) app language and English/Simplified/Traditional Chinese installer detection, with localized setup messages.
+- Download updates inside Pulse, with optional automatic downloads, progress, verified size/SHA-256 and Install and Restart. No unattended installation and no security-setting changes.
+- Settings 改为折叠分组与 switch；修正 gear 居中、focus 和窄窗口 label 换行。
+- 修复 inactive 透明度，card/gradient 跟随 opacity；锁定 Monitor 更透明，禁止移动、resize 和排序，tray 保留解锁入口。
+- 吸附范围提高至 24 DIP，拖动时对齐 screen/window edge，保留 Alt 自由移动。
+- App 增加 Auto (System)，installer 支持三种 language；新增 app 内下载、校验和点击安装更新。
 ## 0.4.2 — 2026-09-13
 
 - Translate generated system/storage temperature descriptions, intake/exhaust labels, memory slots/configuration and RAM/VRAM usage labels in Simplified and Traditional Chinese. Preserve model identifiers and user-defined names.

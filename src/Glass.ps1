@@ -48,7 +48,8 @@ try {
     $window.FontSize=if($saved.large){14}else{12}
     if($null -ne $saved.opacity){$window.FindName('OpacitySlider').Value=[Math]::Max(0,[Math]::Min(100,[double]$saved.opacity))}
 } catch {}
-$script:language=Resolve-PulseLanguage $saved.language
+$script:languagePreference=if($saved.language -in @('en','zh-CN','zh-TW','auto')){[string]$saved.language}else{'auto'}
+$script:language=Resolve-PulseLanguage $script:languagePreference
 if((Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize' -Name EnableTransparency -ErrorAction SilentlyContinue).EnableTransparency -eq 0){$window.FindName('Solid').IsChecked=$true}
 'Building cards' | Set-Content "$script:stateRoot\glass-stage.txt"
 $script:cells=@{}; $script:peaks=@{}; $script:lastIdentity=''; $script:mode='live'
@@ -152,7 +153,7 @@ Update-DeviceNames
 function Save-WidgetSettings {
     $bounds=$window.RestoreBounds
     if($bounds.IsEmpty){return}
-    $settings=@{cardsVisible=$script:cardsVisible;details=$script:showDetails;background=$script:backgroundHex;autoUpdates=$script:autoUpdates;overlay=$script:overlayState;language=$script:language;width=$bounds.Width;height=$bounds.Height;left=$bounds.Left;top=$bounds.Top;pin=$window.Topmost;solid=[bool]$window.FindName('Solid').IsChecked;large=[bool]$window.FindName('Large').IsChecked;opacity=$window.FindName('OpacitySlider').Value;cardOrder=@($cards.Children | ForEach-Object {$_.Tag});names=$script:nameOverrides} | ConvertTo-Json -Depth 4
+    $settings=@{positionLocked=$script:positionLocked;cardsVisible=$script:cardsVisible;details=$script:showDetails;background=$script:backgroundHex;autoUpdates=$script:autoUpdates;autoDownload=$script:autoDownload;overlay=$script:overlayState;language=$script:languagePreference;width=$bounds.Width;height=$bounds.Height;left=$bounds.Left;top=$bounds.Top;pin=$window.Topmost;solid=[bool]$window.FindName('Solid').IsChecked;large=[bool]$window.FindName('Large').IsChecked;opacity=$window.FindName('OpacitySlider').Value;cardOrder=@($cards.Children | ForEach-Object {$_.Tag});names=$script:nameOverrides} | ConvertTo-Json -Depth 4
     $temp=$script:settingsPath+'.tmp'
     [IO.File]::WriteAllText($temp,$settings)
     if([IO.File]::Exists($script:settingsPath)){
@@ -160,6 +161,7 @@ function Save-WidgetSettings {
     }else{[IO.File]::Move($temp,$script:settingsPath)}
 }
 function Move-Card($card,[int]$delta) {
+    if($script:positionLocked){return}
     $index=$cards.Children.IndexOf($card);$target=$index+$delta
     if($index -lt 0 -or $target -lt 0 -or $target -ge $cards.Children.Count){return}
     $cards.Children.RemoveAt($index);$cards.Children.Insert($target,$card)
@@ -170,17 +172,19 @@ function Move-Card($card,[int]$delta) {
 function Update-OrderButtons {
     for($i=0;$i -lt $cards.Children.Count;$i++){
         $entry=$script:orderButtons[[string]$cards.Children[$i].Tag]
-        $entry[0].IsEnabled=$i -gt 0
-        $entry[1].IsEnabled=$i -lt ($cards.Children.Count-1)
+        $entry[0].IsEnabled=(-not $script:positionLocked -and $i -gt 0)
+        $entry[1].IsEnabled=(-not $script:positionLocked -and $i -lt ($cards.Children.Count-1))
     }
 }
 Add-Type -Path "$PSScriptRoot\CardDrag.cs" -ReferencedAssemblies @('PresentationFramework','PresentationCore','WindowsBase','System.Xaml')
 $script:orderButtons=@{}
+$script:cardGrips=@()
 $titles=@('CPU','GPU','Memory','NVMe','Airflow')
 for($i=0;$i -lt $cards.Children.Count;$i++){
     $card=$cards.Children[$i];$card.Tag=$titles[$i]
         $drag=[Windows.Controls.Primitives.Thumb]::new();$drag.Width=16;$drag.Height=20;$drag.Margin='0,0,6,0';$drag.Cursor='SizeAll';$drag.Focusable=$true
     $drag.ToolTip='Drag To Reorder (Esc To Cancel)'
+    $script:cardGrips+=,$drag
     [Windows.Automation.AutomationProperties]::SetName($drag,'Drag '+$card.Tag)
     [xml]$thumbXaml='<ControlTemplate xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" TargetType="Thumb"><Border x:Name="GripPlate" CornerRadius="8" Background="Transparent" Padding="3"><Path Data="M8 5H9 M15 5H16 M8 12H9 M15 12H16 M8 19H9 M15 19H16" Stroke="#C2D8E5" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Stretch="Uniform"/></Border><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="GripPlate" Property="Background" Value="#405E829D"/></Trigger><Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="GripPlate" Property="Background" Value="#605E829D"/></Trigger></ControlTemplate.Triggers></ControlTemplate>'
     $drag.Template=[Windows.Markup.XamlReader]::Load([Xml.XmlNodeReader]::new($thumbXaml))
@@ -257,14 +261,50 @@ public static class PulseBackdrop {
  [DllImport("dwmapi.dll")] public static extern int DwmSetWindowAttribute(IntPtr hwnd,int attr,ref int value,int size);
  [StructLayout(LayoutKind.Sequential)] public struct Margins { public int Left,Right,Top,Bottom; }
  [DllImport("dwmapi.dll")] public static extern int DwmExtendFrameIntoClientArea(IntPtr hwnd,ref Margins margins);
+ [StructLayout(LayoutKind.Sequential)] struct Blur { public uint Flags; public int Enabled; public IntPtr Region; public int Transition; }
+ [StructLayout(LayoutKind.Sequential)] struct Accent { public int State,Flags,Color,Animation; }
+ [StructLayout(LayoutKind.Sequential)] struct Composition { public int Attribute; public IntPtr Data; public IntPtr Size; }
+ [DllImport("dwmapi.dll")] static extern int DwmEnableBlurBehindWindow(IntPtr hwnd,ref Blur value);
+ [DllImport("gdi32.dll")] static extern IntPtr CreateRectRgn(int left,int top,int right,int bottom);
+ [DllImport("gdi32.dll")] static extern bool DeleteObject(IntPtr value);
+ [DllImport("user32.dll")] static extern bool SetWindowCompositionAttribute(IntPtr hwnd,ref Composition value);
+ public static bool ApplyStable(IntPtr hwnd,bool solid,bool clear) {
+   // Disable focus-dependent system Acrylic. Accent blur is optional and probed at runtime.
+   int none=1;DwmSetWindowAttribute(hwnd,38,ref none,4);
+   IntPtr region=CreateRectRgn(0,0,-1,-1), memory=IntPtr.Zero;
+   if(region==IntPtr.Zero)return false;
+   try {
+     var blur=new Blur { Flags=3,Enabled=solid?0:1,Region=region };
+     if(DwmEnableBlurBehindWindow(hwnd,ref blur)<0)return false;
+     var accent=new Accent { State=(solid||clear)?0:3 };
+     int size=Marshal.SizeOf(typeof(Accent));memory=Marshal.AllocHGlobal(size);
+     Marshal.StructureToPtr(accent,memory,false);
+     var data=new Composition { Attribute=19,Data=memory,Size=new IntPtr(size) };
+     return SetWindowCompositionAttribute(hwnd,ref data);
+   } catch(EntryPointNotFoundException) { return false; }
+     finally { if(memory!=IntPtr.Zero)Marshal.FreeHGlobal(memory);DeleteObject(region); }
+ }
 }
 '@
+function Update-SurfaceOpacity {
+    $factor=if($window.FindName('Solid').IsChecked -or [Windows.SystemParameters]::HighContrast -or -not $window.FindName('OpacitySlider').IsEnabled){1.0}else{$window.FindName('OpacitySlider').Value/100.0}
+    if($script:positionLocked -and $window.FindName('SettingsPage').Visibility -ne 'Visible' -and -not $window.FindName('Solid').IsChecked -and -not [Windows.SystemParameters]::HighContrast){$factor*=0.25}
+    $viewport=$window.FindName('Viewport')
+    if($viewport.Background.IsFrozen){$viewport.Background=$viewport.Background.Clone()}
+    $viewport.Background.Opacity=$factor
+    foreach($card in $cards.Children){
+        if($card.Background.IsFrozen){$card.Background=$card.Background.Clone()}
+        $card.Background.Opacity=$factor
+    }
+}
 function Set-Material {
     $solid=$window.FindName('Solid').IsChecked -or [Windows.SystemParameters]::HighContrast
     $hwnd=[Windows.Interop.WindowInteropHelper]::new($window).Handle
     if($hwnd -eq [IntPtr]::Zero){return}
-    $kind=if($solid){1}else{3};$dark=1;$round=2
-    $result=[PulseBackdrop]::DwmSetWindowAttribute($hwnd,38,[ref]$kind,4)
+    $dark=1;$round=2
+    $lockedMonitor=$script:positionLocked -and $window.FindName('SettingsPage').Visibility -ne 'Visible'
+    $clear=$lockedMonitor -or $window.FindName('OpacitySlider').Value -eq 0
+    $result=if([PulseBackdrop]::ApplyStable($hwnd,[bool]$solid,[bool]$clear)){0}else{-1}
     $null=[PulseBackdrop]::DwmSetWindowAttribute($hwnd,20,[ref]$dark,4)
     $null=[PulseBackdrop]::DwmSetWindowAttribute($hwnd,33,[ref]$round,4)
     $margins=New-Object PulseBackdrop+Margins
@@ -272,12 +312,14 @@ function Set-Material {
     $null=[PulseBackdrop]::DwmExtendFrameIntoClientArea($hwnd,[ref]$margins)
     [Windows.Interop.HwndSource]::FromHwnd($hwnd).CompositionTarget.BackgroundColor=[Windows.Media.Colors]::Transparent
     $opacity=$window.FindName('OpacitySlider').Value
+    if($lockedMonitor -and -not $solid){$opacity*=0.25}
     $alpha=[byte][Math]::Round($opacity*255/100)
     $window.FindName('OpacitySlider').IsEnabled=(-not $solid -and $result -eq 0)
     $window.FindName('OpacitySlider').ToolTip=if($result -ne 0){Get-PulseText 'System glass background is unavailable on this Windows version.'}else{Get-PulseText 'Background Opacity'}
     $window.FindName('OpacityValue').Text=if($solid -or $result -ne 0){'100%'}else{([Math]::Round($opacity)).ToString()+'%'}
     $base=if($script:backgroundHex){[Windows.Media.ColorConverter]::ConvertFromString($script:backgroundHex)}else{[Windows.Media.ColorConverter]::ConvertFromString('#35383B')}
     $window.Background=if($solid -or $result -ne 0){[Windows.Media.SolidColorBrush]::new($base)}else{[Windows.Media.SolidColorBrush]::new([Windows.Media.Color]::FromArgb($alpha,$base.R,$base.G,$base.B))}
+    Update-SurfaceOpacity
 }
 foreach($pair in @(@('Close','close'),@('Minimize','minimize'))){
     $button=$window.FindName($pair[0]);$button.Content=New-PulseIcon $pair[1] 14
@@ -292,6 +334,7 @@ function Show-Settings([bool]$show){
     }
     if($show){$null=$window.FindName('Back').Focus()}else{$null=$window.FindName('Settings').Focus()}
     Update-CardVisibility
+    Set-Material
 }
 $window.FindName('Settings').Add_Click({Show-Settings $true})
 $window.FindName('Back').Add_Click({Show-Settings $false})
@@ -312,8 +355,21 @@ $window.Add_SizeChanged({
 })
 $window.FindName('Minimize').Add_Click({$window.WindowState='Minimized'})
 $window.FindName('Close').Add_Click({$window.Close()})
-$window.FindName('DragHandle').Add_MouseLeftButtonDown({if($_.ButtonState -eq 'Pressed'){$window.DragMove()}})
+$window.FindName('DragHandle').Add_MouseLeftButtonDown({if(-not $script:positionLocked -and $_.ButtonState -eq 'Pressed'){$window.DragMove()}})
 Add-Type -Path "$PSScriptRoot\WindowSnap.cs" -ReferencedAssemblies @('PresentationFramework','PresentationCore','WindowsBase','System.Xaml')
+$script:positionLocked=[bool]$saved.positionLocked
+function Update-PositionLock {
+    $window.SetValue([WindowSnap]::PositionLockedProperty,$script:positionLocked)
+    $window.ResizeMode=if($script:positionLocked){'NoResize'}else{'CanResizeWithGrip'}
+    $window.FindName('DragHandle').Cursor=if($script:positionLocked){'Arrow'}else{'SizeAll'}
+    $window.FindName('LockPosition').IsChecked=$script:positionLocked
+    if($script:trayLock){$script:trayLock.Checked=$script:positionLocked}
+    foreach($grip in $script:cardGrips){$grip.IsEnabled=(-not $script:positionLocked);$grip.Opacity=if($script:positionLocked){0.0}else{1.0}}
+    Update-OrderButtons
+    Set-Material
+}
+$window.FindName('LockPosition').Add_Click({$script:positionLocked=[bool]$window.FindName('LockPosition').IsChecked;Update-PositionLock;Save-WidgetSettings})
+Update-PositionLock
 $window.Add_SourceInitialized({Set-Material;[WindowSnap]::Attach($window)})
 $timer=New-Object Windows.Threading.DispatcherTimer;$timer.Interval=[TimeSpan]::FromSeconds(2);$timer.Add_Tick({Update-Panel});$timer.Start()
 # Persist settled changes while the app is running, without relying on Windows shutdown callbacks.
@@ -344,7 +400,7 @@ Update-DeviceNames
 $window.Add_Closing({param($sender,$eventArgs) Save-WidgetSettings;if(-not $script:exitRequested){$eventArgs.Cancel=$true;$window.Hide()}})
 $window.Add_Closed({
     if($script:runningLoop){[Windows.Threading.Dispatcher]::CurrentDispatcher.BeginInvokeShutdown([Windows.Threading.DispatcherPriority]::Background)}
-    if($updateTimer){$updateTimer.Stop()}
+    if($updateTimer){$updateTimer.Stop()};if($script:updater){$script:updater.CancelDownload()}
     if($script:tray){$script:tray.Visible=$false;$script:tray.Dispose()}
     if($overlayTimer){$overlayTimer.Stop();$script:frameCapture.Dispose();$script:gameOverlay.Close()}
     try{if(Test-Path "$script:runtime\snapshot.json"){[IO.File]::WriteAllText("$script:runtime\STOP",'Pulse Exit')}}catch{[IO.File]::WriteAllText("$script:stateRoot\shutdown-error.txt",'Collector shutdown request failed. Check runtime permissions.')}
@@ -357,7 +413,17 @@ $script:localizedControls=[Collections.Generic.List[object]]::new()
 Add-Type -AssemblyName System.Windows.Forms,System.Drawing
 $script:tray=[Windows.Forms.NotifyIcon]::new();$script:tray.Icon=[Drawing.Icon]::new((Join-Path $PSScriptRoot 'assets\pulse.ico'));$script:tray.Text='Hardware Pulse';$script:tray.Visible=$true
 $trayMenu=[Windows.Forms.ContextMenuStrip]::new()
-$script:trayShow=$trayMenu.Items.Add('Show Pulse');$script:trayExit=$trayMenu.Items.Add('Exit')
+$script:trayShow=$trayMenu.Items.Add('Show Pulse')
+$script:traySettings=$trayMenu.Items.Add('Settings')
+$null=$trayMenu.Items.Add([Windows.Forms.ToolStripSeparator]::new())
+$script:trayPin=$trayMenu.Items.Add('Always on Top');$script:trayPin.CheckOnClick=$true
+$script:trayLock=$trayMenu.Items.Add('Lock Position and Size');$script:trayLock.CheckOnClick=$true
+$null=$trayMenu.Items.Add([Windows.Forms.ToolStripSeparator]::new())
+$script:trayExit=$trayMenu.Items.Add('Exit')
+$trayMenu.Add_Opening({$script:trayPin.Checked=$window.Topmost;$script:trayLock.Checked=$script:positionLocked})
+$script:traySettings.Add_Click({$window.Show();$window.WindowState='Normal';$null=$window.Activate();Show-Settings $true})
+$script:trayPin.Add_Click({$window.Topmost=$script:trayPin.Checked;$window.FindName('Pin').IsChecked=$window.Topmost;Save-WidgetSettings})
+$script:trayLock.Add_Click({$script:positionLocked=$script:trayLock.Checked;Update-PositionLock;Save-WidgetSettings})
 $restorePulse={$window.Show();$window.WindowState='Normal';$null=$window.Activate()}
 $script:trayShow.Add_Click($restorePulse);$script:tray.Add_DoubleClick($restorePulse)
 $script:trayExit.Add_Click({$script:exitRequested=$true;$window.Close()})
@@ -365,10 +431,11 @@ $script:tray.ContextMenuStrip=$trayMenu
 . "$PSScriptRoot\Preferences.ps1"
 Register-PulseText $window
 $languagePicker=$window.FindName('LanguagePicker')
-foreach($item in $languagePicker.Items){if($item.Tag -eq $script:language){$languagePicker.SelectedItem=$item}}
+foreach($item in $languagePicker.Items){if($item.Tag -eq $script:languagePreference){$languagePicker.SelectedItem=$item}}
 $languagePicker.Add_SelectionChanged({
     if($languagePicker.SelectedItem){
-        $script:language=Resolve-PulseLanguage ([string]$languagePicker.SelectedItem.Tag)
+        $script:languagePreference=[string]$languagePicker.SelectedItem.Tag
+        $script:language=Resolve-PulseLanguage $script:languagePreference
         Update-PulseLanguage
         if($window.IsLoaded){$settingsTimer.Stop();$settingsTimer.Start()}
     }

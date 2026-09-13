@@ -16,6 +16,26 @@ $window.ShowInTaskbar=$false
 $script:exitRequested=$true
 $window.ShowActivated=$false
 $window.Show()
+$window.UpdateLayout()
+$script:trayLock.PerformClick()
+if(-not $script:positionLocked -or $window.ResizeMode -ne 'NoResize' -or -not $window.GetValue([WindowSnap]::PositionLockedProperty)){throw 'Tray lock did not disable movement and resizing'}
+if(@($script:cardGrips | Where-Object IsEnabled).Count){throw 'Locked cards can still be dragged'}
+$lockedOrder=@($cards.Children | ForEach-Object Tag) -join ','
+Move-Card $cards.Children[0] 1
+if((@($cards.Children | ForEach-Object Tag) -join ',') -ne $lockedOrder){throw 'Locked card order changed'}
+$script:trayLock.PerformClick()
+if($script:positionLocked -or $window.ResizeMode -ne 'CanResizeWithGrip'){throw 'Tray unlock failed'}
+if(@($script:cardGrips | Where-Object {-not $_.IsEnabled}).Count){throw 'Unlocked cards cannot be dragged'}
+foreach($pair in @(@('zh-HK','zh-TW'),@('zh-CN','zh-CN'),@('en-US','en'),@('de-DE','en'))){if((Get-PulseSystemLanguage $pair[0]) -ne $pair[1]){throw 'System language selection failed'}}
+$settingsButton=$window.FindName('Settings')
+$iconCenter=$settingsButton.Content.TranslatePoint([Windows.Point]::new(10,10),$settingsButton)
+if([Math]::Abs($iconCenter.X-$settingsButton.ActualWidth/2) -gt 0.7 -or [Math]::Abs($iconCenter.Y-$settingsButton.ActualHeight/2) -gt 0.7){throw 'Settings icon is not centered'}
+$window.FindName('Solid').IsChecked=$false
+$window.FindName('OpacitySlider').Value=0;Set-Material
+if($window.FindName('OpacitySlider').IsEnabled){
+    if($window.FindName('Viewport').Background.Opacity -ne 0 -or @($cards.Children | Where-Object {$_.Background.Opacity -ne 0}).Count){throw 'Background layers ignore zero opacity'}
+    if($window.Opacity -ne 1){throw 'Background opacity faded foreground content'}
+}
 $gear=$window.FindName('Settings').Content.Child.Children[0]
 $iconBounds=$gear.Data.GetRenderBounds([Windows.Media.Pen]::new([Windows.Media.Brushes]::White,$gear.StrokeThickness))
 if($iconBounds.Left -lt 0 -or $iconBounds.Top -lt 0 -or $iconBounds.Right -gt 24 -or $iconBounds.Bottom -gt 24){throw 'Gear SVG strokes exceed the viewBox'}

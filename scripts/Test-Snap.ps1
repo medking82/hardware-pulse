@@ -29,3 +29,12 @@ if($r.Bottom -ne 750 -or ($r.Bottom-$r.Top) -ne 543){throw 'Side-by-side bottom 
 $r=[WindowSnap]::Snap((Rect 400 200 680 743),$largeWork,$neighbor,12)
 if($r.Bottom -ne 743){throw 'Distant windows must not align'}
 'PASS: screen edges, adjacent windows, top/bottom alignment, negative coordinates and free movement'
+foreach($edge in @('left','right')){
+    foreach($distance in @(18,24,25,48)){
+        $left=if($edge -eq 'left'){$distance}else{1920-280-$distance}
+        $r=[WindowSnap]::Snap((Rect $left 100 ($left+280) 700),$largeWork,$none,24)
+        $expected=if($distance -gt 24){$left}elseif($edge -eq 'left'){0}else{1640}
+        if($r.Left -ne $expected){throw 'Strong side snap or release failed'}
+    }
+}
+'PASS: stronger left/right attraction and release outside the magnet range'

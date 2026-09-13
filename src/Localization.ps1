@@ -2,10 +2,20 @@
 # English source text is the fallback and the stable catalog key.
 @'
 Live|实时|即時
+Auto (System)|自动（系统）|自動（系統）
 Details|明细|明細
 Cards|卡片|卡片
 No cards shown. Choose cards in Settings.|未显示卡片，请在设置中选择。|未顯示卡片，請在設定中選擇。
 Show full hardware details|显示完整硬件明细|顯示完整硬體明細
+Lock Position and Size|锁定位置与大小|鎖定位置與大小
+General|常规|一般
+Download Updates Automatically|自动下载更新|自動下載更新
+Install and Restart|安装并重启|安裝並重新啟動
+Downloading update|正在下载更新|正在下載更新
+Update ready to install|更新已下载，等待安装|更新已下載，等待安裝
+Update download failed; try again|更新下载失败，请重试|更新下載失敗，請重試
+Installation canceled or failed; try again|安装取消或失败，请重试|安裝取消或失敗，請重試
+Installer started|安装程序已启动|安裝程式已啟動
 Load|负载|負載
 Fan|风扇|風扇
 Vcore|核心电压|核心電壓
@@ -69,7 +79,7 @@ Leave a name blank to use device information. Hover over a field to see its auto
 SPD numbers identify sensor addresses, not physical slots. Installed slots are reported separately; assign a slot name only after confirming its sensor.|SPD 编号代表传感器地址，并非实体插槽。已安装插槽单独显示；确认对应关系后再命名。|SPD 編號代表感測器位址，並非實體插槽。已安裝插槽單獨顯示；確認對應關係後再命名。
 Changes save automatically.|更改自动保存。|變更自動儲存。
 About Pulse|关于 Pulse|關於 Pulse
-Version 0.4.2 · Marck Wong|版本 0.4.2 · Marck Wong|版本 0.4.2 · Marck Wong
+Version 0.4.3 · Marck Wong|版本 0.4.3 · Marck Wong|版本 0.4.3 · Marck Wong
 Sensors by LibreHardwareMonitor. Shared driver by PawnIO.|传感器：LibreHardwareMonitor。共享驱动：PawnIO。|感測器：LibreHardwareMonitor。共用驅動程式：PawnIO。
 Language|语言 / Language|語言 / Language
 Minimize|最小化|最小化
@@ -121,7 +131,13 @@ System glass background is unavailable on this Windows version.|此 Windows 版�
     if($parts.Count -eq 3){$script:translations[$parts[0]]=@($parts[1],$parts[2])}
 }
 function Resolve-PulseLanguage([string]$language) {
+    if($language -eq 'auto'){return Get-PulseSystemLanguage ([Globalization.CultureInfo]::CurrentUICulture.Name)}
     if($language -in @('en','zh-CN','zh-TW')){return $language}
+    return 'en'
+}
+function Get-PulseSystemLanguage([string]$culture) {
+    if($culture -match '^zh-(TW|HK|MO|Hant)'){return 'zh-TW'}
+    if($culture -match '^zh(?:-|$)'){return 'zh-CN'}
     return 'en'
 }
 function Get-PulseText([string]$text) {
@@ -150,7 +166,7 @@ function Register-PulseText($node) {
     foreach($child in [Windows.LogicalTreeHelper]::GetChildren($node)){Register-PulseText $child}
 }
 function Update-PulseLanguage {
-    if($script:trayShow){$script:trayShow.Text=Get-PulseText 'Show Pulse';$script:trayExit.Text=Get-PulseText 'Exit'}
+    if($script:trayShow){$script:trayShow.Text=Get-PulseText 'Show Pulse';$script:trayExit.Text=Get-PulseText 'Exit';$script:traySettings.Text=Get-PulseText 'Settings';$script:trayPin.Text=Get-PulseText 'Always on Top';$script:trayLock.Text=Get-PulseText 'Lock Position and Size'}
     foreach($entry in $script:localizedControls){$entry[0].($entry[1])=Get-PulseText $entry[2]}
     foreach($name in @('Settings','Back','Minimize','Close','OpacitySlider','LanguagePicker')){
         $node=$window.FindName($name)
