@@ -2,7 +2,7 @@
 
 English first; 简体中文 follows each version. Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
-## [0.3.1] — Unreleased
+## [0.3.1] — 2026-09-13
 
 ### Changed
 
@@ -88,6 +88,6 @@ English first; 简体中文 follows each version. Dates are release dates. Unrel
 - 修复 stale snapshot、sticky drag、UTF-8 编码、gear icon 与 GPU fan label 问题；GUI startup 改用独立 task。
 - 已验证 Windows 11 当前机器；其他品牌主要依靠 fixtures，其他 OS/clean-machine/reboot 场景仍有验证限制。
 
-[0.3.1]: https://github.com/medking82/hardware-pulse/compare/v0.3.0...main
+[0.3.1]: https://github.com/medking82/hardware-pulse/releases/tag/v0.3.1
 [0.3.0]: https://github.com/medking82/hardware-pulse/releases/tag/v0.3.0
 [0.2.0]: https://github.com/medking82/hardware-pulse/releases/tag/v0.2.0

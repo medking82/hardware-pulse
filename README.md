@@ -2,7 +2,7 @@
 
 [Changelog / 更新记录](CHANGELOG.md)
 
-Source: **0.3.1 (Unreleased)** — animated card reordering. Latest published installer: **0.3.0**.
+Latest: **0.3.1** — animated card reordering. See the changelog for version history.
 
 [English](#en) · [简体中文](#zh-cn)
 
