@@ -1,5 +1,9 @@
 # Hardware Pulse 0.4.1
 
+![Hardware Pulse 0.4.1 illustrative UI with fictional demo data](https://raw.githubusercontent.com/medking82/hardware-pulse/main/docs/showcase/pulse-demo.png)
+
+*Illustrative UI with fictional hardware and readings. / 展示图使用虚构硬件与读数。*
+
 Auto density now measures the available card viewport instead of switching at a fixed window height. Full hardware information takes priority: reduce padding first, then use compact metrics, and only then hide descriptions if necessary. Enlarging the window restores detail automatically. Details transitions use a short fade that respects Windows reduced motion.
 
 Validated: full regression suite, logical 1080p/1440p/4K layout inputs, shrink/grow detail restoration, and local upgrade from running 0.4.0 (exit 0, no reboot). Live readings remained available after launch. This is a routine UI correction, with no installer privilege or driver changes.
