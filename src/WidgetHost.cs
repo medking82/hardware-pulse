@@ -11,7 +11,7 @@ using System.Security.Principal;
 [assembly: AssemblyProduct("Hardware Pulse")]
 [assembly: AssemblyCompany("Marck Wong")]
 [assembly: AssemblyCopyright("Copyright 2026 Marck Wong")]
-[assembly: AssemblyVersion("0.3.1.0")]
+[assembly: AssemblyVersion("0.4.0.0")]
 internal static class WidgetHost {
     [STAThread]
     private static int Main(string[] args) {
@@ -22,6 +22,7 @@ internal static class WidgetHost {
         if (args.Length == 1 && args[0] == "--collector") script = "Collector.ps1";
         else if (args.Length == 1 && args[0] == "--install-startup") script = "Install-Startup.ps1";
         else if (args.Length == 1 && args[0] == "--remove-startup") script = "Remove-Startup.ps1";
+        else if (args.Length == 1 && (args[0] == "--enable-startup" || args[0] == "--disable-startup")) script = "Set-Startup.ps1";
         else if (args.Length != 0) return 2;
         // Use the OS PowerShell host for the library's collector environment.
         // The GUI host stays STA; the sensor worker is windowless and independently logged.
@@ -59,6 +60,7 @@ internal static class WidgetHost {
                 using (PowerShell ps = PowerShell.Create()) {
                     ps.Runspace = runspace;
                     ps.AddCommand(Path.Combine(folder, script));
+                    if(script == "Set-Startup.ps1") ps.AddParameter("Enabled",args[0] == "--enable-startup");
                     ps.Invoke();
                     if (ps.HadErrors) {
                         File.WriteAllText(Path.Combine(state,"host-error.txt"),string.Join(Environment.NewLine,ps.Streams.Error));

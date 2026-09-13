@@ -2,6 +2,50 @@
 # English source text is the fallback and the stable catalog key.
 @'
 Live|实时|即時
+Details|明细|明細
+Cards|卡片|卡片
+No cards shown. Choose cards in Settings.|未显示卡片，请在设置中选择。|未顯示卡片，請在設定中選擇。
+Show full hardware details|显示完整硬件明细|顯示完整硬體明細
+Load|负载|負載
+Fan|风扇|風扇
+Vcore|Vcore|Vcore
+Voltage|电压|電壓
+VRAM Temp|显存温度|顯存溫度
+Background Color|背景颜色|背景顏色
+Text contrast adapts to the selected color. Glass blur is controlled by Windows; Solid Background disables it.|文字对比随颜色调整。玻璃模糊由 Windows 控制；纯色背景可关闭它。|文字對比隨顏色調整。玻璃模糊由 Windows 控制；純色背景可關閉它。
+Start with Windows|开机自动启动|開機自動啟動
+Available after installation|安装后可用|安裝後可用
+Collector start failed; reinstall or check permissions|Collector 启动失败；请重新安装或检查权限|Collector 啟動失敗；請重新安裝或檢查權限
+Checks GitHub for new releases. No hardware data is sent.|向 GitHub 检查新版本，不发送硬件数据。|向 GitHub 檢查新版本，不傳送硬體資料。
+Startup change failed|启动设置修改失败|啟動設定修改失敗
+Startup change canceled or failed|启动设置修改已取消或失败|啟動設定修改已取消或失敗
+Check for Updates Automatically|自动检查更新|自動檢查更新
+Check for Updates|检查更新|檢查更新
+Download Update|下载更新|下載更新
+Checking for updates…|正在检查更新…|正在檢查更新…
+Update available|有可用更新|有可用更新
+You are up to date|已是最新版本|已是最新版本
+Update check failed; try again|更新检查失败，请重试|更新檢查失敗，請重試
+Game Overlay|游戏状态栏|遊戲狀態列
+Windowed / borderless games. FPS capture requires administrator. Stats use application presents, not generated frames.|适用于窗口化 / 无边框游戏。FPS 采集需要管理员权限，统计应用提交帧，不包含生成帧。|適用於視窗化 / 無邊框遊戲。FPS 擷取需要管理員權限，統計應用提交幀，不包含生成幀。
+Refresh Games|刷新游戏列表|重新整理遊戲清單
+Show Overlay|显示状态栏|顯示狀態列
+Detailed Layout|详细布局|詳細配置
+Top Left|左上角|左上角
+Top|顶部|頂部
+Top Right|右上角|右上角
+Bottom Left|左下角|左下角
+Bottom|底部|底部
+Bottom Right|右下角|右下角
+AVG / MIN / 1% Low: rolling 60 seconds. MIN is the slowest frame; 1% Low averages the slowest 1%.|AVG / MIN / 1% Low 统计最近 60 秒。MIN 为最慢单帧；1% Low 根据最慢 1% 帧的平均耗时计算。|AVG / MIN / 1% Low 統計最近 60 秒。MIN 為最慢單幀；1% Low 根據最慢 1% 幀的平均耗時計算。
+Reset FPS|重置 FPS|重設 FPS
+FPS capture stopped|FPS 采集已停止|FPS 擷取已停止
+FPS capture failed|FPS 采集失败|FPS 擷取失敗
+FPS capture needs administrator|FPS 采集需要管理员权限|FPS 擷取需要管理員權限
+Waiting for frames|等待帧数据|等待幀資料
+Rolling 60 s|最近 60 秒|最近 60 秒
+Show Pulse|显示 Pulse|顯示 Pulse
+Exit|退出|結束
 Session Max|本次峰值|本次峰值
 Settings|设置|設定
 Appearance|外观|外觀
@@ -16,7 +60,7 @@ Leave a name blank to use device information. Hover over a field to see its auto
 SPD numbers identify sensor addresses, not physical slots. Installed slots are reported separately; assign a slot name only after confirming its sensor.|SPD 编号代表传感器地址，并非实体插槽。已安装插槽单独显示；确认对应关系后再命名。|SPD 編號代表感測器位址，並非實體插槽。已安裝插槽單獨顯示；確認對應關係後再命名。
 Changes save automatically.|更改自动保存。|變更自動儲存。
 About Pulse|关于 Pulse|關於 Pulse
-Version 0.3.1 · Marck Wong|版本 0.3.1 · Marck Wong|版本 0.3.1 · Marck Wong
+Version 0.4.0 · Marck Wong|版本 0.4.0 · Marck Wong|版本 0.4.0 · Marck Wong
 Sensors by LibreHardwareMonitor. Shared driver by PawnIO.|传感器：LibreHardwareMonitor。共享驱动：PawnIO。|感測器：LibreHardwareMonitor。共用驅動程式：PawnIO。
 Language|语言 / Language|語言 / Language
 Minimize|最小化|最小化
@@ -88,6 +132,7 @@ function Register-PulseText($node) {
     foreach($child in [Windows.LogicalTreeHelper]::GetChildren($node)){Register-PulseText $child}
 }
 function Update-PulseLanguage {
+    if($script:trayShow){$script:trayShow.Text=Get-PulseText 'Show Pulse';$script:trayExit.Text=Get-PulseText 'Exit'}
     foreach($entry in $script:localizedControls){$entry[0].($entry[1])=Get-PulseText $entry[2]}
     foreach($name in @('Settings','Back','Minimize','Close','OpacitySlider','LanguagePicker')){
         $node=$window.FindName($name)
@@ -109,5 +154,6 @@ function Update-PulseLanguage {
     }
     Update-DeviceNames
     Set-Material
+    if(Get-Command Apply-Theme -ErrorAction SilentlyContinue){Apply-Theme}
     Update-Panel
 }

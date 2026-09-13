@@ -10,6 +10,8 @@ $widgetOld=Get-ScheduledTask | Where-Object {$_.TaskName -eq $widgetTaskName}
 if($widgetOld -and ($widgetOld.Actions.Execute -ne $exe -or $widgetOld.Actions.Arguments)){throw 'A different task already owns the widget task name.'}
 $old=Get-ScheduledTask | Where-Object {$_.TaskName -eq $taskName}
 if($old -and ($old.Actions.Execute -ne $exe -or $old.Actions.Arguments -ne '--collector')){throw 'A different task already owns this name.'}
+$collectorLogon=if($old){[bool]$old.Settings.Enabled -and @($old.Triggers | Where-Object {$_.Enabled}).Count -gt 0}else{$true}
+$widgetLogon=if($widgetOld){[bool]$widgetOld.Settings.Enabled -and @($widgetOld.Triggers | Where-Object {$_.Enabled}).Count -gt 0}else{$true}
 $legacy=Get-ScheduledTask | Where-Object {$_.TaskName -eq 'Hardware Pulse Sensor Collector'}
 $legacySid=if($legacy){
     if($legacy.Principal.UserId -like 'S-1-*'){$legacy.Principal.UserId}
@@ -21,6 +23,7 @@ $legacyOwned=$legacy -and $legacySid -eq [Security.Principal.WindowsIdentity]::G
 $action=New-ScheduledTaskAction -Execute $exe -Argument '--collector' -WorkingDirectory $PSScriptRoot
 $principal=New-ScheduledTaskPrincipal -UserId $user -LogonType Interactive -RunLevel Highest
 $trigger=New-ScheduledTaskTrigger -AtLogOn -User $user
+$trigger.Enabled=$collectorLogon
 $settings=New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit ([TimeSpan]::Zero) -MultipleInstances IgnoreNew
 $null=Register-ScheduledTask -TaskName $taskName -Action $action -Principal $principal -Trigger $trigger -Settings $settings -Description 'Hardware Pulse read-only local sensor collector.' -Force
 if($legacyOwned){
@@ -53,6 +56,7 @@ if(-not $fresh){throw 'Collector did not produce a fresh snapshot. See runtime/c
 $widgetAction=New-ScheduledTaskAction -Execute $exe -WorkingDirectory $PSScriptRoot
 $widgetPrincipal=New-ScheduledTaskPrincipal -UserId $user -LogonType Interactive -RunLevel Limited
 $widgetTrigger=New-ScheduledTaskTrigger -AtLogOn -User $user
+$widgetTrigger.Enabled=$widgetLogon
 $widgetTrigger.Delay='PT10S'
 $null=Register-ScheduledTask -TaskName $widgetTaskName -Action $widgetAction -Principal $widgetPrincipal -Trigger $widgetTrigger -Settings $settings -Description 'Hardware Pulse desktop widget for the current interactive user.' -Force
 # Replace only our old login shortcut; the widget now has an independently observable task.

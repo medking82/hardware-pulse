@@ -8,9 +8,29 @@ Add-Type -AssemblyName PresentationFramework,PresentationCore,WindowsBase
 . "$PSScriptRoot\Localization.ps1"
 $mutex=New-Object Threading.Mutex($false,'Local\HardwarePulseGlass')
 if(-not $mutex.WaitOne(0)){exit}
+$script:exitRequested=$false
+$script:collectorStartFailed=$false
+$script:stopBlocked=$false
+try{
+    if(Test-Path "$runtime\STOP"){
+        try{Remove-Item -LiteralPath "$runtime\STOP" -ErrorAction Stop}catch{$script:stopBlocked=$true;throw}
+    }
+    if((Get-PulseSnapshot "$runtime\snapshot.json").state -ne 'LIVE'){
+        $task=Get-ScheduledTask -TaskName 'Hardware Pulse Collector' -ErrorAction Stop
+        $owner=if($task.Principal.UserId -like 'S-1-*'){$task.Principal.UserId}else{[Security.Principal.NTAccount]::new($task.Principal.UserId).Translate([Security.Principal.SecurityIdentifier]).Value}
+        if(@($task.Actions).Count -ne 1 -or $task.Actions.Execute -ne (Join-Path $PSScriptRoot 'HardwarePulse.exe') -or $task.Actions.Arguments -ne '--collector' -or $owner -ne [Security.Principal.WindowsIdentity]::GetCurrent().User.Value){throw 'Collector ownership mismatch'}
+        Start-ScheduledTask -InputObject $task -ErrorAction Stop
+    }
+}catch{$script:collectorStartFailed=$true}
 [xml]$xml=Get-Content "$PSScriptRoot\Panel.xaml" -Raw -Encoding UTF8
 $reader=New-Object Xml.XmlNodeReader $xml
 $window=[Windows.Markup.XamlReader]::Load($reader)
+function Get-PulseInitialSize([double]$workWidth,[double]$workHeight){
+    # WPF and WorkArea use device-independent pixels, including Windows scaling.
+    return @{width=280;height=[Math]::Max(340,[Math]::Min(650,[Math]::Floor($workHeight*.90)))}
+}
+$initialSize=Get-PulseInitialSize ([Windows.SystemParameters]::WorkArea.Width) ([Windows.SystemParameters]::WorkArea.Height)
+$window.Width=$initialSize.width;$window.Height=$initialSize.height
 $window.FindName('BrandIcon').Content=New-PulseIcon 'live' 22 '#A5E7D5'
 $window.Icon=[Windows.Media.Imaging.BitmapFrame]::Create([Uri]::new((Join-Path $PSScriptRoot 'assets/pulse.ico')))
 $script:settingsPath=Join-Path $script:stateRoot 'widget-settings.json'
@@ -26,7 +46,7 @@ try {
     $window.FindName('Solid').IsChecked=[bool]$saved.solid
     $window.FindName('Large').IsChecked=[bool]$saved.large
     $window.FontSize=if($saved.large){14}else{12}
-    if($null -ne $saved.opacity){$window.FindName('OpacitySlider').Value=[Math]::Max(15,[Math]::Min(100,[double]$saved.opacity))}
+    if($null -ne $saved.opacity){$window.FindName('OpacitySlider').Value=[Math]::Max(0,[Math]::Min(100,[double]$saved.opacity))}
 } catch {}
 $script:language=Resolve-PulseLanguage $saved.language
 if((Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize' -Name EnableTransparency -ErrorAction SilentlyContinue).EnableTransparency -eq 0){$window.FindName('Solid').IsChecked=$true}
@@ -117,6 +137,7 @@ function Add-UsageRow($card,[string]$key,[string]$label,[string]$accent){
 }
 Add-UsageRow $cards.Children[1] 'vram' 'VRAM' '#A7CBFF'
 Add-UsageRow $cards.Children[2] 'ram' 'RAM' '#E7C5A4'
+. "$PSScriptRoot\Density.ps1"
 function Update-DeviceNames {
     foreach($key in $script:labels.Keys){
         $text=if($script:nameOverrides.ContainsKey($key) -and $script:nameOverrides[$key]){$script:nameOverrides[$key]}else{Get-PulseText $script:autoNames[$key]}
@@ -128,7 +149,7 @@ Update-DeviceNames
 function Save-WidgetSettings {
     $bounds=$window.RestoreBounds
     if($bounds.IsEmpty){return}
-    $settings=@{language=$script:language;width=$bounds.Width;height=$bounds.Height;left=$bounds.Left;top=$bounds.Top;pin=$window.Topmost;solid=[bool]$window.FindName('Solid').IsChecked;large=[bool]$window.FindName('Large').IsChecked;opacity=$window.FindName('OpacitySlider').Value;cardOrder=@($cards.Children | ForEach-Object {$_.Tag});names=$script:nameOverrides} | ConvertTo-Json -Depth 4
+    $settings=@{cardsVisible=$script:cardsVisible;details=$script:showDetails;background=$script:backgroundHex;autoUpdates=$script:autoUpdates;overlay=$script:overlayState;language=$script:language;width=$bounds.Width;height=$bounds.Height;left=$bounds.Left;top=$bounds.Top;pin=$window.Topmost;solid=[bool]$window.FindName('Solid').IsChecked;large=[bool]$window.FindName('Large').IsChecked;opacity=$window.FindName('OpacitySlider').Value;cardOrder=@($cards.Children | ForEach-Object {$_.Tag});names=$script:nameOverrides} | ConvertTo-Json -Depth 4
     $temp=$script:settingsPath+'.tmp'
     [IO.File]::WriteAllText($temp,$settings)
     if([IO.File]::Exists($script:settingsPath)){
@@ -187,9 +208,11 @@ $ordered=@();foreach($title in @($saved.cardOrder)+$titles){
     if($null -ne $title -and $byTitle.ContainsKey([string]$title)){$ordered+=,$byTitle[[string]$title];$byTitle.Remove([string]$title)}
 }
 $cards.Children.Clear();foreach($card in $ordered){$null=$cards.Children.Add($card)}
+. "$PSScriptRoot\CardVisibility.ps1"
 Update-OrderButtons
 'Preparing backdrop' | Set-Content "$script:stateRoot\glass-stage.txt"
 function Update-Panel {
+    if(-not $script:stopBlocked -and (Test-Path "$script:runtime\STOP")){$script:exitRequested=$true;$window.Close();return}
     $data=Get-PulseSnapshot "$script:runtime\snapshot.json"
     if($data.names){foreach($key in $data.names.Keys){if($data.names[$key]){$script:autoNames[$key]=$data.names[$key]}};Update-DeviceNames}
     foreach($key in $script:usageCells.Keys){
@@ -206,7 +229,8 @@ function Update-Panel {
     }
     $status.Text=if($data.state -eq 'LIVE'){'● '+(Get-PulseText 'Live')+' · '+$data.time.ToLocalTime().ToString('HH:mm:ss')+' · '+$data.values.Count+'/'+$script:SensorMap.Count+' '+(Get-PulseText 'sensors')}else{'● '+(Get-PulseText $data.state)+' · '+(Get-PulseText 'Waiting for collector')}
     if($script:mode -eq 'max'){$status.Text+=' · '+(Get-PulseText 'Session peaks')}
-    $status.Foreground=if($data.state -eq 'LIVE'){[Windows.Media.Brushes]::Aquamarine}else{[Windows.Media.Brushes]::PeachPuff}
+    if($script:collectorStartFailed -and $data.state -ne 'LIVE'){$status.Text=Get-PulseText 'Collector start failed; reinstall or check permissions'}
+    $status.Foreground=if($script:lightTheme){[Windows.Media.BrushConverter]::new().ConvertFromString($(if($data.state -eq 'LIVE'){'#12644D'}else{'#804000'}))}else{if($data.state -eq 'LIVE'){[Windows.Media.Brushes]::Aquamarine}else{[Windows.Media.Brushes]::PeachPuff}}
     $values=if($script:mode -eq 'max'){$script:peaks}else{$data.values}
     foreach($key in $script:cells.Keys) {
         $cell=$script:cells[$key];$cell[0].Text='—'
@@ -249,7 +273,8 @@ function Set-Material {
     $window.FindName('OpacitySlider').IsEnabled=(-not $solid -and $result -eq 0)
     $window.FindName('OpacitySlider').ToolTip=if($result -ne 0){Get-PulseText 'System glass background is unavailable on this Windows version.'}else{Get-PulseText 'Background Opacity'}
     $window.FindName('OpacityValue').Text=if($solid -or $result -ne 0){'100%'}else{([Math]::Round($opacity)).ToString()+'%'}
-    $window.Background=if($solid -or $result -ne 0){[Windows.Media.BrushConverter]::new().ConvertFromString('#182332')}else{[Windows.Media.SolidColorBrush]::new([Windows.Media.Color]::FromArgb($alpha,24,35,50))}
+    $base=if($script:backgroundHex){[Windows.Media.ColorConverter]::ConvertFromString($script:backgroundHex)}else{[Windows.Media.ColorConverter]::ConvertFromString('#35383B')}
+    $window.Background=if($solid -or $result -ne 0){[Windows.Media.SolidColorBrush]::new($base)}else{[Windows.Media.SolidColorBrush]::new([Windows.Media.Color]::FromArgb($alpha,$base.R,$base.G,$base.B))}
 }
 foreach($pair in @(@('Close','close'),@('Minimize','minimize'))){
     $button=$window.FindName($pair[0]);$button.Content=New-PulseIcon $pair[1] 14
@@ -263,6 +288,7 @@ function Show-Settings([bool]$show){
         $window.FindName($name).Visibility=if($show){'Collapsed'}else{'Visible'}
     }
     if($show){$null=$window.FindName('Back').Focus()}else{$null=$window.FindName('Settings').Focus()}
+    Update-CardVisibility
 }
 $window.FindName('Settings').Add_Click({Show-Settings $true})
 $window.FindName('Back').Add_Click({Show-Settings $false})
@@ -270,6 +296,7 @@ $window.FindName('GitHub').Add_Click({Start-Process 'https://github.com/medking8
 $window.Add_PreviewKeyDown({if($_.Key -eq 'Escape' -and $window.FindName('SettingsPage').IsVisible){Show-Settings $false;$_.Handled=$true}})
 $window.FindName('Live').Add_Click({$script:mode='live';Update-Panel})
 $window.FindName('Max').Add_Click({$script:mode='max';Update-Panel})
+$window.FindName('Details').Add_Click({$script:showDetails=-not $script:showDetails;Update-CardDensity;Save-WidgetSettings})
 $window.FindName('Pin').Add_Click({$window.Topmost=[bool]$window.FindName('Pin').IsChecked})
 $window.FindName('Solid').Add_Click({Set-Material})
 $window.FindName('OpacitySlider').Add_ValueChanged({Set-Material})
@@ -277,6 +304,7 @@ $window.FindName('Large').Add_Click({$window.FontSize=if($window.FindName('Large
 $window.Add_SizeChanged({
     $scale=[Math]::Max(0.85,[Math]::Min(1.0,$window.ActualWidth/280.0))
     $window.FindName('Viewport').LayoutTransform=[Windows.Media.ScaleTransform]::new($scale,$scale)
+    Update-CardDensity
 })
 $window.FindName('Minimize').Add_Click({$window.WindowState='Minimized'})
 $window.FindName('Close').Add_Click({$window.Close()})
@@ -309,13 +337,28 @@ foreach($pair in @(@('CPU','CPU Name'),@('GPU','GPU Name'),@('Memory','Memory De
     $null=$window.FindName('NameFields').Children.Add($label);$null=$window.FindName('NameFields').Children.Add($editor)
 }
 Update-DeviceNames
-$window.Add_Closing({Save-WidgetSettings})
+$window.Add_Closing({param($sender,$eventArgs) Save-WidgetSettings;if(-not $script:exitRequested){$eventArgs.Cancel=$true;$window.Hide()}})
 $window.Add_Closed({
+    if($script:runningLoop){[Windows.Threading.Dispatcher]::CurrentDispatcher.BeginInvokeShutdown([Windows.Threading.DispatcherPriority]::Background)}
+    if($updateTimer){$updateTimer.Stop()}
+    if($script:tray){$script:tray.Visible=$false;$script:tray.Dispose()}
+    if($overlayTimer){$overlayTimer.Stop();$script:frameCapture.Dispose();$script:gameOverlay.Close()}
+    try{if(Test-Path "$script:runtime\snapshot.json"){[IO.File]::WriteAllText("$script:runtime\STOP",'Pulse Exit')}}catch{[IO.File]::WriteAllText("$script:stateRoot\shutdown-error.txt",'Collector shutdown request failed. Check runtime permissions.')}
     $settingsTimer.Stop()
     $timer.Stop()
     Save-WidgetSettings
 })
 $script:localizedControls=[Collections.Generic.List[object]]::new()
+. "$PSScriptRoot\Overlay.ps1"
+Add-Type -AssemblyName System.Windows.Forms,System.Drawing
+$script:tray=[Windows.Forms.NotifyIcon]::new();$script:tray.Icon=[Drawing.Icon]::new((Join-Path $PSScriptRoot 'assets\pulse.ico'));$script:tray.Text='Hardware Pulse';$script:tray.Visible=$true
+$trayMenu=[Windows.Forms.ContextMenuStrip]::new()
+$script:trayShow=$trayMenu.Items.Add('Show Pulse');$script:trayExit=$trayMenu.Items.Add('Exit')
+$restorePulse={$window.Show();$window.WindowState='Normal';$null=$window.Activate()}
+$script:trayShow.Add_Click($restorePulse);$script:tray.Add_DoubleClick($restorePulse)
+$script:trayExit.Add_Click({$script:exitRequested=$true;$window.Close()})
+$script:tray.ContextMenuStrip=$trayMenu
+. "$PSScriptRoot\Preferences.ps1"
 Register-PulseText $window
 $languagePicker=$window.FindName('LanguagePicker')
 foreach($item in $languagePicker.Items){if($item.Tag -eq $script:language){$languagePicker.SelectedItem=$item}}
@@ -326,4 +369,9 @@ $languagePicker.Add_SelectionChanged({
         if($window.IsLoaded){$settingsTimer.Stop();$settingsTimer.Start()}
     }
 })
-try{Update-PulseLanguage;'Showing window' | Set-Content "$script:stateRoot\glass-stage.txt";$null=$window.ShowDialog()}finally{$mutex.ReleaseMutex();$mutex.Dispose()}
+function Start-PulseLoop {
+    $script:runningLoop=$true
+    $window.Show()
+    [Windows.Threading.Dispatcher]::Run()
+}
+try{Update-PulseLanguage;'Showing window' | Set-Content "$script:stateRoot\glass-stage.txt";$null=Start-PulseLoop}finally{$mutex.ReleaseMutex();$mutex.Dispose()}

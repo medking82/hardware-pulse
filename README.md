@@ -1,6 +1,18 @@
 # Hardware Pulse
 
+![Hardware Pulse preview with fictional demo data](docs/showcase/pulse-demo.png)
+
+*Illustrative preview with fictional hardware and readings, not a screenshot of the author's PC. / 展示图使用虚构硬件与数据。*
+
 [Changelog / 更新记录](CHANGELOG.md)
+
+[MIT License](LICENSE) · [Privacy policy](PRIVACY.md) · [Code signing policy](SIGNING.md)
+
+[Dependency maintenance and Linux/macOS roadmap](docs/DEPENDENCIES.md)
+
+**[Try 0.4.0 Pre-release / 下载 0.4.0 测试版 EXE](https://github.com/medking82/hardware-pulse/releases/download/v0.4.0/HardwarePulse-Setup.exe)** · [0.4.0 release notes](https://github.com/medking82/hardware-pulse/releases/tag/v0.4.0)
+
+**0.4.0 Pre-release** adds compact cards, tray, experimental game overlay, startup and appearance/update preferences, and fixes the upgrade installer. Local upgrade passed with Bitdefender protection unchanged. The installer is self-signed; SignPath approval is pending. Fresh-machine and live-game testing remain limited. / 新增 compact cards、tray、实验性 game overlay 和 Settings，修复 upgrade installer。本机安装已通过，未修改 Bitdefender protection；仍为 self-signed，欢迎测试反馈。
 
 Latest: **0.3.1** — animated card reordering. See the changelog for version history.
 
@@ -14,7 +26,7 @@ Author:**[Marck Wong](https://github.com/medking82)**
 
 ## English
 
-The current version is **0.3.0** with multilingual UI. Use the download link above for the latest installer.
+The published version is **0.3.1** with multilingual UI and animated card reordering. Use the download link above for the latest installer.
 
 A compact hardware widget by **[Marck Wong](https://github.com/medking82)** for **Windows 10 22H2 / Windows 11 x64**.
 
@@ -83,7 +95,7 @@ JSON readers/writers use UTF-8 explicitly. `.editorconfig` and validation enforc
 
 Third-party source locations and notices are under `licenses`. The full upstream source archive
 for LibreHardwareMonitor is bundled without changes. Dependencies retain their upstream licenses.
-Public repository visibility alone does not grant an open-source license to the original Hardware Pulse code.
+Original Hardware Pulse code is licensed under the [MIT License](LICENSE).
 
 ### Validation boundary
 
@@ -154,7 +166,7 @@ Dependencies 通过 `dependencies.lock.json` 中的 SHA-256 固定。Build 会�
 
 文本统一为 **UTF-8**。为兼容 Windows PowerShell 5.1，`.ps1` 使用 UTF-8 with BOM；JSON 显式使用 UTF-8 读写，由 `.editorconfig` 和 validation 检查相关规则。
 
-Third-party source locations 和 notices 位于 `licenses`；LibreHardwareMonitor 的完整 upstream source archive 随包提供且未修改，dependencies 保留各自 upstream licenses。**Repo 为 Public 不等于原始 Hardware Pulse 代码已获得 open-source license。**
+Third-party source locations 和 notices 位于 `licenses`；LibreHardwareMonitor 的完整 upstream source archive 随包提供且未修改，dependencies 保留各自 upstream licenses。原创 Hardware Pulse 代码采用 [MIT License](LICENSE)。
 
 ### Validation boundary
 

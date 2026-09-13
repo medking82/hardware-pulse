@@ -61,8 +61,12 @@ public static class CardDrag {
             double y = pointerY - grab;
             Translation(card).Y = y - Top(card);
             int next = 0;
-            foreach (FrameworkElement other in panel.Children)
-                if (other != card && y + card.ActualHeight / 2 > Top(other) + other.ActualHeight / 2) next++;
+            int index = 0;
+            foreach (FrameworkElement other in panel.Children) {
+                if (other == card) continue;
+                if (other.Visibility != Visibility.Collapsed && y + card.ActualHeight / 2 > Top(other) + other.ActualHeight / 2) next = index + 1;
+                index++;
+            }
             if (next == target) return;
             target = next;
             var order = new List<FrameworkElement>();
@@ -70,6 +74,7 @@ public static class CardDrag {
             order.Insert(target, card);
             double top = 0;
             foreach (FrameworkElement other in order) {
+                if (other.Visibility == Visibility.Collapsed) continue;
                 if (other != card) Animate(Translation(other), TranslateTransform.YProperty, top + other.Margin.Top - Top(other));
                 top += LayoutInformation.GetLayoutSlot(other).Height;
             }

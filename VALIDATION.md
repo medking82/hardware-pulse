@@ -1,6 +1,7 @@
 # Local validation — 2026-09-13
 
 ## 0.3.1 candidate
+Historical validation below describes the earlier candidate. Version 0.3.1 was subsequently published.
 
 WPF gesture tests pass for preview displacement without order mutation, cancel without save,
 reduced-motion reset, exactly one successful-drop callback, reverse reordering, and re-grab

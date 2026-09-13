@@ -1,5 +1,9 @@
 # Widget and installer boundary
 
+## Version 0.4.0 (candidate)
+
+Tray lifecycle, optional game overlay, appearance/update preferences, compact cards and visibility controls are implemented. Inno Setup now performs cooperative upgrade preparation directly, without a separate upgrade executable. Deterministic validation and local running-version upgrade pass. Clean-machine and real-game coverage remain limited; public release and current Native Review disposition are recorded in docs/RELEASE-0.4.0.md. This release work is high risk; the historical routine marker below applies only to the earlier change.
+
 ## Version 0.3.1 (Unreleased)
 
 Add card lift, animated reorder preview and interruptible settling; preserve pointer tracking,

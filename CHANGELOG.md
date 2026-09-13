@@ -2,6 +2,41 @@
 
 English first; 简体中文 follows each version. Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
+## 0.4.0 — 2026-09-13 (Pre-release)
+
+### Added
+
+- Adaptive compact cards keep core readings together on laptop-sized work areas; Details restores full device descriptions. Settings can hide/show each card without discarding its order.
+- In-app rounded scrollbar with transparent track, hover/drag feedback and a wider interaction area, replacing default arrow buttons.
+- Optional click-through game overlay for a selected foreground window, six anchors, compact/detailed layout, selectable hardware readings and local PresentMon FPS capture.
+- FPS: current one-second average, rolling-60-second AVG/MIN/1% Low. Application-present metrics do not count generated frames; 1% Low requires at least 100 samples. Missing/denied telemetry is not reported as zero.
+- Close-to-tray, restore and explicit Exit. Exit stops the widget, overlay, owned PresentMon capture and requests collector shutdown.
+- Start with Windows checkbox controls logon triggers for both verified current-user tasks, with UAC and state readback. On-demand collector startup remains available when logon startup is off.
+- Background color, adaptive foreground and 0–100% background opacity. Native glass blur remains Windows-managed.
+- Optional automatic GitHub version check and manual update checks, with a download-page action. Automatic checks are opt-in; no unattended installation.
+- MIT License, privacy and proposed code-signing policies. SignPath application was submitted on 2026-09-13; no Foundation certificate has been granted.
+- Public demonstration image uses fictional hardware/readings.
+
+### Fixed
+
+- Turning off logon startup no longer disables on-demand collector startup. Upgrade preserves the logon preference; inaccessible STOP files no longer abort widget initialization.
+- Light backgrounds use dark button labels and readable status colors.
+- Installer requests cooperative collector shutdown directly in Inno Setup and lets Windows Restart Manager close the previous UI before replacing files. The separate PulseUpgrade.exe helper has been removed. An active collector blocks replacement instead of being ignored.
+- Tray lifetime uses a dispatcher loop instead of a modal dialog, so hiding the window does not end the application.
+
+### Validation / limits
+
+- WPF regression covers tray restore, FPS math/filtering/staleness, six anchors, language/settings, opacity zero, drag and snap. The rebuilt installer completed an in-place upgrade with Bitdefender protection unchanged (exit 0, no reboot). The installed widget reports live sensors. This is one-machine evidence, not an antivirus certification. Real game overlay/click-through, elevated FPS and clean-machine install remain unverified.
+- Exclusive fullscreen is not supported by this ordinary topmost overlay. FPS may need admin or Performance Log Users access; Pulse does not alter group membership.
+- Bright/dark foreground is based on the selected color; readability over arbitrary desktop content is not guaranteed at zero opacity. Glass blur strength has no slider.
+
+### 简体中文
+
+- 新增 game overlay 六位置、compact/detailed 布局、可选 metrics、PresentMon FPS；AVG/MIN/1% Low 使用最近 60 秒，Current 使用最近 1 秒。
+- 新增 close-to-tray、明确 Exit、开机启动 checkbox、background color、0–100% opacity 和可选 update checks。
+- Installer 增加覆盖前停止旧版流程；原创代码采用 MIT，SignPath 尚未获批；展示图使用虚构数据。
+- WPF regression 已通过；移除独立 upgrade helper 后，installer 在本机成功覆盖安装（exit 0，无需重启），未修改 Bitdefender protection，已验证实时读数。真实游戏、elevated FPS 和 clean-machine 场景待验证。当前 update action 打开 download page，不会自动安装。
+
 ## [0.3.1] — 2026-09-13
 
 ### Changed

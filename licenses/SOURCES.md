@@ -1,5 +1,8 @@
 # Dependency provenance
 
+- PresentMon 2.5.1 console: https://github.com/GameTechDev/PresentMon/releases/tag/v2.5.1
+  MIT; original license and third-party notices included. Official x64 binary is hash-pinned.
+
 - LibreHardwareMonitor v0.9.6: https://github.com/LibreHardwareMonitor/LibreHardwareMonitor/tree/v0.9.6
   MPL-2.0. The exact unmodified source archive is included in the installer.
 - PawnIO 2.2.0: https://github.com/namazso/PawnIO/tree/2.2.0

@@ -5,5 +5,5 @@ foreach($argument in $ArgumentList){$info.ArgumentList.Add($argument)}
 $process=[Diagnostics.Process]::new();$process.StartInfo=$info;$null=$process.Start()
 $stdout=$process.StandardOutput.ReadToEndAsync();$stderr=$process.StandardError.ReadToEndAsync();$process.WaitForExit()
 $stdout.Result; if($stderr.Result){Write-Host $stderr.Result}
-if($process.ExitCode -ne 0){throw "$FilePath failed with exit code $($process.ExitCode)"}
+if($process.ExitCode -ne 0){throw "$FilePath failed with exit code $($process.ExitCode): $($stdout.Result) $($stderr.Result)"}
 $process.Dispose()

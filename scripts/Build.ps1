@@ -2,6 +2,12 @@
 $ErrorActionPreference='Stop'
 $root=Split-Path $PSScriptRoot
 $app=Join-Path $root 'build/app'
+if(Test-Path $app){
+    $resolved=[IO.Path]::GetFullPath($app)
+    if($resolved -ne [IO.Path]::GetFullPath((Join-Path $root 'build/app'))){throw 'Unexpected build output path'}
+    if(@(Get-Item -LiteralPath $app; Get-ChildItem -LiteralPath $app -Recurse -Force) | Where-Object {$_.Attributes -band [IO.FileAttributes]::ReparsePoint}){throw 'Build output contains a reparse point'}
+    Remove-Item -LiteralPath $resolved -Recurse -Force
+}
 $null=New-Item -ItemType Directory -Path $app,"$app/lib","$root/vendor","$root/dist" -Force
 $deps=Get-Content "$root/dependencies.lock.json" -Raw | ConvertFrom-Json
 foreach($dep in $deps){
@@ -12,10 +18,13 @@ foreach($dep in $deps){
 Copy-Item "$root/src/*" $app -Force
 Copy-Item "$root/assets" $app -Recurse -Force
 Copy-Item "$root/licenses" $app -Recurse -Force
+Copy-Item "$root/LICENSE","$root/PRIVACY.md","$root/SIGNING.md" $app -Force
 Copy-Item "$root/dependencies.lock.json" $app -Force
 Copy-Item "$root/vendor/*-source-*.zip" "$app/licenses" -Force
 Expand-Archive "$root/vendor/LibreHardwareMonitor-0.9.6.zip" "$root/vendor/lhm" -Force
 Copy-Item "$root/vendor/lhm/*.dll" "$app/lib" -Force
+$null=New-Item -ItemType Directory -Path "$app/tools" -Force
+Copy-Item "$root/vendor/PresentMon-2.5.1-x64.exe" "$app/tools/PresentMon.exe" -Force
 $ps5="$env:WINDIR/System32/WindowsPowerShell/v1.0/powershell.exe"
 & "$PSScriptRoot/Run-Hidden.ps1" $ps5 @('-NoProfile','-STA','-File',"$PSScriptRoot/Make-Icon.ps1",'-OutputPath',"$root/assets/pulse.ico") $root
 Copy-Item "$root/assets/pulse.ico" "$app/assets" -Force
@@ -31,7 +40,7 @@ if($Installer){
         & "$PSScriptRoot/Run-Hidden.ps1" $setup @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/CURRENTUSER',"/DIR=$root/vendor/inno",'/NOICONS') $root
     }
     & "$PSScriptRoot/Run-Hidden.ps1" $iscc @("$root/installer/HardwarePulse.iss") $root
-    if($SigningCertificateThumbprint){& "$PSScriptRoot/Sign.ps1" -Path "$root/dist/HardwarePulse-0.3.1-Setup.exe" -Thumbprint $SigningCertificateThumbprint}
-    Copy-Item "$root/dist/HardwarePulse-0.3.1-Setup.exe" "$root/dist/HardwarePulse-Setup.exe" -Force
-    Get-FileHash "$root/dist/HardwarePulse-0.3.1-Setup.exe" -Algorithm SHA256 | Select-Object Hash,Path
+    if($SigningCertificateThumbprint){& "$PSScriptRoot/Sign.ps1" -Path "$root/dist/HardwarePulse-0.4.0-Setup.exe" -Thumbprint $SigningCertificateThumbprint}
+    Copy-Item "$root/dist/HardwarePulse-0.4.0-Setup.exe" "$root/dist/HardwarePulse-Setup.exe" -Force
+    Get-FileHash "$root/dist/HardwarePulse-0.4.0-Setup.exe" -Algorithm SHA256 | Select-Object Hash,Path
 }

@@ -1,0 +1,46 @@
+﻿$script:showDetails=[bool]$saved.details
+$script:densityCards=@($cards.Children)
+$script:compactGroups=@()
+foreach($group in @(@(0,@(@('Load','cpuLoad'),@('Fan','cpuFan'),@('Vcore','vcore'))),@(1,@(@('Load','gpuLoad'),@('Fan','gpuFan'),@('VRAM Temp','vram'),@('Voltage','gpuVolt'))))){
+    $card=$script:densityCards[$group[0]]
+    $grid=[Windows.Controls.Grid]::new();$grid.Margin='0,2,0,0';$grid.Visibility='Collapsed'
+    $grid.ColumnDefinitions.Add([Windows.Controls.ColumnDefinition]::new());$grid.ColumnDefinitions.Add([Windows.Controls.ColumnDefinition]::new())
+    $rows=[Collections.Generic.List[object]]::new()
+    for($i=0;$i -lt $group[1].Count;$i++){
+        if($i%2 -eq 0){$grid.RowDefinitions.Add([Windows.Controls.RowDefinition]::new())}
+        $pair=$group[1][$i];$original=$script:cells[$pair[1]][0];$rows.Add($original.Parent)
+        $line=[Windows.Controls.StackPanel]::new();$line.Orientation='Horizontal';$line.Margin='0,1,5,1'
+        [Windows.Controls.Grid]::SetRow($line,[int][Math]::Floor($i/2));[Windows.Controls.Grid]::SetColumn($line,$i%2)
+        $label=[Windows.Controls.TextBlock]::new();$label.Text=$pair[0];$label.FontSize=10;$label.Margin='0,0,4,0';$label.VerticalAlignment='Center'
+        $value=[Windows.Controls.TextBlock]::new();$value.FontSize=11;$value.FontWeight='SemiBold'
+        $binding=[Windows.Data.Binding]::new('Text');$binding.Source=$original
+        $null=$value.SetBinding([Windows.Controls.TextBlock]::TextProperty,$binding)
+        $null=$line.Children.Add($label);$null=$line.Children.Add($value);$null=$grid.Children.Add($line)
+    }
+    $card.Child.Children.Insert(2,$grid)
+    $script:compactGroups+=@{grid=$grid;rows=$rows}
+}
+function Update-CardDensity {
+    if(-not $script:densityCards){return}
+    $compact=(-not $script:showDetails -and $window.ActualHeight -lt 820)
+    foreach($card in $script:densityCards){
+        $card.Padding=if($compact){[Windows.Thickness]::new(7,5,7,5)}else{[Windows.Thickness]::new(10)}
+        $card.Margin=if($compact){[Windows.Thickness]::new(0,0,0,3)}else{[Windows.Thickness]::new(0,0,0,6)}
+    }
+    foreach($key in @('CPU','GPU','Memory','NVMe','Airflow')){
+        $script:labels[$key].Visibility=if($compact){'Collapsed'}else{'Visible'}
+    }
+    foreach($card in $script:densityCards){$card.ToolTip=$card.Child.Children[1].Text}
+    foreach($group in $script:compactGroups){
+        $group.grid.Visibility=if($compact){'Visible'}else{'Collapsed'}
+        foreach($row in $group.rows){$row.Visibility=if($compact){'Collapsed'}else{'Visible'}}
+    }
+    foreach($key in @('ramA','ramB','diskC','diskD')){
+        $script:labels[$key].TextWrapping=if($compact){'NoWrap'}else{'Wrap'}
+        $script:labels[$key].TextTrimming=if($compact){'CharacterEllipsis'}else{'None'}
+        $script:cells[$key][0].FontSize=if($compact){18}else{21}
+        $script:cells[$key][0].Margin=if($compact){[Windows.Thickness]::new(0)}else{[Windows.Thickness]::new(0,6,0,0)}
+    }
+    foreach($key in @('cpu','gpu','system')){$script:cells[$key][0].FontSize=if($compact){21}else{23}}
+    foreach($entry in $script:usageCells.Values){$entry[0].Parent.Margin=if($compact){[Windows.Thickness]::new(0,3,0,0)}else{[Windows.Thickness]::new(0,8,0,0)}}
+}

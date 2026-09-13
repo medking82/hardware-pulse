@@ -2,7 +2,7 @@
 
 ## Current status
 
-Hardware Pulse is preparing an application to SignPath Foundation. Approval and Foundation signing have **not** been obtained. Current releases use a self-signed certificate with subject `CN=Marck Wong`; this is not public CA trust. No root certificate or antivirus exclusion is installed.
+Hardware Pulse submitted its SignPath Foundation application on 2026-09-13; the application page confirmed "Form submitted". Approval and Foundation signing have **not** been obtained. Current releases use a self-signed certificate with subject `CN=Marck Wong`; this is not public CA trust. No root certificate or antivirus exclusion is installed.
 
 ## Project roles
 

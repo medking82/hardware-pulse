@@ -33,5 +33,12 @@
     "sha256": "93aa5d410b76c71e9004cac406ed19d0550a735410a9abe4d0c9a838b8b98eac",
     "name": "PawnIO Source",
     "version": "2.2.0"
+  },
+  {
+    "file": "PresentMon-2.5.1-x64.exe",
+    "url": "https://github.com/GameTechDev/PresentMon/releases/download/v2.5.1/PresentMon-2.5.1-x64.exe",
+    "name": "PresentMon",
+    "version": "2.5.1",
+    "sha256": "9bec3083069f58f911e6a512f4806db51a27bd096103087bc1d05ef54c80a191"
   }
 ]
