@@ -38,3 +38,15 @@ foreach($edge in @('left','right')){
     }
 }
 'PASS: stronger left/right attraction and release outside the magnet range'
+
+foreach($side in @('left','right')){
+    $origin=if($side -eq 'left'){Rect 0 100 280 700}else{Rect 1640 100 1920 700}
+    for($step=1;$step -le 80;$step++){
+        $dx=if($side -eq 'left'){$step}else{-$step}
+        $raw=[WindowSnap]::DragRect($origin,100,150,(100+$dx),150)
+        $actual=[WindowSnap]::Snap($raw,$largeWork,$none,24)
+        if($step -gt 24 -and $actual.Left -ne $origin.Left+$dx){throw 'Continuous small-step drag remains trapped'}
+        if($actual.Right-$actual.Left -ne 280){throw 'Dragging changed width'}
+    }
+}
+'PASS: cursor-anchored continuous one-pixel steps escape both screen edges without Alt'

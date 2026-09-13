@@ -8,6 +8,13 @@ using System.Windows.Interop;
 public static class WindowSnap {
     public static readonly DependencyProperty PositionLockedProperty = DependencyProperty.RegisterAttached("PositionLocked",typeof(bool),typeof(WindowSnap),new PropertyMetadata(false));
     [StructLayout(LayoutKind.Sequential)] public struct Rect { public int Left,Top,Right,Bottom; }
+    [StructLayout(LayoutKind.Sequential)] struct CursorPoint { public int X,Y; }
+    [DllImport("user32.dll")] static extern bool GetCursorPos(out CursorPoint point);
+    public static Rect DragRect(Rect origin,int startX,int startY,int cursorX,int cursorY) {
+        int dx=cursorX-startX,dy=cursorY-startY;
+        origin.Left+=dx;origin.Right+=dx;origin.Top+=dy;origin.Bottom+=dy;
+        return origin;
+    }
 
     [StructLayout(LayoutKind.Sequential)] struct MonitorInfo { public int Size; public Rect Monitor,Work; public uint Flags; }
     delegate bool EnumProc(IntPtr hwnd, IntPtr state);
@@ -52,20 +59,27 @@ public static class WindowSnap {
     }
     public static void Attach(Window window) {
         IntPtr own=new WindowInteropHelper(window).Handle;
+        Rect dragOrigin=new Rect();CursorPoint dragStart=new CursorPoint();bool tracking=false;
 
         HwndSource.FromHwnd(own).AddHook(delegate(IntPtr hwnd,int message,IntPtr w,IntPtr l,ref bool handled){
+            if(message==0x0231){tracking=GetWindowRect(own,out dragOrigin) && GetCursorPos(out dragStart);return IntPtr.Zero;}
+            if(message==0x0232){tracking=false;return IntPtr.Zero;}
             if((bool)window.GetValue(PositionLockedProperty)) {
                 long command=w.ToInt64() & 0xFFF0;
                 if(message==0x0112 && (command==0xF010 || command==0xF000)){handled=true;return IntPtr.Zero;}
                 if(message==0x0232)return IntPtr.Zero;
             }
-            // Use the proposed drag rectangle, not the previously snapped window position.
-            // This leaves the pointer free to pull out of the magnetic range without accumulating offsets.
+            // Windows can rebase the proposed RECT after snapping. Anchor to the cursor
+            // at drag start instead, so small pointer steps accumulate and release the magnet.
             bool moving=message==0x0216;
             if((!moving && message!=0x0232) || (Keyboard.Modifiers & ModifierKeys.Alt)!=0)return IntPtr.Zero;
             if((bool)window.GetValue(PositionLockedProperty))return IntPtr.Zero;
             Rect rect;
-            if(moving)rect=(Rect)Marshal.PtrToStructure(l,typeof(Rect));
+            if(moving){
+                CursorPoint cursor;
+                if(!tracking || !GetCursorPos(out cursor))return IntPtr.Zero;
+                rect=DragRect(dragOrigin,dragStart.X,dragStart.Y,cursor.X,cursor.Y);
+            }
             else if(!GetWindowRect(own,out rect))return IntPtr.Zero;
             MonitorInfo monitor=new MonitorInfo();monitor.Size=Marshal.SizeOf(typeof(MonitorInfo));
             if(!GetMonitorInfo(MonitorFromRect(ref rect,2),ref monitor))return IntPtr.Zero;

@@ -2,6 +2,10 @@
 
 English first; 简体中文 follows each version. Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
+## 0.4.4 — 2026-09-14
+
+- Fix edge snapping trapping slow drags: derive movement from total cursor displacement since drag start instead of Windows' rebased moving rectangle. Pull away normally without Alt; retain the 24-DIP attraction range.
+- 修复缓慢拖离 edge 时反复吸回的问题：根据 drag 起点累计 cursor 位移，正常拖动即可释放，无需 Alt；保留 24 DIP 吸附范围。
 ## 0.4.3 — 2026-09-14
 
 - Group Settings into collapsible sections with wrapping switch labels; center the gear and replace its dotted focus decoration.

@@ -10,11 +10,11 @@
 
 [Dependency maintenance and Linux/macOS roadmap](docs/DEPENDENCIES.md)
 
-**[Download 0.4.3 / 下载 0.4.3 EXE](https://github.com/medking82/hardware-pulse/releases/download/v0.4.3/HardwarePulse-Setup.exe)** · [0.4.3 release notes](https://github.com/medking82/hardware-pulse/releases/tag/v0.4.3)
+**[Download 0.4.4 / 下载 0.4.4 EXE](https://github.com/medking82/hardware-pulse/releases/download/v0.4.4/HardwarePulse-Setup.exe)** · [0.4.4 release notes](https://github.com/medking82/hardware-pulse/releases/tag/v0.4.4)
 
-**0.4.3** adds in-app update downloads, stable transparency, position lock, stronger edge snapping and localized setup. The installer is self-signed; SignPath approval is pending. Fresh-machine and live-game testing remain limited. / 新增 app 内下载更新、稳定透明效果、位置锁定、更强 edge snap 和三语言 installer；仍为 self-signed，SignPath 审核中。
+**0.4.4** adds in-app update downloads, stable transparency, position lock, stronger edge snapping and localized setup. The installer is self-signed; SignPath approval is pending. Fresh-machine and live-game testing remain limited. / 新增 app 内下载更新、稳定透明效果、位置锁定、更强 edge snap 和三语言 installer；仍为 self-signed，SignPath 审核中。
 
-Latest: **0.4.3** — in-app update downloads, stable transparency, position lock and localized setup. See the changelog for version history.
+Latest: **0.4.4** — in-app update downloads, stable transparency, position lock and localized setup. See the changelog for version history.
 
 [English](#en) · [简体中文](#zh-cn)
 
@@ -34,7 +34,7 @@ Author:**[Marck Wong](https://github.com/medking82)**
 - **Lock Position and Size** 禁用移动、resize 和 card reorder。锁定 Monitor 的背景 opacity 降为原设置的四分之一并关闭 blur；Settings 保持可读。从 tray 或 Settings 解锁后恢复；Solid/high contrast 优先。这还不是 desktop layer 嵌入。
 - App 默认 **Auto (System)**，installer 也根据 Windows UI language 预选 English、简体或繁体中文。
 
-The published version is **0.4.3** with multilingual UI and animated card reordering. Use the download link above for the latest installer.
+The published version is **0.4.4** with multilingual UI and animated card reordering. Use the download link above for the latest installer.
 
 A compact hardware widget by **[Marck Wong](https://github.com/medking82)** for **Windows 10 22H2 / Windows 11 x64**.
 
