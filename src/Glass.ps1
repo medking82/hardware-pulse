@@ -352,8 +352,6 @@ $window.FindName('Solid').Add_Click({Set-Material})
 $window.FindName('OpacitySlider').Add_ValueChanged({Set-Material})
 $window.FindName('Large').Add_Click({$window.FontSize=if($window.FindName('Large').IsChecked){14}else{12};Update-CardDensity})
 $window.Add_SizeChanged({
-    $scale=[Math]::Max(0.85,[Math]::Min(1.0,$window.ActualWidth/280.0))
-    $window.FindName('Viewport').LayoutTransform=[Windows.Media.ScaleTransform]::new($scale,$scale)
     Update-CardDensity
 })
 $window.FindName('Minimize').Add_Click({$window.WindowState='Minimized'})

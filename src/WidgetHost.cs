@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Reflection;
 using System.Management.Automation;
@@ -11,7 +11,7 @@ using System.Security.Principal;
 [assembly: AssemblyProduct("Hardware Pulse")]
 [assembly: AssemblyCompany("Marck Wong")]
 [assembly: AssemblyCopyright("Copyright 2026 Marck Wong")]
-[assembly: AssemblyVersion("0.4.5.0")]
+[assembly: AssemblyVersion("0.4.6.0")]
 internal static class WidgetHost {
     [STAThread]
     private static int Main(string[] args) {
@@ -29,7 +29,7 @@ internal static class WidgetHost {
         if (script == "Collector.ps1") {
             string sensorState = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),"HardwarePulse",WindowsIdentity.GetCurrent().User.Value,"runtime");
             var info = new ProcessStartInfo(Path.Combine(Environment.SystemDirectory, "WindowsPowerShell", "v1.0", "powershell.exe"));
-            info.Arguments = "-NoProfile -File \"" + Path.Combine(folder, script) + "\"";
+            info.Arguments = "-NoProfile -ExecutionPolicy RemoteSigned -File \"" + Path.Combine(folder, script) + "\"";
             info.UseShellExecute = false; info.CreateNoWindow = true;
             info.RedirectStandardOutput = true; info.RedirectStandardError = true;
             using (var child = Process.Start(info)) {
@@ -53,7 +53,11 @@ internal static class WidgetHost {
             return File.Exists(candidate) ? Assembly.LoadFrom(candidate) : null;
         };
         try {
-            using (Runspace runspace = RunspaceFactory.CreateRunspace()) {
+            // Scope policy to this host only. MachinePolicy/UserPolicy still take precedence.
+            // RemoteSigned permits installed local files, not unsigned Internet-marked scripts.
+            var initialState = InitialSessionState.CreateDefault();
+            initialState.ExecutionPolicy = Microsoft.PowerShell.ExecutionPolicy.RemoteSigned;
+            using (Runspace runspace = RunspaceFactory.CreateRunspace(initialState)) {
                 runspace.ApartmentState = ApartmentState.STA;
                 runspace.ThreadOptions = PSThreadOptions.UseCurrentThread;
                 runspace.Open();

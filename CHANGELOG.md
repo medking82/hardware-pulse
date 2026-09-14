@@ -2,6 +2,13 @@
 
 English first; 简体中文 follows each version. Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
+## 0.4.6 — 2026-09-14
+
+- Fix script-policy startup failures on Windows clients: use process-scoped RemoteSigned for the embedded host and collector. No persistent policy changes; Group Policy remains authoritative and unsigned Internet-marked scripts remain blocked.
+- Keep text at native layout size in narrow windows, use Display text formatting, and tighten card spacing instead of scaling the whole interface.
+- 修复 Windows 脚本策略导致的 app/startup helper/collector 启动失败：仅当前 process 使用 RemoteSigned，不修改持久系统设置，保留 Group Policy 与 Internet 脚本签名检查。
+- 窄窗口不再整体缩字；使用 Display 字体排版和紧凑 card spacing。
+
 ## 0.4.5 — 2026-09-14
 
 - Honor a fresh installer shutdown request even when an old startup STOP marker could not be deleted. This fixes a hidden widget retaining files during upgrade.

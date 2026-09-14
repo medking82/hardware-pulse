@@ -136,6 +136,7 @@ foreach($language in @('zh-CN','zh-TW','en','zh-TW')){
     if($script:labels.cpuFan.Text -ne ('Custom '+[char]0x00B7+' Cooler')){throw 'Language switch changed a custom name'}
     if((@($cards.Children | ForEach-Object {$_.Tag}) -join ',') -ne $idsBefore){throw 'Language switch changed card IDs or order'}
     $window.Width=240;$window.UpdateLayout()
+    if(-not $window.FindName('Viewport').LayoutTransform.Value.IsIdentity){throw 'Narrow window scales text instead of reflowing layout'}
     Show-Settings $true
     $settingsScroll=$window.FindName('SettingsPage');$window.UpdateLayout()
     $scrollBar=$settingsScroll.Template.FindName('PART_VerticalScrollBar',$settingsScroll)
@@ -149,6 +150,15 @@ foreach($language in @('zh-CN','zh-TW','en','zh-TW')){
     Capture-TestView ($language+'-settings-240')
     Show-Settings $false
     Capture-TestView ($language+'-monitor-240')
+    $window.FontSize=14;$window.UpdateLayout()
+    $controls=$window.FindName('MonitorControls')
+    foreach($buttonName in @('Live','Max','Details')){
+        $button=$window.FindName($buttonName)
+        $point=$button.TranslatePoint([Windows.Point]::new(0,0),$controls)
+        if($point.X+$button.ActualWidth -gt $controls.ActualWidth+1){throw 'Large-text monitor control clipped at 240 DIP'}
+    }
+    Capture-TestView ($language+'-large-monitor-240')
+    $window.FontSize=12;$window.UpdateLayout()
     $window.Width=310
 }
 if($window.FindName('Live').Content -ne '即時'){throw 'Traditional Chinese text mismatch'}

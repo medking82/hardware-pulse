@@ -24,7 +24,7 @@ function Set-CardDensity([int]$level) {
     if(-not $script:densityCards){return}
     $compact=$level -ge 2; $tight=$level -ge 1
     foreach($card in $script:densityCards){
-        $card.Padding=if($tight){[Windows.Thickness]::new(7,5,7,5)}else{[Windows.Thickness]::new(10)}
+        $card.Padding=if($level -ge 3){[Windows.Thickness]::new(7,3,7,3)}elseif($tight){[Windows.Thickness]::new(7,5,7,5)}else{[Windows.Thickness]::new(10,7,10,7)}
         $card.Margin=if($tight){[Windows.Thickness]::new(0,0,0,3)}else{[Windows.Thickness]::new(0,0,0,6)}
     }
     foreach($key in @('CPU','GPU','Memory','NVMe','Airflow')){
