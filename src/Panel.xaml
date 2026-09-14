@@ -225,7 +225,7 @@
             </ComboBox>
             <CheckBox x:Name="StartWithWindows" Content="Start with Windows" Margin="0,0,0,10" />
             <TextBlock x:Name="StartupStatus" FontSize="11" Margin="0,0,0,10" />
-            <TextBlock Text="Version 0.5.4 · Marck Wong" FontSize="11" Foreground="#ADC1D2" Margin="0,0,0,8" />
+            <TextBlock Text="Version 0.5.5 · Marck Wong" FontSize="11" Foreground="#ADC1D2" Margin="0,0,0,8" />
             <Button x:Name="GitHub" Content="GitHub" HorizontalAlignment="Left" ToolTip="github.com/medking82/hardware-pulse" />
             <CheckBox x:Name="AutoUpdates" Content="Check for Updates Automatically" Margin="0,12,0,8" />
             <CheckBox x:Name="AutoDownload" Content="Download Updates Automatically" Margin="0,0,0,8" />
@@ -274,7 +274,7 @@
         </Expander>
         <Expander Header="Game Overlay" Foreground="#F0F5FA" Margin="0,16,0,0">
           <StackPanel Margin="0,10,0,0">
-            <TextBlock Text="Windowed / borderless games. FPS capture requires administrator. Stats use application presents, not generated frames." FontSize="11" Margin="0,0,0,10" />
+            <TextBlock Text="Windowed / borderless apps. Auto follows the foreground app; manual selection reconnects after restart. FPS uses the installed collector and application presents, not generated frames." FontSize="11" Margin="0,0,0,10" />
             <ComboBox x:Name="GamePicker" AutomationProperties.Name="Game" MinHeight="30" Margin="0,0,0,8" Foreground="#182332" />
             <Button x:Name="RefreshGames" Content="Refresh Games" Margin="0,0,0,10" />
             <CheckBox x:Name="OverlayEnabled" Content="Show Overlay" Margin="0,0,0,10" />
@@ -287,6 +287,19 @@
               <ComboBoxItem Content="Bottom Right" Tag="bottom-right" />
             </ComboBox>
             <CheckBox x:Name="OverlayDetailed" Content="Detailed Layout" Margin="0,0,0,10" />
+            <TextBlock Text="Overlay Background Color" Margin="0,4,0,6" />
+            <Button x:Name="OverlayBackground" Content="#111923" AutomationProperties.Name="Overlay Background Color" Margin="0,0,0,10" />
+            <DockPanel Margin="0,0,0,6">
+              <TextBlock x:Name="OverlayOpacityValue" Text="80%" DockPanel.Dock="Right" />
+              <TextBlock Text="Background Opacity" />
+            </DockPanel>
+            <Slider x:Name="OverlayOpacity" Minimum="0" Maximum="100" TickFrequency="1" IsSnapToTickEnabled="True" AutomationProperties.Name="Background Opacity" Margin="0,0,0,8" />
+            <TextBlock Text="0% transparent · 100% opaque. Text stays visible." FontSize="11" Margin="0,0,0,8" />
+            <TextBlock Text="Preview (sample data)" FontSize="11" Margin="0,0,0,6" />
+            <Border x:Name="OverlayPreview" CornerRadius="8" Padding="12,8" Margin="0,0,0,8">
+              <TextBlock x:Name="OverlayPreviewText" Text="FPS 60 · GPU 52°C" Foreground="White" FontSize="14" />
+            </Border>
+            <Button x:Name="ResetOverlayAppearance" Content="Reset Overlay Appearance" Margin="0,0,0,12" />
             <CheckBox x:Name="OverlayFps" Content="FPS / AVG / MIN / 1% Low" Margin="0,0,0,8" />
             <CheckBox x:Name="OverlayCpu" Content="CPU" Margin="0,0,0,8" />
             <CheckBox x:Name="OverlayGpu" Content="GPU" Margin="0,0,0,8" />

@@ -79,7 +79,7 @@ Leave a name blank to use device information. Hover over a field to see its auto
 SPD numbers identify sensor addresses, not physical slots. Installed slots are reported separately; assign a slot name only after confirming its sensor.|SPD 编号代表传感器地址，并非实体插槽。已安装插槽单独显示；确认对应关系后再命名。|SPD 編號代表感測器位址，並非實體插槽。已安裝插槽單獨顯示；確認對應關係後再命名。
 Changes save automatically.|更改自动保存。|變更自動儲存。
 About Pulse|关于 Pulse|關於 Pulse
-Version 0.5.4 · Marck Wong|版本 0.5.4 · Marck Wong|版本 0.5.4 · Marck Wong
+Version 0.5.5 · Marck Wong|版本 0.5.5 · Marck Wong|版本 0.5.5 · Marck Wong
 Sensors by LibreHardwareMonitor. Shared driver by PawnIO.|传感器：LibreHardwareMonitor。共享驱动：PawnIO。|感測器：LibreHardwareMonitor。共用驅動程式：PawnIO。
 Language|语言 / Language|語言 / Language
 Minimize|最小化|最小化
@@ -129,3 +129,12 @@ Connecting to sensors…|正在连接传感器…|正在連接感測器…
 Current used / usable capacity (GB, binary units). Usage stays live in Session Max.|当前用量 / 可用容量（GB，二进制单位）。本次峰值模式仍显示实时用量。|目前用量 / 可用容量（GB，二進位單位）。本次峰值模式仍顯示即時用量。
 GPU Fan 1 / GPU Fan 2 telemetry channels. These do not count physical fans.|GPU 风扇 1 / 2 转速通道，不代表实体风扇数量。|GPU 風扇 1 / 2 轉速通道，不代表實體風扇數量。
 System glass background is unavailable on this Windows version.|此 Windows 版本不支持系统玻璃背景。|此 Windows 版本不支援系統玻璃背景。
+Auto (foreground app)|自动（前台应用）|自動（前景應用程式）
+Waiting for target app|等待目标应用|等待目標應用程式
+Waiting for FPS collector|等待 FPS 采集器|等待 FPS 擷取程式
+Windowed / borderless apps. Auto follows the foreground app; manual selection reconnects after restart. FPS uses the installed collector and application presents, not generated frames.|适用于窗口化或无边框应用。自动跟随前台应用；手动选择会在重启后重连。FPS 由已安装的采集器读取应用提交帧，不包含生成帧。|適用於視窗化或無邊框應用程式。自動跟隨前景應用程式；手動選擇會在重啟後重新連線。FPS 由已安裝的擷取程式讀取應用提交影格，不包含生成影格。
+Overlay Background Color|状态条背景颜色|狀態列背景顏色
+Background Opacity|背景不透明度|背景不透明度
+0% transparent · 100% opaque. Text stays visible.|0% 全透明 · 100% 不透明。文字保持可见。|0% 全透明 · 100% 不透明。文字保持可見。
+Preview (sample data)|预览（示例数据）|預覽（範例資料）
+Reset Overlay Appearance|重置状态条外观|重設狀態列外觀

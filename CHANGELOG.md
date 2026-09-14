@@ -2,6 +2,14 @@
 
 English first; 简体中文 follows each version. Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
+## 0.5.5 — 2026-09-14
+
+- Read FPS through the installed elevated Collector while keeping the widget unelevated. Accept PresentMon's actual `msBetweenPresents` CSV header.
+- Preserve Overlay preferences, automatically follow the foreground app, and reconnect manually selected apps after restart.
+- Customize Overlay background color and opacity independently; text stays opaque. Fix the simplified/traditional Chinese foreground-app label.
+- 修复 FPS 实际读取与自动跟随，保留 Overlay 设置并支持应用重启后重连。新增状态条背景颜色及透明度设置，文字清晰度不受影响。
+- Install over the existing version or use the in-app updater; preferences are preserved. Windowed/borderless application presents are supported; exclusive fullscreen and generated-frame counts are not supported.
+
 ## 0.5.4 — 2026-09-14
 
 - Keep known device names and fan-channel metadata while a snapshot is stale or unavailable. Live values remain unavailable; new live snapshots replace the retained identity.

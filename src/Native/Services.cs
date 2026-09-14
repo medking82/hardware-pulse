@@ -13,7 +13,7 @@ namespace HardwarePulse {
     public sealed partial class Shell {
         readonly UpdateCoordinator updater=new UpdateCoordinator(new UpdateClient(),typeof(Shell).Assembly.GetName().Version);
         readonly DispatcherTimer updateTimer=new DispatcherTimer();
-        readonly GameOverlay overlay=new GameOverlay();readonly FrameCapture frames=new FrameCapture();readonly DispatcherTimer overlayTimer=new DispatcherTimer();Process target;
+        readonly GameOverlay overlay=new GameOverlay();FpsClient frames;readonly DispatcherTimer overlayTimer=new DispatcherTimer();Process target;bool refreshingGames;
         void WireUpdater(){
             Control<CheckBox>("AutoUpdates").IsChecked=settings.Flag("autoUpdates");Control<CheckBox>("AutoDownload").IsChecked=settings.Flag("autoDownload");
             Control<CheckBox>("AutoUpdates").Click+=delegate{settings.Data["autoUpdates"]=Checked("AutoUpdates");QueueSave();};
@@ -42,22 +42,36 @@ namespace HardwarePulse {
             Control<ProgressBar>("DownloadProgress").Value=updater.Progress;
         }
         void WireOverlay(){
-            var state=settings.Map("overlay");state["enabled"]=false;
+            var state=settings.Map("overlay");
+            WireOverlayAppearance();
             foreach(var pair in new[]{new[]{"OverlayEnabled","enabled"},new[]{"OverlayDetailed","detail"},new[]{"OverlayFps","fps"},new[]{"OverlayCpu","cpu"},new[]{"OverlayGpu","gpu"},new[]{"OverlayMemory","memory"},new[]{"OverlayFans","fans"},new[]{"OverlayStorage","storage"}}){string key=pair[1],name=pair[0];object saved;bool fallback=key=="fps"||key=="cpu"||key=="gpu"||key=="memory";Control<CheckBox>(name).IsChecked=state.TryGetValue(key,out saved)&&saved is bool?(bool)saved:fallback;Control<CheckBox>(name).Click+=delegate{state[key]=Checked(name);if(key=="enabled"||key=="fps")StartOverlay();QueueSave();UpdateOverlay();};}
             var positions=Control<ComboBox>("OverlayPosition");object position;string selected=state.TryGetValue("position",out position)?Convert.ToString(position):"top-left";foreach(ComboBoxItem item in positions.Items)if((string)item.Tag==selected)positions.SelectedItem=item;if(positions.SelectedItem==null)positions.SelectedIndex=0;positions.SelectionChanged+=delegate{state["position"]=(string)((ComboBoxItem)positions.SelectedItem).Tag;QueueSave();UpdateOverlay();};
-            overlayTimer.Interval=TimeSpan.FromMilliseconds(500);overlayTimer.Tick+=delegate{UpdateOverlay();};Click("RefreshGames",RefreshGames);Click("ResetFps",StartOverlay);Control<ComboBox>("GamePicker").SelectionChanged+=delegate{StartOverlay();};RefreshGames();
+            overlayTimer.Interval=TimeSpan.FromMilliseconds(500);overlayTimer.Tick+=delegate{UpdateOverlay();};Click("RefreshGames",RefreshGames);Click("ResetFps",delegate{if(frames!=null)frames.Reset();});Control<ComboBox>("GamePicker").SelectionChanged+=delegate{if(refreshingGames)return;var item=Control<ComboBox>("GamePicker").SelectedItem as ComboBoxItem;state["processName"]=item==null?"":(string)item.Tag;QueueSave();StartOverlay();};RefreshGames();StartOverlay();
         }
-        void RefreshGames(){var picker=Control<ComboBox>("GamePicker");picker.Items.Clear();foreach(var process in Process.GetProcesses().OrderBy(p=>p.ProcessName))using(process){try{if(process.MainWindowHandle!=IntPtr.Zero&&process.Id!=Process.GetCurrentProcess().Id)picker.Items.Add(new ComboBoxItem {Content=process.ProcessName+" · "+process.Id,Tag=process.Id});}catch{}}}
-        void StopOverlay(){overlayTimer.Stop();frames.Dispose();overlay.Hide();if(target!=null)target.Dispose();target=null;}
-        void StartOverlay(){StopOverlay();var choice=Control<ComboBox>("GamePicker").SelectedItem as ComboBoxItem;if(choice==null||!Checked("OverlayEnabled"))return;try{target=Process.GetProcessById((int)choice.Tag);if(Checked("OverlayFps"))frames.Start(Path.Combine(paths.Root,"tools","PresentMon.exe"),target.Id);overlayTimer.Start();}catch{Text("OverlayStatus",language.T("FPS capture failed"));}}
+        void RefreshGames(){
+            var picker=Control<ComboBox>("GamePicker");object saved;string selected=settings.Map("overlay").TryGetValue("processName",out saved)?Convert.ToString(saved):"";
+            refreshingGames=true;try{picker.Items.Clear();picker.Items.Add(new ComboBoxItem{Content=language.T("Auto (foreground app)"),Tag=""});var names=new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach(var process in Process.GetProcesses())using(process){try{if(OverlayTarget.Eligible(process))names.Add(process.ProcessName);}catch{}}
+                if(!string.IsNullOrEmpty(selected))names.Add(selected);foreach(string name in names)picker.Items.Add(new ComboBoxItem{Content=name,Tag=name});
+                foreach(ComboBoxItem item in picker.Items)if(string.Equals((string)item.Tag,selected,StringComparison.OrdinalIgnoreCase))picker.SelectedItem=item;if(picker.SelectedItem==null)picker.SelectedIndex=0;
+            }finally{refreshingGames=false;}
+        }
+        void StopOverlay(){overlayTimer.Stop();if(frames!=null)frames.Dispose();frames=null;overlay.Hide();if(target!=null)target.Dispose();target=null;}
+        void StartOverlay(){StopOverlay();if(!Checked("OverlayEnabled")){Text("OverlayStatus",language.T("FPS capture stopped"));return;}if(isolated)return;if(Checked("OverlayFps"))frames=new FpsClient(paths.Exe);overlayTimer.Start();UpdateOverlay();}
         static string OverlayValue(Reading data,string key,string unit){double value;return data.values.TryGetValue(key,out value)?value.ToString("0.#")+unit:"—";}
-        void UpdateOverlay(){if(target==null||!Checked("OverlayEnabled")){overlay.Hide();return;}try{target.Refresh();if(target.HasExited){StopOverlay();return;}}catch{StopOverlay();return;}var data=readings.Latest;var parts=new List<string>();
-            if(Checked("OverlayFps")){var metrics=frames.Read();parts.Add(metrics.Ready?string.Format("FPS {0:0}  AVG {1:0}  MIN {2:0}  1% LOW {3}",metrics.Current,metrics.Average,metrics.Minimum,double.IsNaN(metrics.Low)?"—":metrics.Low.ToString("0")):"FPS — · "+language.T(metrics.Status));Text("OverlayStatus",language.T(metrics.Status));}
+        void UpdateOverlay(){if(!Checked("OverlayEnabled")||isolated){overlay.Hide();return;}
+            var choice=Control<ComboBox>("GamePicker").SelectedItem as ComboBoxItem;string name=choice==null?"":(string)choice.Tag;
+            var next=OverlayTarget.Resolve(name,target);if(!object.ReferenceEquals(next,target)){if(target!=null)target.Dispose();target=next;}
+            if(target==null){if(frames!=null)frames.Select(0,0);overlay.Hide();Text("OverlayStatus",language.T("Waiting for target app"));return;}
+            string processName;IntPtr targetWindow;
+            try{target.Refresh();processName=target.ProcessName;targetWindow=target.MainWindowHandle;if(frames!=null)frames.Select(target.Id,target.StartTime.ToUniversalTime().Ticks);}catch{target.Dispose();target=null;if(frames!=null)frames.Select(0,0);overlay.Hide();return;}
+            var data=readings.Latest;var parts=new List<string>();
+            if(Checked("OverlayFps")&&frames!=null){var metrics=frames.Read();parts.Add(metrics.Ready?string.Format("FPS {0:0}  AVG {1:0}  MIN {2:0}  1% LOW {3}",metrics.Current,metrics.Average,metrics.Minimum,double.IsNaN(metrics.Low)?"—":metrics.Low.ToString("0")):"FPS — · "+language.T(metrics.Status));Text("OverlayStatus",processName+" · "+language.T(metrics.Status));}
             if(Checked("OverlayCpu"))parts.Add("CPU "+OverlayValue(data,"cpu","°C")+" · "+OverlayValue(data,"cpuLoad","%"));if(Checked("OverlayGpu"))parts.Add("GPU "+OverlayValue(data,"gpu","°C")+" · "+OverlayValue(data,"gpuLoad","%"));
             if(Checked("OverlayMemory"))foreach(string key in new[]{"ram","vram"}){Usage usage;parts.Add(data.state=="LIVE"&&data.usage.TryGetValue(key,out usage)?string.Format("{0} {1:0.0}/{2:0.0} GB",language.T(usage.label??key.ToUpperInvariant()),usage.used,usage.total):key.ToUpperInvariant()+" —");}
             if(Checked("OverlayFans"))parts.Add("FAN CPU "+OverlayValue(data,"cpuFan"," RPM")+" · GPU "+OverlayValue(data,"gpuFan"," RPM"));if(Checked("OverlayStorage"))parts.Add("NVMe "+OverlayValue(data,"diskC","°C")+" / "+OverlayValue(data,"diskD","°C"));
-            if(Checked("OverlayDetailed")){parts.Insert(0,target.ProcessName+" · "+language.T("Rolling 60 s"));if(Checked("OverlayCpu"))parts.Add("Vcore "+OverlayValue(data,"vcore"," V"));if(Checked("OverlayGpu"))parts.Add("VRAM "+OverlayValue(data,"vram","°C")+" · "+OverlayValue(data,"gpuVolt"," V"));}
-            if(parts.Count==0)parts.Add("Pulse");overlay.Display(target.MainWindowHandle,string.Join(Checked("OverlayDetailed")?Environment.NewLine:"   |   ",parts),(string)((ComboBoxItem)Control<ComboBox>("OverlayPosition").SelectedItem).Tag);
+            if(Checked("OverlayDetailed")){parts.Insert(0,processName+" · "+language.T("Rolling 60 s"));if(Checked("OverlayCpu"))parts.Add("Vcore "+OverlayValue(data,"vcore"," V"));if(Checked("OverlayGpu"))parts.Add("VRAM "+OverlayValue(data,"vram","°C")+" · "+OverlayValue(data,"gpuVolt"," V"));}
+            if(parts.Count==0)parts.Add("Pulse");overlay.Display(targetWindow,string.Join(Checked("OverlayDetailed")?Environment.NewLine:"   |   ",parts),(string)((ComboBoxItem)Control<ComboBox>("OverlayPosition").SelectedItem).Tag);
         }
     }
 }

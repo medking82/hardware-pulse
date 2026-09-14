@@ -15,6 +15,12 @@ public sealed class GameOverlay : Window {
     [DllImport("user32.dll",EntryPoint="GetWindowLongPtrW")] static extern IntPtr GetWindowLongPtr(IntPtr hwnd,int index);
     [DllImport("user32.dll",EntryPoint="SetWindowLongPtrW")] static extern IntPtr SetWindowLongPtr(IntPtr hwnd,int index,IntPtr value);
     readonly TextBlock text = new TextBlock();
+    public void SetAppearance(string hex,double opacity) {
+        if(!System.Text.RegularExpressions.Regex.IsMatch(hex??"","^#[0-9a-fA-F]{6}$"))hex="#111923";
+        if(double.IsNaN(opacity)||double.IsInfinity(opacity))opacity=80;
+        var color=(Color)ColorConverter.ConvertFromString(hex);
+        ((Border)Content).Background=new SolidColorBrush(Color.FromArgb((byte)Math.Round(255*Math.Max(0,Math.Min(100,opacity))/100),color.R,color.G,color.B));
+    }
     public GameOverlay() {
         Title="Pulse Game Overlay"; WindowStyle=WindowStyle.None; ResizeMode=ResizeMode.NoResize;
         AllowsTransparency=true; Background=Brushes.Transparent; Topmost=true; ShowInTaskbar=false; ShowActivated=false; Focusable=false;

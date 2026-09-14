@@ -61,7 +61,9 @@ namespace HardwarePulse {
                 var computer=new Computer {IsCpuEnabled=true,IsGpuEnabled=true,IsMemoryEnabled=true,IsMotherboardEnabled=true,IsStorageEnabled=true};
                 // A blocked driver read must not prevent a cooperative upgrade from completing.
                 // Exit the collector process only, never another application's process.
-                using(var watchdog=new Timer(delegate {if(File.Exists(paths.Stop))Environment.Exit(0);},null,500,500)){
+                int stopping=0;
+                using(var fps=samples==0?new FpsServer(paths):null)
+                using(var watchdog=new Timer(delegate {if(File.Exists(paths.Stop)&&Interlocked.Exchange(ref stopping,1)==0){if(fps!=null)fps.Dispose();Environment.Exit(0);}},null,500,500)){
                     try {
                         File.WriteAllText(Path.Combine(paths.Runtime,"collector-stage.txt"),"Opening Hardware");computer.Open();
                         string memoryName="Memory";MemoryModule[] modules=new MemoryModule[0];DiskInfo[] disks=new DiskInfo[0];

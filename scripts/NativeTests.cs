@@ -30,13 +30,20 @@ internal static class NativeTests {
     static void Toggle(Shell shell,string name,bool value){var control=shell.Control<CheckBox>(name);control.IsChecked=value;control.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Pump();}
     static T Field<T>(Shell shell,string name){return (T)typeof(Shell).GetField(name,BindingFlags.Instance|BindingFlags.NonPublic).GetValue(shell);}
     static void SharedFeatures(){
+        NativeFpsTests.Run();
         using(var metrics=new FrameCapture()){
             metrics.Reset(42);for(int i=0;i<99;i++)metrics.Add("main",10,10);metrics.Add("main",100,10);var result=metrics.ReadAt(10);
             Assert(result.Ready&&result.Minimum==10&&result.Low==10&&Math.Abs(result.Average-100000d/1090)<.001,"FPS aggregate definitions");metrics.Add("other",1,10);Assert(metrics.ReadAt(10).Count==100&&!metrics.ReadAt(13).Ready,"FPS swapchain/staleness");
             metrics.Reset(42);metrics.Feed("Application,ProcessID,SwapChainAddress,MsBetweenPresents");metrics.Feed("\"Game, Demo.exe\",42,0x1,16.0");metrics.Feed("Other.exe,43,0x1,1.0");metrics.Feed("Game.exe,42,0x1,NaN");Assert(metrics.Read().Count==1,"FPS CSV filtering");
+            metrics.Reset(42);metrics.Feed("Application,ProcessID,SwapChainAddress,Runtime,SyncInterval,PresentFlags,Dropped,TimeInSeconds,msInPresentAPI,msBetweenPresents,AllowsTearing,PresentMode,msUntilRenderComplete,msUntilDisplayed,msBetweenDisplayChange,msFlipDelay,msUntilRenderStart,msGPUActive,msSinceInput");
+            metrics.Feed("Game.exe,42,0x1,D3D9,-1,0,0,0.2659932,0.6495,10,0,Composed: Copy with GPU GDI,0.6092,15.6029,0,0,-0.4862,0.2584,0");Assert(metrics.Read().Ready&&metrics.Read().Current==100,"Actual PresentMon v1 header casing");
         }
         var rect=new GameOverlay.Rect {Left=-1920,Top=0,Right=0,Bottom=1080};foreach(string position in new[]{"top-left","top","top-right","bottom-left","bottom","bottom-right"}){var p=GameOverlay.Anchor(rect,300,80,position);Assert(p.X>=-1920&&p.X+300<=0&&p.Y>=0&&p.Y+80<=1080,"Overlay anchor bounds");}
         Assert(Languages.Resolve("auto","zh-HK")=="zh-TW"&&Languages.Resolve("auto","zh-CN")=="zh-CN"&&Languages.Resolve("auto","de-DE")=="en","Auto system language");
+        var translations=new Languages(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"Languages.txt"));
+        translations.Preference="zh-CN";Assert(translations.T("Auto (foreground app)")=="自动（前台应用）","Simplified Chinese foreground target label");
+        translations.Preference="zh-TW";Assert(translations.T("Auto (foreground app)")=="自動（前景應用程式）","Traditional Chinese foreground target label");
+        Assert(translations.T("System glass background is unavailable on this Windows version.")=="此 Windows 版本不支援系統玻璃背景。","Glass message must not include another translation entry");
     }
     static void Capture(Shell shell,string path){shell.Window.UpdateLayout();var bitmap=new RenderTargetBitmap((int)shell.Window.ActualWidth,(int)shell.Window.ActualHeight,96,96,PixelFormats.Pbgra32);bitmap.Render(shell.Window);var encoder=new PngBitmapEncoder();encoder.Frames.Add(BitmapFrame.Create(bitmap));using(var file=File.Create(path))encoder.Save(file);}
     [STAThread] static int Main(string[] args){
@@ -69,7 +76,7 @@ internal static class NativeTests {
                 }return 0;
             }
             SharedFeatures();
-            Json.WriteAtomic(Path.Combine(state,"widget-settings.json"),new {width=310,height=690,left=90,top=70,fontSize=12,language="en",unknownMigrationField="keep",cardOrder=new[]{"GPU","CPU","Memory","NVMe","Airflow"}});
+            Json.WriteAtomic(Path.Combine(state,"widget-settings.json"),new {width=310,height=690,left=90,top=70,fontSize=12,language="en",unknownMigrationField="keep",overlay=new {enabled=true,processName="PulseTestGameNotRunning",background="#223344",opacity=37},cardOrder=new[]{"GPU","CPU","Memory","NVMe","Airflow"}});
             using(var shell=new Shell(paths,true)){
                 shell.Window.ShowInTaskbar=false;shell.Window.ShowActivated=false;shell.Show();Pump();shell.UpdatePanel();Pump();
                 Assert(shell.Control<TextBlock>("Status").Text.Contains("7 "),"Native mapped sensor count");
@@ -82,6 +89,16 @@ internal static class NativeTests {
                 var cards=shell.Control<StackPanel>("Cards");Assert(cards.Children.Count==5,"Five card owners preserved");
                 Assert((string)((Border)cards.Children[0]).Tag=="GPU"&&shell.Window.Left==90&&shell.Window.Top==70,"Legacy card order/desktop position migration");
                 Assert(!Field<DispatcherTimer>(shell,"overlayTimer").IsEnabled,"Idle overlay timer running");
+                var fpsOverlay=Field<GameOverlay>(shell,"overlay");
+                var fpsBackground=(SolidColorBrush)((Border)fpsOverlay.Content).Background;
+                Assert(fpsBackground.Color.R==0x22&&fpsBackground.Color.G==0x33&&fpsBackground.Color.A==94,"Overlay appearance restore");
+                shell.Control<Slider>("OverlayOpacity").Value=0;
+                Assert(((SolidColorBrush)((Border)fpsOverlay.Content).Background).Color.A==0&&fpsOverlay.Opacity==1&&((Border)fpsOverlay.Content).Child.Opacity==1,"Transparent background faded overlay text");
+                shell.Control<Slider>("OverlayOpacity").Value=100;Assert(((SolidColorBrush)((Border)fpsOverlay.Content).Background).Color.A==255,"Opaque overlay background");
+                shell.Control<Slider>("OverlayOpacity").Value=37;
+                Assert(shell.Control<CheckBox>("OverlayEnabled").IsChecked==true,"Overlay enabled preference was erased at startup");
+                Click(shell,"RefreshGames");Assert((string)((ComboBoxItem)shell.Control<ComboBox>("GamePicker").SelectedItem).Tag=="PulseTestGameNotRunning","Refresh lost stopped game selection");
+                Assert((string)((ComboBoxItem)shell.Control<ComboBox>("GamePicker").Items[0]).Tag=="","Auto target default missing");
                 Toggle(shell,"LockPosition",true);Assert(shell.Window.ResizeMode==ResizeMode.NoResize&&(bool)shell.Window.GetValue(WindowSnap.PositionLockedProperty),"Window lock");Assert(!Tree(cards).OfType<System.Windows.Controls.Primitives.Thumb>().Any(t=>t.IsEnabled),"Locked card handles enabled");
                 var first=(Border)cards.Children[0];((MenuItem)first.ContextMenu.Items[1]).RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));Assert(cards.Children[0]==first,"Locked card reordered");Toggle(shell,"LockPosition",false);
                 ((MenuItem)first.ContextMenu.Items[1]).RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));Assert(cards.Children[1]==first,"Unlocked card reorder failed");
@@ -107,7 +124,7 @@ internal static class NativeTests {
                 Click(shell,"Settings");var language=shell.Control<ComboBox>("LanguagePicker");foreach(ComboBoxItem item in language.Items)if((string)item.Tag=="zh-TW")language.SelectedItem=item;Pump();Assert(shell.Control<Button>("Live").Content.ToString()=="即時","Native language selection");
                 Click(shell,"CheckUpdates");var updateWait=Stopwatch.StartNew();while(!shell.Control<Button>("CheckUpdates").IsEnabled && updateWait.Elapsed.TotalSeconds<15){Pump();System.Threading.Thread.Sleep(30);}Assert(shell.Control<Button>("CheckUpdates").IsEnabled,"Update check did not complete");Assert(shell.Control<TextBlock>("UpdateStatus").Text=="You are up to date" || shell.Control<TextBlock>("UpdateStatus").Text=="已是最新版本" || shell.Control<TextBlock>("UpdateStatus").Text=="已是最新版本", "Native update check: "+shell.Control<TextBlock>("UpdateStatus").Text);foreach(ComboBoxItem choice in language.Items)if((string)choice.Tag=="en")language.SelectedItem=choice;Pump();Assert(shell.Control<TextBlock>("UpdateStatus").Text=="You are up to date","Update status did not follow language change");foreach(ComboBoxItem choice in language.Items)if((string)choice.Tag=="zh-TW")language.SelectedItem=choice;Pump();Capture(shell,Path.Combine(state,"localized-settings.png"));shell.Control<Slider>("FontSizeSlider").Value=14;shell.Save();Click(shell,"Back");shell.Window.Close();Assert(!shell.Window.IsVisible,"Close to tray");shell.Show();Pump();Assert(shell.Window.IsVisible,"Restore window");shell.Exit();
             }
-            using(var restored=new Shell(paths,true)){restored.Window.ShowInTaskbar=false;restored.Show();Pump();Assert(restored.Window.FontSize==14,"Font restore");Assert(restored.Control<Button>("Live").Content.ToString()=="即時","Language restore");var picker=restored.Control<ComboBox>("LanguagePicker");foreach(ComboBoxItem item in picker.Items)if((string)item.Tag=="en")picker.SelectedItem=item;Assert(restored.Control<StackPanel>("CardOptions").Children.OfType<CheckBox>().Any(c=>c.Content.ToString()=="Memory"),"Restored card options cannot switch back to English");restored.Exit();}
+            using(var restored=new Shell(paths,true)){restored.Window.ShowInTaskbar=false;restored.Show();Pump();Assert(restored.Control<Slider>("OverlayOpacity").Value==37&&restored.Control<Button>("OverlayBackground").Content.ToString()=="#223344","Overlay appearance persistence");Click(restored,"ResetOverlayAppearance");Assert(restored.Control<Slider>("OverlayOpacity").Value==80&&restored.Control<Button>("OverlayBackground").Content.ToString()=="#111923","Overlay appearance reset");Assert(restored.Window.FontSize==14,"Font restore");Assert(restored.Control<Button>("Live").Content.ToString()=="即時","Language restore");var picker=restored.Control<ComboBox>("LanguagePicker");foreach(ComboBoxItem item in picker.Items)if((string)item.Tag=="en")picker.SelectedItem=item;Assert(restored.Control<StackPanel>("CardOptions").Children.OfType<CheckBox>().Any(c=>c.Content.ToString()=="Memory"),"Restored card options cannot switch back to English");restored.Exit();}
             Assert(new Settings(Path.Combine(state,"widget-settings.json")).Text("unknownMigrationField")=="keep","Upgrade lost unknown settings");
             var references=Assembly.LoadFrom(Path.Combine(root,"HardwarePulse.exe")).GetReferencedAssemblies();Assert(!references.Any(r=>r.Name=="System.Management.Automation"),"Automation reference remains");
             Console.WriteLine("PASS native WPF: semantic snapshot, 10/12/16 DIP headers, Details, language, settings restore, tray and no automation reference");app.Shutdown();return 0;

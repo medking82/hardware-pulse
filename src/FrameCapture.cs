@@ -32,14 +32,15 @@ public sealed class FrameCapture : IDisposable {
         fields.Add(value.ToString()); return fields.ToArray();
     }
     public void Reset(int pid) { lock(gate) { target = pid; streams.Clear(); header = null; status = "Waiting for frames"; } }
+    static int Column(string[] fields,string name) { return Array.FindIndex(fields,value=>String.Equals(value,name,StringComparison.OrdinalIgnoreCase)); }
     public void Feed(string line) {
         if (String.IsNullOrEmpty(line)) return;
         lock(gate) {
             var fields = ParseCsv(line);
-            if (Array.IndexOf(fields, "MsBetweenPresents") >= 0 && Array.IndexOf(fields,"ProcessID") >= 0) { header = fields; return; }
+            if (Column(fields, "MsBetweenPresents") >= 0 && Column(fields,"ProcessID") >= 0) { header = fields; return; }
             if (header == null || fields.Length != header.Length) return;
             int pid; double ms;
-            int p = Array.IndexOf(header,"ProcessID"), m = Array.IndexOf(header,"MsBetweenPresents"), s = Array.IndexOf(header,"SwapChainAddress");
+            int p = Column(header,"ProcessID"), m = Column(header,"MsBetweenPresents"), s = Column(header,"SwapChainAddress");
             if (s < 0 || !Int32.TryParse(fields[p],out pid) || pid != target || !Double.TryParse(fields[m],NumberStyles.Float,CultureInfo.InvariantCulture,out ms)) return;
             Add(fields[s], ms, clock.Elapsed.TotalSeconds);
         }
@@ -65,12 +66,13 @@ public sealed class FrameCapture : IDisposable {
             var frames = best.ToArray(); var latest = frames.Where(f => f.Time >= now-1).ToArray();
             var sorted = frames.Select(f => f.Ms).OrderByDescending(x => x).ToArray();
             int count = Math.Max(1,(int)Math.Ceiling(frames.Length*.01));
-            return new FrameMetrics { Ready = latest.Length > 0, Status = "Live", Count = frames.Length,
+            return new FrameMetrics { Ready = latest.Length > 0, Status = latest.Length > 0 ? "Live" : "Waiting for frames", Count = frames.Length,
                 Current = latest.Length == 0 ? 0 : 1000/latest.Average(f=>f.Ms), Average = 1000/frames.Average(f=>f.Ms),
                 Minimum = 1000/sorted[0], Low = frames.Length < 100 ? Double.NaN : 1000/sorted.Take(count).Average() };
         }
     }
     public FrameMetrics Read() { return ReadAt(clock.Elapsed.TotalSeconds); }
+    public bool IsRunning { get { try { return process!=null&&!process.HasExited; } catch { return false; } } }
     public void Start(string exe, int pid) {
         Dispose(); Reset(pid);
         try {
