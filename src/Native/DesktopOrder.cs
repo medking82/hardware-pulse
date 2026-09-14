@@ -10,7 +10,7 @@ using System.Windows.Media;
 
 namespace HardwarePulse {
     public sealed partial class Shell {
-        static readonly string[] desktopDefaultOrder={"CPU","GPU","vram","Memory","diskC","diskD","cpuFan","gpuFan","gpuFan2","bottom","top"};
+        static readonly string[] desktopDefaultOrder={"CPU","GPU","vram","Memory","diskC","diskD","cpuFan","gpuFan","gpuFan2","bottom","top","netDown","netUp"};
         string[] DesktopOrderKeys(){
             object saved;var result=new List<string>();
             if(settings.Data.TryGetValue("desktopOrder",out saved)&&saved is IEnumerable&&!(saved is string))
@@ -42,7 +42,7 @@ namespace HardwarePulse {
         void UpdateDesktopOrderLabels(){
             foreach(Border row in Control<StackPanel>("DesktopOrderList").Children){
                 string key=(string)row.Tag;
-                string title=key=="vram"?language.T("VRAM"):key=="diskC"||key=="diskD"?Device(key,key=="diskC"?"Drive 1":"Drive 2"):key=="CPU"||key=="GPU"||key=="Memory"?language.T(key):DesktopFanTitle(key);
+                string title=key=="netDown"?language.T("Download"):key=="netUp"?language.T("Upload"):key=="vram"?language.T("VRAM"):key=="diskC"||key=="diskD"?Device(key,key=="diskC"?"Drive 1":"Drive 2"):key=="CPU"||key=="GPU"||key=="Memory"?language.T(key):DesktopFanTitle(key);
                 var grid=(Grid)row.Child;((TextBlock)grid.Children[1]).Text=title;
                 System.Windows.Automation.AutomationProperties.SetName(grid.Children[0],title);
             }

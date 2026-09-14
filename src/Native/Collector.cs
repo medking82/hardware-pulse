@@ -58,7 +58,7 @@ namespace HardwarePulse {
             Directory.CreateDirectory(paths.Runtime);
             using(var mutex=new Mutex(false,mutexName)){
                 bool owned=false;try{owned=mutex.WaitOne(0);}catch(AbandonedMutexException){owned=true;}if(!owned)return 0;
-                var computer=new Computer {IsCpuEnabled=true,IsGpuEnabled=true,IsMemoryEnabled=true,IsMotherboardEnabled=true,IsStorageEnabled=true};
+                var computer=new Computer {IsCpuEnabled=true,IsGpuEnabled=true,IsMemoryEnabled=true,IsMotherboardEnabled=true,IsStorageEnabled=true,IsNetworkEnabled=true};
                 // A blocked driver read must not prevent a cooperative upgrade from completing.
                 // Exit the collector process only, never another application's process.
                 int stopping=0;

@@ -20,12 +20,15 @@ internal static class NativeFpsTests {
         Assert(!FpsProtocol.ProtectedTool(typeof(NativeFpsTests).Assembly.Location),"FPS cannot elevate a workspace tool");
         Assert(OverlayTarget.Excluded("explorer")&&OverlayTarget.Excluded("HARDWAREPULSE")&&!OverlayTarget.Excluded("Game"),"FPS desktop and self exclusions");
         using(var capture=new FrameCapture()){capture.Reset(42);capture.Add("main",16,10);Assert(!capture.ReadAt(11.5).Ready&&capture.ReadAt(11.5).Status=="Waiting for frames","FPS stale frame status");}
+        // Repeated cancellation exercises the native completion/event lifetime race.
+        for(int attempt=0;attempt<12;attempt++){
         string name="Pulse-Fps-Test-"+Guid.NewGuid().ToString("N");Exception failure=null;
         using(var server=new NamedPipeServerStream(name,PipeDirection.InOut,1,PipeTransmissionMode.Byte,PipeOptions.Asynchronous)){
             var worker=new Thread(delegate(){try{server.WaitForConnection();var request=FpsProtocol.Read(server,20,1000);Assert(BitConverter.ToInt32(request,0)==42,"FPS fragmented request");FpsProtocol.Write(server,response);try{FpsProtocol.Read(server,20,150);throw new Exception("FPS idle connection did not expire");}catch(IOException){}}catch(Exception e){failure=e;server.Dispose();}});worker.Start();
             using(var client=new NamedPipeClientStream(".",name,PipeDirection.InOut,PipeOptions.Asynchronous)){client.Connect(1000);byte[] request=FpsProtocol.Request(42,123,0);var first=new byte[3];var rest=new byte[17];Array.Copy(request,first,3);Array.Copy(request,3,rest,0,17);FpsProtocol.Write(client,first);FpsProtocol.Write(client,rest);Assert(FpsProtocol.Metrics(FpsProtocol.Read(client,44,1000)).Ready,"FPS metrics transport");Assert(worker.Join(3000),"FPS read timeout bounded");}
             if(failure!=null)throw failure;
         }
-        Console.WriteLine("FPS protocol, peer identity, PID reuse, fragmentation, timeout and stale metrics passed.");
+        }
+        Console.WriteLine("FPS protocol, peer identity, PID reuse, fragmentation, repeated timeout cancellation and stale metrics passed.");
     }
 }

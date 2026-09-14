@@ -79,7 +79,7 @@ Leave a name blank to use device information. Hover over a field to see its auto
 SPD numbers identify sensor addresses, not physical slots. Installed slots are reported separately; assign a slot name only after confirming its sensor.|SPD 编号代表传感器地址，并非实体插槽。已安装插槽单独显示；确认对应关系后再命名。|SPD 編號代表感測器位址，並非實體插槽。已安裝插槽單獨顯示；確認對應關係後再命名。
 Changes save automatically.|更改自动保存。|變更自動儲存。
 About Pulse|关于 Pulse|關於 Pulse
-Version 0.5.8 · Marck Wong|版本 0.5.8 · Marck Wong|版本 0.5.8 · Marck Wong
+Version 0.5.9 · Marck Wong|版本 0.5.9 · Marck Wong|版本 0.5.9 · Marck Wong
 Sensors by LibreHardwareMonitor. Shared driver by PawnIO.|传感器：LibreHardwareMonitor。共享驱动：PawnIO。|感測器：LibreHardwareMonitor。共用驅動程式：PawnIO。
 Language|语言 / Language|語言 / Language
 Minimize|最小化|最小化
@@ -166,3 +166,15 @@ Enable to preview and edit. Move the readings, then choose Done to lock. Disable
 Edges snap while moving. Drag away to release; Alt temporarily bypasses snapping.|移动时吸附屏幕边缘，拖远即可脱离；Alt 临时关闭吸附。|移動時吸附螢幕邊緣，拖遠即可脫離；Alt 暫時關閉吸附。
 Reading Order|数据顺序|資料順序
 Drag the handle or use Up / Down keys. Esc cancels a drag. Unavailable readings retain their position.|拖动手柄或使用上下方向键排序，Esc 取消拖动。暂不可用的数据保留顺序。|拖曳控制柄或使用上下方向鍵排序，Esc 取消拖曳。暫不可用的資料保留順序。
+Auto Contrast protects text with a local backing and at least 90% opacity. Custom color allows the full opacity range.|自动对比度使用文字局部衬底，并保持至少 90% 不透明度。自定义颜色支持完整不透明度范围。|自動對比度使用文字局部襯底，並保持至少 90% 不透明度。自訂顏色支援完整不透明度範圍。
+Colors|配色|配色
+Hardware Colors|硬件配色|硬體配色
+Unified Color|统一颜色|統一顏色
+Monitor icons and temperatures share this palette. Labels stay neutral. Desktop Auto Contrast is independent.|监控图标与温度共用此配色，标签保持中性。桌面自动对比度独立设置。|監控圖示與溫度共用此配色，標籤保持中性。桌面自動對比度獨立設定。
+Network|网络|網路
+Active adapter|活动网卡|作用中網卡
+Download|下行|下載
+Upload|上行|上傳
+Network Speed Unit|网速单位|網速單位
+Shows the busiest adapter, not a sum of overlapping adapters. 1 MB/s = 8 Mbit/s; KB and MB use decimal units.|显示流量最高的网卡，避免重复累计网卡流量。1 MB/s = 8 Mbit/s；KB 和 MB 使用十进制单位。|顯示流量最高的網卡，避免重複累計網卡流量。1 MB/s = 8 Mbit/s；KB 和 MB 使用十進位單位。
+Adapts light/dark text to nearby wallpaper. Local backing keeps readings clear on mixed backgrounds.|根据附近壁纸切换深浅文字，局部衬底保护复杂背景上的可读性。|依附近桌布切換深淺文字，局部襯底保護複雜背景上的可讀性。

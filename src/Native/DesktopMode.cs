@@ -7,7 +7,7 @@ using Forms=System.Windows.Forms;
 
 namespace HardwarePulse {
     public sealed partial class Shell {
-        DesktopView desktop;Forms.ToolStripMenuItem trayDesktop,trayDesktopEdit,trayDesktopLock;
+        DesktopView desktop;Forms.ToolStripMenuItem trayDesktop,trayDesktopEdit,trayDesktopLock;bool syncingDesktopOpacity;
         bool DesktopEnabled {get{return settings.Flag("desktopEnabled");}}
         string DesktopColor(){string hex=settings.Text("desktopColor","#E4F3EF");return System.Text.RegularExpressions.Regex.IsMatch(hex,"^#[0-9a-fA-F]{6}$")?hex:"#E4F3EF";}
         void WireDesktop(){
@@ -18,7 +18,7 @@ namespace HardwarePulse {
             Control<CheckBox>("DesktopAutoContrast").IsChecked=settings.Flag("desktopAutoContrast",!settings.Data.ContainsKey("desktopColor"));
             Control<Slider>("DesktopTextOpacity").Value=settings.Number("desktopTextOpacity",100,30,100);
             Control<CheckBox>("DesktopAutoContrast").Click+=delegate{settings.Data["desktopAutoContrast"]=Checked("DesktopAutoContrast");UpdateDesktop();QueueSave();};
-            Control<Slider>("DesktopTextOpacity").ValueChanged+=delegate{settings.Data["desktopTextOpacity"]=Control<Slider>("DesktopTextOpacity").Value;UpdateDesktop();QueueSave();};
+            Control<Slider>("DesktopTextOpacity").ValueChanged+=delegate{if(syncingDesktopOpacity)return;settings.Data["desktopTextOpacity"]=Control<Slider>("DesktopTextOpacity").Value;UpdateDesktop();QueueSave();};
             Control<CheckBox>("DesktopEnabled").Click+=delegate{SetDesktopEnabled(Checked("DesktopEnabled"));};
             Control<CheckBox>("DesktopLocked").Click+=delegate{SetDesktopLocked(Checked("DesktopLocked"));};
             foreach(string key in new[]{"DesktopFontSize","DesktopSpacing"}){
@@ -52,9 +52,10 @@ namespace HardwarePulse {
             menu.Opening+=delegate{trayDesktop.Checked=DesktopEnabled;trayDesktopLock.Checked=settings.Flag("desktopLocked",true);trayDesktopEdit.Enabled=trayDesktopLock.Enabled=DesktopEnabled;};
         }
         void UpdateDesktopLabels(){
+            syncingDesktopOpacity=true;try{var slider=Control<Slider>("DesktopTextOpacity");slider.Minimum=Checked("DesktopAutoContrast")?90:30;slider.Value=settings.Number("desktopTextOpacity",100,30,100);}finally{syncingDesktopOpacity=false;}
             Control<Button>("DesktopColor").Content=DesktopColor();
             Text("DesktopFontValue",Control<Slider>("DesktopFontSize").Value+" px");Text("DesktopSpacingValue",Control<Slider>("DesktopSpacing").Value+" px");
-            Text("DesktopTextOpacityValue",Control<Slider>("DesktopTextOpacity").Value+"%");
+            Text("DesktopTextOpacityValue",Math.Max(Checked("DesktopAutoContrast")?90:30,Control<Slider>("DesktopTextOpacity").Value)+"%");
             Control<Button>("DesktopDone").IsEnabled=DesktopEnabled;
             Control<CheckBox>("DesktopLocked").IsEnabled=DesktopEnabled;
             UpdateDesktopOrderLabels();
@@ -80,6 +81,10 @@ namespace HardwarePulse {
                 if(key=="Memory"&&(readings.HasUsage("ram")||readings.Latest.available==null))result.Add(new DesktopMetric(key,language.T("Memory"),DesktopUsage("ram"),"memory"));
                 if(key=="NVMe")foreach(string disk in new[]{"diskC","diskD"})if(Available(disk))result.Add(new DesktopMetric(disk,Device(disk,disk=="diskC"?"Drive 1":"Drive 2"),DesktopReading(disk," °C"),"nvme"));
                 if(key=="Airflow")foreach(string fan in new[]{"cpuFan","gpuFan","gpuFan2","bottom","top"})if(Available(fan))result.Add(new DesktopMetric(fan,DesktopFanTitle(fan),DesktopReading(fan," RPM"),fan.StartsWith("gpu")?"gpu":"airflow"));
+                if(key=="Network")foreach(string direction in new[]{"netDown","netUp"})if(Available(direction)){
+                    double value;string rate=readings.Latest.state=="LIVE"&&readings.Latest.values.TryGetValue(direction,out value)?NetworkRate.Format(value,settings.Text("networkUnit","auto")):"—";
+                    result.Add(new DesktopMetric(direction,language.T(direction=="netDown"?"Download":"Upload"),rate,"network"));
+                }
             }
             if(readings.Latest.state!="LIVE")result.Add(new DesktopMetric("status",language.T(readings.Latest.state),language.T("Waiting for collector"),"live"));
             if(result.Count==0)result.Add(new DesktopMetric("empty","Pulse",language.T("No cards shown. Choose cards in Settings."),"live"));
@@ -95,7 +100,7 @@ namespace HardwarePulse {
             }
             string effectiveColor=desktop.ResolveColor(Checked("DesktopAutoContrast"),DesktopColor());
             desktop.Render(DesktopMetrics(),Control<Slider>("DesktopFontSize").Value,Control<Slider>("DesktopSpacing").Value,effectiveColor,settings.Flag("desktopLocked",true));
-            desktop.SetTextOpacity(Control<Slider>("DesktopTextOpacity").Value);
+            desktop.SetTextOpacity(Control<Slider>("DesktopTextOpacity").Value,Checked("DesktopAutoContrast"));
             desktop.RefreshLayer();
             Text("DesktopStatus",language.T(desktop.LayerAvailable?"Use the system tray to edit or exit Desktop Mode.":"Waiting for Windows desktop"));
         }

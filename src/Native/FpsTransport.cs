@@ -19,8 +19,15 @@ namespace HardwarePulse {
         public static byte[] Request(int pid,long started,long generation){using(var memory=new MemoryStream()){using(var writer=new BinaryWriter(memory)){writer.Write(pid);writer.Write(started);writer.Write(generation);return memory.ToArray();}}}
         public static byte[] Response(FrameMetrics value){using(var memory=new MemoryStream()){using(var writer=new BinaryWriter(memory)){writer.Write(value.Current);writer.Write(value.Average);writer.Write(value.Minimum);writer.Write(value.Low);writer.Write(value.Count);writer.Write(value.Ready?1:0);writer.Write(value.Status=="Live"?1:value.Status=="FPS capture needs administrator"?2:value.Status=="FPS capture failed"?3:0);return memory.ToArray();}}}
         public static FrameMetrics Metrics(byte[] bytes){using(var reader=new BinaryReader(new MemoryStream(bytes))){var value=new FrameMetrics{Current=reader.ReadDouble(),Average=reader.ReadDouble(),Minimum=reader.ReadDouble(),Low=reader.ReadDouble(),Count=reader.ReadInt32(),Ready=reader.ReadInt32()==1};int status=reader.ReadInt32();value.Status=status==1?"Live":status==2?"FPS capture needs administrator":status==3?"FPS capture failed":"Waiting for frames";return value;}}
-        public static byte[] Read(PipeStream pipe,int count,int timeout){var data=new byte[count];int offset=0;var clock=Stopwatch.StartNew();while(offset<count){var pending=pipe.BeginRead(data,offset,count-offset,null,null);using(var wait=pending.AsyncWaitHandle){int remaining=timeout-(int)clock.ElapsedMilliseconds;if(remaining<=0||!wait.WaitOne(remaining)){pipe.Dispose();throw new IOException("FPS connection timed out");}int read=pipe.EndRead(pending);if(read==0)throw new EndOfStreamException();offset+=read;}}return data;}
-        public static void Write(PipeStream pipe,byte[] data){var pending=pipe.BeginWrite(data,0,data.Length,null,null);using(var wait=pending.AsyncWaitHandle){if(!wait.WaitOne(3000)){pipe.Dispose();throw new IOException("FPS connection timed out");}pipe.EndWrite(pending);}}
+        static WaitHandle Wait(PipeStream pipe,IAsyncResult pending,int timeout){
+            var wait=pending.AsyncWaitHandle;
+            if(timeout>0&&wait.WaitOne(timeout))return wait;
+            // The native completion callback still owns this event after cancellation.
+            // Leave it with the async result for finalization; closing it here races SetEvent.
+            pipe.Dispose();throw new IOException("FPS connection timed out");
+        }
+        public static byte[] Read(PipeStream pipe,int count,int timeout){var data=new byte[count];int offset=0;var clock=Stopwatch.StartNew();while(offset<count){var pending=pipe.BeginRead(data,offset,count-offset,null,null);using(Wait(pipe,pending,timeout-(int)clock.ElapsedMilliseconds)){int read=pipe.EndRead(pending);if(read==0)throw new EndOfStreamException();offset+=read;}}return data;}
+        public static void Write(PipeStream pipe,byte[] data){var pending=pipe.BeginWrite(data,0,data.Length,null,null);using(Wait(pipe,pending,3000)){pipe.EndWrite(pending);}}
         [DllImport("advapi32.dll",SetLastError=true)] static extern bool OpenProcessToken(IntPtr process,uint access,out IntPtr token);
         [DllImport("kernel32.dll")] static extern bool CloseHandle(IntPtr handle);
         [DllImport("kernel32.dll",SetLastError=true)] static extern IntPtr OpenProcess(uint access,bool inherit,int pid);

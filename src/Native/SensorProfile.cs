@@ -114,6 +114,18 @@ namespace HardwarePulse {
                 result.available=chosen.ToDictionary(p=>p.Key,p=>p.Value!=null);
             }
             foreach(var entry in Specs){var sensor=chosen[entry.Key];var spec=entry.Value;if(sensor==null||sensor.type!=spec.Type||!sensor.value.HasValue)continue;double v=sensor.value.Value;if(!double.IsNaN(v)&&!double.IsInfinity(v)&&v>=spec.Min&&v<=spec.Max)result.values[entry.Key]=v;}
+            // Show one adapter, never sum virtual/physical counters that may represent
+            // the same traffic twice. The selected adapter name is visible in the card.
+            var network=items.Where(s=>s.hardwareType=="Network"&&s.type=="Throughput"&&s.value.HasValue&&!double.IsNaN(s.value.Value)&&!double.IsInfinity(s.value.Value)&&s.value.Value>=0)
+                .GroupBy(s=>s.hardwareId).OrderByDescending(g=>g.Sum(s=>s.value.Value)).ThenBy(g=>g.Key,StringComparer.Ordinal).FirstOrDefault();
+            if(network!=null){
+                result.names["Network"]=network.First().hardware;
+                foreach(var direction in new[]{new[]{"netDown","Download Speed"},new[]{"netUp","Upload Speed"}}){
+                    var sensor=network.FirstOrDefault(s=>s.name==direction[1]);
+                    if(result.available!=null)result.available[direction[0]]=sensor!=null;
+                    if(sensor!=null)result.values[direction[0]]=sensor.value.Value;
+                }
+            }
             result.state="LIVE";result.identity=raw.pid+":"+raw.sequence;return result;
         }
     }

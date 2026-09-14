@@ -20,7 +20,7 @@ static class NativeDesktopLayerTests {
     static void CheckEdgeSnap(DesktopView view){
         var hwnd=new WindowInteropHelper(view).Handle;var work=SystemParameters.WorkArea;
         var matrix=PresentationSource.FromVisual(view).CompositionTarget.TransformToDevice;
-        var start=matrix.Transform(new Point(work.Left,work.Top));var end=matrix.Transform(new Point(work.Right,work.Bottom));
+        var start=matrix.Transform(new Point(work.Left+DesktopView.EdgePadding,work.Top+DesktopView.EdgePadding));var end=matrix.Transform(new Point(work.Right-DesktopView.EdgePadding,work.Bottom-DesktopView.EdgePadding));
         var saved=new Point(view.Left,view.Top);var memory=Marshal.AllocHGlobal(Marshal.SizeOf(typeof(WindowSnap.Rect)));
         try{for(int edge=0;edge<4;edge++){
             view.Left=edge==0?work.Left+8:edge==1?work.Right-view.ActualWidth-8:work.Left+100;

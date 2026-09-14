@@ -2,6 +2,15 @@
 
 English first; 简体中文 follows each version. Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
+## 0.5.9 — 2026-09-14
+
+- Protect Desktop Auto Contrast text and icons with local backing, at least 90% effective opacity and sharp glyph rendering. Sample both sides; use protected light text when sampling is unavailable instead of retaining stale dark text.
+- Leave a 16 logical px outer margin when snapping or restoring Desktop View to screen edges.
+- Choose Hardware Colors or a custom Unified Color for monitor SVG icons and temperatures in Appearance → Colors.
+- Add Network download/upload readings to Monitor and Desktop, with Auto, KB/s, MB/s and Mbit/s units. Reuse the Collector's LibreHardwareMonitor network counters and show the busiest adapter without summing overlapping adapters.
+- Fix an async FPS pipe timeout race discovered during regression: native completion must retain its wait event until cancellation completes.
+- 修复 Desktop contrast 与贴边留白，新增 icon/temperature 配色选项，以及支持单位切换的上下行网速。无需新 Collector 或 PowerShell runtime。
+
 ## 0.5.8 — 2026-09-14
 
 - Enter Desktop Mode in an editable preview from Settings or the tray; Done locks the readings and hides the editor. Disabling it returns to the monitor.

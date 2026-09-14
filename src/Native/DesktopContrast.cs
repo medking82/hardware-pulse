@@ -23,8 +23,8 @@ namespace HardwarePulse {
             try{
                 double sum=0;int count=0;
                 // Transparent padding, away from glyphs and rules: never sample our own text.
-                foreach(double fraction in new[]{.2,.5,.8}){
-                    Point point=window.PointToScreen(new Point(2,window.ActualHeight*fraction));
+                foreach(double fraction in new[]{.2,.5,.8})foreach(double x in new[]{2,Math.Max(2,window.ActualWidth-2)}){
+                    Point point=window.PointToScreen(new Point(x,window.ActualHeight*fraction));
                     uint pixel=GetPixel(dc,(int)point.X,(int)point.Y);if(pixel==uint.MaxValue)continue;
                     sum+=Luminance(Color.FromRgb((byte)pixel,(byte)(pixel>>8),(byte)(pixel>>16)));count++;
                 }

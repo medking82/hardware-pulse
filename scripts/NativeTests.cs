@@ -29,6 +29,21 @@ internal static class NativeTests {
     static void Click(Shell shell,string name){shell.Control<Button>(name).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Pump();}
     static void Toggle(Shell shell,string name,bool value){var control=shell.Control<CheckBox>(name);control.IsChecked=value;control.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Pump();}
     static T Field<T>(Shell shell,string name){return (T)typeof(Shell).GetField(name,BindingFlags.Instance|BindingFlags.NonPublic).GetValue(shell);}
+    static void CaptureContrast(DesktopView view,string path){
+        view.Render(new[]{new DesktopMetric("cpu","CPU","60.6 °C   15.4%","cpu"),new DesktopMetric("gpu","GPU","46.3 °C   4%","gpu"),new DesktopMetric("vram","VRAM","3 / 15.9 GB · 19%","gpu")},20,20,"#152127",true);
+        view.SetTextOpacity(30,true);view.UpdateLayout();Pump();
+        int width=(int)Math.Ceiling(view.ActualWidth),height=(int)Math.Ceiling(view.ActualHeight);
+        var dark=new RenderTargetBitmap(width,height,96,96,PixelFormats.Pbgra32);dark.Render(view);
+        view.Render(new[]{new DesktopMetric("cpu","CPU","60.6 °C   15.4%","cpu"),new DesktopMetric("gpu","GPU","46.3 °C   4%","gpu"),new DesktopMetric("vram","VRAM","3 / 15.9 GB · 19%","gpu")},20,20,"#F5F7FA",true);view.SetTextOpacity(30,true);view.UpdateLayout();
+        var light=new RenderTargetBitmap(width,height,96,96,PixelFormats.Pbgra32);light.Render(view);
+        var visual=new DrawingVisual();using(var draw=visual.RenderOpen()){
+            draw.DrawRectangle(Brushes.Black,null,new Rect(0,0,width*2,height));
+            for(int x=0;x<width*2;x+=80)draw.DrawRectangle(Brushes.White,null,new Rect(x,0,40,height));
+            draw.DrawImage(dark,new Rect(0,0,width,height));draw.DrawImage(light,new Rect(width,0,width,height));
+        }
+        var composite=new RenderTargetBitmap(width*2,height,96,96,PixelFormats.Pbgra32);composite.Render(visual);
+        var encoder=new PngBitmapEncoder();encoder.Frames.Add(BitmapFrame.Create(composite));using(var file=File.Create(path))encoder.Save(file);
+    }
     static void SharedFeatures(){
         NativeFpsTests.Run();
         using(var metrics=new FrameCapture()){
@@ -86,7 +101,25 @@ internal static class NativeTests {
                 Assert(Field<ReadingSession>(shell,"readings").Latest.state=="STALE","Hidden window lost stale-state detection");
                 var restoredSnapshot=Snapshot();restoredSnapshot.sequence=901;restoredSnapshot.sensors[0].value=63;Json.WriteAtomic(paths.Snapshot,restoredSnapshot);shell.Show();Pump();
                 Assert(Field<ReadingSession>(shell,"readings").Latest.values["cpu"]==63&&shell.Control<TextBlock>("Status").Text.Contains("Live"),"Restore did not immediately refresh snapshot");
-                var cards=shell.Control<StackPanel>("Cards");Assert(cards.Children.Count==5,"Five card owners preserved");
+                var cards=shell.Control<StackPanel>("Cards");Assert(cards.Children.Count==6,"Network card owner missing");
+                shell.Control<RadioButton>("UnifiedReadingColors").IsChecked=true;Pump();
+                var cpuCard=cards.Children.Cast<Border>().Single(b=>(string)b.Tag=="CPU");
+                Assert(Tree(cpuCard).OfType<TextBlock>().Where(t=>t.Text.Contains("°C")).All(t=>((SolidColorBrush)t.Foreground).Color==(Color)ColorConverter.ConvertFromString("#DDE9F0")),"Unified temperature color not applied");
+                shell.Control<RadioButton>("HardwareReadingColors").IsChecked=true;Pump();
+                Assert(Tree(cpuCard).OfType<TextBlock>().Where(t=>t.Text.Contains("°C")).All(t=>((SolidColorBrush)t.Foreground).Color==(Color)ColorConverter.ConvertFromString("#A5E7D5")),"Hardware palette not restored");
+                Assert(NetworkRate.Format(1000000,"MB/s")=="1 MB/s"&&NetworkRate.Format(1000000,"Mbit/s")=="8 Mbit/s"&&NetworkRate.Format(1000000,"KB/s")=="1000 KB/s","Network unit conversion");
+                Assert(NetworkRate.Format(0,"auto")=="0 KB/s"&&NetworkRate.Format(double.NaN,"auto")=="—","Network invalid/zero rate");
+                var networkSnapshot=Snapshot();networkSnapshot.sequence=12;networkSnapshot.sensors=networkSnapshot.sensors.Concat(new[]{
+                    new Sensor{id="/nic/one/down",hardwareId="/nic/one",hardwareType="Network",hardware="Ethernet",type="Throughput",name="Download Speed",value=1000000},
+                    new Sensor{id="/nic/one/up",hardwareId="/nic/one",hardwareType="Network",hardware="Ethernet",type="Throughput",name="Upload Speed",value=250000},
+                    new Sensor{id="/nic/two/down",hardwareId="/nic/two",hardwareType="Network",hardware="Other adapter",type="Throughput",name="Download Speed",value=10000}
+                }).ToArray();Json.WriteAtomic(paths.Snapshot,networkSnapshot);shell.UpdatePanel();Pump();
+                var networkCard=cards.Children.Cast<Border>().Single(b=>(string)b.Tag=="Network");
+                Assert(networkCard.Visibility==Visibility.Visible&&Tree(networkCard).OfType<TextBlock>().Any(t=>t.Text=="1 MB/s"),"Network reading missing or overlapping adapters added");
+                shell.Control<ComboBox>("NetworkUnit").SelectedIndex=3;Pump();
+                Assert(Tree(networkCard).OfType<TextBlock>().Any(t=>t.Text=="8 Mbit/s"),"Network unit setting did not update readings");
+                shell.Control<ComboBox>("NetworkUnit").SelectedIndex=0;
+                Json.WriteAtomic(paths.Snapshot,Snapshot());shell.UpdatePanel();Pump();Assert(networkCard.Visibility==Visibility.Collapsed,"Unavailable network retained stale readings");
                 Assert((string)((Border)cards.Children[0]).Tag=="GPU"&&shell.Window.Left==90&&shell.Window.Top==70,"Legacy card order/desktop position migration");
                 Assert(!Field<DispatcherTimer>(shell,"overlayTimer").IsEnabled,"Idle overlay timer running");
                 var fpsOverlay=Field<GameOverlay>(shell,"overlay");
@@ -162,6 +195,13 @@ internal static class NativeTests {
                 Toggle(shell,"DesktopAutoContrast",false);shell.Control<Slider>("DesktopTextOpacity").Value=65;Pump();
                 Assert(((Border)desktop.Content).Child.Opacity==.65,"Desktop text opacity not applied");
                 Assert(desktop.ResolveColor(false,"#4488CC")=="#4488CC","Auto Contrast overrode custom color");
+                Toggle(shell,"DesktopAutoContrast",true);shell.Control<Slider>("DesktopTextOpacity").Value=30;Pump();
+                Assert(((Border)desktop.Content).Child.Opacity>=.9,"Auto Contrast allowed unreadable text opacity");
+                Assert(Tree(desktop).OfType<TextBlock>().All(t=>t.Background is SolidColorBrush),"Auto Contrast lacks local contrast protection on mixed wallpaper");
+                Assert(((Border)desktop.Content).Child.Effect==null,"Auto Contrast still blurs the text layer");
+                Assert(desktop.ResolveColor(true,"#152127")=="#F5F7FA","Unavailable sampling retained a dark choice");
+                CaptureContrast(desktop,Path.Combine(state,"desktop-contrast.png"));shell.UpdatePanel();
+                Toggle(shell,"DesktopAutoContrast",false);shell.Control<Slider>("DesktopTextOpacity").Value=65;Pump();
                 Toggle(shell,"DesktopLocked",false);Assert(!desktop.Locked,"Desktop unlock failed");
                 Click(shell,"DesktopDone");Assert(desktop.Locked&&!shell.Window.IsVisible,"Done did not lock desktop and hide editor");
                 Assert((bool)desktop.GetValue(WindowSnap.PositionLockedProperty),"Locked desktop left native movement enabled");
@@ -170,6 +210,8 @@ internal static class NativeTests {
                 Assert(clamped.X==-1800&&clamped.Y==80,"Negative monitor position was lost");
                 clamped=DesktopView.Clamp(new Point(8000,8000),new Size(300,200),new[]{new Rect(0,0,1920,1080)});
                 Assert(clamped.X==1620&&clamped.Y==880,"Disconnected monitor recovery failed");
+                clamped=DesktopView.Clamp(new Point(8000,8000),new Size(300,200),new[]{new Rect(0,0,1920,1080)},DesktopView.EdgePadding);
+                Assert(clamped.X==1604&&clamped.Y==864,"Desktop recovery lost edge padding");
                 shell.Save();var desktopSettings=new Settings(Path.Combine(state,"widget-settings.json"));
                 Assert(desktopSettings.Number("desktopFontSize",0,10,32)==24&&desktopSettings.Number("desktopSpacing",0,4,40)==26,"Desktop preferences did not persist");
                 Assert(((System.Collections.IEnumerable)desktopSettings.Data["desktopOrder"]).Cast<object>().First().ToString()=="vram","Desktop order did not persist");

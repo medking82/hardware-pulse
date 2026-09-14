@@ -16,7 +16,7 @@ their place, and monitor card order is unchanged. Animation follows Windows redu
 Unsupported readings disappear; stale readings show dashes and a collector status.
 
 Move on Desktop unlocks the readout and hides the editor. Drag the shaded area to
-position it, with snapping to all four screen work-area edges. Pull away to release without
+position it, with snapping 16 logical px inside all four screen work-area edges. Pull away to release without
 Alt; holding Alt temporarily bypasses snapping. Other app windows are not snap targets.
 The system tray's Lock Desktop enables click-through and removes the
 editing background. Edit Desktop unlocks the readout and reopens Settings; Done locks the readout and hides
@@ -28,7 +28,9 @@ The persistent keys `desktopEnabled`, `desktopLocked`, `desktopFontSize`,
 the monitor's layout keys. Entering starts unlocked; Done locks it. Desktop Mode itself is off
 for existing and new installations unless explicitly enabled.
 
-Auto Contrast samples three pixels in transparent padding at most once per two seconds while the desktop is foreground and the readout is locked. Samples are processed locally and never stored or transmitted. Light/dark selection has hysteresis, and a contrasting outline helps on mixed backgrounds. Nearby samples do not guarantee contrast behind every glyph; lower opacity also reduces readability. A saved custom color is preserved on upgrade, and choosing a custom color disables Auto Contrast.
+Auto Contrast samples six pixels in transparent padding on both sides at most once per two seconds while the desktop is foreground and the readout is locked. Samples are processed locally and never stored or transmitted. Light/dark selection has hysteresis; when sampling is unavailable, protected light text replaces a potentially stale dark choice. Local backing behind labels, values and icons preserves readability on mixed backgrounds without blurring the text layer. Auto mode clamps effective opacity to at least 90%; the stored preference is preserved. Custom color mode allows the full 30–100% range and disables sampling. Nearby samples do not represent every glyph's background.
+
+Download and Upload participate in Reading Order. Their units follow Cards → Network Speed Unit. Network uses the same Collector, shows one busiest adapter, and does not add counters from overlapping adapters. Monitor icon/temperature color settings are separate from Desktop Auto Contrast.
 
 ## Window boundary
 

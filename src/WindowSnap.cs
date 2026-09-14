@@ -57,7 +57,7 @@ public static class WindowSnap {
         if(Math.Abs(dy)<=threshold){rect.Top+=dy;rect.Bottom+=dy;}
         return rect;
     }
-    public static void Attach(Window window, bool includeWindows=true) {
+    public static void Attach(Window window, bool includeWindows=true, double edgePadding=0) {
         IntPtr own=new WindowInteropHelper(window).Handle;
         Rect dragOrigin=new Rect();CursorPoint dragStart=new CursorPoint();bool tracking=false;
 
@@ -92,7 +92,12 @@ public static class WindowSnap {
                 if(found && other.Right>other.Left && other.Bottom>other.Top)targets.Add(other);
                 return true;
             },IntPtr.Zero);
-            int threshold=(int)Math.Round(24.0 * Math.Max(96,GetDpiForWindow(own)) / 96.0);
+            double scale=Math.Max(96,GetDpiForWindow(own))/96.0;
+            int threshold=(int)Math.Round(24.0*scale);
+            int padding=(int)Math.Round(Math.Max(0,edgePadding)*scale);
+            int insetX=Math.Min(padding,Math.Max(0,(monitor.Work.Right-monitor.Work.Left-(rect.Right-rect.Left))/2));
+            int insetY=Math.Min(padding,Math.Max(0,(monitor.Work.Bottom-monitor.Work.Top-(rect.Bottom-rect.Top))/2));
+            monitor.Work.Left+=insetX;monitor.Work.Right-=insetX;monitor.Work.Top+=insetY;monitor.Work.Bottom-=insetY;
             Rect snapped=Snap(rect,monitor.Work,targets,threshold);
             if(moving){Marshal.StructureToPtr(snapped,l,false);handled=true;return new IntPtr(1);}
             if(snapped.Left!=rect.Left || snapped.Top!=rect.Top)SetWindowPos(own,IntPtr.Zero,snapped.Left,snapped.Top,0,0,0x0015);

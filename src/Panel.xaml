@@ -225,7 +225,7 @@
             </ComboBox>
             <CheckBox x:Name="StartWithWindows" Content="Start with Windows" Margin="0,0,0,10" />
             <TextBlock x:Name="StartupStatus" FontSize="11" Margin="0,0,0,10" />
-            <TextBlock Text="Version 0.5.8 · Marck Wong" FontSize="11" Foreground="#ADC1D2" Margin="0,0,0,8" />
+            <TextBlock Text="Version 0.5.9 · Marck Wong" FontSize="11" Foreground="#ADC1D2" Margin="0,0,0,8" />
             <Button x:Name="GitHub" Content="GitHub" HorizontalAlignment="Left" ToolTip="github.com/medking82/hardware-pulse" />
             <CheckBox x:Name="AutoUpdates" Content="Check for Updates Automatically" Margin="0,12,0,8" />
             <CheckBox x:Name="AutoDownload" Content="Download Updates Automatically" Margin="0,0,0,8" />
@@ -260,6 +260,11 @@
             <TextBlock Text="Logical pixels; follows Windows display scaling." FontSize="11" TextWrapping="Wrap" Margin="0,6,0,0"/>
             <Button x:Name="BackgroundColor" Content="Background Color" Margin="0,14,0,0" />
             <TextBlock Text="Text contrast adapts to the selected color. Glass blur is controlled by Windows; Solid Background disables it." FontSize="11" Margin="0,8,0,0" />
+            <TextBlock Text="Colors" FontWeight="SemiBold" Margin="0,18,0,8" />
+            <RadioButton x:Name="HardwareReadingColors" GroupName="ReadingColors" Content="Hardware Colors" Margin="0,0,0,10" />
+            <RadioButton x:Name="UnifiedReadingColors" GroupName="ReadingColors" Content="Unified Color" Margin="0,0,0,8" />
+            <Button x:Name="ReadingColorPicker" Content="#DDE9F0" AutomationProperties.Name="Unified Color" Margin="0,0,0,8" />
+            <TextBlock Text="Monitor icons and temperatures share this palette. Labels stay neutral. Desktop Auto Contrast is independent." FontSize="11" />
           </StackPanel>
         </Expander>
         <Expander Header="Window" IsExpanded="False" Margin="0,0,0,10">
@@ -270,7 +275,14 @@
           </StackPanel>
         </Expander>
         <Expander Header="Cards" Foreground="#F0F5FA" Margin="0,16,0,0">
-          <StackPanel x:Name="CardOptions" Margin="0,10,0,0" />
+            <StackPanel>
+            <StackPanel x:Name="CardOptions" Margin="0,10,0,0" />
+            <TextBlock Text="Network Speed Unit" Margin="0,14,0,6" />
+            <ComboBox x:Name="NetworkUnit" SelectedIndex="0" AutomationProperties.Name="Network Speed Unit">
+              <ComboBoxItem Tag="auto" Content="Auto" /><ComboBoxItem Tag="KB/s" Content="KB/s" /><ComboBoxItem Tag="MB/s" Content="MB/s" /><ComboBoxItem Tag="Mbit/s" Content="Mbit/s" />
+            </ComboBox>
+            <TextBlock Text="Shows the busiest adapter, not a sum of overlapping adapters. 1 MB/s = 8 Mbit/s; KB and MB use decimal units." FontSize="11" Margin="0,8,0,0" />
+            </StackPanel>
         </Expander>
         <Expander Header="Game Overlay" Foreground="#F0F5FA" Margin="0,16,0,0">
           <StackPanel Margin="0,10,0,0">
@@ -329,10 +341,10 @@
             <DockPanel><TextBlock x:Name="DesktopSpacingValue" DockPanel.Dock="Right" /><TextBlock Text="Row Spacing" /></DockPanel>
             <Slider x:Name="DesktopSpacing" Minimum="4" Maximum="40" TickFrequency="1" IsSnapToTickEnabled="True" AutomationProperties.Name="Row Spacing" Margin="0,8,0,12" />
             <CheckBox x:Name="DesktopAutoContrast" Content="Auto Contrast" Margin="0,0,0,8" />
-            <TextBlock Text="Adapts light/dark text to nearby wallpaper while the desktop is active. An outline helps on mixed backgrounds." FontSize="11" Margin="0,0,0,12" />
+            <TextBlock Text="Adapts light/dark text to nearby wallpaper. Local backing keeps readings clear on mixed backgrounds." FontSize="11" Margin="0,0,0,12" />
             <DockPanel><TextBlock x:Name="DesktopTextOpacityValue" DockPanel.Dock="Right" /><TextBlock Text="Text Opacity" /></DockPanel>
             <Slider x:Name="DesktopTextOpacity" Minimum="30" Maximum="100" TickFrequency="1" IsSnapToTickEnabled="True" AutomationProperties.Name="Text Opacity" Margin="0,8,0,8" />
-            <TextBlock Text="Lower opacity reduces readability. Choosing a custom color turns Auto Contrast off." FontSize="11" Margin="0,0,0,12" />
+            <TextBlock Text="Auto Contrast protects text with a local backing and at least 90% opacity. Custom color allows the full opacity range." FontSize="11" Margin="0,0,0,12" />
             <TextBlock Text="Text Color" Margin="0,0,0,6" />
             <Button x:Name="DesktopColor" Content="#E4F3EF" AutomationProperties.Name="Desktop Text Color" Margin="0,0,0,12" />
             <Button x:Name="DesktopResetPosition" Content="Reset Desktop Position" Margin="0,0,0,8" />
