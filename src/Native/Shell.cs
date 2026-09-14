@@ -22,14 +22,13 @@ namespace HardwarePulse {
     public sealed partial class Shell : IDisposable {
         public readonly Window Window;readonly PulsePaths paths;readonly Settings settings;readonly Languages language;
         readonly StackPanel cards;readonly Dictionary<string,CardView> views=new Dictionary<string,CardView>();
-        readonly Dictionary<string,double> peaks=new Dictionary<string,double>();
+        readonly ReadingSession readings;
         readonly List<Tuple<object,PropertyInfo,string>> localized=new List<Tuple<object,PropertyInfo,string>>();
         readonly List<Tuple<object,PropertyInfo,Brush>> themed=new List<Tuple<object,PropertyInfo,Brush>>();
         readonly DispatcherTimer poll=new DispatcherTimer(),saveTimer=new DispatcherTimer();
         Forms.NotifyIcon tray;Forms.ToolStripMenuItem trayShow,traySettings,trayPin,trayLock,trayExit;
         bool exit,loaded,settingsVisible,maximum,locked,measuring,light,collectorFailed,disposed;long ignoredStop;
-        string identity="";Reading latest=new Reading();readonly bool isolated;
-        readonly HashSet<string> usageCapabilities=new HashSet<string>();
+        readonly bool isolated;
         public T Control<T>(string name) where T:class{return Window.FindName(name) as T;}
         bool Checked(string name){return Control<CheckBox>(name).IsChecked==true;}
         void Text(string name,string value){Control<TextBlock>(name).Text=value;}
@@ -40,6 +39,7 @@ namespace HardwarePulse {
         void ThemeCatalog(){foreach(var node in Tree(Window)){if(node is ComboBox||node is ComboBoxItem)continue;var prop=node.GetType().GetProperty("Foreground");if(prop!=null){var brush=prop.GetValue(node,null) as Brush;if(brush!=null)themed.Add(Tuple.Create((object)node,prop,brush));}}}
         public Shell(PulsePaths paths,bool isolated=false){
             this.paths=paths;this.isolated=isolated;Directory.CreateDirectory(paths.State);
+            readings=new ReadingSession(paths.Snapshot);
             settings=new Settings(Path.Combine(paths.State,"widget-settings.json"));language=new Languages(Path.Combine(paths.Root,"Languages.txt"));language.Preference=settings.Text("language","auto");
             using(var stream=File.OpenRead(Path.Combine(paths.Root,"Panel.xaml")))Window=(Window)XamlReader.Load(stream);
             Catalog(Window);cards=Control<StackPanel>("Cards");
@@ -63,21 +63,17 @@ namespace HardwarePulse {
         void StartCollector(){try{if(File.Exists(paths.Stop)){try{File.Delete(paths.Stop);}catch{ignoredStop=File.GetLastWriteTimeUtc(paths.Stop).Ticks;throw;}}if(SensorProfile.Read(paths.Snapshot,DateTimeOffset.Now).state!="LIVE")using(var store=new SchedulerStore())new Startup(store,paths.Exe,WindowsIdentity.GetCurrent().User.Value).StartCollector();}catch{collectorFailed=true;}}
         public void UpdatePanel(){
             if(!isolated&&File.Exists(paths.Stop)&&File.GetLastWriteTimeUtc(paths.Stop).Ticks!=ignoredStop){Exit();return;}
-            var previousCapabilities=latest.available;
-            latest=SensorProfile.Read(paths.Snapshot,DateTimeOffset.Now);
-            if(latest.state=="LIVE"){usageCapabilities.Clear();foreach(string key in latest.usage.Keys)usageCapabilities.Add(key);}
-            else latest.available=previousCapabilities;
-            if(latest.state=="LIVE"&&latest.identity!=identity){foreach(var entry in latest.values)if(!peaks.ContainsKey(entry.Key)||peaks[entry.Key]<entry.Value)peaks[entry.Key]=entry.Value;identity=latest.identity;}
+            readings.Poll(DateTimeOffset.Now);
             // Keep collection, peaks, stale-state detection and STOP handling active
             // while the tray/minimized window has no visible cards to render.
             if(Window.IsVisible&&Window.WindowState!=WindowState.Minimized)RenderPanel();
-            if(loaded)Json.WriteAtomic(Path.Combine(paths.State,"view-status.json"),new {updated=DateTimeOffset.Now.ToString("o"),state=latest.state,mode=maximum?"max":"live",sensors=latest.values.Count});
+            if(loaded)Json.WriteAtomic(Path.Combine(paths.State,"view-status.json"),new {updated=DateTimeOffset.Now.ToString("o"),state=readings.Latest.state,mode=maximum?"max":"live",sensors=readings.Latest.values.Count});
         }
         void RenderPanel(){
-            Text("Status",latest.state=="LIVE"?"● "+language.T("Live")+" · "+latest.time.ToLocalTime().ToString("HH:mm:ss")+" · "+latest.values.Count+" "+language.T("sensors"):"● "+language.T(latest.state)+" · "+language.T("Waiting for collector"));
-            if(collectorFailed&&latest.state!="LIVE")Text("Status",language.T("Collector start failed; reinstall or check permissions"));
+            Text("Status",readings.Latest.state=="LIVE"?"● "+language.T("Live")+" · "+readings.Latest.time.ToLocalTime().ToString("HH:mm:ss")+" · "+readings.Latest.values.Count+" "+language.T("sensors"):"● "+language.T(readings.Latest.state)+" · "+language.T("Waiting for collector"));
+            if(collectorFailed&&readings.Latest.state!="LIVE")Text("Status",language.T("Collector start failed; reinstall or check permissions"));
             if(maximum)Control<TextBlock>("Status").Text+=" · "+language.T("Session peaks");
-            Control<TextBlock>("Status").Foreground=Brush(light?(latest.state=="LIVE"?"#12644D":"#804000"):(latest.state=="LIVE"?"#A5E7D5":"#E7C5A4"));
+            Control<TextBlock>("Status").Foreground=Brush(light?(readings.Latest.state=="LIVE"?"#12644D":"#804000"):(readings.Latest.state=="LIVE"?"#A5E7D5":"#E7C5A4"));
             foreach(var view in views.Values)UpdateCard(view);
             Control<Button>("Live").Background=Brush(maximum?"#00000000":"#607898A8");Control<Button>("Max").Background=Brush(maximum?"#607898A8":"#00000000");ApplyDensity();
         }

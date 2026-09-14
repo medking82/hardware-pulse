@@ -22,6 +22,7 @@ $null=[xml](Get-Content "$root/src/Panel.xaml" -Raw)
 & "$PSScriptRoot/Run-Hidden.ps1" "$env:WINDIR/System32/WindowsPowerShell/v1.0/powershell.exe" @('-NoProfile','-File',"$PSScriptRoot/Test-Package.ps1") $root
 & "$PSScriptRoot/Build-Native.ps1"
 & "$PSScriptRoot/Test-NativeSensors.ps1"
+& "$PSScriptRoot/Test-ReadingSession.ps1"
 & "$PSScriptRoot/Test-Native.ps1"
 & "$PSScriptRoot/Run-Hidden.ps1" "$env:WINDIR/System32/WindowsPowerShell/v1.0/powershell.exe" @('-NoProfile','-File',"$PSScriptRoot/Test-Updater.ps1") $root
 foreach($file in Get-ChildItem "$root/src" -File){

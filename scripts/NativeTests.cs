@@ -74,11 +74,11 @@ internal static class NativeTests {
                 shell.Window.ShowInTaskbar=false;shell.Window.ShowActivated=false;shell.Show();Pump();shell.UpdatePanel();Pump();
                 Assert(shell.Control<TextBlock>("Status").Text.Contains("7 "),"Native mapped sensor count");
                 shell.Window.Hide();var hiddenSnapshot=Snapshot();hiddenSnapshot.sequence=900;hiddenSnapshot.sensors[0].value=87;Json.WriteAtomic(paths.Snapshot,hiddenSnapshot);shell.UpdatePanel();
-                Assert(Field<Dictionary<string,double>>(shell,"peaks")["cpu"]==87,"Hidden window lost session peak");
+                Assert(Field<ReadingSession>(shell,"readings").Peaks["cpu"]==87,"Hidden window lost session peak");
                 var hiddenStale=Snapshot();hiddenStale.time=DateTimeOffset.Now.AddSeconds(-30).ToString("o");Json.WriteAtomic(paths.Snapshot,hiddenStale);shell.UpdatePanel();
-                Assert(Field<Reading>(shell,"latest").state=="STALE","Hidden window lost stale-state detection");
+                Assert(Field<ReadingSession>(shell,"readings").Latest.state=="STALE","Hidden window lost stale-state detection");
                 var restoredSnapshot=Snapshot();restoredSnapshot.sequence=901;restoredSnapshot.sensors[0].value=63;Json.WriteAtomic(paths.Snapshot,restoredSnapshot);shell.Show();Pump();
-                Assert(Field<Reading>(shell,"latest").values["cpu"]==63&&shell.Control<TextBlock>("Status").Text.Contains("Live"),"Restore did not immediately refresh snapshot");
+                Assert(Field<ReadingSession>(shell,"readings").Latest.values["cpu"]==63&&shell.Control<TextBlock>("Status").Text.Contains("Live"),"Restore did not immediately refresh snapshot");
                 var cards=shell.Control<StackPanel>("Cards");Assert(cards.Children.Count==5,"Five card owners preserved");
                 Assert((string)((Border)cards.Children[0]).Tag=="GPU"&&shell.Window.Left==90&&shell.Window.Top==70,"Legacy card order/desktop position migration");
                 Assert(!Field<DispatcherTimer>(shell,"overlayTimer").IsEnabled,"Idle overlay timer running");
