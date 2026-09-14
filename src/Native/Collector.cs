@@ -6,6 +6,7 @@ using System.Management;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
 using System.Threading;
+using System.Net.NetworkInformation;
 using LibreHardwareMonitor.Hardware;
 
 namespace HardwarePulse {
@@ -21,6 +22,13 @@ namespace HardwarePulse {
         public string Snapshot {get{return Path.Combine(Runtime,"snapshot.json");}}
     }
     public static class Collector {
+        public static NetworkLink[] ReadNetworkLinks(){
+            var links=new List<NetworkLink>();try{foreach(var adapter in NetworkInterface.GetAllNetworkInterfaces())try{
+                bool connected=adapter.OperationalStatus==OperationalStatus.Up;long speed=connected?adapter.Speed:0;
+                links.Add(new NetworkLink{hardwareId=new Identifier("nic",adapter.Id).ToString(),connected=connected,bitsPerSecond=speed>0?(long?)speed:null});
+            }catch(NetworkInformationException){}catch(NotImplementedException){}}catch(NetworkInformationException){}
+            return links.ToArray();
+        }
         // Windows returns the same usable physical-memory capacity as Win32_OperatingSystem,
         // without running a WMI query on every sensor sample.
         [StructLayout(LayoutKind.Sequential)] struct MemoryStatus {
@@ -75,7 +83,7 @@ namespace HardwarePulse {
                             var sensors=new List<Sensor>();foreach(var hardware in computer.Hardware)ReadSensors(hardware,sensors);
                             var memory=new MemoryStatus {Length=(uint)Marshal.SizeOf(typeof(MemoryStatus))};RamUsage usage=null;
                             if(GlobalMemoryStatusEx(ref memory)&&memory.TotalPhysical>0)usage=new RamUsage {totalGb=memory.TotalPhysical/1073741824.0,usedGb=(memory.TotalPhysical-memory.AvailablePhysical)/1073741824.0};
-                            var raw=new RawSnapshot {schema=2,time=DateTimeOffset.Now.ToString("o"),sequence=++sequence,pid=System.Diagnostics.Process.GetCurrentProcess().Id,sensors=sensors.ToArray(),memoryName=memoryName,memoryModules=modules,disks=disks,ramUsage=usage,boardName=board==null?"Motherboard":board.Name};
+                            var raw=new RawSnapshot {schema=2,time=DateTimeOffset.Now.ToString("o"),sequence=++sequence,pid=System.Diagnostics.Process.GetCurrentProcess().Id,sensors=sensors.ToArray(),memoryName=memoryName,memoryModules=modules,disks=disks,ramUsage=usage,boardName=board==null?"Motherboard":board.Name,networkLinks=ReadNetworkLinks()};
                             try{Json.WriteAtomic(paths.Snapshot,raw);}catch(IOException e){File.WriteAllText(Path.Combine(paths.Runtime,"write-warning.txt"),DateTimeOffset.Now.ToString("o")+" "+e.Message);}
                             if(samples>0&&sequence>=samples)break;Thread.Sleep(2000);
                         }

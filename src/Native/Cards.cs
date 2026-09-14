@@ -23,15 +23,15 @@ namespace HardwarePulse {
         }
         TextBlock Label(string text,double size=12,string color=null){return new TextBlock {Text=text,FontSize=size,Foreground=color==null?Window.Foreground:Brush(color),VerticalAlignment=VerticalAlignment.Center,TextWrapping=TextWrapping.NoWrap,TextTrimming=TextTrimming.CharacterEllipsis};}
         string Device(string key,string fallback){object saved;if(settings.Map("names").TryGetValue(key,out saved)&&saved is string&&!string.IsNullOrWhiteSpace((string)saved))return (string)saved;string automatic;return language.Device(readings.Latest.names.TryGetValue(key,out automatic)?automatic:fallback);}
-        string Value(string key,string unit){var values=maximum?readings.Peaks:(IReadOnlyDictionary<string,double>)readings.Latest.values;double value;if(!values.TryGetValue(key,out value))return "—";if(unit=="rate")return NetworkRate.Format(value,settings.Text("networkUnit","auto"));return value.ToString(unit=="V"?"F3":unit=="RPM"?"F0":"F1")+" "+unit;}
-        bool Available(string key){if(key=="netDown"||key=="netUp")return readings.Latest.values.ContainsKey(key)||readings.Latest.available!=null&&readings.Latest.available.ContainsKey(key)&&readings.Latest.available[key];return readings.Latest.available==null||!readings.Latest.available.ContainsKey(key)||readings.Latest.available[key];}
+        string Value(string key,string unit){var values=maximum&&unit!="link"?readings.Peaks:(IReadOnlyDictionary<string,double>)readings.Latest.values;double value;if(!values.TryGetValue(key,out value))return "—";if(unit=="link")return language.T(NetworkRate.Link(value));if(unit=="rate")return NetworkRate.Format(value,settings.Text("networkUnit","auto"));return value.ToString(unit=="V"?"F3":unit=="RPM"?"F0":"F1")+" "+unit;}
+        bool Available(string key){if(key=="netLink")return Available("netDown")||Available("netUp");if(key=="netDown"||key=="netUp")return readings.Latest.values.ContainsKey(key)||readings.Latest.available!=null&&readings.Latest.available.ContainsKey(key)&&readings.Latest.available[key];return readings.Latest.available==null||!readings.Latest.available.ContainsKey(key)||readings.Latest.available[key];}
         void BuildCards(){
             AddCard("CPU","Processor","#A5E7D5","cpu",new[]{new[]{"Utilization","cpuLoad","%"},new[]{"Vcore · Motherboard","vcore","V"},new[]{"CPU Fan","cpuFan","RPM"}});
             AddCard("GPU","Graphics","#A7CBFF","gpu",new[]{new[]{"Utilization","gpuLoad","%"},new[]{"VRAM Junction","vram","°C"},new[]{"Core Voltage","gpuVolt","V"},new[]{"Fan Speed","gpuFan","RPM"}});
             AddCard("Memory","Memory","#E7C5A4",null,new string[0][]);AddPairs(views["Memory"],new[]{"ramA","ramB"},new[]{"Module 1","Module 2"});
             AddCard("NVMe","NVMe · Composite Temperature","#B9B7ED",null,new string[0][]);AddPairs(views["NVMe"],new[]{"diskC","diskD"},new[]{"Drive 1","Drive 2"});
             AddCard("Airflow","Case / Motherboard","#A8D4D0","system",new[]{new[]{"System Fan 1","bottom","RPM"},new[]{"System Fan 2","top","RPM"}});
-            AddCard("Network","Active adapter","#A9D8E8",null,new[]{new[]{"Download","netDown","rate"},new[]{"Upload","netUp","rate"}});
+            AddCard("Network","Active adapter","#A9D8E8",null,new[]{new[]{"Link Speed","netLink","link"},new[]{"Download","netDown","rate"},new[]{"Upload","netUp","rate"}});
             AddUsage(views["Memory"],"ram");AddUsage(views["GPU"],"vram");
             foreach(string key in settings.Order().Concat(new[]{"CPU","GPU","Memory","NVMe","Airflow","Network"}).Distinct())if(views.ContainsKey(key))cards.Children.Add(views[key].Border);
             foreach(var view in views.Values){

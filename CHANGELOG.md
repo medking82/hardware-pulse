@@ -2,6 +2,15 @@
 
 English first; 简体中文 follows each version. Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
+## 0.5.10 — 2026-09-15
+
+- Add independently opt-in Codex, Claude and Antigravity quota readings with provider SVG icons in Monitor and Desktop View. Five-minute background refresh; explicit missing-login, unavailable and stale states. No Token Monitor or PowerShell runtime requirement.
+- Show negotiated Link Speed for the same network adapter as Download/Upload, in Mbit/s or Gbit/s. Disconnected links are labeled; old snapshots show unknown rather than an invented speed.
+- Support provider accent colors and Unified Color for quota icons; Desktop icons follow Desktop contrast/color settings.
+- Keep quota credentials out of settings, hardware snapshots and logs. Antigravity requires a running local language server; expired Codex/Claude login must be renewed in the owning app.
+- Enable TLS 1.2 and TLS 1.3 for quota and update connections.
+- 新增 AI quota、SVG icon 和 Network 连接速率。Codex、Claude live probe 已通过；Antigravity live probe 待运行其 app 后验证。
+
 ## 0.5.9 — 2026-09-14
 
 - Protect Desktop Auto Contrast text and icons with local backing, at least 90% effective opacity and sharp glyph rendering. Sample both sides; use protected light text when sampling is unavailable instead of retaining stale dark text.

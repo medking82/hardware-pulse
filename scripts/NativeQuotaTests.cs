@@ -1,0 +1,53 @@
+using System;
+using System.Linq;
+using System.Threading;
+using System.Reflection;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using HardwarePulse;
+
+internal static class NativeQuotaTests {
+    static void Check(bool value,string message){if(!value)throw new Exception("Quota: "+message);}
+    static QuotaReading Decode(string provider,string json){return QuotaData.Decode(provider,QuotaData.Parse(json),DateTimeOffset.UtcNow);}
+    public static void Run(){
+        var codex=Decode("Codex","{\"rate_limit\":{\"primary_window\":{\"used_percent\":0,\"limit_window_seconds\":18000,\"reset_at\":1800000000},\"secondary_window\":{\"used_percent\":36,\"limit_window_seconds\":604800}},\"additional_rate_limits\":[{\"metered_feature\":\"spark\",\"rate_limit\":{\"primary_window\":{\"used_percent\":100,\"limit_window_seconds\":18000}}}]}");
+        Check(codex.Status=="Live"&&codex.Windows.Count==3,"Codex additional windows");Check(codex.Windows[0].Remaining==100&&codex.Windows[1].Remaining==64&&codex.Windows[2].Remaining==0,"used to remaining conversion");Check(codex.Windows[0].Reset.HasValue,"Unix reset");
+        var claude=Decode("Claude","{\"five_hour\":{\"utilization\":26,\"resets_at\":\"2026-09-15T00:00:00Z\"},\"seven_day\":{\"utilization\":4},\"seven_day_sonnet\":null,\"extra_usage\":{\"utilization\":90}}");Check(claude.Windows.Count==2&&claude.Windows[0].Remaining==74&&claude.Windows[1].Remaining==96,"Claude excludes spending and absent pools");
+        var ag=Decode("Antigravity","{\"response\":{\"groups\":[{\"displayName\":\"Gemini\",\"buckets\":[{\"window\":\"session\",\"remainingFraction\":0.8},{\"window\":\"weekly\",\"remaining\":{\"case\":\"remainingFraction\",\"value\":0},\"resetTime\":\"2026-09-16T00:00:00Z\"},{\"window\":\"weekly\",\"remainingFraction\":1,\"disabled\":true}]}]}}");Check(ag.Windows.Count==3&&ag.Windows[0].Remaining==80&&ag.Windows[1].Remaining==0&&!ag.Windows[2].Remaining.HasValue,"AG fraction/zero/disabled");
+        foreach(string provider in QuotaSession.Providers)Check(Decode(provider,"{}").Status!="Live","missing response not 100%");
+        Check(!Decode("Claude","{\"five_hour\":{\"utilization\":-1}}").Windows[0].Remaining.HasValue,"invalid percent");Check(!Decode("Claude","{\"five_hour\":{\"utilization\":\"0\"}}").Windows[0].Remaining.HasValue,"numeric strings rejected");
+        Check(QuotaData.ResetText(DateTimeOffset.UtcNow.AddSeconds(-1),DateTimeOffset.UtcNow)=="Reset pending","reset does not fabricate quota");
+        var request=typeof(QuotaProviders).GetMethod("Request",BindingFlags.NonPublic|BindingFlags.Static);
+        try{request.Invoke(null,new object[]{"https://example.invalid/usage",new System.Collections.Generic.Dictionary<string,string>(),null,CancellationToken.None,false});throw new Exception("Untrusted URL admitted");}catch(TargetInvocationException e){Check(e.InnerException.GetType().Name=="QuotaFailure","remote URL allowlist");}
+        var listener=new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback,0);listener.Start();
+        try{
+            int port=((System.Net.IPEndPoint)listener.LocalEndpoint).Port;
+            var server=System.Threading.Tasks.Task.Run(()=>{using(var client=listener.AcceptTcpClient()){client.ReceiveTimeout=3000;using(var stream=client.GetStream()){var reader=new System.IO.StreamReader(stream);string line;do{line=reader.ReadLine();}while(!string.IsNullOrEmpty(line));var response=System.Text.Encoding.ASCII.GetBytes("HTTP/1.1 302 Found\r\nLocation: https://example.invalid/credential-leak\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");stream.Write(response,0,response.Length);}}});
+            try{request.Invoke(null,new object[]{"http://127.0.0.1:"+port,new System.Collections.Generic.Dictionary<string,string>{{"Authorization","Bearer synthetic-test-only"}},null,CancellationToken.None,true});throw new Exception("Redirect admitted");}catch(TargetInvocationException e){Check(e.InnerException.GetType().Name=="QuotaFailure","redirect rejected before credential forwarding");}
+            Check(server.Wait(3000),"local redirect fixture completed");
+        }finally{listener.Stop();}
+        int calls=0;using(var entered=new ManualResetEventSlim())using(var release=new ManualResetEventSlim())using(var session=new QuotaSession((provider,cancel)=>{Interlocked.Increment(ref calls);entered.Set();release.Wait();return new QuotaReading{Provider=provider,Status="Live"};})){
+            var now=DateTimeOffset.UtcNow;session.Enable("Codex",true);session.Tick(now);Check(entered.Wait(3000),"background refresh starts");session.Tick(now.AddMinutes(6));Check(calls==1,"no overlapping requests");session.Enable("Codex",false);release.Set();Thread.Sleep(50);session.Tick(now);Check(session.Readings.Length==0,"disabled result discarded");
+        }
+        using(var session=new QuotaSession((provider,cancel)=>{throw new Exception("sensitive diagnostic must not escape");})){
+            session.Enable("Claude",true);session.Tick(DateTimeOffset.UtcNow);for(int i=0;i<100&&session.Readings[0].Status=="Refresh pending";i++){Thread.Sleep(10);session.Tick(DateTimeOffset.UtcNow);}Check(session.Readings[0].Status=="Quota unavailable","fault sanitized");
+        }
+        Console.WriteLine("Quota parser and refresh lifecycle checks passed");
+    }
+    public static void RunUI(Shell shell,string screenshot){
+        var field=typeof(Shell).GetField("quotas",BindingFlags.NonPublic|BindingFlags.Instance);var original=(QuotaSession)field.GetValue(shell);
+        using(var fake=new QuotaSession((provider,cancel)=>new QuotaReading{Provider=provider,Status="Live",Observed=DateTimeOffset.UtcNow,Windows=new System.Collections.Generic.List<QuotaWindow>{new QuotaWindow{Label="5-hour",Remaining=74,Reset=DateTimeOffset.UtcNow.AddMinutes(30)},new QuotaWindow{Label="Weekly",Remaining=96,Reset=DateTimeOffset.UtcNow.AddDays(6)}}})){
+            field.SetValue(shell,fake);try{
+                foreach(string provider in QuotaSession.Providers){var toggle=shell.Control<CheckBox>("Quota"+provider);Check(toggle.IsChecked!=true,"providers opt in");toggle.IsChecked=true;toggle.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));}
+                fake.Tick(DateTimeOffset.UtcNow);for(int i=0;i<100&&fake.Readings.Any(r=>r.Status!="Live");i++){Thread.Sleep(10);fake.Tick(DateTimeOffset.UtcNow);}shell.UpdatePanel();
+                Check(shell.Control<StackPanel>("QuotaCards").Children.Count==3,"three provider cards");
+                var metrics=(System.Collections.IEnumerable)typeof(Shell).GetMethod("DesktopMetrics",BindingFlags.NonPublic|BindingFlags.Instance).Invoke(shell,null);Check(metrics.Cast<object>().Count()>=6,"Desktop quota readings");
+                var hardware=shell.Control<StackPanel>("Cards");var previous=hardware.Visibility;double height=shell.Window.Height;shell.Window.Height=920;hardware.Visibility=Visibility.Collapsed;shell.Window.UpdateLayout();
+                var bitmap=new System.Windows.Media.Imaging.RenderTargetBitmap((int)shell.Window.ActualWidth,(int)shell.Window.ActualHeight,96,96,System.Windows.Media.PixelFormats.Pbgra32);bitmap.Render(shell.Window);var png=new System.Windows.Media.Imaging.PngBitmapEncoder();png.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmap));using(var file=System.IO.File.Create(screenshot))png.Save(file);
+                hardware.Visibility=previous;shell.Window.Height=height;
+                foreach(string provider in QuotaSession.Providers){var toggle=shell.Control<CheckBox>("Quota"+provider);toggle.IsChecked=false;toggle.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));}shell.UpdatePanel();Check(shell.Control<StackPanel>("QuotaCards").Children.Count==0,"disable removes quota view");
+            }finally{field.SetValue(shell,original);}
+        }
+    }
+}

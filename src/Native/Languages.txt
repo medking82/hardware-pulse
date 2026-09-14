@@ -1,4 +1,23 @@
 Live|实时|即時
+Link Speed|连接速率|連線速率
+Disconnected|未连接|未連線
+AI Quota|AI 额度|AI 額度
+Read remaining quota from existing local logins. Refreshes every 5 minutes.|使用本机已有登录读取剩余额度，每 5 分钟刷新。|使用本機已有登入讀取剩餘額度，每 5 分鐘更新。
+Login in Codex or Claude Code first. Keep Antigravity open. Pulse never changes your login.|请先登录 Codex 或 Claude Code，并保持 Antigravity 运行。Pulse 不修改登录信息。|請先登入 Codex 或 Claude Code，並保持 Antigravity 執行。Pulse 不修改登入資訊。
+Refresh Quota|刷新额度|更新額度
+Refresh pending|等待刷新|等待更新
+Login required|需要登录或重新登录|需要登入或重新登入
+Login unavailable|无法读取登录信息|無法讀取登入資訊
+Quota unavailable|额度暂时不可用|額度暫時無法使用
+Quota stale|额度数据已过期|額度資料已過期
+Refresh rate limited|请求受限，稍后重试|請求受限，稍後重試
+Open Antigravity to read quota|打开 Antigravity 以读取额度|開啟 Antigravity 以讀取額度
+Reset pending|等待额度重置|等待額度重設
+Reset|重置|重設
+left|剩余|剩餘
+min ago|分钟前|分鐘前
+5-hour|5 小时|5 小時
+Weekly|每周|每週
 Shared GPU memory|GPU 共享内存|GPU 共用記憶體
 Auto (System)|自动（系统）|自動（系統）
 Details|明细|明細
@@ -79,7 +98,7 @@ Leave a name blank to use device information. Hover over a field to see its auto
 SPD numbers identify sensor addresses, not physical slots. Installed slots are reported separately; assign a slot name only after confirming its sensor.|SPD 编号代表传感器地址，并非实体插槽。已安装插槽单独显示；确认对应关系后再命名。|SPD 編號代表感測器位址，並非實體插槽。已安裝插槽單獨顯示；確認對應關係後再命名。
 Changes save automatically.|更改自动保存。|變更自動儲存。
 About Pulse|关于 Pulse|關於 Pulse
-Version 0.5.9 · Marck Wong|版本 0.5.9 · Marck Wong|版本 0.5.9 · Marck Wong
+Version 0.5.10 · Marck Wong|版本 0.5.10 · Marck Wong|版本 0.5.10 · Marck Wong
 Sensors by LibreHardwareMonitor. Shared driver by PawnIO.|传感器：LibreHardwareMonitor。共享驱动：PawnIO。|感測器：LibreHardwareMonitor。共用驅動程式：PawnIO。
 Language|语言 / Language|語言 / Language
 Minimize|最小化|最小化

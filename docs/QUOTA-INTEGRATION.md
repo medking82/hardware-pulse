@@ -1,0 +1,39 @@
+# Independent quota readings
+
+Scope: opt-in Codex, Claude and Antigravity remaining quota and reset times in
+Monitor and Desktop View. No token history, spending, chat contents or account management.
+
+Owner: the unprivileged Shell owns a separate asynchronous QuotaSession. Hardware
+Collector, ReadingSession, FPS and startup tasks retain their existing contracts.
+Provider adapters return only sanitized quota windows and finite-state errors. No
+credentials, account emails or HTTP response bodies enter snapshots, settings or logs.
+
+Authentication: read existing current-user Codex/Claude login on each refresh;
+never write/rotate credentials or launch a login/CLI. Expired login requires the
+owning application to renew it. Antigravity requires its local language server;
+verify current-user process ownership and PID-owned listening ports before sending
+its CSRF token to loopback. No Token Monitor process or PowerShell/Node runtime.
+Only fixed provider HTTPS endpoints; disable redirects. Loopback TLS exceptions
+are request scoped. No global certificate bypass. Providers are independently opt-in.
+
+Refresh: background, at most one refresh per provider; five-minute cadence with
+bounded requests, no per-frame API calls. Disable/dispose cancels requests and
+rejects late results. Clear old windows on failures/account transitions; no fabricated
+100% or reset-to-full inference. Show observation age and expired readings explicitly.
+
+Allowed surfaces: quota adapters/model/session, Shell wiring, XAML/settings,
+Desktop quota rows, localization, attribution, focused regression tests and docs.
+No changes to installed authentication stores, elevation or hardware acquisition.
+Observed live Codex TLS handshake fails when pinned to TLS 1.2 but succeeds with
+TLS 1.3 available. Quota and UpdateCheck therefore enable TLS 1.2 and TLS 1.3,
+so updater refresh cannot re-pin a process-wide TLS 1.2-only policy. Windows
+chooses an available protocol. System-default mode also failed in the live probe.
+Rollback is removal of the opt-in feature; existing settings remain compatible.
+
+Acceptance: parser fixtures for all three providers including missing, zero,
+malformed and additional windows; cancellation/disable/error lifecycle tests;
+isolated WPF rendering/settings/Desktop tests; full scripts/Validate.ps1. Real
+provider checks are separate from fixtures and must report unavailable logins.
+High-risk frozen diff requires Native Review after deterministic checks.
+
+<!-- sop-risk-classification: {"facts":{"blast_radius":"shared","change_kind":"implementation","data_boundary":"sensitive","destructive":"no","failure_cost":"material","irreversibility":"reversible","operational_controls":"not_applicable","privilege_boundary":"changed","project_policy":"default","rollback":"easy","scope_knowledge":"known","uncertainty":"material","verification":"deterministic"},"formal_review":"required","kind":"risk-classification-assessment","reasons":{"formal_review":["high_risk_requires_review"],"risk":["privilege_boundary_change"]},"risk":"high","schema_version":2} -->

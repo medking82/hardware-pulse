@@ -87,6 +87,7 @@ namespace HardwarePulse {
                 }
             }
             if(readings.Latest.state!="LIVE")result.Add(new DesktopMetric("status",language.T(readings.Latest.state),language.T("Waiting for collector"),"live"));
+            AddDesktopQuotas(result);
             if(result.Count==0)result.Add(new DesktopMetric("empty","Pulse",language.T("No cards shown. Choose cards in Settings."),"live"));
             var order=DesktopOrderKeys();return result.OrderBy(metric=>{int index=Array.IndexOf(order,metric.Key);return index<0?int.MaxValue:index;}).ToList();
         }

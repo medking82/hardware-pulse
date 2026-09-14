@@ -26,7 +26,7 @@ public sealed class UpdateCheck {
     }
     public void Download(string url,string tag,string digest,long size) {
         if(Installing)throw new InvalidOperationException("Installation in progress");
-        ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls12;
+        ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | (SecurityProtocolType)12288;
         if(!ValidAsset(url,tag,digest,size))throw new InvalidDataException("Invalid release asset metadata");
         if(DownloadPending!=null && !DownloadPending.IsCompleted)return;
         if(Ready && expectedDigest==digest.Substring(7) && expectedSize==size)return;
@@ -87,7 +87,7 @@ public sealed class UpdateCheck {
     public void Start() {
         if(Pending!=null && !Pending.IsCompleted)return;
         Pending=Task.Run(()=> {
-            ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls12;
+            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | (SecurityProtocolType)12288;
             var request=(HttpWebRequest)WebRequest.Create("https://api.github.com/repos/medking82/hardware-pulse/releases/latest");
             request.UserAgent="HardwarePulse-UpdateCheck";request.Timeout=10000;request.ReadWriteTimeout=10000;
             request.AllowAutoRedirect=false;

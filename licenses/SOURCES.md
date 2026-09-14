@@ -15,3 +15,17 @@
   Build tool only. This personal, non-commercial build does not bundle the compiler.
 - Segoe UI is supplied by Windows; no font files are redistributed.
 - Hardware Pulse SVG line icons and Pulse app artwork are original project assets.
+# Token Monitor quota parsing
+
+Quota response mappings are adapted from Javis603/token-monitor under the MIT
+license. Copyright (c) 2026 Javis. See TokenMonitor.txt. Only response mappings and
+documented provider request shapes are reused; Pulse has its own native C# runtime.
+Source: https://github.com/Javis603/token-monitor (src/shared/limitCollector.js,
+src/shared/antigravityProbe.js).
+Reference checkout commit: 1e2c03d2a55b5eef97c7732341281415c2a3d7ea.
+
+Provider SVG silhouettes (Codex/OpenAI, Claude, Antigravity) are adapted from
+LobeHub Icons as vendored by the same Token Monitor checkout. Antigravity uses
+the mask silhouette for themeable monochrome rendering. See LobeIcons-MIT.txt
+(copyright 2023 LobeHub), https://github.com/lobehub/lobe-icons.
+Provider names and marks belong to their respective owners; no affiliation implied.

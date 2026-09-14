@@ -45,7 +45,7 @@ internal static class NativeTests {
         var encoder=new PngBitmapEncoder();encoder.Frames.Add(BitmapFrame.Create(composite));using(var file=File.Create(path))encoder.Save(file);
     }
     static void SharedFeatures(){
-        NativeFpsTests.Run();
+        NativeFpsTests.Run();NativeQuotaTests.Run();
         using(var metrics=new FrameCapture()){
             metrics.Reset(42);for(int i=0;i<99;i++)metrics.Add("main",10,10);metrics.Add("main",100,10);var result=metrics.ReadAt(10);
             Assert(result.Ready&&result.Minimum==10&&result.Low==10&&Math.Abs(result.Average-100000d/1090)<.001,"FPS aggregate definitions");metrics.Add("other",1,10);Assert(metrics.ReadAt(10).Count==100&&!metrics.ReadAt(13).Ready,"FPS swapchain/staleness");
@@ -95,6 +95,7 @@ internal static class NativeTests {
             using(var shell=new Shell(paths,true)){
                 shell.Window.ShowInTaskbar=false;shell.Window.ShowActivated=false;shell.Show();Pump();shell.UpdatePanel();Pump();
                 Assert(shell.Control<TextBlock>("Status").Text.Contains("7 "),"Native mapped sensor count");
+                NativeQuotaTests.RunUI(shell,Path.Combine(state,"quota-preview.png"));
                 shell.Window.Hide();var hiddenSnapshot=Snapshot();hiddenSnapshot.sequence=900;hiddenSnapshot.sensors[0].value=87;Json.WriteAtomic(paths.Snapshot,hiddenSnapshot);shell.UpdatePanel();
                 Assert(Field<ReadingSession>(shell,"readings").Peaks["cpu"]==87,"Hidden window lost session peak");
                 var hiddenStale=Snapshot();hiddenStale.time=DateTimeOffset.Now.AddSeconds(-30).ToString("o");Json.WriteAtomic(paths.Snapshot,hiddenStale);shell.UpdatePanel();
@@ -109,13 +110,17 @@ internal static class NativeTests {
                 Assert(Tree(cpuCard).OfType<TextBlock>().Where(t=>t.Text.Contains("°C")).All(t=>((SolidColorBrush)t.Foreground).Color==(Color)ColorConverter.ConvertFromString("#A5E7D5")),"Hardware palette not restored");
                 Assert(NetworkRate.Format(1000000,"MB/s")=="1 MB/s"&&NetworkRate.Format(1000000,"Mbit/s")=="8 Mbit/s"&&NetworkRate.Format(1000000,"KB/s")=="1000 KB/s","Network unit conversion");
                 Assert(NetworkRate.Format(0,"auto")=="0 KB/s"&&NetworkRate.Format(double.NaN,"auto")=="—","Network invalid/zero rate");
+                Assert(NetworkRate.Link(2500000000)=="2.5 Gbit/s"&&NetworkRate.Link(866000000)=="866 Mbit/s"&&NetworkRate.Link(0)=="Disconnected"&&NetworkRate.Link(-1)=="—","Link speed formats negotiated bits, not throughput bytes");
                 var networkSnapshot=Snapshot();networkSnapshot.sequence=12;networkSnapshot.sensors=networkSnapshot.sensors.Concat(new[]{
                     new Sensor{id="/nic/one/down",hardwareId="/nic/one",hardwareType="Network",hardware="Ethernet",type="Throughput",name="Download Speed",value=1000000},
                     new Sensor{id="/nic/one/up",hardwareId="/nic/one",hardwareType="Network",hardware="Ethernet",type="Throughput",name="Upload Speed",value=250000},
                     new Sensor{id="/nic/two/down",hardwareId="/nic/two",hardwareType="Network",hardware="Other adapter",type="Throughput",name="Download Speed",value=10000}
-                }).ToArray();Json.WriteAtomic(paths.Snapshot,networkSnapshot);shell.UpdatePanel();Pump();
+                }).ToArray();networkSnapshot.networkLinks=new[]{new NetworkLink{hardwareId="/nic/one",connected=true,bitsPerSecond=2500000000},new NetworkLink{hardwareId="/nic/two",connected=true,bitsPerSecond=10000000000}};Json.WriteAtomic(paths.Snapshot,networkSnapshot);shell.UpdatePanel();Pump();
                 var networkCard=cards.Children.Cast<Border>().Single(b=>(string)b.Tag=="Network");
                 Assert(networkCard.Visibility==Visibility.Visible&&Tree(networkCard).OfType<TextBlock>().Any(t=>t.Text=="1 MB/s"),"Network reading missing or overlapping adapters added");
+                Assert(Tree(networkCard).OfType<TextBlock>().Any(t=>t.Text=="2.5 Gbit/s"),"Link must belong to selected adapter");
+                networkSnapshot.sequence++;networkSnapshot.networkLinks[0].connected=false;Json.WriteAtomic(paths.Snapshot,networkSnapshot);shell.UpdatePanel();Pump();Assert(Tree(networkCard).OfType<TextBlock>().Any(t=>t.Text=="Disconnected"),"Disconnected link must not retain negotiated speed");
+                networkSnapshot.sequence++;networkSnapshot.networkLinks=null;Json.WriteAtomic(paths.Snapshot,networkSnapshot);shell.UpdatePanel();Pump();Assert(!Tree(networkCard).OfType<TextBlock>().Any(t=>t.Text=="2.5 Gbit/s"),"Legacy snapshot cannot retain link speed");
                 shell.Control<ComboBox>("NetworkUnit").SelectedIndex=3;Pump();
                 Assert(Tree(networkCard).OfType<TextBlock>().Any(t=>t.Text=="8 Mbit/s"),"Network unit setting did not update readings");
                 shell.Control<ComboBox>("NetworkUnit").SelectedIndex=0;

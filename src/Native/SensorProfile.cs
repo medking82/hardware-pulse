@@ -120,6 +120,8 @@ namespace HardwarePulse {
                 .GroupBy(s=>s.hardwareId).OrderByDescending(g=>g.Sum(s=>s.value.Value)).ThenBy(g=>g.Key,StringComparer.Ordinal).FirstOrDefault();
             if(network!=null){
                 result.names["Network"]=network.First().hardware;
+                var link=(raw.networkLinks??new NetworkLink[0]).FirstOrDefault(n=>n!=null&&n.hardwareId==network.Key);
+                if(link!=null){if(!link.connected)result.values["netLink"]=0;else if(link.bitsPerSecond>0)result.values["netLink"]=link.bitsPerSecond.Value;}
                 foreach(var direction in new[]{new[]{"netDown","Download Speed"},new[]{"netUp","Upload Speed"}}){
                     var sensor=network.FirstOrDefault(s=>s.name==direction[1]);
                     if(result.available!=null)result.available[direction[0]]=sensor!=null;

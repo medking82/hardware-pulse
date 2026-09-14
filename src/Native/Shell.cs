@@ -49,7 +49,7 @@ namespace HardwarePulse {
             Window.FontSize=settings.Number("fontSize",settings.Flag("large")?14:12,10,16);Window.Topmost=settings.Flag("pin");locked=settings.Flag("positionLocked");
             Control<CheckBox>("Pin").IsChecked=Window.Topmost;Control<CheckBox>("Solid").IsChecked=settings.Flag("solid");Control<Slider>("OpacitySlider").Value=settings.Number("opacity",70,0,100);Control<Slider>("FontSizeSlider").Value=Window.FontSize;
             Control<ContentControl>("BrandIcon").Content=Icon("live",22,"#A5E7D5");Window.Icon=BitmapFrame.Create(new Uri(Path.Combine(paths.Root,"assets","pulse.ico")));
-            BuildCards();WireSettings();WireReadingColors();WireNetwork();BuildTray();WireDesktop();WireOverlay();WireUpdater();ThemeCatalog();Localize();
+            BuildCards();WireSettings();WireReadingColors();WireNetwork();WireQuota();BuildTray();WireDesktop();WireOverlay();WireUpdater();ThemeCatalog();Localize();
             Window.SourceInitialized+=delegate{WindowSnap.Attach(Window);ApplyLock();ApplyMaterial();};
             Window.Loaded+=delegate{loaded=true;if(!isolated)StartCollector();UpdatePanel();ApplyDensity();if(DesktopEnabled)Window.Hide();};
             Window.SizeChanged+=delegate{ApplyDensity();QueueSave();};Window.LocationChanged+=delegate{QueueSave();};
@@ -63,7 +63,7 @@ namespace HardwarePulse {
         void StartCollector(){try{if(File.Exists(paths.Stop)){try{File.Delete(paths.Stop);}catch{ignoredStop=File.GetLastWriteTimeUtc(paths.Stop).Ticks;throw;}}if(SensorProfile.Read(paths.Snapshot,DateTimeOffset.Now).state!="LIVE")using(var store=new SchedulerStore())new Startup(store,paths.Exe,WindowsIdentity.GetCurrent().User.Value).StartCollector();}catch{collectorFailed=true;}}
         public void UpdatePanel(){
             if(!isolated&&File.Exists(paths.Stop)&&File.GetLastWriteTimeUtc(paths.Stop).Ticks!=ignoredStop){Exit();return;}
-            readings.Poll(DateTimeOffset.Now);UpdateDesktop();
+            readings.Poll(DateTimeOffset.Now);if(!isolated)quotas.Tick(DateTimeOffset.UtcNow);UpdateDesktop();
             // Keep collection, peaks, stale-state detection and STOP handling active
             // while the tray/minimized window has no visible cards to render.
             if(Window.IsVisible&&Window.WindowState!=WindowState.Minimized)RenderPanel();
@@ -74,7 +74,7 @@ namespace HardwarePulse {
             if(collectorFailed&&readings.Latest.state!="LIVE")Text("Status",language.T("Collector start failed; reinstall or check permissions"));
             if(maximum)Control<TextBlock>("Status").Text+=" · "+language.T("Session peaks");
             Control<TextBlock>("Status").Foreground=Brush(light?(readings.Latest.state=="LIVE"?"#12644D":"#804000"):(readings.Latest.state=="LIVE"?"#A5E7D5":"#E7C5A4"));
-            foreach(var view in views.Values)UpdateCard(view);
+            foreach(var view in views.Values)UpdateCard(view);RenderQuota();
             Control<Button>("Live").Background=Brush(maximum?"#00000000":"#607898A8");Control<Button>("Max").Background=Brush(maximum?"#607898A8":"#00000000");ApplyDensity();
         }
         void QueueSave(){if(!loaded||disposed)return;saveTimer.Stop();saveTimer.Start();}
@@ -84,12 +84,13 @@ namespace HardwarePulse {
         }
         Viewbox Icon(string name,double size,string color="#C2D8E5"){
             var doc=new XmlDocument();doc.XmlResolver=null;doc.Load(Path.Combine(paths.Root,"assets",name+".svg"));var node=doc.SelectSingleNode("/*[local-name()='svg']/*[local-name()='path']");
-            var path=new System.Windows.Shapes.Path {Data=Geometry.Parse(node.Attributes["d"].Value),Stroke=Brush(color),StrokeThickness=1.7,StrokeStartLineCap=PenLineCap.Round,StrokeEndLineCap=PenLineCap.Round,StrokeLineJoin=PenLineJoin.Round};var canvas=new Canvas {Width=24,Height=24};canvas.Children.Add(path);return new Viewbox {Width=size,Height=size,Child=canvas,IsHitTestVisible=false};
+            bool filled=node.Attributes["fill"]!=null&&node.Attributes["fill"].Value=="currentColor";
+            var path=new System.Windows.Shapes.Path {Data=Geometry.Parse(node.Attributes["d"].Value),Fill=filled?Brush(color):null,Stroke=filled?null:Brush(color),StrokeThickness=1.7,StrokeStartLineCap=PenLineCap.Round,StrokeEndLineCap=PenLineCap.Round,StrokeLineJoin=PenLineJoin.Round};var canvas=new Canvas {Width=24,Height=24};canvas.Children.Add(path);return new Viewbox {Width=size,Height=size,Child=canvas,IsHitTestVisible=false};
         }
         void Localize(){UpdateDesktopLabels();foreach(var entry in localized)entry.Item2.SetValue(entry.Item1,language.T(entry.Item3),null);trayShow.Text=language.T("Show Pulse");traySettings.Text=language.T("Settings");trayPin.Text=language.T("Always on Top");trayLock.Text=language.T("Lock Position and Size");trayExit.Text=language.T("Exit");foreach(var view in views.Values)UpdateCard(view);if(loaded)RenderPanel();RenderUpdate();var games=Control<ComboBox>("GamePicker");if(games.Items.Count>0)((ComboBoxItem)games.Items[0]).Content=language.T("Auto (foreground app)");ApplyDensity();}
         void BuildTray(){tray=new Forms.NotifyIcon {Icon=new System.Drawing.Icon(Path.Combine(paths.Root,"assets","pulse.ico")),Text="Hardware Pulse",Visible=!isolated};var menu=new Forms.ContextMenuStrip();trayShow=(Forms.ToolStripMenuItem)menu.Items.Add("Show Pulse",null,delegate{Show();});traySettings=(Forms.ToolStripMenuItem)menu.Items.Add("Settings",null,delegate{Show();ShowSettings(true);});menu.Items.Add(new Forms.ToolStripSeparator());trayPin=(Forms.ToolStripMenuItem)menu.Items.Add("Always on Top",null,delegate{Window.Topmost=!Window.Topmost;Control<CheckBox>("Pin").IsChecked=Window.Topmost;Save();});trayLock=(Forms.ToolStripMenuItem)menu.Items.Add("Lock Position and Size",null,delegate{locked=!locked;ApplyLock();Save();});menu.Items.Add(new Forms.ToolStripSeparator());BuildDesktopTray(menu);menu.Items.Add(new Forms.ToolStripSeparator());trayExit=(Forms.ToolStripMenuItem)menu.Items.Add("Exit",null,delegate{Exit();});menu.Opening+=delegate{trayPin.Checked=Window.Topmost;trayLock.Checked=locked;};tray.DoubleClick+=delegate{Show();};tray.ContextMenuStrip=menu;}
         public void Show(){Window.Show();Window.WindowState=WindowState.Normal;Window.Activate();}
         public void Exit(){exit=true;Window.Close();}
-        public void Dispose(){if(disposed)return;disposed=true;poll.Stop();saveTimer.Stop();StopOverlay();overlay.Close();if(desktop!=null){desktop.Close();desktop=null;}updateTimer.Stop();updater.Dispose();tray.Visible=false;tray.Dispose();if(!isolated){try{if(File.Exists(paths.Snapshot))File.WriteAllText(paths.Stop,"Pulse Exit");}catch(Exception e){File.WriteAllText(Path.Combine(paths.State,"shutdown-error.txt"),e.Message);}}}
+        public void Dispose(){if(disposed)return;disposed=true;quotas.Dispose();poll.Stop();saveTimer.Stop();StopOverlay();overlay.Close();if(desktop!=null){desktop.Close();desktop=null;}updateTimer.Stop();updater.Dispose();tray.Visible=false;tray.Dispose();if(!isolated){try{if(File.Exists(paths.Snapshot))File.WriteAllText(paths.Stop,"Pulse Exit");}catch(Exception e){File.WriteAllText(Path.Combine(paths.State,"shutdown-error.txt"),e.Message);}}}
     }
 }
