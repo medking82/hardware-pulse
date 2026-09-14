@@ -1,5 +1,17 @@
 # Local validation — 2026-09-13
 
+## 0.5.0 native migration — 2026-09-14
+
+- `scripts/Validate.ps1` passes native package/cleanup checks, seven native-versus-legacy sensor cases, WPF settings/font/card/lock/language/stale-data checks, FPS math/filtering, overlay anchors, snap and updater validation. Baseline scripts remain for comparison only.
+- A signed 0.5.0 installer upgraded the existing 0.4.9 installation on this Windows 11 host. Setup logged success without a reboot. The old collector exited; the obsolete top-level PS1/C# files were absent afterward, and the installed executable hash matched the tested build.
+- The running native widget had a limited token, the collector an elevated token, and the widget had no System.Management.Automation module. The UI reported 17 live mapped readings with advancing timestamps. The native collector had independently matched all 17 baseline capability keys in the live comparison.
+- Saved font, opacity, names and card preferences survived. The pre-upgrade saved state had lock enabled and 20% opacity, so its initial locked background used 5% effective opacity. The user subsequently unlocked/moved the live window; exact live-position equality is therefore not claimed. Isolated migration tests verify saved geometry/order and unknown settings survive restoration.
+- The installed `--disable-startup` and `--enable-startup` helpers both succeeded against the real Task Scheduler; the original task XML was then restored. Default-value omission and trigger element order have regression coverage.
+- Claude Native Review completed for frozen packet `e778f74508a39c1ce8ac4ea4a4694ec0af9116686378d2316504229d8cef2433` (0 P0, 0 P1, 1 P2, 1 P3). The P2 trigger-order concern was corrected to follow the schema, although the local TaskDefinition parser accepted the earlier order. The P3 install-cancellation message was corrected. Deterministic checks and the installed startup roundtrip passed afterward; no second model review was run for these bounded fixes.
+- See [performance methodology and results](docs/PERFORMANCE-0.5.0.md). Single-host comparisons do not establish battery-life or live-game improvements. Fresh-machine driver installation, Windows 10 hardware, multi-monitor DPI transitions, uninstall/reinstall and a full reboot remain unverified for 0.5.0. Signing is self-signed, not public CA trust.
+
+The sections below are historical records, not the current runtime or package description.
+
 ## 0.3.1 candidate
 Historical validation below describes the earlier candidate. Version 0.3.1 was subsequently published.
 

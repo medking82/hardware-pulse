@@ -1,4 +1,4 @@
-﻿# Hardware Pulse
+# Hardware Pulse
 
 ![Hardware Pulse preview with fictional demo data](docs/showcase/pulse-demo.png)
 
@@ -10,11 +10,11 @@
 
 [Dependency maintenance and Linux/macOS roadmap](docs/DEPENDENCIES.md)
 
-**[Download 0.4.9 / 下载 0.4.9 EXE](https://github.com/medking82/hardware-pulse/releases/download/v0.4.9/HardwarePulse-Setup.exe)** · [0.4.9 release notes](https://github.com/medking82/hardware-pulse/releases/tag/v0.4.9)
+**[Download 0.5.0 / 下载 0.5.0 EXE](https://github.com/medking82/hardware-pulse/releases/download/v0.5.0/HardwarePulse-Setup.exe)** · [0.5.0 release notes](https://github.com/medking82/hardware-pulse/releases/tag/v0.5.0)
 
-**0.4.9** improves Compact/Details layouts, cooling-channel labels and idle overlay behavior. The installer is self-signed; SignPath approval is pending. Fresh-machine and live-game testing remain limited. / 改善 Compact/Details layout、散热通道 label 与 idle overlay；仍为 self-signed，SignPath 审核中。
+**0.5.0** migrates the installed UI, collector and startup helpers to C#/.NET without a PowerShell runtime dependency. [Measured comparison](docs/PERFORMANCE-0.5.0.md). The installer remains self-signed; SignPath approval is pending. / Runtime 已迁移为 C#/.NET；详见 benchmark，仍为 self-signed。
 
-Latest: **0.4.9** — Appearance → Text Size: 10–16 logical px, with responsive card spacing and header layout. See the changelog for version history.
+Latest: **0.5.0** — Appearance → Text Size: 10–16 logical px, with responsive card spacing and header layout. See the changelog for version history.
 
 [English](#en) · [简体中文](#zh-cn)
 
@@ -34,7 +34,7 @@ Author:**[Marck Wong](https://github.com/medking82)**
 - **Lock Position and Size** 禁用移动、resize 和 card reorder。锁定 Monitor 的背景 opacity 降为原设置的四分之一并关闭 blur；Settings 保持可读。从 tray 或 Settings 解锁后恢复；Solid/high contrast 优先。这还不是 desktop layer 嵌入。
 - App 默认 **Auto (System)**，installer 也根据 Windows UI language 预选 English、简体或繁体中文。
 
-The published version is **0.4.9** with multilingual UI and animated card reordering. Use the download link above for the latest installer.
+The published version is **0.5.0** with multilingual UI and animated card reordering. Use the download link above for the latest installer.
 
 A compact hardware widget by **[Marck Wong](https://github.com/medking82)** for **Windows 10 22H2 / Windows 11 x64**.
 
@@ -43,7 +43,7 @@ A compact hardware widget by **[Marck Wong](https://github.com/medking82)** for 
 CPU, GPU, memory, NVMe and fan monitoring with live RAM/VRAM usage.
 WPF glass background, original SVG icons, Segoe UI typography, adjustable background opacity,
 width-adaptive layout and persistent card order. No HWiNFO, browser, Codex or cloud service is
-required to run it. Windows .NET Framework 4.8 and Windows PowerShell 5.1 are OS prerequisites.
+required to run it. Windows .NET Framework 4.8 is required. The installed C#/WPF runtime does not load PowerShell or run scripts.
 
 ### Use
 
@@ -65,12 +65,16 @@ DIMM brand, model and installed slots come from SMBIOS. SPD #1/#3 are sensor add
 The 9700X / RTX 5080 / B850M Mortar machine has live validation. Its verified SYS1/SYS3 mapping and existing owner's labels are retained. Other CPU/GPU fixtures have automated coverage; other physical machines remain untested.
 Sensors are read-only; this app does not tune fan curves or Curve Optimizer.
 
+### In-place upgrade
+
+Install 0.5.0 over the existing version; a clean install is not required. Setup stops the old collector, replaces the app and its two owned startup tasks, and removes an explicit list of obsolete app scripts/source files. Preferences and desktop geometry remain in LocalAppData. Windows PowerShell and shared PawnIO remain installed. An interrupted or failed upgrade may require rerunning setup; file cleanup is not a transactional rollback.
+
 ### Installer
 
-Setup checks .NET Framework 4.8 and Windows PowerShell 5.1 before installation. If the PawnIO library or driver registration is missing, it runs the bundled official installer and checks again before registering startup. Missing or damaged Windows components require Windows repair; setup does not change Windows features or security settings. These checks establish installation presence, not successful driver loading under every security policy.
+Setup checks .NET Framework 4.8 before installation. If the PawnIO library or driver registration is missing, it runs the bundled official installer and checks again before registering startup. Missing or damaged Windows components require Windows repair; setup does not change Windows features or security settings. These checks establish installation presence, not successful driver loading under every security policy.
 
-The release asset `HardwarePulse-Setup.exe` (version 0.3.0) bundles the application, pinned LibreHardwareMonitor libraries,
-license notices/source archives and official PawnIO 2.2.0 prerequisite installer. No runtime downloads. The target Windows versions include .NET Framework 4.8 and Windows PowerShell 5.1; setup checks the .NET requirement.
+The release asset `HardwarePulse-Setup.exe` (version 0.5.0) bundles the application, pinned LibreHardwareMonitor libraries,
+license notices/source archives and official PawnIO 2.2.0 prerequisite installer. No runtime downloads. The target Windows versions include .NET Framework 4.8; setup checks that requirement.
 The installer requires UAC elevation and is intended for installation by the current administrator
 account. It installs protected code in Program Files and registers the current-user interactive
 collector task plus a separate limited-permission widget task delayed 10 seconds after login. Shared PawnIO and user preferences remain after uninstall.
@@ -114,11 +118,11 @@ real WPF Settings navigation, autosave/restore, discovery fixtures, usage units,
 
 ## 简体中文
 
-当前 version 为 **0.3.0**，包含 multi-language UI。使用上方 download link 获取最新 installer。
+当前 version 为 **0.5.0**，包含 multi-language UI。使用上方 download link 获取最新 installer。
 
 适用于 **Windows 10 22H2 / Windows 11 x64** 的轻量桌面硬件 widget，集中显示 CPU、GPU、Memory、NVMe 和 Fan readings，以及实时 RAM/VRAM usage。
 
-采用 WPF glass background、原创 SVG icons 和 Segoe UI typography，支持调整 background opacity、随窗口宽度缩放，以及保存 card order。运行时不需要 HWiNFO、browser、Codex 或 cloud service；需要 Windows 自带的 .NET Framework 4.8 和 Windows PowerShell 5.1。
+采用 WPF glass background、原创 SVG icons 和 Segoe UI typography，支持调整 background opacity、随窗口宽度缩放，以及保存 card order。运行时不需要 HWiNFO、browser、Codex 或 cloud service；需要 Windows 自带的 .NET Framework 4.8；安装后的 app 不再依赖 PowerShell runtime。
 
 ### 使用方式
 
@@ -143,9 +147,13 @@ DIMM 品牌、型号和已安装的 slots 来自 SMBIOS。**SPD #1/#3 是 sensor
 
 所有 sensor access 均为 read-only；app 不调整 fan curve 或 Curve Optimizer。
 
+### In-place upgrade
+
+Install 0.5.0 over the existing version; a clean install is not required. Setup stops the old collector, replaces the app and its two owned startup tasks, and removes an explicit list of obsolete app scripts/source files. Preferences and desktop geometry remain in LocalAppData. Windows PowerShell and shared PawnIO remain installed. An interrupted or failed upgrade may require rerunning setup; file cleanup is not a transactional rollback.
+
 ### Installer 与自动启动
 
-Installer 会预先检查 .NET Framework 4.8 和 Windows PowerShell 5.1。PawnIO library 或 driver registration 缺失时，会自动运行内置的官方 installer，并在完成后再次检查；失败时不会继续注册 startup。Windows 自带的 components 若缺失或损坏，需要先修复 Windows；installer 不会自动修改 Windows features 或 security settings。这些 checks 验证安装状态，不保证 driver 能在所有 security policies 下加载。
+Installer 会预先检查 .NET Framework 4.8。PawnIO library 或 driver registration 缺失时，会自动运行内置的官方 installer，并在完成后再次检查；失败时不会继续注册 startup。Windows 自带的 components 若缺失或损坏，需要先修复 Windows；installer 不会自动修改 Windows features 或 security settings。这些 checks 验证安装状态，不保证 driver 能在所有 security policies 下加载。
 
 Release 中的 `HardwarePulse-Setup.exe`（version 0.3.0）包含 app、固定 version 的 LibreHardwareMonitor libraries、license notices/source archives，以及官方 PawnIO 2.2.0 prerequisite installer，无需在运行时下载 dependencies。目标 Windows versions 自带 .NET Framework 4.8 和 Windows PowerShell 5.1；setup 会检查 .NET requirement。
 

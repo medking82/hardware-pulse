@@ -2,6 +2,16 @@
 
 English first; 简体中文 follows each version. Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
+## 0.5.0 — 2026-09-14
+
+- Replace the installed PowerShell UI, collector and startup helpers with C#/WPF. No System.Management.Automation dependency or runtime scripts are shipped; developer build/test tools may still use PowerShell.
+- Preserve settings, window geometry, card order/visibility, language, read-only sensor discovery, FPS overlay and verified in-app update flow.
+- Upgrade in place with an explicit obsolete-file cleanup list. Preserve Windows components, shared PawnIO and user preferences; no clean install is required. Treat Task Scheduler's omitted default XML values correctly and keep UI/collector privilege separation.
+- Compare the baseline and native implementation using synthetic UI replay and sequential real hardware collection. Memory use was lower on the tested host; see [method and results](docs/PERFORMANCE-0.5.0.md), including the limits of single-run measurements.
+- Installed runtime 改为 C#/WPF，不再依赖 PowerShell；保留 settings、桌面位置、card 选择、language、sensor discovery、overlay 和 updater。
+- Installer 支持原位 upgrade，清理明确列出的旧 app 文件，保留 Windows components、共享 PawnIO 和用户设置。修复 Task Scheduler 省略 default XML values 时的 compatibility。
+- 对比测试显示本机 memory use 降低；benchmark 不是所有电脑或 battery life 的保证。SignPath 仍待审核，installer 仍为 self-signed。
+
 ## 0.4.9 — 2026-09-14
 
 - Make Compact readings independent of window height; Details retains full rows while adapting spacing, with a visible selected state.

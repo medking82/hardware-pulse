@@ -1,9 +1,9 @@
 ﻿$ErrorActionPreference='Stop'
 $root=Split-Path $PSScriptRoot
-$hostSource=[IO.File]::ReadAllText("$root/src/WidgetHost.cs")
+$hostSource=[IO.File]::ReadAllText("$root/src/Native/Program.cs")
 $version=[regex]::Match($hostSource,'AssemblyVersion\("(\d+\.\d+\.\d+)\.0"\)').Groups[1].Value
 if(-not $version){throw 'Missing application version'}
-foreach($check in @(@('installer/HardwarePulse.iss',"AppVersion=$version"),@('scripts/Build.ps1',"HardwarePulse-$version-Setup.exe"),@('src/Panel.xaml',"Version $version"),@('src/Localization.ps1',"Version $version"))){
+foreach($check in @(@('installer/HardwarePulse.iss',"AppVersion=$version"),@('scripts/Build.ps1',"HardwarePulse-$version-Setup.exe"),@('src/Panel.xaml',"Version $version"),@('src/Native/Languages.txt',"Version $version"))){
     if(-not [IO.File]::ReadAllText((Join-Path $root $check[0])).Contains($check[1])){throw "Version mismatch in $($check[0])"}
 }
 foreach($file in Get-ChildItem "$root/src","$root/scripts" -Filter *.ps1){
@@ -18,11 +18,13 @@ foreach($file in Get-ChildItem "$root/assets" -Filter *.svg){$null=[xml](Get-Con
 $null=[xml](Get-Content "$root/src/Panel.xaml" -Raw)
 & "$PSScriptRoot/Run-Hidden.ps1" "$env:WINDIR/System32/WindowsPowerShell/v1.0/powershell.exe" @('-NoProfile','-File',"$root/src/Test-Sensors.ps1") $root
 & "$PSScriptRoot/Run-Hidden.ps1" "$env:WINDIR/System32/WindowsPowerShell/v1.0/powershell.exe" @('-NoProfile','-STA','-File',"$PSScriptRoot/Test-Snap.ps1") $root
-& "$PSScriptRoot/Test-Settings.ps1"
-& "$PSScriptRoot/Test-Startup.ps1"
-& "$PSScriptRoot/Test-HostPolicy.ps1"
+& "$PSScriptRoot/Build.ps1"
+& "$PSScriptRoot/Run-Hidden.ps1" "$env:WINDIR/System32/WindowsPowerShell/v1.0/powershell.exe" @('-NoProfile','-File',"$PSScriptRoot/Test-Package.ps1") $root
+& "$PSScriptRoot/Build-Native.ps1"
+& "$PSScriptRoot/Test-NativeSensors.ps1"
+& "$PSScriptRoot/Test-Native.ps1"
 & "$PSScriptRoot/Run-Hidden.ps1" "$env:WINDIR/System32/WindowsPowerShell/v1.0/powershell.exe" @('-NoProfile','-File',"$PSScriptRoot/Test-Updater.ps1") $root
 foreach($file in Get-ChildItem "$root/src" -File){
     if((Get-Content $file.FullName -Raw) -match 'C:\\github\\|C:\\Users\\Marck|HWiNFO') {throw "Personal/deprecated dependency in $($file.Name)"}
 }
-'Validation passed: script syntax, XML/SVG, sensor regression, portable source paths.'
+'Validation passed: syntax, XML/SVG, clean native package, differential sensors, WPF/startup regression, snap and updater checks.'

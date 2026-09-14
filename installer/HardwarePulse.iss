@@ -1,7 +1,7 @@
 ﻿[Setup]
 AppId={{75E8FDDA-D799-4D8A-882D-972DC72151C2}
 AppName=Hardware Pulse
-AppVersion=0.4.9
+AppVersion=0.5.0
 AppPublisher=Marck Wong
 AppPublisherURL=https://github.com/medking82
 AppSupportURL=https://github.com/medking82/hardware-pulse/issues
@@ -13,7 +13,7 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 MinVersion=10.0.19045
 OutputDir=..\dist
-OutputBaseFilename=HardwarePulse-0.4.9-Setup
+OutputBaseFilename=HardwarePulse-0.5.0-Setup
 SetupIconFile=..\assets\pulse.ico
 UninstallDisplayIcon={app}\HardwarePulse.exe
 Compression=lzma2
@@ -37,6 +37,32 @@ zhTW.LaunchPulse=啟動 Hardware Pulse
 [Files]
 Source: "..\build\app\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\vendor\PawnIO-2.2.0.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall
+
+[InstallDelete]
+; Exact obsolete app-owned files. Preserve settings, Windows components and shared drivers.
+Type: files; Name: "{app}\CardVisibility.ps1"
+Type: files; Name: "{app}\Collector.ps1"
+Type: files; Name: "{app}\Density.ps1"
+Type: files; Name: "{app}\DeviceProfile.ps1"
+Type: files; Name: "{app}\Glass.ps1"
+Type: files; Name: "{app}\Icons.ps1"
+Type: files; Name: "{app}\Install-Startup.ps1"
+Type: files; Name: "{app}\Localization.ps1"
+Type: files; Name: "{app}\Overlay.ps1"
+Type: files; Name: "{app}\Paths.ps1"
+Type: files; Name: "{app}\Preferences.ps1"
+Type: files; Name: "{app}\Remove-Startup.ps1"
+Type: files; Name: "{app}\Sensors.ps1"
+Type: files; Name: "{app}\Set-Startup.ps1"
+Type: files; Name: "{app}\Test-Sensors.ps1"
+Type: files; Name: "{app}\Typography.ps1"
+Type: files; Name: "{app}\CardDrag.cs"
+Type: files; Name: "{app}\FrameCapture.cs"
+Type: files; Name: "{app}\GameOverlay.cs"
+Type: files; Name: "{app}\UpdateCheck.cs"
+Type: files; Name: "{app}\WidgetHost.cs"
+Type: files; Name: "{app}\WindowSnap.cs"
+Type: files; Name: "{app}\PulseUpgrade.exe"
 
 [Icons]
 Name: "{group}\Hardware Pulse"; Filename: "{app}\HardwarePulse.exe"
@@ -118,17 +144,12 @@ end;
 
 function InitializeSetup(): Boolean;
 var Release: Cardinal;
-    PSVersion: String;
 begin
   Result := RegQueryDWordValue(HKLM, 'SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full', 'Release', Release) and (Release >= 528040);
   if not Result then begin
     MsgBox(LocalText('The Windows .NET Framework 4.8 component is missing or damaged. It is included with supported Windows versions. Repair Windows components, then run setup again.','Windows .NET Framework 4.8 组件缺失或损坏。受支持的 Windows 已包含此组件，请修复后重新运行安装程序。','Windows .NET Framework 4.8 元件遺失或損壞。支援的 Windows 已包含此元件，請修復後重新執行安裝程式。'), mbError, MB_OK);
     Exit;
   end;
-  Result := FileExists(ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe')) and
-    RegQueryStringValue(HKLM, 'SOFTWARE\Microsoft\PowerShell\3\PowerShellEngine', 'PowerShellVersion', PSVersion);
-  if Result then Result := Pos('5.1.', PSVersion + '.') = 1;
-  if not Result then MsgBox(LocalText('Windows PowerShell 5.1 is missing or damaged. Restore this Windows component, then run setup again. PowerShell 7 is not a substitute.','Windows PowerShell 5.1 缺失或损坏。请修复此 Windows 组件后重新安装。PowerShell 7 不能替代它。','Windows PowerShell 5.1 遺失或損壞。請修復此 Windows 元件後重新安裝。PowerShell 7 無法取代它。'), mbError, MB_OK);
 end;
 
 function PawnIOPresent(): Boolean;
