@@ -264,6 +264,9 @@ function Update-Panel {
         $script:cells.gpuFan[0].ToolTip=Get-PulseText 'GPU Fan 1 / GPU Fan 2 telemetry channels. These do not count physical fans.'
     }
     $window.FindName('Max').Background=if($script:mode -eq 'max'){[Windows.Media.BrushConverter]::new().ConvertFromString('#607898A8')}else{[Windows.Media.Brushes]::Transparent}
+    foreach($key in @('cpuFan','bottom','top')){
+        $script:cells[$key][0].ToolTip=if($values.ContainsKey($key) -and $values[$key] -eq 0){Get-PulseText 'This channel reports 0 RPM; other fans or pumps may use separate channels.'}else{$null}
+    }
     Update-CardVisibility
     @{updated=[DateTimeOffset]::Now.ToString('o');state=$data.state;mode=$script:mode;sensors=$data.values.Count} | ConvertTo-Json | Set-Content "$script:stateRoot\view-status.json"
 }

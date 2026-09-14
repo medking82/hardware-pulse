@@ -191,7 +191,20 @@
       </StackPanel>
       <TextBlock x:Name="Status" Text="Connecting to sensors…" Foreground="#ACDFD2" FontSize="10" />
     </StackPanel>
-    <ScrollViewer x:Name="CardScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="12,0,12,0">
+    <ScrollViewer x:Name="CardScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="12,0,12,0" FocusVisualStyle="{x:Null}">
+      <ScrollViewer.Template>
+        <ControlTemplate TargetType="ScrollViewer">
+          <Border x:Name="ScrollFocus" BorderThickness="1" BorderBrush="Transparent" CornerRadius="14">
+            <Grid>
+              <ScrollContentPresenter x:Name="PART_ScrollContentPresenter" Margin="12,0,24,0" CanContentScroll="{TemplateBinding CanContentScroll}" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" />
+              <ScrollBar x:Name="PART_VerticalScrollBar" HorizontalAlignment="Right" Width="10" Orientation="Vertical" Minimum="0" Maximum="{TemplateBinding ScrollableHeight}" ViewportSize="{TemplateBinding ViewportHeight}" Value="{Binding VerticalOffset, RelativeSource={RelativeSource TemplatedParent}, Mode=OneWay}" Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}" />
+            </Grid>
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="ScrollFocus" Property="BorderBrush" Value="#608ECBC4" /></Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </ScrollViewer.Template>
       <StackPanel x:Name="Cards" />
     </ScrollViewer>
     <TextBlock x:Name="CardsEmpty" Grid.Row="1" Text="No cards shown. Choose cards in Settings." Visibility="Collapsed" Margin="20" HorizontalAlignment="Center" VerticalAlignment="Center" />
@@ -212,7 +225,7 @@
             </ComboBox>
             <CheckBox x:Name="StartWithWindows" Content="Start with Windows" Margin="0,0,0,10" />
             <TextBlock x:Name="StartupStatus" FontSize="11" Margin="0,0,0,10" />
-            <TextBlock Text="Version 0.4.8 · Marck Wong" FontSize="11" Foreground="#ADC1D2" Margin="0,0,0,8" />
+            <TextBlock Text="Version 0.4.9 · Marck Wong" FontSize="11" Foreground="#ADC1D2" Margin="0,0,0,8" />
             <Button x:Name="GitHub" Content="GitHub" HorizontalAlignment="Left" ToolTip="github.com/medking82/hardware-pulse" />
             <CheckBox x:Name="AutoUpdates" Content="Check for Updates Automatically" Margin="0,12,0,8" />
             <CheckBox x:Name="AutoDownload" Content="Download Updates Automatically" Margin="0,0,0,8" />

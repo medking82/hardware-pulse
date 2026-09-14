@@ -82,7 +82,7 @@ Leave a name blank to use device information. Hover over a field to see its auto
 SPD numbers identify sensor addresses, not physical slots. Installed slots are reported separately; assign a slot name only after confirming its sensor.|SPD 编号代表传感器地址，并非实体插槽。已安装插槽单独显示；确认对应关系后再命名。|SPD 編號代表感測器位址，並非實體插槽。已安裝插槽單獨顯示；確認對應關係後再命名。
 Changes save automatically.|更改自动保存。|變更自動儲存。
 About Pulse|关于 Pulse|關於 Pulse
-Version 0.4.8 · Marck Wong|版本 0.4.8 · Marck Wong|版本 0.4.8 · Marck Wong
+Version 0.4.9 · Marck Wong|版本 0.4.9 · Marck Wong|版本 0.4.9 · Marck Wong
 Sensors by LibreHardwareMonitor. Shared driver by PawnIO.|传感器：LibreHardwareMonitor。共享驱动：PawnIO。|感測器：LibreHardwareMonitor。共用驅動程式：PawnIO。
 Language|语言 / Language|語言 / Language
 Minimize|最小化|最小化
@@ -99,6 +99,9 @@ VRAM Junction|显存温度|顯存溫度
 Core Voltage|核心电压|核心電壓
 Fan Speed|风扇转速|風扇轉速
 CPU Fan|CPU 风扇|CPU 風扇
+Pump Fan|水泵转速|水泵轉速
+This channel reports 0 RPM; other fans or pumps may use separate channels.|此通道报告 0 RPM；其他风扇或水泵可能使用独立通道。|此通道回報 0 RPM；其他風扇或水泵可能使用獨立通道。
+System Fan|系统风扇|系統風扇
 System Fan 1|系统风扇 1|系統風扇 1
 System Fan 2|系统风扇 2|系統風扇 2
 Module 1|内存条 1|記憶體模組 1
@@ -151,7 +154,7 @@ function Get-PulseText([string]$text) {
 function Get-PulseDeviceText([string]$text) {
     # Translate known generated descriptors, never arbitrary model substrings.
     $result=Get-PulseText $text
-    foreach($phrase in @('System Temperature','Composite Temperature','Bottom Intake','Top Exhaust','Slots','configured')){
+    foreach($phrase in @('System Temperature','Composite Temperature','Bottom Intake','Top Exhaust','Pump Fan','System Fan','Slots','configured')){
         $pattern='(?<![\p{L}\p{N}])'+[regex]::Escape($phrase)+'(?![\p{L}\p{N}])'
         $result=[regex]::Replace($result,$pattern,(Get-PulseText $phrase))
     }

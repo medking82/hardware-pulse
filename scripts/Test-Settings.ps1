@@ -17,6 +17,9 @@ $script:exitRequested=$true
 $window.ShowActivated=$false
 $window.Show()
 $window.UpdateLayout()
+if($overlayTimer.IsEnabled){throw 'Unused overlay timer wakes the app'}
+$overlayTimer.Start();Stop-Overlay
+if($overlayTimer.IsEnabled){throw 'Stopping overlay leaves timer running'}
 $script:trayLock.PerformClick()
 if(-not $script:positionLocked -or $window.ResizeMode -ne 'NoResize' -or -not $window.GetValue([WindowSnap]::PositionLockedProperty)){throw 'Tray lock did not disable movement and resizing'}
 if(@($script:cardGrips | Where-Object IsEnabled).Count){throw 'Locked cards can still be dragged'}
@@ -107,7 +110,17 @@ $window.Width=310;$window.Height=690
 'PASS: initial logical work-area layouts at 1080p, 1440p and 4K with 100/125/150 percent scaling inputs'
 $script:showDetails=$true;Update-CardDensity;$window.UpdateLayout()
 if($script:labels.CPU.Visibility -ne 'Visible' -or $script:cells.vcore[0].Parent.Visibility -ne 'Visible'){throw 'Details did not restore full readings'}
+$detailWidth=$cards.ActualWidth
+if($window.FindName('Details').Background.Color.A -eq 0){throw 'Details lacks selected state'}
+$window.Height=450;$window.UpdateLayout();Update-CardDensity;$window.UpdateLayout()
+if($script:densityLevel -eq 0 -or $script:cells.vcore[0].Parent.Visibility -ne 'Visible'){throw 'Details must tighten spacing without hiding readings'}
+$scroll=$window.FindName('CardScroll');$scroll.ScrollToBottom();$window.UpdateLayout()
+if($scroll.VerticalOffset -le 0){throw 'Custom monitor scrollbar cannot scroll'}
+$scroll.ScrollToTop();$window.Height=690
 $script:showDetails=$false;Update-CardDensity
+$window.UpdateLayout()
+if([Math]::Abs($cards.ActualWidth-$detailWidth) -gt 1){throw 'Details changes card width'}
+if($script:compactGroups[0].grid.Visibility -ne 'Visible' -or $window.FindName('Details').Background.Color.A -ne 0){throw 'Compact mode/state not restored'}
 $window.Height=900;$window.UpdateLayout();Update-CardDensity;$window.UpdateLayout()
 if($script:labels.CPU.Visibility -ne 'Visible'){throw ('Spacious auto layout: level='+$script:densityLevel+' card='+$cards.DesiredSize.Height+' viewport='+$window.FindName('CardScroll').ActualHeight+' win='+$window.ActualHeight)}
 $fullHeight=$cards.DesiredSize.Height
@@ -118,6 +131,7 @@ $window.Height=900;$window.UpdateLayout();Update-CardDensity;$window.UpdateLayou
 if($script:labels.CPU.Visibility -ne 'Visible' -or $script:densityLevel -ne 0){throw 'Growing window did not restore full information'}
 'PASS: density measures available space and restores hardware details as the window grows'
 $script:language='zh-CN'
+if((Get-PulseDeviceText 'Pump Fan') -ne '水泵转速' -or (Get-PulseDeviceText 'System Fan #1') -ne '系统风扇 #1'){throw 'Cooling channel translation failed'}
 if((Get-PulseDeviceText 'Demo · System Temperature') -ne 'Demo · 系统温度'){throw 'Generated temperature descriptor not translated'}
 if((Get-PulseDeviceText '32 GB DDR5-6000 configured · Slots A2 / B2') -ne '32 GB DDR5-6000 已配置 · 槽位 A2 / B2'){throw 'Memory metadata translation failed'}
 if((Get-PulseText 'VRAM Junction') -ne '显存温度'){throw 'VRAM wording regression'}

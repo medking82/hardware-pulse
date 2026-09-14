@@ -25,13 +25,16 @@ function Set-CardDensity([int]$level) {
     if(-not $script:densityCards){return}
     if(Get-Command Update-CardType -ErrorAction SilentlyContinue){Update-CardType}
     $typeScale=$window.FontSize/12.0
-    $compact=$level -ge 2; $tight=$level -ge 1
+    $compact=-not $script:showDetails; $tight=$level -ge 1
+    $window.FindName('Details').Background=[Windows.Media.BrushConverter]::new().ConvertFromString($(if($script:showDetails){'#607898A8'}else{'#00000000'}))
     foreach($card in $script:densityCards){
         $card.Padding=if($level -ge 3){[Windows.Thickness]::new(7,3,7,3)}elseif($tight){[Windows.Thickness]::new(7,5,7,5)}else{[Windows.Thickness]::new(10,7,10,7)}
         $card.Margin=if($tight){[Windows.Thickness]::new(0,0,0,3)}else{[Windows.Thickness]::new(0,0,0,6)}
     }
     foreach($key in @('CPU','GPU','Memory','NVMe','Airflow')){
-        $script:labels[$key].Visibility=if($level -ge 3){'Collapsed'}else{'Visible'}
+        $script:labels[$key].Visibility=if($level -ge 3 -and -not $script:showDetails){'Collapsed'}else{'Visible'}
+        $script:labels[$key].TextWrapping=if($script:showDetails){'Wrap'}else{'NoWrap'}
+        $script:labels[$key].TextTrimming='CharacterEllipsis'
     }
     foreach($card in $script:densityCards){$card.ToolTip=$card.Child.Children[1].Text}
     foreach($group in $script:compactGroups){
@@ -95,7 +98,7 @@ function Update-CardDensity([switch]$Animate) {
             Set-CardDensity $level
             $cards.UpdateLayout()
             $cards.Measure([Windows.Size]::new($width,[double]::PositiveInfinity))
-            if($script:showDetails -or $cards.DesiredSize.Height -le $scroll.ActualHeight-2 -or $level -eq 3){break}
+            if($cards.DesiredSize.Height -le $scroll.ActualHeight-2 -or $level -eq 3){break}
             $level++
         }
         $script:densityLevel=$level

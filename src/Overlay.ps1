@@ -8,7 +8,7 @@ if($saved.overlay){foreach($key in @($script:overlayState.Keys)){if($null -ne $s
 # Never auto-start an ETW session on login; target selection is explicit each session.
 $script:overlayState.enabled=$false
 function Get-OverlaySettings { return $script:overlayState }
-function Stop-Overlay { $script:frameCapture.Dispose();$script:gameOverlay.Hide();$script:overlayTarget=$null }
+function Stop-Overlay { if($overlayTimer){$overlayTimer.Stop()};$script:frameCapture.Dispose();$script:gameOverlay.Hide();$script:overlayTarget=$null }
 function Refresh-GameList {
     $picker=$window.FindName('GamePicker');$picker.Items.Clear()
     foreach($process in Get-Process | Where-Object {$_.MainWindowHandle -ne 0 -and $_.Id -ne $PID} | Sort-Object ProcessName){
@@ -21,6 +21,7 @@ function Start-Overlay {
     if(-not $choice -or -not $window.FindName('OverlayEnabled').IsChecked){return}
     try{$script:overlayTarget=Get-Process -Id ([int]$choice.Tag) -ErrorAction Stop}catch{return}
     if($window.FindName('OverlayFps').IsChecked){$script:frameCapture.Start((Join-Path $PSScriptRoot 'tools\PresentMon.exe'),$script:overlayTarget.Id)}
+    $overlayTimer.Start()
 }
 function Overlay-Value($values,$key,$unit) {
     if($values.ContainsKey($key)){return ('{0:0.#}{1}' -f $values[$key],$unit)}
@@ -71,5 +72,5 @@ $position.Add_SelectionChanged({$script:overlayState.position=[string]$window.Fi
 $window.FindName('RefreshGames').Add_Click({Refresh-GameList})
 $window.FindName('GamePicker').Add_SelectionChanged({Start-Overlay})
 $window.FindName('ResetFps').Add_Click({Start-Overlay})
-$overlayTimer=[Windows.Threading.DispatcherTimer]::new();$overlayTimer.Interval=[TimeSpan]::FromMilliseconds(500);$overlayTimer.Add_Tick({Update-Overlay});$overlayTimer.Start()
+$overlayTimer=[Windows.Threading.DispatcherTimer]::new();$overlayTimer.Interval=[TimeSpan]::FromMilliseconds(500);$overlayTimer.Add_Tick({Update-Overlay})
 Refresh-GameList

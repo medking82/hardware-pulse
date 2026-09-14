@@ -2,6 +2,15 @@
 
 English first; 简体中文 follows each version. Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
+## 0.4.9 — 2026-09-14
+
+- Make Compact readings independent of window height; Details retains full rows while adapting spacing, with a visible selected state.
+- Keep card widths stable when scrolling appears. Use an integrated narrow monitor scrollbar and a rounded keyboard-focus outline.
+- Translate pump/system fan channels and explain that a zero-RPM channel does not describe all fans or pumps. No hardware reading or driver behavior changed.
+- Stop the overlay timer when unused, avoiding its previous 500 ms wakeups. PowerShell runtime remains in use; no measured memory reduction is claimed.
+- Compact 使用紧凑 readings；Details 保留完整数据并自适应 spacing，增加 selected 状态。固定 scrolling 前后的 card 宽度，采用细 scrollbar 与圆角 keyboard focus。
+- 补齐水泵与系统风扇 label 翻译，说明单通道 0 RPM 的含义；未修改 driver 或硬件采集逻辑。关闭未使用的 overlay timer，仍依赖 PowerShell runtime。
+
 ## 0.4.8 — 2026-09-14
 
 - Add a saved 10–16 px text-size slider in Appearance (12 by default). Sizes use WPF logical pixels and follow Windows display scaling; older large-text preferences migrate automatically.
