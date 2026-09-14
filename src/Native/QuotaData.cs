@@ -38,8 +38,9 @@ namespace HardwarePulse {
             var r=new QuotaReading{Provider=provider,Observed=now};
             if(provider=="Codex"){
                 var byId=Get(body,"rateLimitsByLimitId","rate_limits_by_limit_id") as Dictionary<string,object>;
-                if(byId!=null&&byId.Count>0){foreach(var entry in byId)CodexPool(r,entry.Key=="codex"?"":entry.Key,entry.Value);}
-                else{CodexPool(r,"",Get(body,"rate_limit","rateLimit","rateLimits","rate_limits"));foreach(var entry in Items(Get(body,"additional_rate_limits","additionalRateLimits")))CodexPool(r,Text(Get(entry,"limit_name","limitName","metered_feature","meteredFeature")),Get(entry,"rate_limit","rateLimit"));}
+                object main=null;if(byId!=null)byId.TryGetValue("codex",out main);
+                CodexPool(r,"",main??Get(body,"rate_limit","rateLimit","rateLimits","rate_limits"));
+                r.Windows.RemoveAll(window=>window.Label!="Weekly");
             }else if(provider=="Claude"){
                 var map=body as Dictionary<string,object>;if(map!=null)foreach(var entry in map){
                     if(entry.Key!="five_hour"&&!entry.Key.StartsWith("seven_day",StringComparison.Ordinal))continue;

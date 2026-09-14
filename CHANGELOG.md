@@ -2,6 +2,13 @@
 
 English first; 简体中文 follows each version. Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
+## 0.5.11 — 2026-09-15
+
+- Fix Antigravity quota discovery: bind the Windows process instance before calling GetOwnerSid. Projected WMI query objects could fail before any quota request. Same-user and PID-owned loopback-port checks remain in place.
+- Show only the main Codex Weekly quota in Monitor and Desktop View; omit Spark, reserve and other additional pools.
+- Validate against live Codex, Antigravity and Claude quota endpoints; add regression checks for current-user acceptance, different-user rejection and main Weekly selection.
+- 修复 Antigravity 已运行却读不到 quota 的问题，Codex 精简为主 Weekly。无需修改 CLI 自启动或登录配置。
+
 ## 0.5.10 — 2026-09-15
 
 - Add independently opt-in Codex, Claude and Antigravity quota readings with provider SVG icons in Monitor and Desktop View. Five-minute background refresh; explicit missing-login, unavailable and stale states. No Token Monitor or PowerShell runtime requirement.

@@ -18,6 +18,12 @@ namespace HardwarePulse {
                 return ports.Distinct().Take(4).ToArray();
             }finally{Marshal.FreeHGlobal(buffer);}
         }
+        internal static bool IsOwnedProcess(uint pid,string sid){
+            // Projected WMI query objects can have no callable instance path.
+            using(var instance=new ManagementObject("Win32_Process.Handle='"+pid+"'"))
+            using(var owner=instance.InvokeMethod("GetOwnerSid",null,new InvokeMethodOptions{Timeout=TimeSpan.FromSeconds(5)}))
+                return owner!=null&&Convert.ToUInt32(owner["ReturnValue"])==0&&string.Equals(owner["Sid"] as string,sid,StringComparison.Ordinal);
+        }
         internal static object Read(CancellationToken cancel){
             string sid=WindowsIdentity.GetCurrent().User.Value;
             using(var deadline=CancellationTokenSource.CreateLinkedTokenSource(cancel)){
@@ -26,9 +32,9 @@ namespace HardwarePulse {
                 using(var found=search.Get())foreach(ManagementObject process in found)using(process){
                     deadline.Token.ThrowIfCancellationRequested();string command=process["CommandLine"] as string??"";string path=process["ExecutablePath"] as string??"";
                     if(path.IndexOf("antigravity",StringComparison.OrdinalIgnoreCase)<0)continue;
-                    using(var owner=process.InvokeMethod("GetOwnerSid",null,null)){if(owner==null||Convert.ToUInt32(owner["ReturnValue"])!=0||!string.Equals(owner["Sid"] as string,sid,StringComparison.Ordinal))continue;}
-                    var match=Regex.Match(command,@"(?:^|\s)--csrf_token(?:=|\s+)(?:""([^""]+)""|([^\s]+))");if(!match.Success)continue;string token=match.Groups[1].Success?match.Groups[1].Value:match.Groups[2].Value;
                     uint pid=Convert.ToUInt32(process["ProcessId"]);
+                    if(!IsOwnedProcess(pid,sid))continue;
+                    var match=Regex.Match(command,@"(?:^|\s)--csrf_token(?:=|\s+)(?:""([^""]+)""|([^\s]+))");if(!match.Success)continue;string token=match.Groups[1].Success?match.Groups[1].Value:match.Groups[2].Value;
                     foreach(int port in Ports(pid))foreach(string scheme in new[]{"https","http"}){
                         deadline.Token.ThrowIfCancellationRequested();if(!Ports(pid).Contains(port))continue;
                         try{var body=QuotaProviders.Request(scheme+"://127.0.0.1:"+port+"/exa.language_server_pb.LanguageServerService/RetrieveUserQuotaSummary",new Dictionary<string,string>{{"x-codeium-csrf-token",token},{"connect-protocol-version","1"}},"{\"forceRefresh\":true}",deadline.Token,true);
