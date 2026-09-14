@@ -1,4 +1,4 @@
-﻿<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="Hardware Pulse Glass" Width="280" Height="650" MinWidth="240" MinHeight="340" WindowStyle="None" ResizeMode="CanResizeWithGrip" Background="#182332" Foreground="#F0F5FA" FontFamily="Segoe UI" FontSize="12" TextOptions.TextFormattingMode="Display" UseLayoutRounding="True" SnapsToDevicePixels="True" WindowStartupLocation="CenterScreen">
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="Hardware Pulse Glass" Width="280" Height="650" MinWidth="240" MinHeight="340" WindowStyle="None" ResizeMode="CanResizeWithGrip" Background="#182332" Foreground="#F0F5FA" FontFamily="Segoe UI" FontSize="12" TextOptions.TextFormattingMode="Display" UseLayoutRounding="True" SnapsToDevicePixels="True" WindowStartupLocation="CenterScreen">
   <Window.Resources>
     <Style x:Key="PulseScrollThumb" TargetType="Thumb">
       <Setter Property="Template">
@@ -225,7 +225,7 @@
             </ComboBox>
             <CheckBox x:Name="StartWithWindows" Content="Start with Windows" Margin="0,0,0,10" />
             <TextBlock x:Name="StartupStatus" FontSize="11" Margin="0,0,0,10" />
-            <TextBlock Text="Version 0.5.5 · Marck Wong" FontSize="11" Foreground="#ADC1D2" Margin="0,0,0,8" />
+            <TextBlock Text="Version 0.5.7 · Marck Wong" FontSize="11" Foreground="#ADC1D2" Margin="0,0,0,8" />
             <Button x:Name="GitHub" Content="GitHub" HorizontalAlignment="Left" ToolTip="github.com/medking82/hardware-pulse" />
             <CheckBox x:Name="AutoUpdates" Content="Check for Updates Automatically" Margin="0,12,0,8" />
             <CheckBox x:Name="AutoDownload" Content="Download Updates Automatically" Margin="0,0,0,8" />
@@ -309,6 +309,29 @@
             <TextBlock Text="AVG / MIN / 1% Low: rolling 60 seconds. MIN is the slowest frame; 1% Low averages the slowest 1%." FontSize="11" Margin="0,0,0,10" />
             <Button x:Name="ResetFps" Content="Reset FPS" Margin="0,0,0,8" />
             <TextBlock x:Name="OverlayStatus" Text="FPS capture stopped" FontSize="11" />
+          </StackPanel>
+        </Expander>
+        <Expander x:Name="DesktopSection" Header="Desktop Mode" Foreground="#F0F5FA" Margin="0,16,0,0">
+          <StackPanel>
+            <TextBlock Text="Readings on your wallpaper, below other apps. Uses the same collector." FontSize="11" Margin="0,10,0,12" />
+            <CheckBox x:Name="DesktopEnabled" Content="Desktop Mode" Margin="0,0,0,10" />
+            <CheckBox x:Name="DesktopLocked" Content="Lock Desktop" Margin="0,0,0,10" />
+            <TextBlock Text="Locked: clicks pass through. Unlock to drag the readings." FontSize="11" Margin="0,0,0,12" />
+            <DockPanel><TextBlock x:Name="DesktopFontValue" DockPanel.Dock="Right" /><TextBlock Text="Font Size" /></DockPanel>
+            <Slider x:Name="DesktopFontSize" Minimum="10" Maximum="32" TickFrequency="1" IsSnapToTickEnabled="True" AutomationProperties.Name="Desktop Font Size" Margin="0,8,0,12" />
+            <DockPanel><TextBlock x:Name="DesktopSpacingValue" DockPanel.Dock="Right" /><TextBlock Text="Row Spacing" /></DockPanel>
+            <Slider x:Name="DesktopSpacing" Minimum="4" Maximum="40" TickFrequency="1" IsSnapToTickEnabled="True" AutomationProperties.Name="Row Spacing" Margin="0,8,0,12" />
+            <CheckBox x:Name="DesktopAutoContrast" Content="Auto Contrast" Margin="0,0,0,8" />
+            <TextBlock Text="Adapts light/dark text to nearby wallpaper while the desktop is active. An outline helps on mixed backgrounds." FontSize="11" Margin="0,0,0,12" />
+            <DockPanel><TextBlock x:Name="DesktopTextOpacityValue" DockPanel.Dock="Right" /><TextBlock Text="Text Opacity" /></DockPanel>
+            <Slider x:Name="DesktopTextOpacity" Minimum="30" Maximum="100" TickFrequency="1" IsSnapToTickEnabled="True" AutomationProperties.Name="Text Opacity" Margin="0,8,0,8" />
+            <TextBlock Text="Lower opacity reduces readability. Choosing a custom color turns Auto Contrast off." FontSize="11" Margin="0,0,0,12" />
+            <TextBlock Text="Text Color" Margin="0,0,0,6" />
+            <Button x:Name="DesktopColor" Content="#E4F3EF" AutomationProperties.Name="Desktop Text Color" Margin="0,0,0,12" />
+            <Button x:Name="DesktopMove" Content="Move on Desktop" Margin="0,0,0,8" />
+            <Button x:Name="DesktopResetPosition" Content="Reset Desktop Position" Margin="0,0,0,8" />
+            <Button x:Name="DesktopDone" Content="Done — Lock and Show Desktop View" Margin="0,0,0,8" />
+            <TextBlock x:Name="DesktopStatus" Text="Use the system tray to edit or exit Desktop Mode." FontSize="11" />
           </StackPanel>
         </Expander>
         <Expander Header="Hardware Names" Foreground="#F0F5FA" Margin="0,16,0,0">

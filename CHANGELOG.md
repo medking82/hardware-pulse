@@ -2,6 +2,17 @@
 
 English first; 简体中文 follows each version. Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
+## 0.5.7 — 2026-09-14
+
+- Add optional Desktop Mode: transparent readings above the wallpaper and below ordinary windows, with no duplicate Collector.
+- Adaptive light/dark text samples nearby wallpaper only while the desktop is active; custom color, text opacity and a contrast outline remain available.
+- Explicit GPU Fan labels and separate GPU Fan 1 / 2 readings preserve zero RPM per channel.
+- Show Desktop Mode VRAM usage as used / total GB and percentage; integrated GPUs identify shared GPU memory.
+- Separate desktop font size, text color, row spacing and position preferences; locked readouts pass clicks through, with editing and recovery in the system tray.
+- Preserve monitor settings, card order/visibility and hardware names. Rediscover the Windows desktop host when window ordering changes.
+- 新增 Desktop Mode：数据显示在 wallpaper 上、普通 app 下方。支持独立字号、颜色、间距、位置和 Lock 后 click-through，复用现有 Collector。
+- Validated with Wallpaper Engine running and Show Desktop; mixed-DPI monitors and Explorer restart remain dedicated compatibility checks.
+
 ## 0.5.5 — 2026-09-14
 
 - Read FPS through the installed elevated Collector while keeping the widget unelevated. Accept PresentMon's actual `msBetweenPresents` CSV header.

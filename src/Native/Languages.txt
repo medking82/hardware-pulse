@@ -79,7 +79,7 @@ Leave a name blank to use device information. Hover over a field to see its auto
 SPD numbers identify sensor addresses, not physical slots. Installed slots are reported separately; assign a slot name only after confirming its sensor.|SPD 编号代表传感器地址，并非实体插槽。已安装插槽单独显示；确认对应关系后再命名。|SPD 編號代表感測器位址，並非實體插槽。已安裝插槽單獨顯示；確認對應關係後再命名。
 Changes save automatically.|更改自动保存。|變更自動儲存。
 About Pulse|关于 Pulse|關於 Pulse
-Version 0.5.5 · Marck Wong|版本 0.5.5 · Marck Wong|版本 0.5.5 · Marck Wong
+Version 0.5.7 · Marck Wong|版本 0.5.7 · Marck Wong|版本 0.5.7 · Marck Wong
 Sensors by LibreHardwareMonitor. Shared driver by PawnIO.|传感器：LibreHardwareMonitor。共享驱动：PawnIO。|感測器：LibreHardwareMonitor。共用驅動程式：PawnIO。
 Language|语言 / Language|語言 / Language
 Minimize|最小化|最小化
@@ -138,3 +138,27 @@ Background Opacity|背景不透明度|背景不透明度
 0% transparent · 100% opaque. Text stays visible.|0% 全透明 · 100% 不透明。文字保持可见。|0% 全透明 · 100% 不透明。文字保持可見。
 Preview (sample data)|预览（示例数据）|預覽（範例資料）
 Reset Overlay Appearance|重置状态条外观|重設狀態列外觀
+
+Desktop Mode|桌面模式|桌面模式
+Edit Desktop|编辑桌面|編輯桌面
+Lock Desktop|锁定桌面|鎖定桌面
+Readings on your wallpaper, below other apps. Uses the same collector.|数据显示在壁纸上、其他应用下方，复用现有采集程序。|資料顯示在桌布上、其他應用下方，沿用現有採集程式。
+Locked: clicks pass through. Unlock to drag the readings.|锁定后鼠标穿透；解锁后可拖动数据区域。|鎖定後滑鼠穿透；解鎖後可拖曳資料區域。
+Row Spacing|行间距|行間距
+Text Color|文字颜色|文字顏色
+Desktop Font Size|桌面字号|桌面字級
+Desktop Text Color|桌面文字颜色|桌面文字顏色
+Move on Desktop|在桌面上移动|在桌面上移動
+Reset Desktop Position|重置桌面位置|重設桌面位置
+Done — Lock and Show Desktop View|完成并锁定桌面显示|完成並鎖定桌面顯示
+Use the system tray to edit or exit Desktop Mode.|从系统托盘编辑或退出桌面模式。|從系統匣編輯或退出桌面模式。
+Waiting for Windows desktop|等待 Windows 桌面|等待 Windows 桌面
+
+GPU Fan|GPU 风扇|GPU 風扇
+GPU Fan 1|GPU 风扇 1|GPU 風扇 1
+GPU Fan 2|GPU 风扇 2|GPU 風扇 2
+
+Auto Contrast|自动对比度|自動對比度
+Text Opacity|文字不透明度|文字不透明度
+Adapts light/dark text to nearby wallpaper while the desktop is active. An outline helps on mixed backgrounds.|桌面处于前台时，根据附近壁纸切换深浅文字；描边提升复杂背景上的可读性。|桌面處於前景時，依附近桌布切換深淺文字；描邊提升複雜背景上的可讀性。
+Lower opacity reduces readability. Choosing a custom color turns Auto Contrast off.|降低不透明度会影响可读性。选择自定义颜色将关闭自动对比度。|降低不透明度會影響可讀性。選擇自訂顏色將關閉自動對比度。

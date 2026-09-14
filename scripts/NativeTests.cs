@@ -120,6 +120,42 @@ internal static class NativeTests {
                     }
                 }
                 shell.Control<Slider>("FontSizeSlider").Value=12;shell.Window.Width=310;Pump();Click(shell,"Details");Capture(shell,Path.Combine(state,"native-details.png"));Click(shell,"Details");Capture(shell,Path.Combine(state,"native-compact.png"));
+                // Desktop mode owns separate layout preferences and reuses this ReadingSession.
+                double originalFont=shell.Window.FontSize,originalLeft=shell.Window.Left;
+                Toggle(shell,"DesktopEnabled",true);Pump();shell.UpdatePanel();
+                var desktop=Field<DesktopView>(shell,"desktop");
+                Assert(desktop!=null&&desktop.Locked&&desktop.IsVisible,"Desktop did not open locked");
+                Assert(Tree(desktop).OfType<TextBlock>().Any(t=>t.Text.Contains("49 °C")),"Desktop did not use existing GPU readings");
+                Assert(!Tree(desktop).OfType<Button>().Any(),"Desktop contains window buttons");
+                Assert(Tree(desktop).OfType<TextBlock>().Any(t=>t.Text=="VRAM")&&Tree(desktop).OfType<TextBlock>().Any(t=>t.Text=="2 / 8 GB · 25%"),"Desktop VRAM usage missing");
+                var fanSnapshot=Snapshot();fanSnapshot.sequence=20;fanSnapshot.sensors=fanSnapshot.sensors.Concat(new[]{
+                    new Sensor{id="/gpu/fan/0",hardwareId="/gpu",hardwareType="GpuNvidia",hardware="Demo GPU",name="GPU Fan 1",type="Fan",value=700},
+                    new Sensor{id="/gpu/fan/1",hardwareId="/gpu",hardwareType="GpuNvidia",hardware="Demo GPU",name="GPU Fan 2",type="Fan",value=0}
+                }).ToArray();Json.WriteAtomic(paths.Snapshot,fanSnapshot);shell.UpdatePanel();Pump();
+                var fanLabels=Tree(desktop).OfType<TextBlock>().Select(t=>t.Text).ToArray();
+                Assert(fanLabels.Contains("GPU Fan 1")&&fanLabels.Contains("GPU Fan 2")&&fanLabels.Contains("700 RPM")&&fanLabels.Contains("0 RPM"),"Desktop must identify both GPU fan channels, including zero readings");
+                fanSnapshot.sequence++;fanSnapshot.sensors=fanSnapshot.sensors.Where(s=>s.name!="GPU Fan 2").ToArray();Json.WriteAtomic(paths.Snapshot,fanSnapshot);shell.UpdatePanel();Pump();
+                fanLabels=Tree(desktop).OfType<TextBlock>().Select(t=>t.Text).ToArray();Assert(fanLabels.Contains("GPU Fan")&&!fanLabels.Contains("GPU Fan 2"),"Single GPU fan label/capability did not update");
+                Json.WriteAtomic(paths.Snapshot,Snapshot());shell.UpdatePanel();Pump();
+                shell.Control<Slider>("DesktopFontSize").Value=24;shell.Control<Slider>("DesktopSpacing").Value=26;Pump();
+                Assert(shell.Window.FontSize==originalFont&&shell.Window.Left==originalLeft,"Desktop settings changed monitor layout");
+                Assert(Tree(desktop).OfType<TextBlock>().Where(t=>t.Visibility==Visibility.Visible).All(t=>t.FontSize==24),"Desktop font was not applied");
+                var desktopBitmap=new RenderTargetBitmap((int)desktop.ActualWidth,(int)desktop.ActualHeight,96,96,PixelFormats.Pbgra32);desktopBitmap.Render(desktop);var desktopEncoder=new PngBitmapEncoder();desktopEncoder.Frames.Add(BitmapFrame.Create(desktopBitmap));using(var file=File.Create(Path.Combine(state,"desktop-mode.png")))desktopEncoder.Save(file);
+                Assert(DesktopContrast.Choose(0,"#152127")=="#F5F7FA"&&DesktopContrast.Choose(1,"#F5F7FA")=="#152127","Wallpaper contrast selection");
+                Assert(DesktopContrast.Choose(.19,"#152127")=="#152127"&&DesktopContrast.Choose(.19,"#F5F7FA")=="#F5F7FA","Animated wallpaper hysteresis");
+                Assert(DesktopContrast.Outline(Colors.White)==Colors.Black&&DesktopContrast.Outline(Colors.Black)==Colors.White,"Custom text contrast outline");
+                Toggle(shell,"DesktopAutoContrast",false);shell.Control<Slider>("DesktopTextOpacity").Value=65;Pump();
+                Assert(((Border)desktop.Content).Child.Opacity==.65,"Desktop text opacity not applied");
+                Assert(desktop.ResolveColor(false,"#4488CC")=="#4488CC","Auto Contrast overrode custom color");
+                Toggle(shell,"DesktopLocked",false);Assert(!desktop.Locked,"Desktop unlock failed");
+                Click(shell,"DesktopDone");Assert(desktop.Locked&&!shell.Window.IsVisible,"Done did not lock desktop and hide editor");
+                shell.Show();shell.ShowSettings(true);Toggle(shell,"DesktopEnabled",false);Assert(Field<DesktopView>(shell,"desktop")==null&&shell.Window.IsVisible,"Desktop disable did not restore monitor");
+                var clamped=DesktopView.Clamp(new Point(-1800,80),new Size(300,200),new[]{new Rect(-1920,0,1920,1080),new Rect(0,0,1920,1080)});
+                Assert(clamped.X==-1800&&clamped.Y==80,"Negative monitor position was lost");
+                clamped=DesktopView.Clamp(new Point(8000,8000),new Size(300,200),new[]{new Rect(0,0,1920,1080)});
+                Assert(clamped.X==1620&&clamped.Y==880,"Disconnected monitor recovery failed");
+                shell.Save();var desktopSettings=new Settings(Path.Combine(state,"widget-settings.json"));
+                Assert(desktopSettings.Number("desktopFontSize",0,10,32)==24&&desktopSettings.Number("desktopSpacing",0,4,40)==26,"Desktop preferences did not persist");
                 var stale=Snapshot();stale.time=DateTimeOffset.Now.AddSeconds(-30).ToString("o");Json.WriteAtomic(paths.Snapshot,stale);shell.UpdatePanel();Assert(!shell.Control<TextBlock>("Status").Text.Contains("Live")&&gpuHero.Text=="—"&&gpuCard.Visibility==Visibility.Visible,"Stale readings/capability retention");Assert((string)gpuCard.ToolTip=="Demo GPU","Stale card lost device label");Json.WriteAtomic(paths.Snapshot,Snapshot());shell.UpdatePanel();Click(shell,"Max");Assert(gpuHero.Text=="49.0 °C","Session peaks lost");Click(shell,"Live");
                 Click(shell,"Settings");var language=shell.Control<ComboBox>("LanguagePicker");foreach(ComboBoxItem item in language.Items)if((string)item.Tag=="zh-TW")language.SelectedItem=item;Pump();Assert(shell.Control<Button>("Live").Content.ToString()=="即時","Native language selection");
                 Click(shell,"CheckUpdates");var updateWait=Stopwatch.StartNew();while(!shell.Control<Button>("CheckUpdates").IsEnabled && updateWait.Elapsed.TotalSeconds<15){Pump();System.Threading.Thread.Sleep(30);}Assert(shell.Control<Button>("CheckUpdates").IsEnabled,"Update check did not complete");Assert(shell.Control<TextBlock>("UpdateStatus").Text=="You are up to date" || shell.Control<TextBlock>("UpdateStatus").Text=="已是最新版本" || shell.Control<TextBlock>("UpdateStatus").Text=="已是最新版本", "Native update check: "+shell.Control<TextBlock>("UpdateStatus").Text);foreach(ComboBoxItem choice in language.Items)if((string)choice.Tag=="en")language.SelectedItem=choice;Pump();Assert(shell.Control<TextBlock>("UpdateStatus").Text=="You are up to date","Update status did not follow language change");foreach(ComboBoxItem choice in language.Items)if((string)choice.Tag=="zh-TW")language.SelectedItem=choice;Pump();Capture(shell,Path.Combine(state,"localized-settings.png"));shell.Control<Slider>("FontSizeSlider").Value=14;shell.Save();Click(shell,"Back");shell.Window.Close();Assert(!shell.Window.IsVisible,"Close to tray");shell.Show();Pump();Assert(shell.Window.IsVisible,"Restore window");shell.Exit();
