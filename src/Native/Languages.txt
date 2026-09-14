@@ -79,7 +79,7 @@ Leave a name blank to use device information. Hover over a field to see its auto
 SPD numbers identify sensor addresses, not physical slots. Installed slots are reported separately; assign a slot name only after confirming its sensor.|SPD 编号代表传感器地址，并非实体插槽。已安装插槽单独显示；确认对应关系后再命名。|SPD 編號代表感測器位址，並非實體插槽。已安裝插槽單獨顯示；確認對應關係後再命名。
 Changes save automatically.|更改自动保存。|變更自動儲存。
 About Pulse|关于 Pulse|關於 Pulse
-Version 0.5.7 · Marck Wong|版本 0.5.7 · Marck Wong|版本 0.5.7 · Marck Wong
+Version 0.5.8 · Marck Wong|版本 0.5.8 · Marck Wong|版本 0.5.8 · Marck Wong
 Sensors by LibreHardwareMonitor. Shared driver by PawnIO.|传感器：LibreHardwareMonitor。共享驱动：PawnIO。|感測器：LibreHardwareMonitor。共用驅動程式：PawnIO。
 Language|语言 / Language|語言 / Language
 Minimize|最小化|最小化
@@ -162,3 +162,7 @@ Auto Contrast|自动对比度|自動對比度
 Text Opacity|文字不透明度|文字不透明度
 Adapts light/dark text to nearby wallpaper while the desktop is active. An outline helps on mixed backgrounds.|桌面处于前台时，根据附近壁纸切换深浅文字；描边提升复杂背景上的可读性。|桌面處於前景時，依附近桌布切換深淺文字；描邊提升複雜背景上的可讀性。
 Lower opacity reduces readability. Choosing a custom color turns Auto Contrast off.|降低不透明度会影响可读性。选择自定义颜色将关闭自动对比度。|降低不透明度會影響可讀性。選擇自訂顏色將關閉自動對比度。
+Enable to preview and edit. Move the readings, then choose Done to lock. Disable to return to the monitor.|开启后预览和编辑，移动数据区域后点击完成锁定；关闭后返回监控窗口。|開啟後預覽和編輯，移動資料區域後點擊完成鎖定；關閉後返回監控視窗。
+Edges snap while moving. Drag away to release; Alt temporarily bypasses snapping.|移动时吸附屏幕边缘，拖远即可脱离；Alt 临时关闭吸附。|移動時吸附螢幕邊緣，拖遠即可脫離；Alt 暫時關閉吸附。
+Reading Order|数据顺序|資料順序
+Drag the handle or use Up / Down keys. Esc cancels a drag. Unavailable readings retain their position.|拖动手柄或使用上下方向键排序，Esc 取消拖动。暂不可用的数据保留顺序。|拖曳控制柄或使用上下方向鍵排序，Esc 取消拖曳。暫不可用的資料保留順序。

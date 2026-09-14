@@ -57,7 +57,7 @@ public static class WindowSnap {
         if(Math.Abs(dy)<=threshold){rect.Top+=dy;rect.Bottom+=dy;}
         return rect;
     }
-    public static void Attach(Window window) {
+    public static void Attach(Window window, bool includeWindows=true) {
         IntPtr own=new WindowInteropHelper(window).Handle;
         Rect dragOrigin=new Rect();CursorPoint dragStart=new CursorPoint();bool tracking=false;
 
@@ -84,7 +84,7 @@ public static class WindowSnap {
             MonitorInfo monitor=new MonitorInfo();monitor.Size=Marshal.SizeOf(typeof(MonitorInfo));
             if(!GetMonitorInfo(MonitorFromRect(ref rect,2),ref monitor))return IntPtr.Zero;
             var targets=new List<Rect>();
-            EnumWindows(delegate(IntPtr candidate,IntPtr state){
+            if(includeWindows)EnumWindows(delegate(IntPtr candidate,IntPtr state){
                 if(candidate==own || !IsWindowVisible(candidate) || IsIconic(candidate) || GetWindowTextLength(candidate)==0)return true;
                 int cloaked; if(DwmGetWindowAttribute(candidate,14,out cloaked,4)==0 && cloaked!=0)return true;
                 Rect other;bool found=DwmGetFrame(candidate,9,out other,Marshal.SizeOf(typeof(Rect)))==0;

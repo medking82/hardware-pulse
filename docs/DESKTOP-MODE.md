@@ -7,20 +7,25 @@ or install a Wallpaper Engine plugin.
 
 ## Use
 
-Settings → Desktop Mode enables the display. Font Size (10–32 logical px), Text Color
+Settings → Desktop Mode enables an editable preview and opens its settings. The tray entry uses the same flow. Font Size (10–32 logical px), Text Color,
 Text Opacity (30–100%), Auto Contrast and Row Spacing are independent of the ordinary monitor. Windows display scaling
-applies to logical px. Card visibility/order and hardware names use the existing settings.
+applies to logical px. Card visibility and hardware names use the existing settings.
+Reading Order independently arranges individual desktop rows: drag a handle with animated
+reordering, press Esc to cancel, or focus the handle and use Up/Down. Missing channels retain
+their place, and monitor card order is unchanged. Animation follows Windows reduced-motion settings.
 Unsupported readings disappear; stale readings show dashes and a collector status.
 
 Move on Desktop unlocks the readout and hides the editor. Drag the shaded area to
-position it. The system tray's Lock Desktop enables click-through and removes the
-editing background. Edit Desktop reopens Settings; Done locks the readout and hides
+position it, with snapping to all four screen work-area edges. Pull away to release without
+Alt; holding Alt temporarily bypasses snapping. Other app windows are not snap targets.
+The system tray's Lock Desktop enables click-through and removes the
+editing background. Edit Desktop unlocks the readout and reopens Settings; Done locks the readout and hides
 the editor. Disable Desktop Mode to return to the ordinary monitor. Reset Desktop
 Position recovers a misplaced display.
 
 The persistent keys `desktopEnabled`, `desktopLocked`, `desktopFontSize`,
-`desktopSpacing`, `desktopColor`, `desktopAutoContrast`, `desktopTextOpacity`, `desktopLeft`, and `desktopTop` are separate from
-the monitor's layout keys. Locked is the desktop default; Desktop Mode itself is off
+`desktopSpacing`, `desktopColor`, `desktopAutoContrast`, `desktopTextOpacity`, `desktopOrder`, `desktopLeft`, and `desktopTop` are separate from
+the monitor's layout keys. Entering starts unlocked; Done locks it. Desktop Mode itself is off
 for existing and new installations unless explicitly enabled.
 
 Auto Contrast samples three pixels in transparent padding at most once per two seconds while the desktop is foreground and the readout is locked. Samples are processed locally and never stored or transmitted. Light/dark selection has hysteresis, and a contrasting outline helps on mixed backgrounds. Nearby samples do not guarantee contrast behind every glyph; lower opacity also reduces readability. A saved custom color is preserved on upgrade, and choosing a custom color disables Auto Contrast.
@@ -47,11 +52,11 @@ claim compatibility with all of those environments from a single-machine test.
 ## Validation
 
 - `scripts/Test-Native.ps1`: shared readings, no window buttons, independent typography,
-  lock/unlock, return from editing, disable, saved appearance, negative-coordinate
+  preview entry, independent ordering/persistence, drag cancellation, lock/unlock, return from editing, disable, saved appearance, negative-coordinate
   monitors and off-screen recovery. Writes a Desktop Mode render to its test state.
 - `scripts/Test-DesktopLayer.ps1 -Interactive`: opt-in live desktop test; briefly toggles
   Show Desktop and restores windows. Checks desktop host discovery, actual native
-  click-through flags, non-topmost placement, ordering behind an ordinary test window,
+  four-edge snap hooks, click-through flags, non-topmost placement, ordering behind an ordinary test window,
   and visibility after Show Desktop. Uses fixture readings and no Collector.
 - Tested locally with Wallpaper Engine running. Mixed-DPI multi-monitor hardware,
   Explorer restart, wallpaper switching and virtual-desktop switching still require

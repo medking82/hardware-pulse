@@ -2,6 +2,13 @@
 
 English first; 简体中文 follows each version. Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
+## 0.5.8 — 2026-09-14
+
+- Enter Desktop Mode in an editable preview from Settings or the tray; Done locks the readings and hides the editor. Disabling it returns to the monitor.
+- Reorder individual desktop readings in Settings independently of monitor cards, with animated drag handles, Esc cancellation and Up/Down keyboard support. Missing channels keep their saved position.
+- Snap Desktop View to all four screen work-area edges while moving. Pull away to release without Alt; Alt temporarily bypasses snapping. Ordinary windows do not attract the desktop readout.
+- Desktop Mode 先进入编辑预览，Done 后锁定；Settings 支持独立 readings 动画拖曳排序与 keyboard 调整，并补齐四边 edge snap。
+
 ## 0.5.7 — 2026-09-14
 
 - Add optional Desktop Mode: transparent readings above the wallpaper and below ordinary windows, with no duplicate Collector.

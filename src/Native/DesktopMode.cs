@@ -32,19 +32,21 @@ namespace HardwarePulse {
             Click("DesktopDone",delegate{SetDesktopLocked(true);Save();if(DesktopEnabled)Window.Hide();});
             Click("DesktopMove",delegate{if(!DesktopEnabled)SetDesktopEnabled(true);SetDesktopLocked(false);Window.Hide();});
             Click("DesktopResetPosition",delegate{if(desktop!=null){desktop.Left=SystemParameters.WorkArea.Left+40;desktop.Top=SystemParameters.WorkArea.Top+100;desktop.KeepOnScreen();SaveDesktopPosition();}});
+            BuildDesktopOrder();
             UpdateDesktopLabels();
         }
         void SetDesktopEnabled(bool enabled){
             settings.Data["desktopEnabled"]=enabled;Control<CheckBox>("DesktopEnabled").IsChecked=enabled;
+            if(enabled){settings.Data["desktopLocked"]=false;Control<CheckBox>("DesktopLocked").IsChecked=false;}
             if(!enabled&&desktop!=null){desktop.Close();desktop=null;}
             UpdateDesktop();Save();
-            if(!enabled)Show();
+            if(enabled)EditDesktop();else{Show();ShowSettings(false);}
         }
         void SetDesktopLocked(bool value){settings.Data["desktopLocked"]=value;Control<CheckBox>("DesktopLocked").IsChecked=value;UpdateDesktop();Save();}
         void SaveDesktopPosition(){if(desktop==null)return;settings.Data["desktopLeft"]=desktop.Left;settings.Data["desktopTop"]=desktop.Top;QueueSave();}
-        void EditDesktop(){Show();ShowSettings(true);Control<Expander>("DesktopSection").IsExpanded=true;Control<Expander>("DesktopSection").BringIntoView();}
+        void EditDesktop(){if(DesktopEnabled)SetDesktopLocked(false);Show();ShowSettings(true);Control<Expander>("DesktopSection").IsExpanded=true;Control<Expander>("DesktopSection").BringIntoView();}
         void BuildDesktopTray(Forms.ContextMenuStrip menu){
-            trayDesktop=(Forms.ToolStripMenuItem)menu.Items.Add("Desktop Mode",null,delegate{SetDesktopEnabled(!DesktopEnabled);if(DesktopEnabled){SetDesktopLocked(true);Window.Hide();}});
+            trayDesktop=(Forms.ToolStripMenuItem)menu.Items.Add("Desktop Mode",null,delegate{SetDesktopEnabled(!DesktopEnabled);});
             trayDesktopEdit=(Forms.ToolStripMenuItem)menu.Items.Add("Edit Desktop",null,delegate{EditDesktop();});
             trayDesktopLock=(Forms.ToolStripMenuItem)menu.Items.Add("Lock Desktop",null,delegate{SetDesktopLocked(!settings.Flag("desktopLocked",true));});
             menu.Opening+=delegate{trayDesktop.Checked=DesktopEnabled;trayDesktopLock.Checked=settings.Flag("desktopLocked",true);trayDesktopEdit.Enabled=trayDesktopLock.Enabled=DesktopEnabled;};
@@ -53,6 +55,9 @@ namespace HardwarePulse {
             Control<Button>("DesktopColor").Content=DesktopColor();
             Text("DesktopFontValue",Control<Slider>("DesktopFontSize").Value+" px");Text("DesktopSpacingValue",Control<Slider>("DesktopSpacing").Value+" px");
             Text("DesktopTextOpacityValue",Control<Slider>("DesktopTextOpacity").Value+"%");
+            Control<Button>("DesktopDone").IsEnabled=DesktopEnabled;
+            Control<CheckBox>("DesktopLocked").IsEnabled=DesktopEnabled;
+            UpdateDesktopOrderLabels();
             if(trayDesktop!=null){trayDesktop.Text=language.T("Desktop Mode");trayDesktopEdit.Text=language.T("Edit Desktop");trayDesktopLock.Text=language.T("Lock Desktop");}
         }
         string DesktopReading(string key,string unit){double value;return readings.Latest.state=="LIVE"&&readings.Latest.values.TryGetValue(key,out value)?value.ToString(unit==" RPM"?"0":"0.#")+unit:"—";}
@@ -78,7 +83,7 @@ namespace HardwarePulse {
             }
             if(readings.Latest.state!="LIVE")result.Add(new DesktopMetric("status",language.T(readings.Latest.state),language.T("Waiting for collector"),"live"));
             if(result.Count==0)result.Add(new DesktopMetric("empty","Pulse",language.T("No cards shown. Choose cards in Settings."),"live"));
-            return result;
+            var order=DesktopOrderKeys();return result.OrderBy(metric=>{int index=Array.IndexOf(order,metric.Key);return index<0?int.MaxValue:index;}).ToList();
         }
         void UpdateDesktop(){
             UpdateDesktopLabels();if(!loaded||!DesktopEnabled)return;

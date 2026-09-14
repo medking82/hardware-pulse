@@ -31,7 +31,7 @@ namespace HardwarePulse {
             Focusable=false;SizeToContent=SizeToContent.WidthAndHeight;WindowStartupLocation=WindowStartupLocation.Manual;
             UseLayoutRounding=true;SnapsToDevicePixels=true;TextOptions.SetTextFormattingMode(this,TextFormattingMode.Display);
             surface=new Border{Padding=new Thickness(12),Child=stack};Content=surface;
-            SourceInitialized+=delegate{if(!isolated)layer=new DesktopLayer(this);};
+            SourceInitialized+=delegate{WindowSnap.Attach(this,false);if(!isolated)layer=new DesktopLayer(this);};
             Closed+=delegate{if(layer!=null)layer.Dispose();};
             MouseLeftButtonDown+=delegate(object sender,MouseButtonEventArgs e){if(locked||e.ButtonState!=MouseButtonState.Pressed)return;DragMove();KeepOnScreen();if(PositionSaved!=null)PositionSaved();};
         }
@@ -53,6 +53,7 @@ namespace HardwarePulse {
         }
         public void Render(IList<DesktopMetric> metrics,double size,double spacing,string color,bool isLocked) {
             locked=isLocked;
+            SetValue(WindowSnap.PositionLockedProperty,isLocked);
             bool styleChanged=lastColor!=color||lastSize!=size;
             if(styleChanged){var tint=(Color)ColorConverter.ConvertFromString(color);foreground=new SolidColorBrush(tint);foreground.Freeze();line=new SolidColorBrush(Color.FromArgb(50,tint.R,tint.G,tint.B));line.Freeze();lastColor=color;lastSize=size;}
             if(isLocked)surface.Background=Brushes.Transparent;
@@ -75,7 +76,7 @@ namespace HardwarePulse {
                 row.Border.Padding=new Thickness(0,spacing/2,0,spacing/2);row.Border.Visibility=Visibility.Visible;
                 if(styleChanged){var gridRow=(Grid)row.Border.Child;gridRow.Children.Remove(row.Icon);row.Icon=icon(metric.Icon,size,color);row.Icon.Margin=new Thickness(0,0,10,0);gridRow.Children.Add(row.Icon);}
             }
-            // Order follows the existing Cards preference, including after a reorder.
+            // Desktop order is independent of the monitor cards.
             var ordered=metrics.Select(m=>rows[m.Key].Border).ToArray();
             if(!stack.Children.Cast<UIElement>().SequenceEqual(ordered)){stack.Children.Clear();foreach(var child in ordered)stack.Children.Add(child);}
             if(layer!=null)layer.SetLocked(locked);
