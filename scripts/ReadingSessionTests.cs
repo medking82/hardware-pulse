@@ -7,7 +7,7 @@ static class ReadingSessionTests {
     static RawSnapshot Snapshot(DateTimeOffset now,int pid,long sequence,double temperature) {
         return new RawSnapshot {schema=2,pid=pid,sequence=sequence,time=now.ToString("o"),
             ramUsage=new RamUsage {usedGb=8,totalGb=16},sensors=new[]{
-                new Sensor {id="/cpu/0/temp/0",hardwareId="/cpu/0",hardwareType="Cpu",name="CPU Package",type="Temperature",value=temperature}
+                new Sensor {id="/cpu/0/temp/0",hardwareId="/cpu/0",hardwareType="Cpu",hardware="Demo Processor",name="CPU Package",type="Temperature",value=temperature}
             }};
     }
     static int Main(string[] args) {
@@ -24,9 +24,11 @@ static class ReadingSessionTests {
             Check(session.Peaks["cpu"]==70,"New sequence peak");
             session.Poll(now.AddSeconds(16));
             Check(session.Latest.state=="STALE"&&session.Latest.values.Count==0&&session.Latest.available["cpu"]&&session.HasUsage("ram"),"Stale readings must retain capabilities, not values");
+            Check(session.Latest.names.ContainsKey("CPU")&&session.Latest.names["CPU"]=="Demo Processor","Stale snapshot lost hardware identity");
             File.WriteAllText(path,"{broken");session.Poll(now);
             Check(session.Latest.state=="OFFLINE"&&session.Latest.available["cpu"]&&session.Peaks["cpu"]==70,"Malformed snapshot must preserve history");
-            var changed=Snapshot(now,2,1,65);changed.ramUsage=null;Json.WriteAtomic(path,changed);session.Poll(now);
+            var changed=Snapshot(now,2,1,65);changed.ramUsage=null;changed.sensors[0].hardware="Replacement Processor";Json.WriteAtomic(path,changed);session.Poll(now);
+            Check(session.Latest.names["CPU"]=="Replacement Processor","Live recovery retained obsolete device identity");
             Check(session.Latest.state=="LIVE"&&!session.HasUsage("ram")&&session.Peaks["cpu"]==70,"Restart must retain session peak and replace capabilities");
             Json.WriteAtomic(path,Snapshot(now,2,2,85));session.Poll(now);
             Check(session.Peaks["cpu"]==85,"Restarted collector sequence must advance peaks");

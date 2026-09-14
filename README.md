@@ -10,11 +10,11 @@
 
 [Dependency maintenance and Linux/macOS roadmap](docs/DEPENDENCIES.md)
 
-**[Download 0.5.3 / 下载 0.5.3 EXE](https://github.com/medking82/hardware-pulse/releases/download/v0.5.3/HardwarePulse-Setup.exe)** · [0.5.3 release notes](https://github.com/medking82/hardware-pulse/releases/tag/v0.5.3)
+**[Download 0.5.4 / 下载 0.5.4 EXE](https://github.com/medking82/hardware-pulse/releases/download/v0.5.4/HardwarePulse-Setup.exe)** · [0.5.4 release notes](https://github.com/medking82/hardware-pulse/releases/tag/v0.5.4)
 
 **0.5.0** migrates the installed UI, collector and startup helpers to C#/.NET without a PowerShell runtime dependency. [Measured comparison](docs/PERFORMANCE-0.5.0.md). The installer remains self-signed; SignPath approval is pending. / Runtime 已迁移为 C#/.NET；详见 benchmark，仍为 self-signed。
 
-Latest: **0.5.3** separates reading sessions, update orchestration and material rules into independently tested boundaries. Existing settings and update verification are preserved. / 本轮为可维护性整理，保留现有 settings 和 updater verification。
+Latest: **0.5.4** preserves device labels during stale readings and refreshes dynamic status text when switching languages. / 修复 stale 状态型号丢失和 language 切换后动态 status 未更新的问题。
 
 [English](#en) · [简体中文](#zh-cn)
 
@@ -34,7 +34,7 @@ Author:**[Marck Wong](https://github.com/medking82)**
 - **Lock Position and Size** 禁用移动、resize 和 card reorder。锁定 Monitor 的背景 opacity 降为原设置的四分之一并关闭 blur；Settings 保持可读。从 tray 或 Settings 解锁后恢复；Solid/high contrast 优先。这还不是 desktop layer 嵌入。
 - App 默认 **Auto (System)**，installer 也根据 Windows UI language 预选 English、简体或繁体中文。
 
-The published version is **0.5.3** with multilingual UI and animated card reordering. Use the download link above for the latest installer.
+The published version is **0.5.4** with multilingual UI and animated card reordering. Use the download link above for the latest installer.
 
 A compact hardware widget by **[Marck Wong](https://github.com/medking82)** for **Windows 10 22H2 / Windows 11 x64**.
 
@@ -67,13 +67,13 @@ Sensors are read-only; this app does not tune fan curves or Curve Optimizer.
 
 ### In-place upgrade
 
-Install 0.5.3 over the existing version; a clean install is not required. Setup stops the old collector, replaces the app and its two owned startup tasks, and removes an explicit list of obsolete app scripts/source files. Preferences and desktop geometry remain in LocalAppData. Windows PowerShell and shared PawnIO remain installed. An interrupted or failed upgrade may require rerunning setup; file cleanup is not a transactional rollback.
+Install 0.5.4 over the existing version; a clean install is not required. Setup stops the old collector, replaces the app and its two owned startup tasks, and removes an explicit list of obsolete app scripts/source files. Preferences and desktop geometry remain in LocalAppData. Windows PowerShell and shared PawnIO remain installed. An interrupted or failed upgrade may require rerunning setup; file cleanup is not a transactional rollback.
 
 ### Installer
 
 Setup checks .NET Framework 4.8 before installation. If the PawnIO library or driver registration is missing, it runs the bundled official installer and checks again before registering startup. Missing or damaged Windows components require Windows repair; setup does not change Windows features or security settings. These checks establish installation presence, not successful driver loading under every security policy.
 
-The release asset `HardwarePulse-Setup.exe` (version 0.5.3) bundles the application, pinned LibreHardwareMonitor libraries,
+The release asset `HardwarePulse-Setup.exe` (version 0.5.4) bundles the application, pinned LibreHardwareMonitor libraries,
 license notices/source archives and official PawnIO 2.2.0 prerequisite installer. No runtime downloads. The target Windows versions include .NET Framework 4.8; setup checks that requirement.
 The installer requires UAC elevation and is intended for installation by the current administrator
 account. It installs protected code in Program Files and registers the current-user interactive
@@ -118,7 +118,7 @@ real WPF Settings navigation, autosave/restore, discovery fixtures, usage units,
 
 ## 简体中文
 
-当前 version 为 **0.5.3**，包含 multi-language UI。使用上方 download link 获取最新 installer。
+当前 version 为 **0.5.4**，包含 multi-language UI。使用上方 download link 获取最新 installer。
 
 适用于 **Windows 10 22H2 / Windows 11 x64** 的轻量桌面硬件 widget，集中显示 CPU、GPU、Memory、NVMe 和 Fan readings，以及实时 RAM/VRAM usage。
 
@@ -149,7 +149,7 @@ DIMM 品牌、型号和已安装的 slots 来自 SMBIOS。**SPD #1/#3 是 sensor
 
 ### In-place upgrade
 
-Install 0.5.3 over the existing version; a clean install is not required. Setup stops the old collector, replaces the app and its two owned startup tasks, and removes an explicit list of obsolete app scripts/source files. Preferences and desktop geometry remain in LocalAppData. Windows PowerShell and shared PawnIO remain installed. An interrupted or failed upgrade may require rerunning setup; file cleanup is not a transactional rollback.
+Install 0.5.4 over the existing version; a clean install is not required. Setup stops the old collector, replaces the app and its two owned startup tasks, and removes an explicit list of obsolete app scripts/source files. Preferences and desktop geometry remain in LocalAppData. Windows PowerShell and shared PawnIO remain installed. An interrupted or failed upgrade may require rerunning setup; file cleanup is not a transactional rollback.
 
 ### Installer 与自动启动
 

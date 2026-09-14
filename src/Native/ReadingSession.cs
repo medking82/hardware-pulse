@@ -23,10 +23,12 @@ namespace HardwarePulse {
         public bool HasUsage(string key) { return usageCapabilities.Contains(key); }
 
         public void Poll(DateTimeOffset now) {
-            var previousCapabilities=Latest.available;
+            var previous=Latest;
             Latest=SensorProfile.Read(snapshotPath,now);
             if(Latest.state!="LIVE") {
-                Latest.available=previousCapabilities;
+                Latest.available=previous.available;
+                Latest.names=previous.names;
+                Latest.gpuFanCount=previous.gpuFanCount;
                 return;
             }
 

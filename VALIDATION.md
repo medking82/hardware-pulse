@@ -1,5 +1,11 @@
 # Local validation — 2026-09-13
 
+## 0.5.4 state feedback — 2026-09-14
+
+- Recorded failing headless stale-device-identity and real WPF update-language regressions before the fixes. Both now pass; fresh recovery replaces retained labels and stale live values stay empty.
+- Final Validate.ps1 passed all headless, WPF, package, sensor and updater checks. Inspected the localized Settings capture. Product evidence, ruled-out hypotheses and unverified accessibility/hardware areas are in docs/PRODUCT-CHECK-0.5.4.md.
+- The signed 0.5.4 installer upgraded this host without a reboot. Settings remained byte-identical, installed EXE hash matched the build, and the new collector produced fresh snapshots. This does not establish all-device compatibility.
+
 ## 0.5.3 maintenance — 2026-09-14
 
 - Final Validate.ps1 and WPF lock/settings/save tests passed. Saved opacity remains unchanged; fallback and unknown settings preservation are covered.

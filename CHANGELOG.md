@@ -2,6 +2,13 @@
 
 English first; 简体中文 follows each version. Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
+## 0.5.4 — 2026-09-14
+
+- Keep known device names and fan-channel metadata while a snapshot is stale or unavailable. Live values remain unavailable; new live snapshots replace the retained identity.
+- Refresh dynamic monitor and updater status immediately when switching language, including an already completed update check.
+- Reproduced both bugs before fixes; headless and real WPF regressions now pass. See docs/PRODUCT-CHECK-0.5.4.md for the bounded product check and remaining gaps.
+- 修复 stale/offline 时硬件型号退回默认名称，以及切换 language 后动态 status 保留旧语言的问题。保留 stale 提示，不把旧 readings 显示成实时数据。
+
 ## 0.5.3 — 2026-09-14
 
 - Separate lock/settings opacity and accessibility fallback rules into MaterialPolicy. Verify that temporary effective opacity never replaces the saved preference, including real WPF lock/settings roundtrips.
