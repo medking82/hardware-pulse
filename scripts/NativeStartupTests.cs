@@ -15,6 +15,11 @@ internal static class NativeStartupTests {
     }
     static void Assert(bool condition,string message){if(!condition)throw new Exception(message);}
     public static void Run(){
+        // Exercise the real COM adapter without creating/removing any Windows task.
+        // The in-memory store below cannot reproduce CLR HRESULT translation.
+        using(var scheduler=new SchedulerStore()){
+            Assert(scheduler.Get("Hardware Pulse Missing Regression "+Guid.NewGuid().ToString("N"))==null,"Missing task must allow fresh installation");
+        }
         string exe=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),"Hardware Pulse","HardwarePulse.exe"),sid=WindowsIdentity.GetCurrent().User.Value;
         var store=new Store();var startup=new Startup(store,exe,sid);startup.Install();Assert(startup.IsEnabled(),"Native startup install");Assert(store.Tasks.Count==2,"Native startup task count");
         string widget=store.Tasks[Startup.Widget],collector=store.Tasks[Startup.CollectorTask];startup.SetEnabled(false);Assert(!startup.IsEnabled(),"Native startup disable");Assert(store.Tasks[Startup.CollectorTask].Contains("<Enabled>true</Enabled>"),"On-demand collector retained");startup.StartCollector();Assert(store.Ran==Startup.CollectorTask,"On-demand collector launch");

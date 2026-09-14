@@ -18,7 +18,15 @@ namespace HardwarePulse {
     public sealed class SchedulerStore : ITaskStore, IDisposable {
         dynamic service,folder;
         public SchedulerStore(){service=Activator.CreateInstance(Type.GetTypeFromProgID("Schedule.Service",true));service.Connect();folder=service.GetFolder("\\");}
-        public string Get(string name){dynamic task=null;try{task=folder.GetTask(name);return (string)task.Xml;}catch(COMException e){if(e.ErrorCode==unchecked((int)0x80070002))return null;throw;}finally{Release(task);}}
+        public string Get(string name){
+            dynamic task=null;
+            try{task=folder.GetTask(name);return (string)task.Xml;}
+            // CLR COM interop maps HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND)
+            // to FileNotFoundException on a missing task, not always COMException.
+            catch(FileNotFoundException e){if(e.HResult==unchecked((int)0x80070002))return null;throw;}
+            catch(COMException e){if(e.ErrorCode==unchecked((int)0x80070002))return null;throw;}
+            finally{Release(task);}
+        }
         public void Put(string name,string xml){dynamic task=null;try{task=folder.RegisterTask(name,xml,6,null,null,3,null);}finally{Release(task);}}
         public void Delete(string name){folder.DeleteTask(name,0);}
         public void Run(string name){dynamic task=null,instance=null;try{task=folder.GetTask(name);instance=task.Run(null);}finally{Release(instance);Release(task);}}

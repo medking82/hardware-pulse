@@ -5,7 +5,7 @@ $payload=@(Get-ChildItem $app -Recurse -File)
 if($payload | Where-Object {$_.Extension -in @('.ps1','.cs') -or $_.Name -match '^(Native.*Tests|NativeCollectorBench|System.Management.Automation)\.'}){throw 'Legacy/development files in release package'}
 $assembly=[Reflection.Assembly]::LoadFrom("$app/HardwarePulse.exe")
 if($assembly.GetReferencedAssemblies().Name -contains 'System.Management.Automation'){throw 'PowerShell runtime reference remains'}
-if($assembly.GetName().Version.ToString() -ne '0.5.0.0'){throw 'Wrong native assembly version'}
+if($assembly.GetName().Version.ToString() -ne '0.5.1.0'){throw 'Wrong native assembly version'}
 $installer=[IO.File]::ReadAllText("$root/installer/HardwarePulse.iss")
 if(-not $installer.Contains('AppId={{75E8FDDA-D799-4D8A-882D-972DC72151C2}')){throw 'Upgrade application identity changed'}
 $section=[regex]::Match($installer,'(?s)\[InstallDelete\](.*?)(?:\r?\n\[|$)').Groups[1].Value

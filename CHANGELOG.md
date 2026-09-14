@@ -2,6 +2,14 @@
 
 English first; 简体中文 follows each version. Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
+## 0.5.1 — 2026-09-14
+
+- Fix startup registration on machines with missing scheduled tasks. Windows COM interop can report a missing task as FileNotFoundException; setup now treats that specific missing-task result as absent and creates the owned tasks.
+- Rerun this installer over a failed 0.5.0 installation to repair startup registration while preserving preferences. Access-denied and unrelated errors still surface; permissions and hardware collection are unchanged.
+- Add a real Task Scheduler regression for missing tasks and an isolated elevated integration test for first registration, partial-install repair, disabled-startup preservation and cleanup.
+- 修复 missing task 被 .NET 转为 FileNotFoundException 后中断 startup registration 的 bug；直接覆盖安装即可修复失败的 0.5.0 installation，保留 preferences。
+- 新增真实 Task Scheduler regression 和隔离 integration test；不改变权限或 hardware collection，installer 仍为 self-signed。
+
 ## 0.5.0 — 2026-09-14
 
 - Replace the installed PowerShell UI, collector and startup helpers with C#/WPF. No System.Management.Automation dependency or runtime scripts are shipped; developer build/test tools may still use PowerShell.

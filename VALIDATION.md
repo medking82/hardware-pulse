@@ -1,5 +1,13 @@
 # Local validation — 2026-09-13
 
+## 0.5.1 missing-task registration — 2026-09-14
+
+- Reproduced the reported 0x80070002 FileNotFoundException with the unmodified SchedulerStore by querying a GUID-named nonexistent task through the real Task Scheduler COM adapter. This fails before driver loading. A disabled Scheduler service would fail earlier at Connect; access denied has a different HRESULT. Missing app/driver files do not explain this isolated reproduction.
+- Added the failing real-COM regression before fixing the adapter. Catch only FileNotFoundException with HRESULT 0x80070002, alongside the existing COMException case. Other failures continue to propagate; task ownership, privileges and sensor collection are unchanged.
+- `scripts/Validate.ps1` passed package, sensor differential, native WPF/startup, snap and updater checks. `scripts/Test-SchedulerIntegration.ps1`, run elevated under Windows PowerShell 5.1, passed first registration into an empty GUID folder, partial-install repair, disabled preference preservation and owned cleanup. It did not modify or run production tasks.
+- The signed 0.5.1 installer upgraded this host from 0.5.0 successfully without a reboot. Installed executable SHA-256 matched the build; preferences remained identical. New widget and collector processes had limited/elevated tokens respectively, and the collector produced fresh snapshots.
+- The two friends' post-fix readings and fresh-machine driver behavior remain unverified. This fixes the demonstrated registration failure, not every possible sensor compatibility issue. The installer remains self-signed.
+
 ## 0.5.0 native migration — 2026-09-14
 
 - `scripts/Validate.ps1` passes native package/cleanup checks, seven native-versus-legacy sensor cases, WPF settings/font/card/lock/language/stale-data checks, FPS math/filtering, overlay anchors, snap and updater validation. Baseline scripts remain for comparison only.
