@@ -23,6 +23,8 @@ foreach($group in @(@(0,@(@('Load','cpuLoad'),@('Fan','cpuFan'),@('Vcore','vcore
 }
 function Set-CardDensity([int]$level) {
     if(-not $script:densityCards){return}
+    if(Get-Command Update-CardType -ErrorAction SilentlyContinue){Update-CardType}
+    $typeScale=$window.FontSize/12.0
     $compact=$level -ge 2; $tight=$level -ge 1
     foreach($card in $script:densityCards){
         $card.Padding=if($level -ge 3){[Windows.Thickness]::new(7,3,7,3)}elseif($tight){[Windows.Thickness]::new(7,5,7,5)}else{[Windows.Thickness]::new(10,7,10,7)}
@@ -39,10 +41,27 @@ function Set-CardDensity([int]$level) {
     foreach($key in @('ramA','ramB','diskC','diskD')){
         $script:labels[$key].TextWrapping=if($compact){'NoWrap'}else{'Wrap'}
         $script:labels[$key].TextTrimming=if($compact){'CharacterEllipsis'}else{'None'}
-        $script:cells[$key][0].FontSize=if($compact){18}else{21}
+        $script:cells[$key][0].FontSize=$(if($compact){18}else{21})*$typeScale
         $script:cells[$key][0].Margin=if($compact){[Windows.Thickness]::new(0)}else{[Windows.Thickness]::new(0,6,0,0)}
     }
-    foreach($key in @('cpu','gpu','system')){$script:cells[$key][0].FontSize=if($compact){21}else{23}}
+    foreach($key in @('cpu','gpu','system')){$script:cells[$key][0].FontSize=$(if($compact){21}else{23})*$typeScale}
+    foreach($key in @('cpuLoad','vcore','cpuFan','gpuLoad','vram','gpuVolt','gpuFan','bottom','top')){
+        $label=$script:cells[$key][0].Parent.Children[0]
+        $label.TextWrapping='NoWrap';$label.TextTrimming='CharacterEllipsis';$label.ToolTip=$label.Text
+    }
+    if(Get-Command Update-CardHeaders -ErrorAction SilentlyContinue){Update-CardHeaders}
+    foreach($group in $script:compactGroups){
+        $widest=0
+        foreach($line in $group.grid.Children){$line.Measure([Windows.Size]::new([double]::PositiveInfinity,[double]::PositiveInfinity));$widest=[Math]::Max($widest,$line.DesiredSize.Width)}
+        $single=$widest*2 -gt $window.FindName('CardScroll').ActualWidth-54
+        while($group.grid.RowDefinitions.Count -lt $group.grid.Children.Count){$group.grid.RowDefinitions.Add([Windows.Controls.RowDefinition]::new())}
+        for($i=0;$i -lt $group.grid.Children.Count;$i++){
+            $line=$group.grid.Children[$i]
+            [Windows.Controls.Grid]::SetRow($line,$(if($single){$i}else{[int][Math]::Floor($i/2)}))
+            [Windows.Controls.Grid]::SetColumn($line,$(if($single){0}else{$i%2}))
+            [Windows.Controls.Grid]::SetColumnSpan($line,$(if($single){2}else{1}))
+        }
+    }
     foreach($entry in $script:usageCells.Values){$entry[0].Parent.Margin=if($compact){[Windows.Thickness]::new(0,3,0,0)}else{[Windows.Thickness]::new(0,8,0,0)}}
     if($null -ne $script:availableSensors){
         foreach($key in @('cpu','gpu','system')){$script:cells[$key][0].Visibility=if($script:availableSensors[$key]){'Visible'}else{'Collapsed'}}

@@ -2,6 +2,15 @@
 
 English first; 简体中文 follows each version. Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
+## 0.4.8 — 2026-09-14
+
+- Add a saved 10–16 px text-size slider in Appearance (12 by default). Sizes use WPF logical pixels and follow Windows display scaling; older large-text preferences migrate automatically.
+- Keep native text rendering while resizing card typography proportionally. Tighten card spacing, reflow narrow headers and compact reading groups, and truncate long row labels with full-text tooltips instead of wrapping them into tall cards.
+- Verify font persistence across a new process, temperature/header bounds at 240/310 DIP, and existing screen-size and language regressions. Very large text or Details may still require scrolling.
+- Appearance 新增 10–16 px 字号设置，默认 12，自动保存并兼容旧 Large Text 设置；使用 WPF logical pixels，跟随 Windows display scaling。
+- Card 随字号调整 typography 与 spacing，窄窗口下 header 和 compact readings 自动换行，长 label 省略并通过 tooltip 显示全文，避免标题重叠与多余高度。
+- 已验证字号保存、重启恢复、240/310 DIP header 边界与原有 layout/language regression；大字号或 Details 仍可能需要 scrolling。
+
 ## 0.4.7 — 2026-09-14
 
 - Discover Intel D3D 3D load and shared GPU memory by sensor semantics, without machine-specific identifiers. Shared memory is labeled separately from dedicated VRAM, including in the overlay.

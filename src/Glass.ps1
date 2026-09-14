@@ -46,9 +46,11 @@ try {
     $window.Topmost=[bool]$saved.pin; $window.FindName('Pin').IsChecked=[bool]$saved.pin
     $window.FindName('Solid').IsChecked=[bool]$saved.solid
     $window.FindName('Large').IsChecked=[bool]$saved.large
-    $window.FontSize=if($saved.large){14}else{12}
+    $window.FontSize=if($null -ne $saved.fontSize -and [double]$saved.fontSize -ge 10 -and [double]$saved.fontSize -le 16){[double]$saved.fontSize}elseif($saved.large){14}else{12}
     if($null -ne $saved.opacity){$window.FindName('OpacitySlider').Value=[Math]::Max(0,[Math]::Min(100,[double]$saved.opacity))}
 } catch {}
+$window.FindName('FontSizeSlider').Value=$window.FontSize
+$window.FindName('FontSizeValue').Text=$window.FontSize.ToString()+' px'
 $script:languagePreference=if($saved.language -in @('en','zh-CN','zh-TW','auto')){[string]$saved.language}else{'auto'}
 $script:language=Resolve-PulseLanguage $script:languagePreference
 if((Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize' -Name EnableTransparency -ErrorAction SilentlyContinue).EnableTransparency -eq 0){$window.FindName('Solid').IsChecked=$true}
@@ -141,6 +143,7 @@ function Add-UsageRow($card,[string]$key,[string]$label,[string]$accent){
 Add-UsageRow $cards.Children[1] 'vram' 'VRAM' '#A7CBFF'
 Add-UsageRow $cards.Children[2] 'ram' 'RAM' '#E7C5A4'
 . "$PSScriptRoot\Density.ps1"
+. "$PSScriptRoot\Typography.ps1"
 function Update-DeviceNames {
     foreach($key in $script:labels.Keys){
         $text=if($script:nameOverrides.ContainsKey($key) -and $script:nameOverrides[$key]){
@@ -154,7 +157,7 @@ Update-DeviceNames
 function Save-WidgetSettings {
     $bounds=$window.RestoreBounds
     if($bounds.IsEmpty){return}
-    $settings=@{positionLocked=$script:positionLocked;cardsVisible=$script:cardsVisible;details=$script:showDetails;background=$script:backgroundHex;autoUpdates=$script:autoUpdates;autoDownload=$script:autoDownload;overlay=$script:overlayState;language=$script:languagePreference;width=$bounds.Width;height=$bounds.Height;left=$bounds.Left;top=$bounds.Top;pin=$window.Topmost;solid=[bool]$window.FindName('Solid').IsChecked;large=[bool]$window.FindName('Large').IsChecked;opacity=$window.FindName('OpacitySlider').Value;cardOrder=@($cards.Children | ForEach-Object {$_.Tag});names=$script:nameOverrides} | ConvertTo-Json -Depth 4
+    $settings=@{fontSize=$window.FontSize;positionLocked=$script:positionLocked;cardsVisible=$script:cardsVisible;details=$script:showDetails;background=$script:backgroundHex;autoUpdates=$script:autoUpdates;autoDownload=$script:autoDownload;overlay=$script:overlayState;language=$script:languagePreference;width=$bounds.Width;height=$bounds.Height;left=$bounds.Left;top=$bounds.Top;pin=$window.Topmost;solid=[bool]$window.FindName('Solid').IsChecked;large=[bool]$window.FindName('Large').IsChecked;opacity=$window.FindName('OpacitySlider').Value;cardOrder=@($cards.Children | ForEach-Object {$_.Tag});names=$script:nameOverrides} | ConvertTo-Json -Depth 4
     $temp=$script:settingsPath+'.tmp'
     [IO.File]::WriteAllText($temp,$settings)
     if([IO.File]::Exists($script:settingsPath)){
@@ -227,7 +230,6 @@ function Update-Panel {
     if($data.state -eq 'LIVE' -and $null -ne $data.available){
         $script:availableSensors=$data.available
         $script:availableUsage=$data.usage
-        Update-CardVisibility
     }
     if($data.names){foreach($key in $data.names.Keys){if($data.names[$key]){$script:autoNames[$key]=$data.names[$key]}};Update-DeviceNames}
     foreach($key in $script:usageCells.Keys){
@@ -262,6 +264,7 @@ function Update-Panel {
         $script:cells.gpuFan[0].ToolTip=Get-PulseText 'GPU Fan 1 / GPU Fan 2 telemetry channels. These do not count physical fans.'
     }
     $window.FindName('Max').Background=if($script:mode -eq 'max'){[Windows.Media.BrushConverter]::new().ConvertFromString('#607898A8')}else{[Windows.Media.Brushes]::Transparent}
+    Update-CardVisibility
     @{updated=[DateTimeOffset]::Now.ToString('o');state=$data.state;mode=$script:mode;sensors=$data.values.Count} | ConvertTo-Json | Set-Content "$script:stateRoot\view-status.json"
 }
 Add-Type @'
@@ -356,6 +359,7 @@ $window.FindName('CardScroll').Add_SizeChanged({Update-CardDensity})
 $window.FindName('Pin').Add_Click({$window.Topmost=[bool]$window.FindName('Pin').IsChecked})
 $window.FindName('Solid').Add_Click({Set-Material})
 $window.FindName('OpacitySlider').Add_ValueChanged({Set-Material})
+$window.FindName('FontSizeSlider').Add_ValueChanged({$window.FontSize=$window.FindName('FontSizeSlider').Value;$window.FindName('FontSizeValue').Text=$window.FontSize.ToString()+' px';Update-CardDensity;Save-WidgetSettings})
 $window.FindName('Large').Add_Click({$window.FontSize=if($window.FindName('Large').IsChecked){14}else{12};Update-CardDensity})
 $window.Add_SizeChanged({
     Update-CardDensity

@@ -211,8 +211,32 @@ Show-Settings $true
 Capture-TestView 'light-settings-240'
 Show-Settings $false
 $script:autoUpdates=$false
+$script:language='en';Update-PulseLanguage
+foreach($key in @('cpu','gpu','system')){$script:cells[$key][0].Text='49.5 °C'}
+foreach($key in @('cpuFan','gpuFan','bottom','top')){$script:cells[$key][0].Text='1340 RPM'}
+$slider=$window.FindName('FontSizeSlider')
+foreach($size in @(10,12,16)){
+    $slider.Value=$size
+    foreach($width in @(240,310)){
+        $window.Width=$width;$window.UpdateLayout();Update-CardDensity;$window.UpdateLayout()
+        if($window.FontSize -ne $size){throw 'Font slider did not apply'}
+        foreach($key in @('cpu','gpu','system')){
+            $value=$script:cells[$key][0];$header=$value.Parent;$title=$header.Children[0]
+            $titlePoint=$title.TranslatePoint([Windows.Point]::new(0,0),$header)
+            $valuePoint=$value.TranslatePoint([Windows.Point]::new(0,0),$header)
+            if($valuePoint.Y -lt $titlePoint.Y+$title.ActualHeight-1 -and $valuePoint.X -lt $titlePoint.X+$title.ActualWidth-1){throw "Card title overlaps value: $key at $size / $width"}
+            if($valuePoint.X+$value.ActualWidth -gt $header.ActualWidth+1){throw "Card value clipped: $key at $size / $width"}
+        }
+    }
+    Capture-TestView ("font-"+$size)
+}
+$window.Width=320;$slider.Value=14
+$script:language='zh-TW';Update-PulseLanguage
+Save-WidgetSettings
+'PASS: font slider 10/12/16 and non-overlapping card headers at 240/310 DIP'
 Pump
 $saved=Get-Content $script:settingsPath -Raw | ConvertFrom-Json
+if($saved.fontSize -ne 14){throw 'Font size persistence failed'}
 if($saved.width -ne 320){throw 'Atomic replacement of existing settings failed'}
 if($saved.opacity -ne 0 -or $saved.background -ne '#F2F4F7' -or $saved.autoUpdates){throw 'Appearance/update settings persistence failed'}
 $null=New-Item -ItemType Directory -Path $script:runtime -Force

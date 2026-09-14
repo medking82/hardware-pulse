@@ -212,7 +212,7 @@
             </ComboBox>
             <CheckBox x:Name="StartWithWindows" Content="Start with Windows" Margin="0,0,0,10" />
             <TextBlock x:Name="StartupStatus" FontSize="11" Margin="0,0,0,10" />
-            <TextBlock Text="Version 0.4.7 · Marck Wong" FontSize="11" Foreground="#ADC1D2" Margin="0,0,0,8" />
+            <TextBlock Text="Version 0.4.8 · Marck Wong" FontSize="11" Foreground="#ADC1D2" Margin="0,0,0,8" />
             <Button x:Name="GitHub" Content="GitHub" HorizontalAlignment="Left" ToolTip="github.com/medking82/hardware-pulse" />
             <CheckBox x:Name="AutoUpdates" Content="Check for Updates Automatically" Margin="0,12,0,8" />
             <CheckBox x:Name="AutoDownload" Content="Download Updates Automatically" Margin="0,0,0,8" />
@@ -237,7 +237,14 @@
             </Grid>
             <Slider x:Name="OpacitySlider" Minimum="0" Maximum="100" Value="70" SmallChange="5" LargeChange="10" AutomationProperties.Name="Background opacity" Margin="0,0,0,18" />
             <CheckBox x:Name="Solid" Content="Solid Background" Margin="0,0,0,14" />
-            <CheckBox x:Name="Large" Content="Larger Text" Margin="0" />
+            <CheckBox x:Name="Large" Content="Larger Text" Visibility="Collapsed" Margin="0" />
+            <Grid Margin="0,0,0,6">
+              <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+              <TextBlock Text="Text Size"/>
+              <TextBlock x:Name="FontSizeValue" Grid.Column="1" Text="12 px"/>
+            </Grid>
+            <Slider x:Name="FontSizeSlider" Minimum="10" Maximum="16" Value="12" TickFrequency="1" IsSnapToTickEnabled="True" SmallChange="1" LargeChange="1" AutomationProperties.Name="Text Size"/>
+            <TextBlock Text="Logical pixels; follows Windows display scaling." FontSize="11" TextWrapping="Wrap" Margin="0,6,0,0"/>
             <Button x:Name="BackgroundColor" Content="Background Color" Margin="0,14,0,0" />
             <TextBlock Text="Text contrast adapts to the selected color. Glass blur is controlled by Windows; Solid Background disables it." FontSize="11" Margin="0,8,0,0" />
           </StackPanel>

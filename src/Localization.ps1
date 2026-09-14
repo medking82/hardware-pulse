@@ -72,6 +72,8 @@ Appearance|外观|外觀
 Background Opacity|背景不透明度|背景不透明度
 Solid Background|纯色背景|純色背景
 Larger Text|放大文字|放大文字
+Text Size|文字大小|文字大小
+Logical pixels; follows Windows display scaling.|逻辑像素，跟随 Windows 显示缩放。|邏輯像素，跟隨 Windows 顯示縮放。
 Window|窗口|視窗
 Always on Top|始终置顶|永遠置頂
 Position and size are remembered automatically.|自动记住窗口位置与大小。|自動記住視窗位置與大小。
@@ -80,7 +82,7 @@ Leave a name blank to use device information. Hover over a field to see its auto
 SPD numbers identify sensor addresses, not physical slots. Installed slots are reported separately; assign a slot name only after confirming its sensor.|SPD 编号代表传感器地址，并非实体插槽。已安装插槽单独显示；确认对应关系后再命名。|SPD 編號代表感測器位址，並非實體插槽。已安裝插槽單獨顯示；確認對應關係後再命名。
 Changes save automatically.|更改自动保存。|變更自動儲存。
 About Pulse|关于 Pulse|關於 Pulse
-Version 0.4.7 · Marck Wong|版本 0.4.7 · Marck Wong|版本 0.4.7 · Marck Wong
+Version 0.4.8 · Marck Wong|版本 0.4.8 · Marck Wong|版本 0.4.8 · Marck Wong
 Sensors by LibreHardwareMonitor. Shared driver by PawnIO.|传感器：LibreHardwareMonitor。共享驱动：PawnIO。|感測器：LibreHardwareMonitor。共用驅動程式：PawnIO。
 Language|语言 / Language|語言 / Language
 Minimize|最小化|最小化

@@ -97,7 +97,7 @@ function Update-UpdateState {
             $release=$script:updater.Pending.Result | ConvertFrom-Json
             if($release.draft -or $release.prerelease){throw 'Not a stable release'}
             $remote=[version]([string]$release.tag_name -replace '^v','')
-            $hasUpdate=$remote -gt [version]'0.4.7'
+            $hasUpdate=$remote -gt [version]'0.4.8'
             $window.FindName('UpdateStatus').Text=if($hasUpdate){(Get-PulseText 'Update available')+' · '+$remote}else{Get-PulseText 'You are up to date'}
             $window.FindName('GetUpdate').Visibility='Collapsed';$script:updateAsset=$null
             if($hasUpdate){
