@@ -4,6 +4,7 @@ English first; 简体中文 follows each version. Dates are release dates. Unrel
 
 ## Unreleased
 
+- Extract update orchestration from Shell into a headless UpdateCoordinator, retaining UpdateCheck's verification and installation boundary. Use assembly version metadata and test duplicate actions, retries, automatic download, scheduling and late completions after disposal.
 - Extract snapshot polling, session peaks and retained capabilities into a headless ReadingSession. Cards and overlay consume the same session; WPF timers, STOP handling and existing polling frequency are preserved.
 - Add independent domain tests for missing/malformed/stale snapshots, recovery, duplicate identities, collector restarts and session isolation. This is a maintenance refactor, not a claimed memory improvement.
 - 将 snapshot/session state 从 Shell 独立出来，新增不依赖 WPF 的 tests；保留原有 UI 和 lifecycle 行为。尚未作为新 release 发布。

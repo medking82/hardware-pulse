@@ -11,27 +11,35 @@ using Forms=System.Windows.Forms;
 
 namespace HardwarePulse {
     public sealed partial class Shell {
-        sealed class ReleaseAsset {public string name,browser_download_url,digest;public long size;}
-        sealed class ReleaseInfo {public bool draft,prerelease;public string tag_name;public ReleaseAsset[] assets;}
-        readonly UpdateCheck updater=new UpdateCheck();readonly DispatcherTimer updateTimer=new DispatcherTimer();
-        DateTime nextCheck=DateTime.MinValue;ReleaseAsset asset;string updateTag;bool checking,downloading;
+        readonly UpdateCoordinator updater=new UpdateCoordinator(new UpdateClient(),typeof(Shell).Assembly.GetName().Version);
+        readonly DispatcherTimer updateTimer=new DispatcherTimer();
         readonly GameOverlay overlay=new GameOverlay();readonly FrameCapture frames=new FrameCapture();readonly DispatcherTimer overlayTimer=new DispatcherTimer();Process target;
         void WireUpdater(){
             Control<CheckBox>("AutoUpdates").IsChecked=settings.Flag("autoUpdates");Control<CheckBox>("AutoDownload").IsChecked=settings.Flag("autoDownload");
             Control<CheckBox>("AutoUpdates").Click+=delegate{settings.Data["autoUpdates"]=Checked("AutoUpdates");QueueSave();};
             Control<CheckBox>("AutoDownload").Click+=delegate{bool enabled=Checked("AutoDownload");settings.Data["autoDownload"]=enabled;if(enabled){settings.Data["autoUpdates"]=true;Control<CheckBox>("AutoUpdates").IsChecked=true;}QueueSave();};
-            Click("CheckUpdates",()=>CheckUpdate());Click("GetUpdate",()=>DownloadUpdate());Click("InstallUpdate",delegate{try{updater.Install();Control<Button>("InstallUpdate").IsEnabled=false;updateTimer.Start();}catch{Text("UpdateStatus",language.T("Installation canceled or failed; try again"));Control<Button>("InstallUpdate").IsEnabled=true;}});
-            updateTimer.Interval=TimeSpan.FromMilliseconds(500);updateTimer.Tick+=delegate{if(downloading){Control<ProgressBar>("DownloadProgress").Value=updater.Progress;Text("UpdateStatus",language.T("Downloading update")+" · "+updater.Progress+"%");}else if(!updater.Installing){Control<Button>("InstallUpdate").IsEnabled=true;updateTimer.Stop();}};
-            poll.Tick+=delegate{if(!isolated&&settings.Flag("autoUpdates")&&DateTime.Now>=nextCheck&&!checking&&!downloading&&!updater.Ready)CheckUpdate();};
+            Click("CheckUpdates",()=>RunUpdate(updater.CheckAsync(DateTime.Now,settings.Flag("autoDownload"))));
+            Click("GetUpdate",()=>RunUpdate(updater.DownloadAsync()));
+            Click("InstallUpdate",delegate{updater.Install();RenderUpdate();if(updater.Installing)updateTimer.Start();});
+            updateTimer.Interval=TimeSpan.FromMilliseconds(500);updateTimer.Tick+=delegate{RenderUpdate();if(!updater.Busy)updateTimer.Stop();};
+            poll.Tick+=delegate{if(!isolated&&settings.Flag("autoUpdates")&&updater.ShouldCheck(DateTime.Now))RunUpdate(updater.CheckAsync(DateTime.Now,settings.Flag("autoDownload")));};
         }
-        async void CheckUpdate(){if(checking||downloading||updater.Installing)return;if(updater.Ready){Control<Button>("InstallUpdate").Visibility=Visibility.Visible;Text("UpdateStatus",language.T("Update ready to install"));return;}checking=true;nextCheck=DateTime.Now.AddHours(6);Control<Button>("CheckUpdates").IsEnabled=false;Text("UpdateStatus",language.T("Checking for updates…"));
-            try{updater.Start();var json=await updater.Pending;if(disposed)return;var release=Json.Serializer().Deserialize<ReleaseInfo>(json);Version remote;if(release==null||release.draft||release.prerelease||!Version.TryParse((release.tag_name??"").TrimStart('v'),out remote))throw new InvalidDataException("Not a stable release");bool newer=remote>new Version("0.5.2");Text("UpdateStatus",newer?language.T("Update available")+" · "+remote:language.T("You are up to date"));Control<Button>("GetUpdate").Visibility=Visibility.Collapsed;asset=null;
-                if(newer){var assets=(release.assets??new ReleaseAsset[0]).Where(a=>a.name=="HardwarePulse-Setup.exe").ToArray();if(assets.Length!=1||!UpdateCheck.ValidAsset(assets[0].browser_download_url,release.tag_name,assets[0].digest,assets[0].size))throw new InvalidDataException("Invalid installer metadata");asset=assets[0];updateTag=release.tag_name;Control<Button>("GetUpdate").Visibility=Visibility.Visible;if(settings.Flag("autoDownload"))DownloadUpdate();}
-            }catch{if(!disposed)Text("UpdateStatus",language.T("Update check failed; try again"));}finally{checking=false;if(!disposed)Control<Button>("CheckUpdates").IsEnabled=!downloading;}
+        async void RunUpdate(Task operation){
+            bool wasReady=updater.Ready;RenderUpdate();if(updater.Busy)updateTimer.Start();
+            await operation;if(disposed)return;
+            RenderUpdate();if(!updater.Busy)updateTimer.Stop();
+            if(!wasReady&&updater.Ready&&!isolated)tray.ShowBalloonTip(5000,"Hardware Pulse",language.T("Update ready to install"),Forms.ToolTipIcon.Info);
         }
-        async void DownloadUpdate(){if(downloading||asset==null)return;downloading=true;Control<Button>("GetUpdate").IsEnabled=false;Control<Button>("CheckUpdates").IsEnabled=false;Control<Button>("InstallUpdate").Visibility=Visibility.Collapsed;Control<ProgressBar>("DownloadProgress").Visibility=Visibility.Visible;updateTimer.Start();
-            try{updater.Download(asset.browser_download_url,updateTag,asset.digest,asset.size);await updater.DownloadPending;if(disposed)return;Control<Button>("GetUpdate").Visibility=Visibility.Collapsed;Control<Button>("InstallUpdate").Visibility=Visibility.Visible;Text("UpdateStatus",language.T("Update ready to install"));if(!isolated)tray.ShowBalloonTip(5000,"Hardware Pulse",language.T("Update ready to install"),Forms.ToolTipIcon.Info);}
-            catch{if(!disposed)Text("UpdateStatus",language.T("Update download failed; try again"));}finally{downloading=false;updateTimer.Stop();if(!disposed){Control<ProgressBar>("DownloadProgress").Visibility=Visibility.Collapsed;Control<Button>("GetUpdate").IsEnabled=true;Control<Button>("CheckUpdates").IsEnabled=true;}}
+        void RenderUpdate(){
+            if(disposed)return;
+            if(updater.StatusKey!=null)Text("UpdateStatus",language.T(updater.StatusKey)+(updater.Downloading?" · "+updater.Progress+"%":updater.VersionText!=null?" · "+updater.VersionText:""));
+            Control<Button>("CheckUpdates").IsEnabled=!updater.Busy;
+            Control<Button>("GetUpdate").Visibility=updater.CanDownload||updater.Downloading?Visibility.Visible:Visibility.Collapsed;
+            Control<Button>("GetUpdate").IsEnabled=updater.CanDownload;
+            Control<Button>("InstallUpdate").Visibility=updater.Ready?Visibility.Visible:Visibility.Collapsed;
+            Control<Button>("InstallUpdate").IsEnabled=updater.Ready&&!updater.Busy;
+            Control<ProgressBar>("DownloadProgress").Visibility=updater.Downloading?Visibility.Visible:Visibility.Collapsed;
+            Control<ProgressBar>("DownloadProgress").Value=updater.Progress;
         }
         void WireOverlay(){
             var state=settings.Map("overlay");state["enabled"]=false;

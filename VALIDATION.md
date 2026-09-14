@@ -2,6 +2,7 @@
 
 ## Unreleased ReadingSession extraction — 2026-09-14
 
+- UpdateCoordinator extraction: headless fake-client tests cover stable/invalid metadata, repeated actions, six-hour check scheduling, download retry, ready-cache reuse, install cancellation and ignored late check/download results after disposal. Verification/process-launch code in UpdateCheck is unchanged. This is also source-only; no installer was replaced.
 - Validate.ps1 passed, including the new headless domain tests compiled without WPF/WinForms/app references. Missing, malformed and stale input, fresh recovery, duplicate sequence identity, collector restart, usage capability replacement and isolated session histories are covered.
 - Native WPF tests still pass for hidden-window peaks/staleness, immediate restore, cards, language, settings and updater behavior. STOP/collector startup logic and timer intervals were not moved. No new performance claim or installed upgrade was made for this source-only refactor.
 - See [runtime ownership](docs/RUNTIME-BOUNDARIES.md) for the extracted boundary and remaining updater coupling.
