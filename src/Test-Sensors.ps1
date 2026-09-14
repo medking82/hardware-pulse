@@ -46,5 +46,18 @@ try {
         [IO.File]::WriteAllText($path+'.tmp','{}')
         [IO.File]::Replace($path+'.tmp',$path,[Management.Automation.Language.NullString]::Value)
     } finally {$shared.Dispose()}
-    'PASS: legacy and Intel/AMD discovery, DIMM metadata, usage units, invalid values, stale/future timestamps, truncated JSON'
+    $integrated=@{schema=2;time=$now.ToString('o');pid=3;sequence=1;ramUsage=@{usedGb=8;totalGb=16};sensors=@(
+        (Sensor '/gpu-intel/test/load/3' '/gpu-intel/test' 'GpuIntel' 'D3D 3D' 'Load' 2.5),
+        (Sensor '/gpu-intel/test/memory/0' '/gpu-intel/test' 'GpuIntel' 'D3D Shared Memory Used' 'SmallData' 700),
+        (Sensor '/gpu-intel/test/memory/1' '/gpu-intel/test' 'GpuIntel' 'D3D Shared Memory Total' 'SmallData' 8192)
+    )}
+    $integrated | ConvertTo-Json -Depth 6 | Set-Content $path
+    $intel=Get-PulseSnapshot $path $now
+    if($intel.values.gpuLoad -ne 2.5 -or $intel.usage.vram.label -ne 'Shared GPU memory' -or $intel.usage.vram.total -ne 8){throw 'Integrated GPU load/shared-memory discovery failed'}
+    if($intel.available.gpu -or $intel.available.ramA -or $intel.available.diskD -or -not $intel.available.gpuLoad){throw 'Missing sensors misreported as supported'}
+    $integrated.sensors[0].value=$null
+    $integrated | ConvertTo-Json -Depth 6 | Set-Content $path
+    $intel=Get-PulseSnapshot $path $now
+    if(-not $intel.available.gpuLoad -or $intel.values.ContainsKey('gpuLoad')){throw 'Null reading must retain sensor capability without a fabricated value'}
+    'PASS: legacy, Intel integrated and AMD discovery; shared-memory units, missing/null capabilities and stale data'
 } finally {if(Test-Path $path){Remove-Item -LiteralPath $path}}

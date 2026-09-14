@@ -131,7 +131,7 @@ Add-PairCard 'NVMe' 'NVMe · Composite Temperature' 'Drive 1' 'diskC' 'Drive 2' 
 Add-Card 'Airflow' 'Motherboard' '#B9DCD9' 'system' @(@('System Fan 1','bottom','RPM'),@('System Fan 2','top','RPM'))
 function Add-UsageRow($card,[string]$key,[string]$label,[string]$accent){
     $stack=[Windows.Controls.StackPanel]::new();$stack.Margin='0,8,0,0'
-    $text=[Windows.Controls.TextBlock]::new();$text.FontSize=11;$text.Text=$label+' —';$text.Margin='0,0,0,5'
+    $text=[Windows.Controls.TextBlock]::new();$text.FontSize=11;$text.TextWrapping='Wrap';$text.Text=$label+' —';$text.Margin='0,0,0,5'
     [Windows.Documents.Typography]::SetNumeralAlignment($text,'Tabular')
     $track=[Windows.Controls.Border]::new();$track.Height=3;$track.CornerRadius=1.5;$track.Background=[Windows.Media.BrushConverter]::new().ConvertFromString('#304A6678')
     $bar=[Windows.Controls.Border]::new();$bar.Height=3;$bar.Width=0;$bar.HorizontalAlignment='Left';$bar.CornerRadius=1.5;$bar.Background=[Windows.Media.BrushConverter]::new().ConvertFromString($accent);$track.Child=$bar
@@ -224,11 +224,17 @@ function Update-Panel {
         if(-not $script:stopBlocked -or [IO.File]::GetLastWriteTimeUtc("$script:runtime\STOP").Ticks -ne $script:ignoredStopTime){$script:exitRequested=$true;$window.Close();return}
     }else{$script:stopBlocked=$false}
     $data=Get-PulseSnapshot "$script:runtime\snapshot.json"
+    if($data.state -eq 'LIVE' -and $null -ne $data.available){
+        $script:availableSensors=$data.available
+        $script:availableUsage=$data.usage
+        Update-CardVisibility
+    }
     if($data.names){foreach($key in $data.names.Keys){if($data.names[$key]){$script:autoNames[$key]=$data.names[$key]}};Update-DeviceNames}
     foreach($key in $script:usageCells.Keys){
         $cell=$script:usageCells[$key];$usage=if($data.state -eq 'LIVE'){$data.usage[$key]}else{$null}
         if($usage){
-            $cell[0].Text=('{0}  {1:F1} / {2:F1} GB · {3:F0}%' -f (Get-PulseText $cell[3]),$usage.used,$usage.total,$usage.percent)
+            $usageLabel=if($usage.label){$usage.label}else{$cell[3]}
+            $cell[0].Text=('{0}  {1:F1} / {2:F1} GB · {3:F0}%' -f (Get-PulseText $usageLabel),$usage.used,$usage.total,$usage.percent)
             $cell[2].Width=[Math]::Max(0,$cell[1].ActualWidth*$usage.percent/100)
         }else{$cell[0].Text=(Get-PulseText $cell[3])+' —';$cell[2].Width=0}
         $cell[0].ToolTip=Get-PulseText 'Current used / usable capacity (GB, binary units). Usage stays live in Session Max.'
@@ -237,7 +243,7 @@ function Update-Panel {
         foreach($key in $data.values.Keys){if(-not $script:peaks.ContainsKey($key) -or $data.values[$key] -gt $script:peaks[$key]){$script:peaks[$key]=$data.values[$key]}}
         $script:lastIdentity=$data.identity
     }
-    $status.Text=if($data.state -eq 'LIVE'){'● '+(Get-PulseText 'Live')+' · '+$data.time.ToLocalTime().ToString('HH:mm:ss')+' · '+$data.values.Count+'/'+$script:SensorMap.Count+' '+(Get-PulseText 'sensors')}else{'● '+(Get-PulseText $data.state)+' · '+(Get-PulseText 'Waiting for collector')}
+    $status.Text=if($data.state -eq 'LIVE'){'● '+(Get-PulseText 'Live')+' · '+$data.time.ToLocalTime().ToString('HH:mm:ss')+' · '+$data.values.Count+' '+(Get-PulseText 'sensors')}else{'● '+(Get-PulseText $data.state)+' · '+(Get-PulseText 'Waiting for collector')}
     if($script:mode -eq 'max'){$status.Text+=' · '+(Get-PulseText 'Session peaks')}
     if($script:collectorStartFailed -and $data.state -ne 'LIVE'){$status.Text=Get-PulseText 'Collector start failed; reinstall or check permissions'}
     $status.Foreground=if($script:lightTheme){[Windows.Media.BrushConverter]::new().ConvertFromString($(if($data.state -eq 'LIVE'){'#12644D'}else{'#804000'}))}else{if($data.state -eq 'LIVE'){[Windows.Media.Brushes]::Aquamarine}else{[Windows.Media.Brushes]::PeachPuff}}

@@ -42,6 +42,8 @@ function Get-PulseSnapshot([string]$Path,[DateTimeOffset]$Now=[DateTimeOffset]::
             if([double]::IsNaN($v) -or [double]::IsInfinity($v) -or $v -lt $spec[2] -or $v -gt $spec[3]){continue}
             $values[$key]=$v
         }
-        return @{state='LIVE';values=$values;names=$names;gpuFanCount=if($raw.schema -eq 2){$profile.gpuFanCount}else{1};usage=if($raw.schema -eq 2){$profile.usage}else{@{}};time=$stamp;identity="$($raw.pid):$($raw.sequence)"}
+        $available=$null
+        if($raw.schema -eq 2){$available=@{};foreach($key in $script:SensorMap.Keys){$available[$key]=[bool]$profile.sensors[$key]}}
+        return @{state='LIVE';values=$values;available=$available;names=$names;gpuFanCount=if($raw.schema -eq 2){$profile.gpuFanCount}else{1};usage=if($raw.schema -eq 2){$profile.usage}else{@{}};time=$stamp;identity="$($raw.pid):$($raw.sequence)"}
     } catch {return @{state='OFFLINE';values=@{};error=$_.Exception.Message}}
 }

@@ -10,11 +10,11 @@
 
 [Dependency maintenance and Linux/macOS roadmap](docs/DEPENDENCIES.md)
 
-**[Download 0.4.6 / 下载 0.4.6 EXE](https://github.com/medking82/hardware-pulse/releases/download/v0.4.6/HardwarePulse-Setup.exe)** · [0.4.6 release notes](https://github.com/medking82/hardware-pulse/releases/tag/v0.4.6)
+**[Download 0.4.7 / 下载 0.4.7 EXE](https://github.com/medking82/hardware-pulse/releases/download/v0.4.7/HardwarePulse-Setup.exe)** · [0.4.7 release notes](https://github.com/medking82/hardware-pulse/releases/tag/v0.4.7)
 
-**0.4.6** fixes Restricted-policy startup failures and narrow-window text scaling. The installer is self-signed; SignPath approval is pending. Fresh-machine and live-game testing remain limited. / 修复 Restricted policy 导致的启动失败与窄窗口整体缩字；仍为 self-signed，SignPath 审核中。
+**0.4.7** adds Intel shared GPU memory and adapts monitor cards to available sensors. The installer is self-signed; SignPath approval is pending. Fresh-machine and live-game testing remain limited. / 新增 Intel GPU 共享内存与传感器自适应显示；仍为 self-signed，SignPath 审核中。
 
-Latest: **0.4.6** — process-scoped script loading and sharper narrow-window text. See the changelog for version history.
+Latest: **0.4.7** — Intel shared GPU memory and sensor-adaptive monitor cards. See the changelog for version history.
 
 [English](#en) · [简体中文](#zh-cn)
 
@@ -34,7 +34,7 @@ Author:**[Marck Wong](https://github.com/medking82)**
 - **Lock Position and Size** 禁用移动、resize 和 card reorder。锁定 Monitor 的背景 opacity 降为原设置的四分之一并关闭 blur；Settings 保持可读。从 tray 或 Settings 解锁后恢复；Solid/high contrast 优先。这还不是 desktop layer 嵌入。
 - App 默认 **Auto (System)**，installer 也根据 Windows UI language 预选 English、简体或繁体中文。
 
-The published version is **0.4.6** with multilingual UI and animated card reordering. Use the download link above for the latest installer.
+The published version is **0.4.7** with multilingual UI and animated card reordering. Use the download link above for the latest installer.
 
 A compact hardware widget by **[Marck Wong](https://github.com/medking82)** for **Windows 10 22H2 / Windows 11 x64**.
 

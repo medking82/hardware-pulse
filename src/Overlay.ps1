@@ -43,7 +43,7 @@ function Update-Overlay {
     if($script:overlayState.gpu){$parts.Add('GPU '+(Overlay-Value $v 'gpu' '°C')+' · '+(Overlay-Value $v 'gpuLoad' '%'))}
     if($script:overlayState.memory){foreach($kind in @('ram','vram')){
         $usage=if($data.state -eq 'LIVE'){$data.usage[$kind]}else{$null}
-        $parts.Add($(if($usage){'{0} {1:0.0}/{2:0.0} GB' -f $kind.ToUpper(),$usage.used,$usage.total}else{$kind.ToUpper()+' —'}))
+        $parts.Add($(if($usage){'{0} {1:0.0}/{2:0.0} GB' -f $(if($usage.label){Get-PulseText $usage.label}else{$kind.ToUpper()}),$usage.used,$usage.total}else{$kind.ToUpper()+' —'}))
     }}
     if($script:overlayState.fans){$parts.Add('FAN CPU '+(Overlay-Value $v 'cpuFan' ' RPM')+' · GPU '+(Overlay-Value $v 'gpuFan' ' RPM'))}
     if($script:overlayState.storage){$parts.Add('NVMe '+(Overlay-Value $v 'diskC' '°C')+' / '+(Overlay-Value $v 'diskD' '°C'))}

@@ -2,6 +2,15 @@
 
 English first; 简体中文 follows each version. Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
+## 0.4.7 — 2026-09-14
+
+- Discover Intel D3D 3D load and shared GPU memory by sensor semantics, without machine-specific identifiers. Shared memory is labeled separately from dedicated VRAM, including in the overlay.
+- Adapt monitor cards to detected sensor capabilities: hide absent fan/temperature fields and unused disk columns, retain saved card preferences, and restore fields when sensors return. Null readings remain unavailable rather than becoming zero.
+- Show the number of valid mapped readings without the fixed 17-field denominator.
+- 通用识别 Intel D3D 3D 负载及 GPU 共享内存，不绑定电脑型号；共享内存与独立 VRAM 明确区分。
+- Monitor 根据传感器能力隐藏缺失的风扇、温度和硬盘占位，保留 card 设置，传感器恢复后自动显示。无数据不再误认为零读数。
+- 移除固定 17 项分母。此版本没有新增厂商专用风扇 controller 支持。
+
 ## 0.4.6 — 2026-09-14
 
 - Fix script-policy startup failures on Windows clients: use process-scoped RemoteSigned for the embedded host and collector. No persistent policy changes; Group Policy remains authoritative and unsigned Internet-marked scripts remain blocked.

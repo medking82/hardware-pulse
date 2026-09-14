@@ -18,6 +18,9 @@ function Get-DeviceProfile($raw){
     $gpu=if($gpus.Count){@($gpus[0].Group)}else{@()}
     $chosen.gpu=Find-ProfileSensor $gpu 'Temperature' @('^GPU Core$','^GPU Temperature$')
     $chosen.gpuLoad=Find-ProfileSensor $gpu 'Load' @('^GPU Core$')
+    if(-not $chosen.gpuLoad -and $gpu.Count -and $gpu[0].hardwareType -eq 'GpuIntel'){
+        $chosen.gpuLoad=Find-ProfileSensor $gpu 'Load' @('^D3D 3D$')
+    }
     $chosen.vram=Find-ProfileSensor $gpu 'Temperature' @('^GPU Memory Junction$','^GPU Memory$')
     $chosen.gpuVolt=Find-ProfileSensor $gpu 'Voltage' @('^GPU Core Voltage$','^GPU Core$')
     $chosen.gpuFan=Find-ProfileSensor $gpu 'Fan' @('^GPU Fan 1$','^GPU Fan$','^GPU$')
@@ -66,6 +69,14 @@ function Get-DeviceProfile($raw){
     $used=Find-ProfileSensor $gpu 'SmallData' @('^GPU Memory Used$')
     $total=Find-ProfileSensor $gpu 'SmallData' @('^GPU Memory Total$')
     if($used -and $total -and $null -ne $used.value -and $null -ne $total.value){$usage.vram=Convert-ProfileUsage ([double]$used.value/1024) ([double]$total.value/1024)}
+    if(-not $usage.vram -and $gpu.Count -and $gpu[0].hardwareType -eq 'GpuIntel'){
+        $used=Find-ProfileSensor $gpu 'SmallData' @('^D3D Shared Memory Used$')
+        $total=Find-ProfileSensor $gpu 'SmallData' @('^D3D Shared Memory Total$')
+        if($used -and $total -and $null -ne $used.value -and $null -ne $total.value){
+            $usage.vram=Convert-ProfileUsage ([double]$used.value/1024) ([double]$total.value/1024)
+            if($usage.vram){$usage.vram.label='Shared GPU memory'}
+        }
+    }
     return @{sensors=$chosen;names=$names;usage=$usage;gpuFanCount=if($chosen.gpuFan2){2}elseif($chosen.gpuFan){1}else{0}}
 }
 function Convert-ProfileUsage($used,$total){

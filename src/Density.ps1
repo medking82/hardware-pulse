@@ -15,6 +15,7 @@ foreach($group in @(@(0,@(@('Load','cpuLoad'),@('Fan','cpuFan'),@('Vcore','vcore
         $value=[Windows.Controls.TextBlock]::new();$value.FontSize=11;$value.FontWeight='SemiBold'
         $binding=[Windows.Data.Binding]::new('Text');$binding.Source=$original
         $null=$value.SetBinding([Windows.Controls.TextBlock]::TextProperty,$binding)
+        $line.Tag=$pair[1]
         $null=$line.Children.Add($label);$null=$line.Children.Add($value);$null=$grid.Children.Add($line)
     }
     $card.Child.Children.Insert(2,$grid)
@@ -43,6 +44,21 @@ function Set-CardDensity([int]$level) {
     }
     foreach($key in @('cpu','gpu','system')){$script:cells[$key][0].FontSize=if($compact){21}else{23}}
     foreach($entry in $script:usageCells.Values){$entry[0].Parent.Margin=if($compact){[Windows.Thickness]::new(0,3,0,0)}else{[Windows.Thickness]::new(0,8,0,0)}}
+    if($null -ne $script:availableSensors){
+        foreach($key in @('cpu','gpu','system')){$script:cells[$key][0].Visibility=if($script:availableSensors[$key]){'Visible'}else{'Collapsed'}}
+        foreach($key in @('cpuLoad','vcore','cpuFan','gpuLoad','vram','gpuVolt','gpuFan','bottom','top')){
+            if(-not $script:availableSensors[$key]){$script:cells[$key][0].Parent.Visibility='Collapsed'}
+            elseif($key -in @('bottom','top')){$script:cells[$key][0].Parent.Visibility='Visible'}
+        }
+        foreach($group in $script:compactGroups){foreach($line in $group.grid.Children){$line.Visibility=if($script:availableSensors[[string]$line.Tag]){'Visible'}else{'Collapsed'}}}
+        foreach($key in @('ramA','ramB','diskC','diskD')){
+            $column=$script:cells[$key][0].Parent
+            $column.Visibility=if($script:availableSensors[$key]){'Visible'}else{'Collapsed'}
+            $index=[Windows.Controls.Grid]::GetColumn($column)
+            $column.Parent.ColumnDefinitions[$index].Width=if($script:availableSensors[$key]){[Windows.GridLength]::new(1,[Windows.GridUnitType]::Star)}else{[Windows.GridLength]::new(0)}
+        }
+        foreach($key in $script:usageCells.Keys){$script:usageCells[$key][0].Parent.Visibility=if($script:availableUsage[$key]){'Visible'}else{'Collapsed'}}
+    }
 }
 
 function Update-CardDensity([switch]$Animate) {

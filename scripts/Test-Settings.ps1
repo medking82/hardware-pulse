@@ -217,6 +217,24 @@ if($saved.width -ne 320){throw 'Atomic replacement of existing settings failed'}
 if($saved.opacity -ne 0 -or $saved.background -ne '#F2F4F7' -or $saved.autoUpdates){throw 'Appearance/update settings persistence failed'}
 $null=New-Item -ItemType Directory -Path $script:runtime -Force
 [IO.File]::WriteAllText((Join-Path $script:runtime 'snapshot.json'),'{}')
+$script:availableSensors=@{cpu=$true;cpuLoad=$true;gpuLoad=$true;diskC=$true}
+$script:availableUsage=@{ram=@{used=8;total=16};vram=@{used=1;total=8}}
+$visibilityBefore=$script:cardsVisible.Clone()
+$script:cardsVisible.NVMe=$true
+Update-CardVisibility;$window.UpdateLayout()
+if(@($cards.Children | Where-Object Tag -eq 'Airflow')[0].Visibility -ne 'Collapsed'){throw 'Unsupported fan card remains visible'}
+if($script:cells.cpuFan[0].Parent.Visibility -ne 'Collapsed' -or $script:cells.ramA[0].Parent.Visibility -ne 'Collapsed' -or $script:cells.diskD[0].Parent.Visibility -ne 'Collapsed'){throw 'Unavailable sensor placeholders remain visible'}
+if($script:cells.gpu[0].Visibility -ne 'Collapsed' -or $script:usageCells.vram[0].Parent.Visibility -ne 'Visible'){throw 'Load-only GPU or shared-memory display failed'}
+if($script:cells.diskC[0].Parent.Parent.ColumnDefinitions[1].Width.Value -ne 0){throw 'Absent disk retains an empty column'}
+Capture-TestView 'capability-laptop'
+$script:availableSensors=@{}
+foreach($key in $script:SensorMap.Keys){$script:availableSensors[$key]=$true}
+Update-CardVisibility;$window.UpdateLayout()
+if(@($cards.Children | Where-Object Tag -eq 'Airflow')[0].Visibility -ne 'Visible' -or $script:cells.diskD[0].Parent.Visibility -ne 'Visible'){throw 'Newly available sensors were not restored'}
+$script:cardsVisible=$visibilityBefore
+$script:availableSensors=$null;$script:availableUsage=$null
+Update-CardVisibility
+'PASS: capability-based laptop layout hides absent fans, DIMMs and second disk; detects returning sensors'
 $stopPath=Join-Path $script:runtime 'STOP'
 [IO.File]::WriteAllText($stopPath,'Old startup marker')
 $script:stopBlocked=$true;$script:ignoredStopTime=[IO.File]::GetLastWriteTimeUtc($stopPath).Ticks

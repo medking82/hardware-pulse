@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Reflection;
 using System.Management.Automation;
@@ -11,7 +11,7 @@ using System.Security.Principal;
 [assembly: AssemblyProduct("Hardware Pulse")]
 [assembly: AssemblyCompany("Marck Wong")]
 [assembly: AssemblyCopyright("Copyright 2026 Marck Wong")]
-[assembly: AssemblyVersion("0.4.6.0")]
+[assembly: AssemblyVersion("0.4.7.0")]
 internal static class WidgetHost {
     [STAThread]
     private static int Main(string[] args) {
