@@ -87,6 +87,13 @@ internal static class NativeTests {
                 ((MenuItem)first.ContextMenu.Items[1]).RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));Assert(cards.Children[1]==first,"Unlocked card reorder failed");
                 var cardChoice=shell.Control<StackPanel>("CardOptions").Children.OfType<CheckBox>().Single(c=>c.Content.ToString()=="GPU");cardChoice.IsChecked=false;cardChoice.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Assert(first.Visibility==Visibility.Collapsed,"Card hide ignored");cardChoice.IsChecked=true;cardChoice.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Assert(first.Visibility==Visibility.Visible,"Card show ignored");
                 shell.Control<Slider>("OpacitySlider").Value=0;Pump();if(shell.Control<Slider>("OpacitySlider").IsEnabled){Assert(shell.Window.Opacity==1&&((SolidColorBrush)shell.Window.Background).Color.A==0,"Zero background opacity faded text or stayed opaque");}shell.Control<Slider>("OpacitySlider").Value=70;
+                shell.Control<Slider>("OpacitySlider").Value=20;Toggle(shell,"LockPosition",true);
+                if(shell.Control<Slider>("OpacitySlider").IsEnabled){
+                    Assert(((SolidColorBrush)shell.Window.Background).Color.A==13,"Locked monitor effective opacity");
+                    Click(shell,"Settings");Assert(((SolidColorBrush)shell.Window.Background).Color.A==51,"Settings must restore saved opacity");Click(shell,"Back");
+                    shell.Save();Assert(new Settings(Path.Combine(state,"widget-settings.json")).Number("opacity",0,0,100)==20,"Lock persisted temporary effective opacity");
+                }
+                Toggle(shell,"LockPosition",false);shell.Control<Slider>("OpacitySlider").Value=70;
                 var gpuCard=cards.Children.Cast<Border>().Single(c=>(string)c.Tag=="GPU");var gpuHeader=(Grid)((StackPanel)gpuCard.Child).Children[0];var gpuHero=(TextBlock)gpuHeader.Children[1];Assert(gpuHero.Text=="49.0 °C"&&gpuHero.Visibility==Visibility.Visible,"GPU temperature visibility: "+gpuHero.Text+" "+gpuHero.Visibility);
                 foreach(double size in new[]{10d,12d,16d})foreach(double width in new[]{240d,310d}){
                     shell.Control<Slider>("FontSizeSlider").Value=size;shell.Window.Width=width;shell.Window.Height=690;Pump();shell.UpdatePanel();Pump();

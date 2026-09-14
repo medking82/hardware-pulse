@@ -11,6 +11,7 @@ The native runtime has these existing boundaries:
 | Startup / SchedulerStore | Validate ownership and operate the app's scheduled tasks | Startup tests and isolated scheduler integration |
 | UpdateCheck | Validate/download installer assets and start installation | Updater verification tests |
 | UpdateCoordinator | Version selection, check schedule, operation state, retries and disposed-result handling | Headless UpdateCoordinatorTests |
+| MaterialPolicy | Derive effective opacity and backdrop flags from saved preferences and current display state | Headless material tests and WPF lock/settings roundtrip |
 
 ReadingSession is synchronous and is called on the UI thread. It owns no timer,
 window, scheduler or driver. Its state is per Shell instance, and the UI treats
@@ -38,3 +39,8 @@ Remaining coupling: Shell.Services still includes both updater presentation and
 overlay presentation; these remain WPF responsibilities. Settings, tray and
 material code also share Shell state. No broader UI architecture rewrite has been
 performed or implied by these two extractions.
+
+MaterialPolicy owns no persistence or Windows calls. WPF applies its result to
+the backdrop and background brushes; the slider retains the user's saved opacity.
+Solid/high contrast and unsupported-backdrop fallback override temporary lock
+opacity. Settings file layout and unknown-field preservation remain in Settings.

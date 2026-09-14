@@ -41,12 +41,12 @@ namespace HardwarePulse {
         string BackgroundHex(){string color=settings.Text("background","#35383B");return System.Text.RegularExpressions.Regex.IsMatch(color,"^#[0-9a-fA-F]{6}$")?color:"#35383B";}
         void ApplyMaterial(){
             IntPtr hwnd=new WindowInteropHelper(Window).Handle;if(hwnd==IntPtr.Zero)return;
-            bool solid=Checked("Solid")||SystemParameters.HighContrast,clear=(locked&&!settingsVisible)||Control<Slider>("OpacitySlider").Value==0;
-            bool supported=PulseBackdrop.ApplyStable(hwnd,solid,clear);int dark=1,round=2;PulseBackdrop.DwmSetWindowAttribute(hwnd,20,ref dark,4);PulseBackdrop.DwmSetWindowAttribute(hwnd,33,ref round,4);
+            var material=new MaterialPolicy(Control<Slider>("OpacitySlider").Value,locked,settingsVisible,Checked("Solid"),SystemParameters.HighContrast);
+            bool supported=PulseBackdrop.ApplyStable(hwnd,material.Solid,material.Clear);int dark=1,round=2;PulseBackdrop.DwmSetWindowAttribute(hwnd,20,ref dark,4);PulseBackdrop.DwmSetWindowAttribute(hwnd,33,ref round,4);
             var margins=new PulseBackdrop.Margins {Left=-1,Right=-1,Top=-1,Bottom=-1};PulseBackdrop.DwmExtendFrameIntoClientArea(hwnd,ref margins);HwndSource.FromHwnd(hwnd).CompositionTarget.BackgroundColor=Colors.Transparent;
             var color=(Color)ColorConverter.ConvertFromString(BackgroundHex());light=(.2126*color.R+.7152*color.G+.0722*color.B)/255>.55;
-            double opacity=Control<Slider>("OpacitySlider").Value/100;if(locked&&!settingsVisible&&!solid)opacity*=.25;if(solid||!supported)opacity=1;
-            Window.Background=new SolidColorBrush(Color.FromArgb((byte)Math.Round(255*opacity),color.R,color.G,color.B));Control<Slider>("OpacitySlider").IsEnabled=!solid&&supported;Text("OpacityValue",Math.Round(opacity*100)+"%");
+            double opacity=material.EffectiveOpacity(supported);
+            Window.Background=new SolidColorBrush(Color.FromArgb((byte)Math.Round(255*opacity),color.R,color.G,color.B));Control<Slider>("OpacitySlider").IsEnabled=material.CanAdjustOpacity(supported);Text("OpacityValue",Math.Round(opacity*100)+"%");
             foreach(var entry in themed)entry.Item2.SetValue(entry.Item1,light?Brush("#17202B"):entry.Item3,null);
             var viewport=Control<Grid>("Viewport");if(viewport.Background!=null){var background=viewport.Background.Clone();background.Opacity=opacity;viewport.Background=background;}
             foreach(var view in views.Values){var background=Brush(light?"#DDEEF1F4":"#3031485B").Clone();background.Opacity=opacity;view.Border.Background=background;}

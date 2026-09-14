@@ -1,10 +1,13 @@
 # Local validation — 2026-09-13
 
-## Unreleased ReadingSession extraction — 2026-09-14
+## 0.5.3 maintenance — 2026-09-14
 
-- UpdateCoordinator extraction: headless fake-client tests cover stable/invalid metadata, repeated actions, six-hour check scheduling, download retry, ready-cache reuse, install cancellation and ignored late check/download results after disposal. Verification/process-launch code in UpdateCheck is unchanged. This is also source-only; no installer was replaced.
+- Final Validate.ps1 and WPF lock/settings/save tests passed. Saved opacity remains unchanged; fallback and unknown settings preservation are covered.
+- The signed 0.5.3 installer upgraded this host without a reboot. Settings remained byte-identical, installed EXE matched the build hash, and the collector produced fresh snapshots. UI/collector retained limited/elevated tokens.
+
+- UpdateCoordinator extraction: headless fake-client tests cover stable/invalid metadata, repeated actions, six-hour check scheduling, download retry, ready-cache reuse, install cancellation and ignored late check/download results after disposal. Verification/process-launch code in UpdateCheck is unchanged. This checkpoint was tested before packaging.
 - Validate.ps1 passed, including the new headless domain tests compiled without WPF/WinForms/app references. Missing, malformed and stale input, fresh recovery, duplicate sequence identity, collector restart, usage capability replacement and isolated session histories are covered.
-- Native WPF tests still pass for hidden-window peaks/staleness, immediate restore, cards, language, settings and updater behavior. STOP/collector startup logic and timer intervals were not moved. No new performance claim or installed upgrade was made for this source-only refactor.
+- Native WPF tests still pass for hidden-window peaks/staleness, immediate restore, cards, language, settings and updater behavior. STOP/collector startup logic and timer intervals were not moved. No new performance improvement is claimed.
 - See [runtime ownership](docs/RUNTIME-BOUNDARIES.md) for the extracted boundary and remaining updater coupling.
 
 ## 0.5.2 UI allocations — 2026-09-14

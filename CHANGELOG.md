@@ -2,12 +2,13 @@
 
 English first; 简体中文 follows each version. Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
-## Unreleased
+## 0.5.3 — 2026-09-14
 
+- Separate lock/settings opacity and accessibility fallback rules into MaterialPolicy. Verify that temporary effective opacity never replaces the saved preference, including real WPF lock/settings roundtrips.
 - Extract update orchestration from Shell into a headless UpdateCoordinator, retaining UpdateCheck's verification and installation boundary. Use assembly version metadata and test duplicate actions, retries, automatic download, scheduling and late completions after disposal.
 - Extract snapshot polling, session peaks and retained capabilities into a headless ReadingSession. Cards and overlay consume the same session; WPF timers, STOP handling and existing polling frequency are preserved.
 - Add independent domain tests for missing/malformed/stale snapshots, recovery, duplicate identities, collector restarts and session isolation. This is a maintenance refactor, not a claimed memory improvement.
-- 将 snapshot/session state 从 Shell 独立出来，新增不依赖 WPF 的 tests；保留原有 UI 和 lifecycle 行为。尚未作为新 release 发布。
+- 将 snapshot/session state 从 Shell 独立出来，新增不依赖 WPF 的 tests；保留原有 UI 和 lifecycle 行为。包含在 0.5.3 maintenance release。
 
 ## 0.5.2 — 2026-09-14
 
