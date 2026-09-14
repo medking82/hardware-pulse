@@ -41,10 +41,26 @@ internal static class NativeTests {
     static void Capture(Shell shell,string path){shell.Window.UpdateLayout();var bitmap=new RenderTargetBitmap((int)shell.Window.ActualWidth,(int)shell.Window.ActualHeight,96,96,PixelFormats.Pbgra32);bitmap.Render(shell.Window);var encoder=new PngBitmapEncoder();encoder.Frames.Add(BitmapFrame.Create(bitmap));using(var file=File.Create(path))encoder.Save(file);}
     [STAThread] static int Main(string[] args){
         try{
-            if(args.Length<2||args[1]!="bench")NativeStartupTests.Run();
+            if(args.Length<2||(args[1]!="bench"&&args[1]!="perf"))NativeStartupTests.Run();
             string root=AppDomain.CurrentDomain.BaseDirectory,state=Path.GetFullPath(args[0]);Directory.CreateDirectory(state);
             var paths=new PulsePaths(root,state,Path.Combine(state,"runtime"));Json.WriteAtomic(paths.Snapshot,Snapshot());
             var app=new Application {ShutdownMode=ShutdownMode.OnExplicitShutdown};
+            if(args.Length>1&&args[1]=="perf"){
+                AppDomain.MonitoringIsEnabled=true;
+                using(var shell=new Shell(paths,true)){
+                    shell.Window.ShowInTaskbar=false;shell.Window.ShowActivated=false;shell.Window.Width=310;shell.Window.Height=690;shell.Show();Pump();
+                    Field<DispatcherTimer>(shell,"poll").Stop();
+                    foreach(bool hidden in new[]{false,true}){
+                        if(hidden)shell.Window.Hide();
+                        for(int i=0;i<20;i++){shell.UpdatePanel();Pump();}
+                        long allocated=AppDomain.CurrentDomain.MonitoringTotalAllocatedMemorySize;var process=Process.GetCurrentProcess();var cpu=process.TotalProcessorTime;var elapsed=Stopwatch.StartNew();
+                        for(int i=0;i<300;i++){var snapshot=Snapshot();snapshot.sequence=i+2;snapshot.sensors[0].value=50+i%40;Json.WriteAtomic(paths.Snapshot,snapshot);shell.UpdatePanel();Pump();}
+                        elapsed.Stop();process.Refresh();
+                        Console.WriteLine(Json.Serializer().Serialize(new {hidden=hidden,updates=300,allocatedBytes=AppDomain.CurrentDomain.MonitoringTotalAllocatedMemorySize-allocated,cpuMs=(process.TotalProcessorTime-cpu).TotalMilliseconds,elapsedMs=elapsed.Elapsed.TotalMilliseconds,workingSet=process.WorkingSet64,privateBytes=process.PrivateMemorySize64}));
+                    }
+                    shell.Show();Pump();Assert(shell.Control<TextBlock>("Status").Text.Contains("Live"),"Restore must display fresh readings");shell.Exit();
+                }app.Shutdown();return 0;
+            }
             if(args.Length>1&&args[1]=="bench"){
                 using(var bench=new Shell(paths,true)){
                     bench.Window.ShowInTaskbar=false;bench.Window.ShowActivated=false;bench.Window.Width=310;bench.Window.Height=690;
@@ -57,6 +73,12 @@ internal static class NativeTests {
             using(var shell=new Shell(paths,true)){
                 shell.Window.ShowInTaskbar=false;shell.Window.ShowActivated=false;shell.Show();Pump();shell.UpdatePanel();Pump();
                 Assert(shell.Control<TextBlock>("Status").Text.Contains("7 "),"Native mapped sensor count");
+                shell.Window.Hide();var hiddenSnapshot=Snapshot();hiddenSnapshot.sequence=900;hiddenSnapshot.sensors[0].value=87;Json.WriteAtomic(paths.Snapshot,hiddenSnapshot);shell.UpdatePanel();
+                Assert(Field<Dictionary<string,double>>(shell,"peaks")["cpu"]==87,"Hidden window lost session peak");
+                var hiddenStale=Snapshot();hiddenStale.time=DateTimeOffset.Now.AddSeconds(-30).ToString("o");Json.WriteAtomic(paths.Snapshot,hiddenStale);shell.UpdatePanel();
+                Assert(Field<Reading>(shell,"latest").state=="STALE","Hidden window lost stale-state detection");
+                var restoredSnapshot=Snapshot();restoredSnapshot.sequence=901;restoredSnapshot.sensors[0].value=63;Json.WriteAtomic(paths.Snapshot,restoredSnapshot);shell.Show();Pump();
+                Assert(Field<Reading>(shell,"latest").values["cpu"]==63&&shell.Control<TextBlock>("Status").Text.Contains("Live"),"Restore did not immediately refresh snapshot");
                 var cards=shell.Control<StackPanel>("Cards");Assert(cards.Children.Count==5,"Five card owners preserved");
                 Assert((string)((Border)cards.Children[0]).Tag=="GPU"&&shell.Window.Left==90&&shell.Window.Top==70,"Legacy card order/desktop position migration");
                 Assert(!Field<DispatcherTimer>(shell,"overlayTimer").IsEnabled,"Idle overlay timer running");

@@ -2,6 +2,13 @@
 
 English first; 简体中文 follows each version. Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
+## 0.5.2 — 2026-09-14
+
+- Reuse fixed sensor-discovery Regex instances and frozen UI brushes to reduce repeated managed allocations without changing the two-second collection interval or sensor selection rules.
+- Skip card rendering while the window is hidden or minimized. Continue collecting session peaks and tracking stale readings; refresh immediately when the window is restored.
+- Add a repeatable allocation workload and timed UI replay, plus regressions for hidden-window peaks, stale state and immediate restoration. Allocation reductions do not imply the same reduction in resident RAM.
+- 复用 sensor-discovery Regex 和 UI brushes，减少 managed allocations；隐藏或 minimized 时暂停 card rendering，继续记录 Session Max 和 stale state，恢复窗口时立即刷新。保留原有采样频率及 sensor selection。
+
 ## 0.5.1 — 2026-09-14
 
 - Fix startup registration on machines with missing scheduled tasks. Windows COM interop can report a missing task as FileNotFoundException; setup now treats that specific missing-task result as absent and creates the owned tasks.

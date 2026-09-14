@@ -49,7 +49,7 @@ namespace HardwarePulse {
             Window.Background=new SolidColorBrush(Color.FromArgb((byte)Math.Round(255*opacity),color.R,color.G,color.B));Control<Slider>("OpacitySlider").IsEnabled=!solid&&supported;Text("OpacityValue",Math.Round(opacity*100)+"%");
             foreach(var entry in themed)entry.Item2.SetValue(entry.Item1,light?Brush("#17202B"):entry.Item3,null);
             var viewport=Control<Grid>("Viewport");if(viewport.Background!=null){var background=viewport.Background.Clone();background.Opacity=opacity;viewport.Background=background;}
-            foreach(var view in views.Values){var background=Brush(light?"#DDEEF1F4":"#3031485B");background.Opacity=opacity;view.Border.Background=background;}
+            foreach(var view in views.Values){var background=Brush(light?"#DDEEF1F4":"#3031485B").Clone();background.Opacity=opacity;view.Border.Background=background;}
         }
     }
 }

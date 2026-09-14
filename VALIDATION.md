@@ -1,5 +1,11 @@
 # Local validation — 2026-09-13
 
+## 0.5.2 UI allocations — 2026-09-14
+
+- `scripts/Validate.ps1` passed sensor differential, native WPF/startup, package, snap and updater checks. New regression checks cover peaks and stale state while hidden, and immediate fresh readings on restore. Existing appearance tests exercise cloned opacity brushes with shared frozen palette brushes.
+- Before/after workloads use the same harness and synthetic readings. Allocations fell 39.0% visible and 73.1% hidden over 300 accelerated updates. A separate timed replay found Private Bytes near 91 MiB in both versions, so no substantial steady-state RAM reduction is claimed. See [method and results](docs/PERFORMANCE-0.5.2.md).
+- The final signed 0.5.2 installer upgraded this host without a reboot. Installed executable hash matched the build, settings remained byte-identical, the new collector produced advancing snapshots, and UI/collector retained limited/elevated tokens respectively. This does not verify every friend's hardware.
+
 ## 0.5.1 missing-task registration — 2026-09-14
 
 - Reproduced the reported 0x80070002 FileNotFoundException with the unmodified SchedulerStore by querying a GUID-named nonexistent task through the real Task Scheduler COM adapter. This fails before driver loading. A disabled Scheduler service would fail earlier at Connect; access denied has a different HRESULT. Missing app/driver files do not explain this isolated reproduction.

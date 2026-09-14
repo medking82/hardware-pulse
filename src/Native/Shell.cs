@@ -33,7 +33,8 @@ namespace HardwarePulse {
         public T Control<T>(string name) where T:class{return Window.FindName(name) as T;}
         bool Checked(string name){return Control<CheckBox>(name).IsChecked==true;}
         void Text(string name,string value){Control<TextBlock>(name).Text=value;}
-        static Brush Brush(string color){return (Brush)new BrushConverter().ConvertFromString(color);}
+        readonly Dictionary<string,Brush> brushes=new Dictionary<string,Brush>();
+        Brush Brush(string color){Brush brush;if(!brushes.TryGetValue(color,out brush)){brush=(Brush)new BrushConverter().ConvertFromString(color);brush.Freeze();brushes.Add(color,brush);}return brush;}
         static IEnumerable<DependencyObject> Tree(DependencyObject node){yield return node;foreach(object child in LogicalTreeHelper.GetChildren(node)){var d=child as DependencyObject;if(d!=null)foreach(var item in Tree(d))yield return item;}}
         void Catalog(DependencyObject root){foreach(var node in Tree(root)){if(node is TextBox)continue;foreach(string name in new[]{"Text","Content","Header","ToolTip"}){var prop=node.GetType().GetProperty(name);if(prop!=null&&prop.CanWrite){var value=prop.GetValue(node,null) as string;if(value!=null&&language.Contains(value))localized.Add(Tuple.Create((object)node,prop,value));}}}}
         void ThemeCatalog(){foreach(var node in Tree(Window)){if(node is ComboBox||node is ComboBoxItem)continue;var prop=node.GetType().GetProperty("Foreground");if(prop!=null){var brush=prop.GetValue(node,null) as Brush;if(brush!=null)themed.Add(Tuple.Create((object)node,prop,brush));}}}
@@ -54,6 +55,8 @@ namespace HardwarePulse {
             Window.SizeChanged+=delegate{ApplyDensity();QueueSave();};Window.LocationChanged+=delegate{QueueSave();};
             Window.Closing+=delegate(object sender,System.ComponentModel.CancelEventArgs e){Save();if(!exit){e.Cancel=true;Window.Hide();}};
             Window.Closed+=delegate{Dispose();};
+            Window.IsVisibleChanged+=delegate{if(loaded&&Window.IsVisible)UpdatePanel();};
+            Window.StateChanged+=delegate{if(loaded&&Window.WindowState!=WindowState.Minimized)UpdatePanel();};
             saveTimer.Interval=TimeSpan.FromMilliseconds(750);saveTimer.Tick+=delegate{saveTimer.Stop();Save();};
             poll.Interval=TimeSpan.FromSeconds(2);poll.Tick+=delegate{UpdatePanel();};poll.Start();
         }
@@ -65,13 +68,18 @@ namespace HardwarePulse {
             if(latest.state=="LIVE"){usageCapabilities.Clear();foreach(string key in latest.usage.Keys)usageCapabilities.Add(key);}
             else latest.available=previousCapabilities;
             if(latest.state=="LIVE"&&latest.identity!=identity){foreach(var entry in latest.values)if(!peaks.ContainsKey(entry.Key)||peaks[entry.Key]<entry.Value)peaks[entry.Key]=entry.Value;identity=latest.identity;}
+            // Keep collection, peaks, stale-state detection and STOP handling active
+            // while the tray/minimized window has no visible cards to render.
+            if(Window.IsVisible&&Window.WindowState!=WindowState.Minimized)RenderPanel();
+            if(loaded)Json.WriteAtomic(Path.Combine(paths.State,"view-status.json"),new {updated=DateTimeOffset.Now.ToString("o"),state=latest.state,mode=maximum?"max":"live",sensors=latest.values.Count});
+        }
+        void RenderPanel(){
             Text("Status",latest.state=="LIVE"?"● "+language.T("Live")+" · "+latest.time.ToLocalTime().ToString("HH:mm:ss")+" · "+latest.values.Count+" "+language.T("sensors"):"● "+language.T(latest.state)+" · "+language.T("Waiting for collector"));
             if(collectorFailed&&latest.state!="LIVE")Text("Status",language.T("Collector start failed; reinstall or check permissions"));
             if(maximum)Control<TextBlock>("Status").Text+=" · "+language.T("Session peaks");
             Control<TextBlock>("Status").Foreground=Brush(light?(latest.state=="LIVE"?"#12644D":"#804000"):(latest.state=="LIVE"?"#A5E7D5":"#E7C5A4"));
             foreach(var view in views.Values)UpdateCard(view);
             Control<Button>("Live").Background=Brush(maximum?"#00000000":"#607898A8");Control<Button>("Max").Background=Brush(maximum?"#607898A8":"#00000000");ApplyDensity();
-            if(loaded)Json.WriteAtomic(Path.Combine(paths.State,"view-status.json"),new {updated=DateTimeOffset.Now.ToString("o"),state=latest.state,mode=maximum?"max":"live",sensors=latest.values.Count});
         }
         void QueueSave(){if(!loaded||disposed)return;saveTimer.Stop();saveTimer.Start();}
         public void Save(){if(!loaded)return;var bounds=Window.RestoreBounds;if(bounds.IsEmpty)return;

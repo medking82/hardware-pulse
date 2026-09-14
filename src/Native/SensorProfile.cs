@@ -28,7 +28,14 @@ namespace HardwarePulse {
             {"diskC",new Spec("/nvme/0/temperature/0","Temperature",1,100)},
             {"diskD",new Spec("/nvme/1/temperature/0","Temperature",1,100)}
         };
-        static bool Match(string text,string pattern){return Regex.IsMatch(text??"",pattern,RegexOptions.IgnoreCase);}
+        // Only internal, fixed discovery patterns enter this cache. Keep them alive
+        // across polls instead of cycling through Regex's small shared static cache.
+        static readonly System.Collections.Concurrent.ConcurrentDictionary<string,Regex> matchers=new System.Collections.Concurrent.ConcurrentDictionary<string,Regex>();
+        static bool Match(string text,string pattern){
+            string key=System.Globalization.CultureInfo.CurrentCulture.Name+"|"+pattern;
+            Regex matcher;if(!matchers.TryGetValue(key,out matcher))matcher=matchers.GetOrAdd(key,new Regex(pattern,RegexOptions.IgnoreCase));
+            return matcher.IsMatch(text??"");
+        }
         static Sensor Find(IEnumerable<Sensor> items,string type,params string[] patterns) {
             foreach(string p in patterns){var matches=items.Where(s=>s.type==type&&Match(s.name,p)).ToArray();if(matches.Length==1)return matches[0];}return null;
         }
