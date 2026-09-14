@@ -2,6 +2,12 @@
 
 English first; 简体中文 follows each version. Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
+## 0.5.12 — 2026-09-15
+
+- Show only Gemini 5-hour and Weekly quota windows for Antigravity; omit its Claude/GPT pools and duplicate or unrelated windows.
+- Use shorter Gemini labels in Desktop View and identify the Gemini group in the monitor card.
+- Preserve disabled or missing quota values as unavailable, with stable 5-hour then Weekly ordering.
+
 ## 0.5.11 — 2026-09-15
 
 - Fix Antigravity quota discovery: bind the Windows process instance before calling GetOwnerSid. Projected WMI query objects could fail before any quota request. Same-user and PID-owned loopback-port checks remain in place.

@@ -51,12 +51,17 @@ namespace HardwarePulse {
             }else if(provider=="Antigravity"){
                 var summary=Get(body,"response","summary")??body;
                 foreach(var group in Items(Get(summary,"groups")))foreach(var bucket in Items(Get(group,"buckets"))){
-                    string window=Text(Get(bucket,"window","bucketId","displayName"));
+                    string groupName=Text(Get(group,"displayName")).Trim();
+                    if(!groupName.Equals("Gemini",StringComparison.OrdinalIgnoreCase)&&!groupName.Equals("Gemini Models",StringComparison.OrdinalIgnoreCase))continue;
+                    string window=Text(Get(bucket,"window","bucketId","displayName")).Trim().ToLowerInvariant().Replace('_','-');
+                    string label=window=="weekly"?"Weekly":new[]{"session","5h","5-hour","five-hour","five hour"}.Contains(window)?"5-hour":null;
+                    if(label==null||r.Windows.Any(w=>w.Label==label))continue;
                     var fraction=Get(bucket,"remainingFraction")??Get(Get(bucket,"remaining"),"remainingFraction");
                     if(fraction==null&&Text(Get(Get(bucket,"remaining"),"case"))=="remainingFraction")fraction=Get(Get(bucket,"remaining"),"value");
                     var n=Number(fraction);object pct=n.HasValue?(object)(n.Value*100):null;if(Equals(Get(bucket,"disabled"),true))pct=null;
-                    Add(r,Text(Get(group,"displayName"))+" · "+window,pct,Get(bucket,"resetTime"),true);
+                    Add(r,label,pct,Get(bucket,"resetTime"),true);
                 }
+                r.Windows=r.Windows.OrderBy(w=>w.Label=="5-hour"?0:1).ToList();
             }
             if(r.Windows.Any(w=>w.Remaining.HasValue))r.Status="Live";
             return r;
