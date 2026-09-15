@@ -2,19 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
-using System.Linq;
 using System.Text;
 
-public sealed class FrameMetrics {
-    public double Current, Average, Minimum, Low;
-    public int Count;
-    public bool Ready;
-    public string Status;
-}
 public sealed class FrameCapture : IDisposable {
-    sealed class Frame { public double Ms; public double Time; }
     readonly object gate = new object();
-    readonly Dictionary<string, Queue<Frame>> streams = new Dictionary<string, Queue<Frame>>();
+    readonly HardwarePulse.FrameHistory history = new HardwarePulse.FrameHistory();
     readonly Stopwatch clock = Stopwatch.StartNew();
     Process process;
     string executable, sessionName;
@@ -31,7 +23,7 @@ public sealed class FrameCapture : IDisposable {
         }
         fields.Add(value.ToString()); return fields.ToArray();
     }
-    public void Reset(int pid) { lock(gate) { target = pid; streams.Clear(); header = null; status = "Waiting for frames"; } }
+    public void Reset(int pid) { lock(gate) { target = pid; history.Clear(); header = null; status = "Waiting for frames"; } }
     static int Column(string[] fields,string name) { return Array.FindIndex(fields,value=>String.Equals(value,name,StringComparison.OrdinalIgnoreCase)); }
     public void Feed(string line) {
         if (String.IsNullOrEmpty(line)) return;
@@ -46,30 +38,13 @@ public sealed class FrameCapture : IDisposable {
         }
     }
     public void Add(string stream, double ms, double time) {
-        lock(gate) {
-            if (Double.IsNaN(ms) || Double.IsInfinity(ms) || ms <= 0 || Double.IsNaN(time) || Double.IsInfinity(time)) return;
-            Queue<Frame> frames;
-            if (!streams.TryGetValue(stream,out frames)) {
-                if (streams.Count >= 16) return;
-                streams[stream] = frames = new Queue<Frame>();
-            }
-            frames.Enqueue(new Frame { Ms = ms, Time = time });
-            while(frames.Count > 90000 || (frames.Count > 0 && frames.Peek().Time < time-60)) frames.Dequeue();
-            status = "Live";
-        }
+        lock(gate) { if(history.Add(stream,ms,time))status="Live"; }
     }
     public FrameMetrics ReadAt(double now) {
         lock(gate) {
-            foreach(var queue in streams.Values) while(queue.Count > 0 && queue.Peek().Time < now-60) queue.Dequeue();
-            var best = streams.Values.Select(q=>new{Frames=q,Recent=q.Count(f=>f.Time>=now-1)})
-                .Where(s=>s.Recent>0).OrderByDescending(s=>s.Recent).Select(s=>s.Frames).FirstOrDefault();
-            if (best == null) return new FrameMetrics { Status = status == "Live" ? "Waiting for frames" : status };
-            var frames = best.ToArray(); var latest = frames.Where(f => f.Time >= now-1).ToArray();
-            var sorted = frames.Select(f => f.Ms).OrderByDescending(x => x).ToArray();
-            int count = Math.Max(1,(int)Math.Ceiling(frames.Length*.01));
-            return new FrameMetrics { Ready = latest.Length > 0, Status = latest.Length > 0 ? "Live" : "Waiting for frames", Count = frames.Length,
-                Current = latest.Length == 0 ? 0 : 1000/latest.Average(f=>f.Ms), Average = 1000/frames.Average(f=>f.Ms),
-                Minimum = 1000/sorted[0], Low = frames.Length < 100 ? Double.NaN : 1000/sorted.Take(count).Average() };
+            var metrics=history.ReadAt(now);
+            if(!metrics.Ready && status!="Live")metrics.Status=status;
+            return metrics;
         }
     }
     public FrameMetrics Read() { return ReadAt(clock.Elapsed.TotalSeconds); }
@@ -98,6 +73,6 @@ public sealed class FrameCapture : IDisposable {
                 old.WaitForExit(1500);
             } catch {} old.Dispose();
         }
-        lock(gate) { streams.Clear(); status="FPS capture stopped"; }
+        lock(gate) { history.Clear(); status="FPS capture stopped"; }
     }
 }

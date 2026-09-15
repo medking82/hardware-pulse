@@ -19,6 +19,7 @@ class CoreTests {
         Console.WriteLine("PASS portable material policy: lock/settings/unlock, zero opacity and solid/high-contrast/unsupported fallback");
         CoreQuotaSessionTests.Run();
         CoreQuotaDecoderTests.Run();
+        CoreFrameHistoryTests.Run();
         Check(typeof(QuotaReading).Assembly==typeof(ContrastAnalysis).Assembly&&typeof(NetworkRate).Assembly==typeof(ContrastAnalysis).Assembly,"Quota/network boundary depends on the app");
         var quota=new QuotaReading();
         quota.AllWindows.Add(new QuotaWindow {Label="5-hour",Remaining=0});

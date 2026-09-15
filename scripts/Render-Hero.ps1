@@ -6,6 +6,7 @@ if(-not $OutputPath){$OutputPath=Join-Path $root 'docs/showcase/pulse-hero.png'}
 Add-Type -AssemblyName PresentationFramework,PresentationCore,WindowsBase,System.Xaml,System.Windows.Forms
 [void][Reflection.Assembly]::LoadFrom((Join-Path $AppPath 'HardwarePulse.exe'))
 [void][Reflection.Assembly]::LoadFrom((Join-Path $AppPath 'Pulse.Adapters.Windows.dll'))
+[void][Reflection.Assembly]::LoadFrom((Join-Path $AppPath 'Pulse.Core.dll'))
 $state=Join-Path $root ('vendor/hero-'+[Guid]::NewGuid().ToString('N'))
 $paths=[HardwarePulse.PulsePaths]::new($AppPath,$state,(Join-Path $state 'runtime'))
 $demo=[HardwarePulse.RawSnapshot]::new();$demo.schema=2;$demo.pid=1;$demo.sequence=1;$demo.time=[DateTimeOffset]::Now.ToString('o');$demo.memoryName='32 GB DDR5 · Demo memory';$demo.boardName='Demo motherboard'

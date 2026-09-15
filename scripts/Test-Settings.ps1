@@ -5,6 +5,7 @@ $testRoot=Join-Path $root ('vendor/settings-test-'+[Guid]::NewGuid().ToString('N
 $null=New-Item -ItemType Directory -Path $testRoot
 Copy-Item "$root/src/*" $testRoot
 Copy-Item "$root/assets" $testRoot -Recurse
+Copy-Item "$root/src/Core" $testRoot -Recurse -Force
 @'
 $script:stateRoot=$PSScriptRoot
 $script:runtime=Join-Path $PSScriptRoot 'runtime'

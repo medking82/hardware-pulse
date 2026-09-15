@@ -334,3 +334,23 @@ Full native validation retains provider trust-boundary and UI regression coverag
 
 This extraction adds no timer, network call or settings migration, and makes no
 performance or new-platform support claim. Rollback is the atomic source commit.
+
+## CORE-03: portable FPS history
+
+From baseline `afb115c`, FrameHistory and FrameMetrics live in Core. FrameMetrics
+retains its existing global type name for host/PowerShell compatibility. FrameHistory
+accepts frames and host monotonic timestamps; the host owns synchronization. It
+preserves 16 streams, 90,000 frames per stream, 60-second retention, one-second
+active-stream selection, Average, Minimum and slowest-one-percent Low semantics.
+Low remains NaN below 100 observations. No statistics algorithm is optimized here.
+
+FrameCapture retains CSV/PID filtering, Stopwatch, PresentMon lifecycle, error status
+and locking. It maps unavailable history to the existing host status. FpsTransport
+and its process identity/privilege checks are unchanged. The legacy differential
+harness compiles the shared history source; no legacy scripts enter the package.
+
+Core tests run identical deterministic observations on both runtimes, including
+stale large streams, history/stream bounds, invalid frames, reset and Minimum vs
+Low. Native validation retains CSV filtering and FPS transport coverage. This adds
+no worker/timer, does not claim lower allocations or actual ARM64/non-Windows FPS
+capture, and can be reverted as one atomic commit.

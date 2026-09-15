@@ -1,4 +1,4 @@
-﻿Add-Type -Path "$PSScriptRoot\FrameCapture.cs"
+﻿Add-Type -Path @("$PSScriptRoot\Core\FrameHistory.cs","$PSScriptRoot\FrameCapture.cs")
 Add-Type -Path "$PSScriptRoot\GameOverlay.cs" -ReferencedAssemblies @('PresentationFramework','PresentationCore','WindowsBase','System.Xaml')
 $script:frameCapture=[FrameCapture]::new()
 $script:gameOverlay=[GameOverlay]::new()

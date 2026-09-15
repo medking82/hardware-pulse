@@ -15,6 +15,7 @@ foreach($type in @('SensorProfile','RawSnapshot','Json','QuotaData','QuotaProvid
     if(-not $adapters.GetType("HardwarePulse.$type") -or $assembly.GetType("HardwarePulse.$type")){throw "Adapter ownership mismatch: $type"}
 }
 $core=[Reflection.Assembly]::LoadFrom((Join-Path $app 'Pulse.Core.dll'))
+foreach($type in @('FrameMetrics','HardwarePulse.FrameHistory','HardwarePulse.QuotaDecoder')){if(-not $core.GetType($type) -or $assembly.GetType($type) -or $adapters.GetType($type)){throw "Core ownership mismatch: $type"}}
 foreach($reference in $core.GetReferencedAssemblies()){
     if($reference.Name -notin @('mscorlib','System','System.Core')){throw "Platform dependency in Core payload: $($reference.Name)"}
 }
