@@ -147,6 +147,12 @@ internal static class NativeTests {
                         Assert(savedStartup.Flag("startupSaveProbe")&&savedStartup.Number("width",0,0,5000)==430,"Never-shown App must save preferences without losing geometry");
                         startupShell.Show();Pump();Assert(startupShell.Window.IsVisible,"Tray restore hid the App again after Desktop startup");
                     }else Assert(shown&&startupShell.Window.IsVisible,"Normal App startup must remain visible");
+                    startupShell.ShowSettings(true);startupShell.Window.Hide();
+                    typeof(System.Windows.Forms.NotifyIcon).GetMethod("OnDoubleClick",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(Field<System.Windows.Forms.NotifyIcon>(startupShell,"tray"),new object[]{EventArgs.Empty});Pump();
+                    Assert(startupShell.Window.IsVisible&&startupShell.Control<ScrollViewer>("SettingsPage").Visibility==Visibility.Collapsed,"Tray double-click must directly restore the App home");
+                    startupShell.Window.WindowState=WindowState.Minimized;
+                    Field<System.Windows.Forms.ToolStripMenuItem>(startupShell,"trayShow").PerformClick();Pump();
+                    Assert(startupShell.Window.WindowState==WindowState.Normal,"Tray Show must restore a minimized App");
                     startupShell.Exit();
                 }
             }

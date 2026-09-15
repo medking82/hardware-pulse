@@ -2,6 +2,13 @@
 
 English first; 简体中文 follows each version. Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
+## 0.6.3 — 2026-09-15
+
+- Include Codex HTTP additional quota pools in All available display; preserve the essential Weekly-only Desktop display.
+- Double-click the system tray icon or choose Show Pulse to restore the App home from hidden, minimized or Settings state, while retaining the Desktop panel.
+
+修复 Codex 额外 quota 遗漏；tray 双击和 Show Pulse 直接恢复 App 首页，保留 Desktop panel。
+
 ## 0.6.2 — 2026-09-15
 
 - Add complete App quota display and draggable provider cards with persistent order; retain essential Desktop quotas.

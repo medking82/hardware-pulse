@@ -47,6 +47,11 @@ namespace HardwarePulse {
                 object main=null;if(byId!=null)byId.TryGetValue("codex",out main);
                 CodexPool(r,"",main??Get(body,"rate_limit","rateLimit","rateLimits","rate_limits"));
                 if(full&&byId!=null)foreach(var entry in byId.Where(p=>p.Key!="codex").OrderBy(p=>p.Key,StringComparer.Ordinal))CodexPool(r,entry.Key,entry.Value);
+                if(full&&byId==null)foreach(var entry in Items(Get(body,"additional_rate_limits","additionalRateLimits"))){
+                    string label=Text(Get(entry,"limit_name","limitName","metered_feature","meteredFeature")).Trim();
+                    if(label.Length==0)label="Additional quota";
+                    CodexPool(r,label,Get(entry,"rate_limit","rateLimit"));
+                }
                 if(!full)r.Windows.RemoveAll(window=>window.Label!="Weekly");
             }else if(provider=="Claude"){
                 var map=body as Dictionary<string,object>;if(map!=null)foreach(var entry in map){
