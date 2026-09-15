@@ -239,9 +239,10 @@ namespace HardwarePulse {
                     var point=text.TranslatePoint(new Point(),this);
                     var old=text.Foreground as SolidColorBrush;byte prior=old!=null&&DesktopContrast.Luminance(old.Color)<.4?(byte)20:(byte)245;
                     var region=new Int32Rect((int)(point.X*image.PixelWidth/ActualWidth),(int)(point.Y*image.PixelHeight/ActualHeight),Math.Max(1,(int)Math.Ceiling(text.ActualWidth*image.PixelWidth/ActualWidth)),Math.Max(1,(int)Math.Ceiling(text.ActualHeight*image.PixelHeight/ActualHeight)));
-                    double minority;byte shade=LocalContrast.RegionColor(image,region,prior,out minority);
-                    var brush=new SolidColorBrush(Color.FromRgb(shade,shade,shade));
-                    brush.Freeze();text.Foreground=brush;
+                    double minority;byte shade=capture.RegionColor(region,prior,out minority);
+                    if(old==null||old.Color.R!=shade||old.Color.G!=shade||old.Color.B!=shade){
+                        var brush=new SolidColorBrush(Color.FromRgb(shade,shade,shade));brush.Freeze();text.Foreground=brush;
+                    }
                     bool edge=minority>(text.Effect==null?.12:.06);
                     if(edge){
                         var effect=text.Effect as System.Windows.Media.Effects.DropShadowEffect;

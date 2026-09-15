@@ -23,6 +23,17 @@ try {
  [HardwarePulse.LocalContrast]::Smooth($noise,32,32,6,$scratch)
  Assert (@($noise|Where-Object {$_ -lt .16 -or $_ -gt .22}).Count -eq 0) 'Fine texture still creates black/white speckles'
  Assert ([Math]::Abs([HardwarePulse.LocalContrast]::Stabilize(.8,.1)-.8) -lt .001) 'Large background change delayed'
+ # Exercise the bounded grid and native buffer lifecycle at a larger physical size.
+ foreach($window in @($behind,$front)){$window.Width=600;$window.Height=500};Settle
+ $large=$capture.Capture([Windows.Media.Colors]::Transparent)
+ Assert ($large.PixelWidth*$large.PixelHeight -le 160000 -and $large.PixelWidth -lt $capture.Bounds().Width) 'Large capture did not use a bounded grid'
+ $minority=0.0;$region=[Windows.Int32Rect]::new(10,10,[int]($large.PixelWidth/4),[int]($large.PixelHeight/2))
+ Assert ($capture.RegionColor($region,20,[ref]$minority) -eq 245 -and $minority -eq 0) 'Reduced grid lost dark-background contrast'
+ $capture.Dispose();Assert ($capture.Enable()) 'Capture could not resume after disposal';Settle
+ Assert ($null -ne $capture.Capture([Windows.Media.Colors]::Transparent)) 'Capture buffers did not recover'
+ foreach($window in @($behind,$front)){$window.Width=300;$window.Height=150};Settle
+ $small=$capture.Capture([Windows.Media.Colors]::Transparent)
+ Assert ($small.PixelWidth -eq $mask.PixelWidth -and $small.PixelHeight -eq $mask.PixelHeight) 'Capture buffers did not resize back'
  $capture.Dispose();Settle
  $probe=[HardwarePulse.LocalContrast]::new($behind)
  try{Assert ($probe.Enable()) 'Probe exclusion unavailable';Settle;$visible=$probe.Capture([Windows.Media.Colors]::Transparent);$visible.CopyPixels($pixels,$visible.PixelWidth*4,0);Assert ($pixels[$left] -eq $pixels[$right]) 'Disabling local contrast did not restore overlay capture'}finally{$probe.Dispose()}
@@ -36,7 +47,8 @@ try {
   $view.Render($metrics,24,10,'#FFFFFF',$true,1,$null);$view.SetTextOpacity(100,$true,$true,0,0);$view.Show();$view.SetLocalContrast($true);Settle;Settle
   $flags=[Reflection.BindingFlags]'Instance,NonPublic';$rows=$view.GetType().GetField('rows',$flags).GetValue($view);Assert ($rows['demo'].Name.Foreground -is [Windows.Media.SolidColorBrush] -and $rows['demo'].Value.Foreground.Color.R -eq 20) 'Local reading must use one coherent dark color over white'
   Assert ($rows['demo'].Name.Effect -is [Windows.Media.Effects.DropShadowEffect] -and $null -eq $rows['demo'].Value.Effect) 'Mixed background needs a thin edge; uniform background must remain plain'
-  $frozen=$rows['demo'].Name.Foreground;$view.BeginScreenshot();Assert ($view.ScreenshotActive) 'Screenshot mode did not start';Settle;Assert ($rows['demo'].Name.Foreground -eq $frozen) 'Screenshot mode changed the sampled colors'
+  $frozen=$rows['demo'].Name.Foreground;Settle;Assert ([object]::ReferenceEquals($frozen,$rows['demo'].Name.Foreground)) 'Unchanged contrast recreated its foreground brush'
+  $view.BeginScreenshot();Assert ($view.ScreenshotActive) 'Screenshot mode did not start';Settle;Assert ($rows['demo'].Name.Foreground -eq $frozen) 'Screenshot mode changed the sampled colors'
   $timer=$view.GetType().GetField('screenshotTimer',$flags).GetValue($view);$timer.Interval=[TimeSpan]::FromMilliseconds(50);$timer.Stop();$timer.Start();Settle;Assert (-not $view.ScreenshotActive -and $view.LocalContrastAvailable) 'Screenshot mode did not automatically resume contrast'
   $visual=[Windows.Media.DrawingVisual]::new();$context=$visual.RenderOpen();$rect=[Windows.Rect]::new(0,0,300,150);$context.DrawRectangle([Windows.Media.VisualBrush]::new($grid),$null,$rect);$context.DrawRectangle([Windows.Media.VisualBrush]::new($view.Content),$null,$rect);$context.Close()
   $image=[Windows.Media.Imaging.RenderTargetBitmap]::new(300,150,96,96,[Windows.Media.PixelFormats]::Pbgra32);$image.Render($visual);$encoder=[Windows.Media.Imaging.PngBitmapEncoder]::new();$encoder.Frames.Add([Windows.Media.Imaging.BitmapFrame]::Create($image));$stream=[IO.File]::Create((Join-Path $PWD 'vendor/local-contrast-preview.png'));try{$encoder.Save($stream)}finally{$stream.Dispose()}
