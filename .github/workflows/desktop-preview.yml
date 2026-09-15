@@ -52,10 +52,10 @@ jobs:
         run: dotnet restore scripts/DesktopTests/Pulse.Desktop.Tests.csproj --locked-mode
       - name: Render, layout, keyboard and shutdown contracts
         run: dotnet run --project scripts/DesktopTests/Pulse.Desktop.Tests.csproj -c Release --no-restore --disable-build-servers -p:UseSharedCompilation=false
-      - name: Native Windows window with demo data
+      - name: Native Windows demo window measurement
         if: runner.os == 'Windows'
         shell: pwsh
-        run: ./scripts/Run-Hidden.ps1 (Get-Command dotnet).Source @('src/Hosts/Desktop/bin/Release/net10.0/Pulse.Desktop.dll','--demo','--smoke-test') $PWD.Path
+        run: ./scripts/Run-Hidden.ps1 (Get-Command dotnet).Source @('src/Hosts/Desktop/bin/Release/net10.0/Pulse.Desktop.dll','--demo','--measure-session') $PWD.Path
       - name: Native Linux window with live telemetry
         if: runner.os == 'Linux'
         run: timeout 30s xvfb-run -a dotnet src/Hosts/Desktop/bin/Release/net10.0/Pulse.Desktop.dll --smoke-test
@@ -64,13 +64,13 @@ jobs:
         run: dotnet src/Hosts/Desktop/bin/Release/net10.0/Pulse.Desktop.dll --smoke-test
       - name: Package and launch extracted Linux AppHost
         if: runner.os == 'Linux'
-        run: xvfb-run -a python3 scripts/package_desktop.py --rid ${{ matrix.rid }} --smoke-test
+        run: xvfb-run -a python3 scripts/package_desktop.py --rid ${{ matrix.rid }} --measure-session
       - name: Reject damaged or incomplete packages
         if: runner.os != 'Windows'
         run: python3 scripts/test_desktop_package.py
       - name: Package and launch extracted macOS AppHost
         if: runner.os == 'macOS'
-        run: python3 scripts/package_desktop.py --rid ${{ matrix.rid }} --smoke-test
+        run: python3 scripts/package_desktop.py --rid ${{ matrix.rid }} --measure-session
       - name: Retain verified development packages
         if: runner.os != 'Windows'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2

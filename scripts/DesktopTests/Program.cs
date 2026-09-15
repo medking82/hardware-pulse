@@ -44,6 +44,7 @@ static class Tests {
         Check(live.Sampling.IsCompletedSuccessfully,"Close cancels and completes sampling");
         QuotaPanelTests.Run(args.Length==1?args[0]:null);
         SettingsTests.Run(args.Length==1?args[0]:null);
+        MeasurementTests.Run();
         Console.WriteLine("PASS Desktop rendering, responsive cards, unavailable state, keyboard and worker shutdown");
     }
 }

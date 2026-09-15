@@ -10,6 +10,7 @@ namespace HardwarePulse.Desktop;
 public sealed class MonitorWindow : Window {
     readonly MonitorSource source;
     readonly bool smoke;
+    readonly bool measure;
     readonly CancellationTokenSource stop=new();
     readonly TextBlock cpu=Value(),ram=Value(),down=Value(),up=Value();
     readonly TextBlock status=new(){Text="Starting…",TextWrapping=TextWrapping.Wrap};
@@ -24,8 +25,8 @@ public sealed class MonitorWindow : Window {
     readonly TextBlock saveStatus=new(){TextWrapping=TextWrapping.Wrap};
     bool loadingNetwork;
     public Task Sampling {get;private set;}=Task.CompletedTask;
-    public MonitorWindow(MonitorSource source,bool smoke=false,bool start=true,PreviewSettingsStore? store=null) {
-        this.source=source;this.smoke=smoke;
+    public MonitorWindow(MonitorSource source,bool smoke=false,bool start=true,PreviewSettingsStore? store=null,bool measure=false) {
+        this.source=source;this.smoke=smoke;this.measure=measure;
         this.store=store;settings=store?.Load()??new PreviewSettings();
         Title="Pulse · Desktop preview";Width=settings.Width;Height=settings.Height;MinWidth=360;MinHeight=400;
         FontSize=15;
@@ -98,6 +99,7 @@ public sealed class MonitorWindow : Window {
             else if(names.Length>0)interfaces.SelectedIndex=0;
             loadingNetwork=false;
             int samples=0;
+            var measurement=measure?new AppMeasurement(source.IsDemo):null;
             using var timer=new PeriodicTimer(TimeSpan.FromSeconds(1));
             do {
                 if(pause.IsChecked==true){status.Text="Paused";continue;}
@@ -105,13 +107,15 @@ public sealed class MonitorWindow : Window {
                 var snapshot=await Task.Run(()=>source.Poll(name),stop.Token);
                 if(stop.IsCancellationRequested)return;
                 Present(snapshot);
-                if(smoke&&++samples==3) {
+                var report=measurement?.Observe(snapshot);
+                if(report!=null)Console.WriteLine("BENCH_DESKTOP "+System.Text.Json.JsonSerializer.Serialize(report));
+                if((smoke&&++samples==3)||report!=null) {
                     if(!snapshot.CpuReady||!snapshot.MemoryReady)Environment.ExitCode=3;
                     Console.WriteLine(snapshot.CpuReady&&snapshot.MemoryReady?(source.IsDemo?"PASS native Desktop UI with explicit demo values":"PASS native Desktop UI and live CPU/RAM"):"FAIL native Desktop telemetry");
                     Close();return;
                 }
             } while(await timer.WaitForNextTickAsync(stop.Token));
         } catch(OperationCanceledException) when(stop.IsCancellationRequested){}
-        catch(Exception) {if(!stop.IsCancellationRequested)status.Text="Monitoring unavailable. Close and reopen to retry.";if(smoke){Environment.ExitCode=3;Close();}}
+        catch(Exception) {if(!stop.IsCancellationRequested)status.Text="Monitoring unavailable. Close and reopen to retry.";if(smoke||measure){Environment.ExitCode=3;Console.WriteLine("FAIL native Desktop monitoring");Close();}}
     }
 }

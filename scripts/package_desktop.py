@@ -111,7 +111,7 @@ def build(rid, dotnet, allow_dirty=False):
     return archive
 
 
-def inspect_archive(archive, rid, smoke=False):
+def inspect_archive(archive, rid, smoke=False, measure=False):
     archive = archive.resolve()
     workspace = (ROOT / "dist" / "desktop-preview").resolve()
     assert workspace.is_relative_to(ROOT.resolve()), "Package workspace escapes repository"
@@ -128,7 +128,7 @@ def inspect_archive(archive, rid, smoke=False):
         package = Path(temp) / ("Pulse-Preview-" + rid)
         assert {p.name for p in Path(temp).iterdir()} == {package.name}, "Unexpected archive root"
         exe = verify(package, rid)
-        if smoke:
+        if smoke or measure:
             os_name = "osx" if platform.system() == "Darwin" else "linux" if platform.system() == "Linux" else "unsupported"
             arch = "arm64" if platform.machine().lower() in ("arm64", "aarch64") else "x64"
             assert rid == os_name + "-" + arch, "Native smoke requires matching OS and architecture"
@@ -138,8 +138,11 @@ def inspect_archive(archive, rid, smoke=False):
                     del env[key]
             env["DOTNET_ROOT"] = str(Path(temp) / "no-system-dotnet")
             env["DOTNET_MULTILEVEL_LOOKUP"] = "0"
-            result = run([exe, "--smoke-test"], cwd=exe.parent, env=env, capture_output=True, timeout=30)
+            result = run([exe, "--measure-session" if measure else "--smoke-test"], cwd=exe.parent, env=env, capture_output=True, timeout=120 if measure else 30)
             assert "PASS native Desktop UI and live CPU/RAM" in result.stdout, result.stdout + result.stderr
+            if measure:
+                rows=[json.loads(line.removeprefix("BENCH_DESKTOP ")) for line in result.stdout.splitlines() if line.startswith("BENCH_DESKTOP ")]
+                assert len(rows)==1 and rows[0]["Seconds"]>=60 and not rows[0]["Demo"], "Missing live steady-state measurement"
             print(result.stdout.strip())
     print("PASS extracted self-contained package: " + rid)
 
@@ -150,7 +153,9 @@ if __name__ == "__main__":
     parser.add_argument("--dotnet", default="dotnet")
     parser.add_argument("--allow-dirty", action="store_true")
     parser.add_argument("--archive", type=Path)
-    parser.add_argument("--smoke-test", action="store_true")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--smoke-test", action="store_true")
+    mode.add_argument("--measure-session", action="store_true")
     args = parser.parse_args()
     artifact = args.archive or build(args.rid, args.dotnet, args.allow_dirty)
-    inspect_archive(artifact, args.rid, args.smoke_test)
+    inspect_archive(artifact, args.rid, args.smoke_test, args.measure_session)

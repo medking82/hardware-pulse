@@ -394,3 +394,28 @@ are descriptive; the prior paced run used different runner instances and is
 not a paired before/after CPU or working-set experiment. The directly paired
 evidence above supports the per-poll improvement, not an App RAM-saving claim.
 Raw local evidence: `vendor/mac-network-selection-ci-34984104231.log`.
+
+## Shared Desktop native window baseline
+
+The preview host accepts `--measure-session` (mutually exclusive with
+`--smoke-test`). It opens the normal Monitor window, excludes ten seconds of
+warm-up, then observes at least sixty seconds of its ordinary one-second polling.
+It prints one `BENCH_DESKTOP` JSON record and exits. Personal settings are not
+loaded, Codex remains disabled, no forced GC occurs, and no interface name or
+account data is emitted. Windows requires `--demo`; those results represent
+static demo rendering and must not be compared as live Windows telemetry costs.
+
+The observer captures process CPU, working set, managed allocation/heap and GC
+counts only at the start/end. CPU percentage divides process CPU seconds by
+elapsed seconds and exposed logical CPUs. Working set is resident process memory,
+not managed heap or archive size; start/end differences alone cannot establish
+a leak. Managed heap uses GetTotalMemory(false), so it is not a post-GC retained
+heap measurement. Small observer overhead is included in the process deltas.
+
+CI measures the extracted self-contained Linux/macOS AppHost, including the
+actual window backend and live adapters; Linux uses X11 under Xvfb. Windows
+measures the framework-dependent demo host. The record includes measured poll
+counts and CPU/RAM/network availability counts so an idle or missing source
+cannot silently be interpreted as equivalent work. CI has no arbitrary CPU or
+RAM pass threshold: these are descriptive baselines on hosted runners, not a
+gaming overlay or long-running resource guarantee.
