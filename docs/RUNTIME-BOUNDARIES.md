@@ -542,3 +542,12 @@ A minimal local .cmd probe reproduced the filename-syntax error; canonical Windo
 paths for cmd.exe and its launcher passed. The test launcher now normalizes these
 paths. This correction changes no adapter/runtime implementation; both failed CI
 attempts remain available and are not counted as platform passes.
+
+Verified follow-up: [run 34974501739](https://github.com/medking82/hardware-pulse/actions/runs/34974501739)
+passed both adapter jobs at `d068ef7a1b3a2dfc27760fbcbb42641f68166388`.
+RuntimeInformation reported Arm64 / .NET Framework 4.8.9337.0 on Windows build
+26200 and X64 / .NET Framework 4.8.9339.0 on build 20348. Both passed live RAM,
+optional inventory/network and synthetic FPS parsing/reset/freshness assertions.
+The native ARM64 launch fix resolved the harness issue without changing adapter
+code. This is hosted-runner evidence for that subset, not physical Wi-Fi, LHM
+sensor/driver, PresentMon capture, WPF/Desktop or ARM64 installer validation.
