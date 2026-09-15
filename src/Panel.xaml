@@ -258,7 +258,7 @@
             </ComboBox>
             <CheckBox x:Name="StartWithWindows" Content="Start with Windows" Margin="0,0,0,10" />
             <TextBlock x:Name="StartupStatus" FontSize="11" Margin="0,0,0,10" />
-            <TextBlock Text="Version 0.6.4 · Marck Wong" FontSize="11" Foreground="#ADC1D2" Margin="0,0,0,8" />
+            <TextBlock Text="Version 0.6.5 · Marck Wong" FontSize="11" Foreground="#ADC1D2" Margin="0,0,0,8" />
             <Button x:Name="GitHub" Content="GitHub" HorizontalAlignment="Left" ToolTip="github.com/medking82/hardware-pulse" />
             <CheckBox x:Name="AutoUpdates" Content="Check for Updates Automatically" Margin="0,12,0,8" />
             <CheckBox x:Name="AutoDownload" Content="Download Updates Automatically" Margin="0,0,0,8" />
@@ -334,7 +334,7 @@
             <ComboBox x:Name="NetworkUnit" SelectedIndex="0" AutomationProperties.Name="Network Speed Unit">
               <ComboBoxItem Tag="auto" Content="Auto" /><ComboBoxItem Tag="KB/s" Content="KB/s" /><ComboBoxItem Tag="MB/s" Content="MB/s" /><ComboBoxItem Tag="Mbit/s" Content="Mbit/s" />
             </ComboBox>
-            <TextBlock Text="Shows the busiest adapter, not a sum of overlapping adapters. 1 MB/s = 8 Mbit/s; KB and MB use decimal units." FontSize="11" Margin="0,8,0,0" />
+            <TextBlock Text="LAN and Wi-Fi link speeds update independently. Download and upload refer to the traffic adapter. Link speed is not Internet speed." FontSize="11" Margin="0,8,0,0" />
             </StackPanel>
         </Expander>
         <Expander Header="AI Quota" Foreground="#F0F5FA" Margin="0,16,0,0">

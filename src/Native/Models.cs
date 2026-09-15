@@ -12,7 +12,7 @@ namespace HardwarePulse {
     public sealed class MemoryModule { public string brand, part, slot; public double capacityGb; }
     public sealed class DiskInfo { public string model; public string[] volumes; }
     public sealed class RamUsage { public double? usedGb, totalGb; }
-    public sealed class NetworkLink {public string hardwareId,connectionType;public long? bitsPerSecond;public int? signalPercent;public bool connected;}
+    public sealed class NetworkLink {public string hardwareId,connectionType;public long? bitsPerSecond;public int? signalPercent;public bool connected;public bool? physical;}
     public sealed class RawSnapshot {
         public int schema, pid; public long sequence; public string time, memoryName, boardName;
         public Sensor[] sensors; public MemoryModule[] memoryModules; public DiskInfo[] disks; public RamUsage ramUsage;

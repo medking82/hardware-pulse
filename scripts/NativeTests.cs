@@ -209,10 +209,25 @@ internal static class NativeTests {
                 var netReading=Field<ReadingSession>(shell,"readings").Latest;
                 Assert(netReading.names["netConnection"]=="Wi-Fi"&&netReading.values["netSignal"]==72,"Wi-Fi signal must belong to the selected adapter");
                 var desktopMetrics=(List<DesktopMetric>)typeof(Shell).GetMethod("DesktopMetrics",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(shell,null);
-                Assert(desktopMetrics.Any(m=>m.Key=="netConnection"&&m.Title=="Wi-Fi"&&m.Value=="2.5 Gbit/s")&&desktopMetrics.Any(m=>m.Key=="netSignal"&&m.Value=="72%"),"Desktop connection or signal missing");
+                Assert(desktopMetrics.Any(m=>m.Key=="wifiLink"&&m.Title=="Wi-Fi Link Speed"&&m.Value=="2.5 Gbit/s")&&desktopMetrics.Any(m=>m.Key=="wifiSignal"&&m.Value=="72%"),"Desktop connection or signal missing");
                 networkSnapshot.networkLinks[0].signalPercent=101;networkSnapshot.sequence++;Json.WriteAtomic(paths.Snapshot,networkSnapshot);shell.UpdatePanel();Assert(!Field<ReadingSession>(shell,"readings").Latest.values.ContainsKey("netSignal"),"Invalid signal must not become a reading");
                 networkSnapshot.networkLinks[0].connectionType="Ethernet";networkSnapshot.networkLinks[0].signalPercent=72;networkSnapshot.sequence++;Json.WriteAtomic(paths.Snapshot,networkSnapshot);shell.UpdatePanel();Assert(!Field<ReadingSession>(shell,"readings").Latest.values.ContainsKey("netSignal"),"Ethernet must not retain Wi-Fi signal");
                 networkSnapshot.sequence++;networkSnapshot.networkLinks[0].connected=false;Json.WriteAtomic(paths.Snapshot,networkSnapshot);shell.UpdatePanel();Pump();Assert(Tree(networkCard).OfType<TextBlock>().Any(t=>t.Text=="Disconnected"),"Disconnected link must not retain negotiated speed");
+                networkSnapshot.networkLinks[0].connected=true;
+                networkSnapshot.networkLinks[0].physical=true;
+                networkSnapshot.networkLinks=networkSnapshot.networkLinks.Concat(new[]{new NetworkLink{hardwareId="/nic/aaa-virtual",connectionType="Ethernet",connected=true,bitsPerSecond=10000000000}}).ToArray();
+                networkSnapshot.networkLinks[1].connectionType="Wi-Fi";networkSnapshot.networkLinks[1].signalPercent=45;
+                foreach(long speed in new long[]{866000000,144000000,1201000000}){
+                    networkSnapshot.networkLinks[1].bitsPerSecond=speed;networkSnapshot.sequence++;Json.WriteAtomic(paths.Snapshot,networkSnapshot);shell.UpdatePanel();Pump();
+                    Assert(Field<ReadingSession>(shell,"readings").Latest.values["wifiLink"]==speed,"Idle Wi-Fi link must update while Ethernet carries traffic");
+                    Assert(Tree(networkCard).OfType<TextBlock>().Any(t=>t.Text==NetworkRate.Link(speed)),"App Wi-Fi link did not refresh");
+                    var metrics=(List<DesktopMetric>)typeof(Shell).GetMethod("DesktopMetrics",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(shell,null);
+                    Assert(metrics.Any(m=>m.Key=="wifiLink"&&m.Value==NetworkRate.Link(speed))&&metrics.Any(m=>m.Key=="lanLink"&&m.Value=="2.5 Gbit/s"),"Desktop dual link rates missing");
+                }
+                networkSnapshot.networkLinks[1].connected=false;networkSnapshot.sequence++;Json.WriteAtomic(paths.Snapshot,networkSnapshot);shell.UpdatePanel();
+                Assert(Field<ReadingSession>(shell,"readings").Latest.values["wifiLink"]==0&&!Field<ReadingSession>(shell,"readings").Latest.values.ContainsKey("wifiSignal"),"Disconnected Wi-Fi must clear rate/signal");
+                networkSnapshot.networkLinks[1].connected=true;networkSnapshot.networkLinks[1].bitsPerSecond=null;networkSnapshot.sequence++;Json.WriteAtomic(paths.Snapshot,networkSnapshot);shell.UpdatePanel();
+                Assert(!Field<ReadingSession>(shell,"readings").Latest.values.ContainsKey("wifiLink"),"Unknown Wi-Fi speed must not retain old rate");
                 networkSnapshot.sequence++;networkSnapshot.networkLinks=null;Json.WriteAtomic(paths.Snapshot,networkSnapshot);shell.UpdatePanel();Pump();Assert(!Tree(networkCard).OfType<TextBlock>().Any(t=>t.Text=="2.5 Gbit/s"),"Legacy snapshot cannot retain link speed");
                 shell.Control<ComboBox>("NetworkUnit").SelectedIndex=3;Pump();
                 Assert(Tree(networkCard).OfType<TextBlock>().Any(t=>t.Text=="8 Mbit/s"),"Network unit setting did not update readings");

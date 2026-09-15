@@ -2,6 +2,13 @@
 
 English first; 简体中文 follows each version. Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
+## 0.6.5 — 2026-09-15
+
+- Show independent LAN and Wi-Fi negotiated link speeds in App and Desktop; Wi-Fi rate and signal update even when LAN carries most traffic.
+- Prefer confirmed physical adapters, clear disconnected/unknown link values, and keep throughput explicitly associated with its traffic adapter. Desktop connection readings can be hidden individually.
+
+App 和 Desktop 独立显示 LAN / Wi-Fi 连接速率及 Wi-Fi signal。Wi-Fi 空闲时仍更新连接速率；断线清除旧数值，优先匹配物理 adapter。
+
 ## 0.6.4 — 2026-09-15
 
 - Launching the App shortcut again signals the existing instance to show its home instead of silently exiting. Hidden, minimized and Desktop-mode windows are restored without creating a second UI or Collector.

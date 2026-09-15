@@ -98,7 +98,7 @@ Leave a name blank to use device information. Hover over a field to see its auto
 SPD numbers identify sensor addresses, not physical slots. Installed slots are reported separately; assign a slot name only after confirming its sensor.|SPD 编号代表传感器地址，并非实体插槽。已安装插槽单独显示；确认对应关系后再命名。|SPD 編號代表感測器位址，並非實體插槽。已安裝插槽單獨顯示；確認對應關係後再命名。
 Changes save automatically.|更改自动保存。|變更自動儲存。
 About Pulse|关于 Pulse|關於 Pulse
-Version 0.6.4 · Marck Wong|版本 0.6.4 · Marck Wong|版本 0.6.4 · Marck Wong
+Version 0.6.5 · Marck Wong|版本 0.6.5 · Marck Wong|版本 0.6.5 · Marck Wong
 Sensors by LibreHardwareMonitor. Shared driver by PawnIO.|传感器：LibreHardwareMonitor。共享驱动：PawnIO。|感測器：LibreHardwareMonitor。共用驅動程式：PawnIO。
 Language|语言 / Language|語言 / Language
 Minimize|最小化|最小化
@@ -238,3 +238,8 @@ Done|完成|完成
 Return to App|返回 App|返回 App
 
 Select Edit Desktop, then move or resize the panel. Lock it directly on the desktop.|选择编辑桌面，再移动或调整面板大小。在桌面面板上直接锁定。|選擇編輯桌面，再移動或調整面板大小。在桌面面板上直接鎖定。
+
+LAN Link Speed|LAN 连接速率|LAN 連線速率
+Wi-Fi Link Speed|Wi-Fi 连接速率|Wi-Fi 連線速率
+Traffic adapter|流量网卡|流量網卡
+LAN and Wi-Fi link speeds update independently. Download and upload refer to the traffic adapter. Link speed is not Internet speed.|LAN 和 Wi-Fi 连接速率独立更新。上下行属于流量网卡；连接速率不是互联网速度。|LAN 和 Wi-Fi 連線速率獨立更新。上下行屬於流量網卡；連線速率不是網際網路速度。

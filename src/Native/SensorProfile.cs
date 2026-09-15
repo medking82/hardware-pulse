@@ -130,6 +130,20 @@ namespace HardwarePulse {
                     if(sensor!=null)result.values[direction[0]]=sensor.value.Value;
                 }
             }
+            // Connection rates are independent of the adapter carrying the most traffic.
+            foreach(string kind in new[]{"Ethernet","Wi-Fi"}){
+                var link=(raw.networkLinks??new NetworkLink[0]).Where(n=>n!=null&&n.connectionType==kind&&n.physical!=false)
+                    .OrderByDescending(n=>n.physical==true).ThenByDescending(n=>n.connected).ThenBy(n=>n.hardwareId,StringComparer.Ordinal).FirstOrDefault();
+                if(link==null)continue;
+                string key=kind=="Wi-Fi"?"wifiLink":"lanLink";
+                if(result.available!=null)result.available[key]=true;
+                if(!link.connected)result.values[key]=0;
+                else if(link.bitsPerSecond>0)result.values[key]=link.bitsPerSecond.Value;
+                if(kind=="Wi-Fi"&&link.connected&&link.signalPercent>=0&&link.signalPercent<=100){
+                    result.values["wifiSignal"]=link.signalPercent.Value;
+                    if(result.available!=null)result.available["wifiSignal"]=true;
+                }
+            }
             result.state="LIVE";result.identity=raw.pid+":"+raw.sequence;return result;
         }
     }

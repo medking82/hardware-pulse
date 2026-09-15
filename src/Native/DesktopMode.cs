@@ -83,11 +83,16 @@ namespace HardwarePulse {
             var result=new List<DesktopMetric>();
             foreach(var card in cards.Children.Cast<Border>()){
                 string key=(string)card.Tag;
-                if(key=="Network"&&(Available("netDown")||Available("netUp"))){
+                if(key=="Network"&&!Available("lanLink")&&!Available("wifiLink")&&(Available("netDown")||Available("netUp"))){
                     string kind;readings.Latest.names.TryGetValue("netConnection",out kind);double link,signal;
                     string value=readings.Latest.state=="LIVE"&&readings.Latest.values.TryGetValue("netLink",out link)?language.T(NetworkRate.Link(link)):"—";
                     result.Add(new DesktopMetric("netConnection",kind??language.T("Connection"),value,"network"));
                     if(readings.Latest.state=="LIVE"&&readings.Latest.values.TryGetValue("netSignal",out signal))result.Add(new DesktopMetric("netSignal",language.T("Wi-Fi Signal"),signal.ToString("0")+"%","network"));
+                }
+                if(key=="Network")foreach(string connection in new[]{"lanLink","wifiLink","wifiSignal"})if(Available(connection)){
+                    double value;string display="—";
+                    if(readings.Latest.state=="LIVE"&&readings.Latest.values.TryGetValue(connection,out value))display=connection=="wifiSignal"?value.ToString("0")+"%":language.T(NetworkRate.Link(value));
+                    result.Add(new DesktopMetric(connection,language.T(connection=="lanLink"?"LAN Link Speed":connection=="wifiLink"?"Wi-Fi Link Speed":"Wi-Fi Signal"),display,"network"));
                 }
                 if(key=="CPU"&&(Available("cpu")||Available("cpuLoad")))result.Add(new DesktopMetric(key,language.T(key),DesktopProcessor("cpu","cpuLoad"),"cpu"));
                 if(key=="GPU"&&(Available("gpu")||Available("gpuLoad")))result.Add(new DesktopMetric(key,language.T(key),DesktopProcessor("gpu","gpuLoad"),"gpu"));
