@@ -610,3 +610,36 @@ passed on Ubuntu x64 and native ARM64 at
 [Linux adapter CI](https://github.com/medking82/hardware-pulse/actions/runs/34976314145).
 The complete Windows `Validate.ps1 -ModernCore` regression also passed. Physical
 NIC/Wi-Fi coverage and production polling overhead remain unmeasured.
+## Run the Linux headless probe
+
+The prototype host `src/Hosts/LinuxProbe` composes the Linux CPU/RAM and optional
+Network adapters through separate Core ReadingSessions. It collects a baseline,
+waits one second, prints one JSON snapshot, then exits. No background service,
+settings writes, auto-start, WPF dependency or privileged access is introduced.
+
+On Linux with the .NET 10 SDK, from the repository root:
+
+```sh
+dotnet build src/Hosts/LinuxProbe/Pulse.Linux.Probe.csproj -c Release
+dotnet src/Hosts/LinuxProbe/bin/Release/net10.0/Pulse.Linux.Probe.dll
+dotnet src/Hosts/LinuxProbe/bin/Release/net10.0/Pulse.Linux.Probe.dll --interface eth0
+```
+
+Replace `eth0` with the desired interface's exact name. Omitting it skips Network
+rather than choosing or summing interfaces. `--help` describes usage and exits
+without reading procfs. Exit codes are 0 for all requested metrics available,
+2 for invalid arguments, 3 for a partial/unavailable snapshot, and 4 for a non-Linux
+OS. Partial results are still emitted as JSON, with each source's error retained.
+
+The schema-1 diagnostic envelope includes process architecture, explicit units,
+Core readings and a `complete` flag. CPU load is percent, RAM used/total is GiB,
+and network throughput is bytes/second. This is an experimental diagnostic
+contract, not the Windows collector wire format. Unsupported temperature/fan/link
+speed metrics are omitted. Source timestamps are wall-clock observations;
+network rate calculations use their own monotonic clock.
+
+The workflow builds the host and runs `scripts/test_linux_probe.py` against the
+actual executable on both Linux architectures, covering JSON shape, live CPU/RAM,
+loopback selection, missing-interface partial success, help and argument errors.
+This is a framework-dependent CLI prototype, not a Linux desktop App/installer;
+Windows remains the published product. No raw host snapshots are committed.
