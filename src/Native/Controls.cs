@@ -57,6 +57,7 @@ namespace HardwarePulse {
             ApplySettingsPresentation();
         }
         void ApplySettingsPresentation(){
+            UpdateSettingsTabs();
             var page=Control<ScrollViewer>("SettingsPage");page.FontSize=Math.Max(14,Window.FontSize);Control<ResponsivePanel>("SettingsSections").MinimumColumnWidth=350*page.FontSize/14;
             page.Background=SystemParameters.HighContrast?SystemColors.WindowBrush:Brush(light?"#F4F6F8":"#202831");
             Control<Border>("SettingsToolbar").Background=page.Background;

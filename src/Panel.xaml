@@ -310,6 +310,11 @@
             <DockPanel><TextBlock x:Name="DesktopSpacingValue" DockPanel.Dock="Right" /><TextBlock Text="Row Spacing" /></DockPanel>
             <Slider x:Name="DesktopSpacing" Minimum="4" Maximum="40" TickFrequency="1" IsSnapToTickEnabled="True" AutomationProperties.Name="Row Spacing" Margin="0,8,0,12" />
             <CheckBox x:Name="DesktopAutoContrast" Content="Auto Contrast" Margin="0,0,0,8" />
+            <DockPanel><TextBlock x:Name="DesktopBackgroundOpacityValue" DockPanel.Dock="Right" /><TextBlock Text="Desktop background opacity" /></DockPanel>
+            <Slider x:Name="DesktopBackgroundOpacity" Minimum="0" Maximum="100" TickFrequency="1" IsSnapToTickEnabled="True" AutomationProperties.Name="Desktop background opacity" Margin="0,8,0,8" />
+            <DockPanel><TextBlock x:Name="DesktopOverlayOpacityValue" DockPanel.Dock="Right" /><TextBlock Text="Topmost background opacity" /></DockPanel>
+            <Slider x:Name="DesktopOverlayOpacity" Minimum="30" Maximum="90" TickFrequency="1" IsSnapToTickEnabled="True" AutomationProperties.Name="Topmost background opacity" Margin="0,8,0,8" />
+            <TextBlock Text="Background opacity is separate from text. Topmost uses its own background setting. Desktop blur is not available." TextWrapping="Wrap" Margin="0,0,0,12" />
             <TextBlock Text="Adapts text and a single rounded backdrop to keep readings clear." FontSize="11" Margin="0,0,0,12" />
             <DockPanel><TextBlock x:Name="DesktopTextOpacityValue" DockPanel.Dock="Right" /><TextBlock Text="Text Opacity" /></DockPanel>
             <Slider x:Name="DesktopTextOpacity" Minimum="30" Maximum="100" TickFrequency="1" IsSnapToTickEnabled="True" AutomationProperties.Name="Text Opacity" Margin="0,8,0,8" />

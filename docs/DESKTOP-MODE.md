@@ -7,6 +7,15 @@ or install a Wallpaper Engine plugin.
 
 ## Use
 
+Settings → Desktop contains layout, appearance and reading visibility/order on
+one page, adapting to multiple columns in a wide window. Ordinary Desktop and
+topmost background opacity are separate from text opacity. Topmost defaults to
+a light smoke tint at 55%, dark opaque text and no text blur. Its locked backdrop
+fits content while saved window geometry remains available for editing.
+This is alpha transparency, not a backdrop blur effect. Desktop blur strength is
+not implemented; App glass uses Windows-controlled blur through its existing
+Solid Background option.
+
 `Always on top` is optional and off by default. The normal layer remains above
 the wallpaper / Wallpaper Engine and below ordinary apps. Enabling the option
 places the same panel above apps without creating another Collector. Locked

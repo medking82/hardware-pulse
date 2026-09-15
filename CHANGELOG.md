@@ -2,6 +2,12 @@
 
 English first; 简体中文 follows each version. Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
+## Unreleased
+
+- Group settings by General, App Appearance, Desktop, App Cards, FPS and AI Quota, with wrapping navigation and responsive columns. Desktop layout, appearance and readings now share one page.
+- Give topmost panels a lighter smoke background (55% default), opaque dark text and independent background opacity; trim the locked backdrop to content without changing saved geometry.
+- Add separate ordinary Desktop background opacity. Keep regular Desktop preferences and click-through behavior; actual Desktop blur remains unavailable.
+
 ## 0.6.7 — 2026-09-15
 
 - Optional Desktop Always on top: default wallpaper-level behavior is preserved; locked panels pass mouse input through, editing retains no-activate behavior, and disabling the option returns to the desktop layer.

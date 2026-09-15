@@ -245,3 +245,7 @@ Traffic adapter|流量网卡|流量網卡
 LAN and Wi-Fi link speeds update independently. Download and upload refer to the traffic adapter. Link speed is not Internet speed.|LAN 和 Wi-Fi 连接速率独立更新。上下行属于流量网卡；连接速率不是互联网速度。|LAN 和 Wi-Fi 連線速率獨立更新。上下行屬於流量網卡；連線速率不是網際網路速度。
 Always on top|置顶显示|置頂顯示
 Show above apps. Locked panels let mouse input pass through. Exclusive fullscreen may hide the panel.|显示在 App 上方；锁定时鼠标可穿透。独占全屏可能遮住面板。|顯示在 App 上方；鎖定時滑鼠可穿透。獨佔全螢幕可能遮住面板。
+Topmost background opacity|置顶背景不透明度|置頂背景不透明度
+Desktop background opacity|桌面背景不透明度|桌面背景不透明度
+Background opacity is separate from text. Topmost uses its own background setting. Desktop blur is not available.|背景与文字不透明度独立。置顶背景单独设置。桌面暂不支持模糊。|背景與文字不透明度獨立。置頂背景單獨設定。桌面暫不支援模糊。
+Selected|已选择|已選擇

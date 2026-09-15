@@ -53,6 +53,10 @@ try {
  foreach($item in $shell.Window.FindName('LanguagePicker').Items){if($item.Tag -eq 'zh-CN'){$shell.Window.FindName('LanguagePicker').SelectedItem=$item}};Capture 'settings-zh.png'
  Assert ($shell.Window.FindName('HardwareReadingColors').Foreground.Color.R -gt 100) 'Dark settings radio foreground remains black'
  $settings.Data['background']='#FFFFFF';InvokeShell ApplyMaterial;Capture 'settings-light.png';Assert ($shell.Window.FindName('HardwareReadingColors').Foreground.Color.R -lt 100) 'Light settings radio foreground remains white'
+ $shell.GetType().GetMethod('SelectSettingsCategory',$flags).Invoke($shell,@('Desktop'));Pump
+ foreach($name in @('DesktopSection','DesktopAppearanceSection')){Assert ($shell.Window.FindName($name).IsVisible) 'Desktop controls split across categories'}
+ Assert (-not $shell.Window.FindName('AppearanceSection').IsVisible) 'App appearance leaked into Desktop category'
+ foreach($size in @(340,1200)){$shell.Window.Width=$size;$shell.Window.Height=900;Capture ('desktop-settings-'+$size+'.png')}
  $shell.ShowSettings($false);Toggle 'DesktopEnabled' $true
  $desktop=$shell.GetType().GetField('desktop',$flags).GetValue($shell);Assert (-not $desktop.Locked) 'Desktop enable did not enter editor'
  $controls=$desktop.Content.Child.Children[0].Children[1].Children
@@ -73,9 +77,23 @@ try {
   $reloaded=[HardwarePulse.Settings]::new((Join-Path $state 'widget-settings.json'));Assert ($reloaded.Flag('desktopAlwaysOnTop')) 'Topmost preference not persisted'
   $style=[SettingsQuotaFixture]::Style($handle,-20).ToInt64()
   Assert (($style -band 8) -ne 0 -and ($style -band 32) -ne 0 -and ($style -band 0x08000000) -ne 0 -and ($style -band 0x80000) -ne 0) ('Topmost locked style: 0x{0:X}' -f $style)
+  $surface=$desktop.Content;$stack=$desktop.GetType().GetField('stack',$flags).GetValue($desktop)
+  Assert ($surface.Background.Color.R -eq 245 -and $surface.Background.Color.A -eq 140 -and $stack.Opacity -eq 1 -and $null -eq $stack.Effect) 'Topmost smoke background or sharp opaque text incorrect'
+  Assert ($surface.VerticalAlignment -eq 'Top') 'Locked topmost background stretches into empty space'
+  $shell.Window.FindName('DesktopOverlayOpacity').Value=65
+  Assert ($surface.Background.Color.A -eq 166) 'Topmost opacity slider not applied'
+  Settle
+  foreach($background in @('White','Black')){
+   $visual=[Windows.Media.DrawingVisual]::new();$dc=$visual.RenderOpen();$rect=[Windows.Rect]::new(0,0,$desktop.ActualWidth,$desktop.ActualHeight)
+   $dc.DrawRectangle([Windows.Media.Brushes]::$background,$null,$rect);$dc.DrawRectangle([Windows.Media.VisualBrush]::new($desktop.Content),$null,$rect);$dc.Close()
+   $bitmap=[Windows.Media.Imaging.RenderTargetBitmap]::new([int]$desktop.ActualWidth,[int]$desktop.ActualHeight,96,96,[Windows.Media.PixelFormats]::Pbgra32);$bitmap.Render($visual)
+   $png=[Windows.Media.Imaging.PngBitmapEncoder]::new();$png.Frames.Add([Windows.Media.Imaging.BitmapFrame]::Create($bitmap));$stream=[IO.File]::Create((Join-Path $state ('topmost-'+$background+'.png')));try{$png.Save($stream)}finally{$stream.Dispose()}
+  }
   Toggle 'DesktopLocked' $false;$style=[SettingsQuotaFixture]::Style($handle,-20).ToInt64()
   Assert (($style -band 8) -ne 0 -and ($style -band 32) -eq 0 -and ($style -band 0x08000000) -ne 0) 'Editing must retain topmost/no-activate but accept mouse input'
   Toggle 'DesktopAlwaysOnTop' $false;Toggle 'DesktopLocked' $true
+  Assert ($surface.VerticalAlignment -eq 'Stretch') 'Desktop geometry not restored'
+  $shell.Window.FindName('DesktopBackgroundOpacity').Value=40;Assert ($surface.Background.Color.A -eq 102) 'Desktop background opacity did not apply'
   Assert (([SettingsQuotaFixture]::Style($handle,-20).ToInt64() -band 8) -eq 0) 'Returning to Desktop retained topmost'
  } finally {$layerField.SetValue($desktop,$null);$nativeLayer.Dispose()}
  Toggle 'DesktopAppIconColors' $false;$shell.Save();Assert (-not $settings.Flag('desktopAppIconColors',$true)) 'Explicit icon override not retained'

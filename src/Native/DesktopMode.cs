@@ -24,10 +24,14 @@ namespace HardwarePulse {
             Control<CheckBox>("DesktopEnabled").IsChecked=DesktopEnabled;
             Control<CheckBox>("DesktopAlwaysOnTop").IsChecked=settings.Flag("desktopAlwaysOnTop");
             Control<CheckBox>("DesktopAlwaysOnTop").Click+=delegate{settings.Data["desktopAlwaysOnTop"]=Checked("DesktopAlwaysOnTop");UpdateDesktop();QueueSave();};
+            Control<Slider>("DesktopOverlayOpacity").Value=settings.Number("desktopOverlayOpacity",55,30,90);
+            Control<Slider>("DesktopOverlayOpacity").ValueChanged+=delegate{settings.Data["desktopOverlayOpacity"]=Control<Slider>("DesktopOverlayOpacity").Value;UpdateDesktop();QueueSave();};
             Control<CheckBox>("DesktopLocked").IsChecked=settings.Flag("desktopLocked",true);
             Control<Slider>("DesktopFontSize").Value=settings.Number("desktopFontSize",16,10,32);
             Control<Slider>("DesktopSpacing").Value=settings.Number("desktopSpacing",14,4,40);
             Control<CheckBox>("DesktopAutoContrast").IsChecked=settings.Flag("desktopAutoContrast",!settings.Data.ContainsKey("desktopColor"));
+            Control<Slider>("DesktopBackgroundOpacity").Value=settings.Number("desktopBackgroundOpacity",Checked("DesktopAutoContrast")?86:0,0,100);
+            Control<Slider>("DesktopBackgroundOpacity").ValueChanged+=delegate{if(syncingDesktopOpacity)return;settings.Data["desktopBackgroundOpacity"]=Control<Slider>("DesktopBackgroundOpacity").Value;UpdateDesktop();QueueSave();};
             Control<Slider>("DesktopTextOpacity").Value=settings.Number("desktopTextOpacity",100,30,100);
             Control<CheckBox>("DesktopAutoContrast").Click+=delegate{settings.Data["desktopAutoContrast"]=Checked("DesktopAutoContrast");UpdateDesktop();QueueSave();};
             Control<Slider>("DesktopTextOpacity").ValueChanged+=delegate{if(syncingDesktopOpacity)return;settings.Data["desktopTextOpacity"]=Control<Slider>("DesktopTextOpacity").Value;UpdateDesktop();QueueSave();};
@@ -64,6 +68,11 @@ namespace HardwarePulse {
             menu.Opening+=delegate{trayDesktop.Checked=DesktopEnabled;trayDesktopLock.Visible=DesktopEnabled&&!settings.Flag("desktopLocked",true);trayDesktopEdit.Enabled=DesktopEnabled;};
         }
         void UpdateDesktopLabels(){
+            var desktopBackground=Control<Slider>("DesktopBackgroundOpacity");
+            syncingDesktopOpacity=true;try{desktopBackground.Value=settings.Number("desktopBackgroundOpacity",Checked("DesktopAutoContrast")?86:0,0,100);}finally{syncingDesktopOpacity=false;}
+            desktopBackground.IsEnabled=!settings.Flag("desktopAlwaysOnTop");Text("DesktopBackgroundOpacityValue",Math.Round(desktopBackground.Value)+"%");
+            var overlaySlider=Control<Slider>("DesktopOverlayOpacity");overlaySlider.IsEnabled=settings.Flag("desktopAlwaysOnTop");
+            Text("DesktopOverlayOpacityValue",Math.Round(overlaySlider.Value)+"%");
             syncingDesktopOpacity=true;try{var slider=Control<Slider>("DesktopTextOpacity");slider.Minimum=Checked("DesktopAutoContrast")?90:30;slider.Value=settings.Number("desktopTextOpacity",100,30,100);}finally{syncingDesktopOpacity=false;}
             Control<Button>("DesktopColor").Content=DesktopColor();
             Control<Button>("DesktopColor").IsEnabled=!Checked("DesktopAutoContrast");
@@ -127,10 +136,11 @@ namespace HardwarePulse {
                 desktop.Left=settings.Number("desktopLeft",SystemParameters.WorkArea.Left+40,-100000,100000);desktop.Top=settings.Number("desktopTop",SystemParameters.WorkArea.Top+100,-100000,100000);
                 desktop.PositionSaved+=SaveDesktopPosition;
             }
-            string effectiveColor=desktop.ResolveColor(Checked("DesktopAutoContrast"),DesktopColor());
+            bool overlay=settings.Flag("desktopAlwaysOnTop")&&!SystemParameters.HighContrast;
+            string effectiveColor=overlay?"#101820":desktop.ResolveColor(Checked("DesktopAutoContrast"),DesktopColor());
             desktop.SetEditorLabels(language.T("Drag the center to move. Drag any edge or corner to resize."),language.T("Lock Desktop"),language.T("Return to App"));
             desktop.Render(DesktopMetrics(),Control<Slider>("DesktopFontSize").Value,Control<Slider>("DesktopSpacing").Value,effectiveColor,settings.Flag("desktopLocked",true),(int)settings.Number("desktopColumns",0,0,3),name=>DesktopIconColor(name,effectiveColor));
-            desktop.SetTextOpacity(Control<Slider>("DesktopTextOpacity").Value,Checked("DesktopAutoContrast"));
+            desktop.SetTextOpacity(Control<Slider>("DesktopTextOpacity").Value,Checked("DesktopAutoContrast"),overlay,Control<Slider>("DesktopOverlayOpacity").Value,Control<Slider>("DesktopBackgroundOpacity").Value);
             if(!desktop.IsVisible)desktop.Show();
             desktop.SetAlwaysOnTop(settings.Flag("desktopAlwaysOnTop"));
             desktop.RefreshLayer();
