@@ -419,3 +419,26 @@ counts and CPU/RAM/network availability counts so an idle or missing source
 cannot silently be interpreted as equivalent work. CI has no arbitrary CPU or
 RAM pass threshold: these are descriptive baselines on hosted runners, not a
 gaming overlay or long-running resource guarantee.
+
+### First native shared-window baseline
+
+Commit `e0ce91ac741a2bd254ac521d8bd63b6aa25e4d1e`,
+[run 35024372783](https://github.com/medking82/hardware-pulse/actions/runs/35024372783)
+(2026-09-16 local) passed all six jobs and four extracted package launches.
+Every measured poll had CPU, RAM and selected-network readings available.
+Intervals lasted 60.02–61.00 seconds, with 60–61 polls.
+
+| Host / scenario | Logical CPUs | CPU % of machine | Working set start → end MiB | Allocated MiB | Gen0 / Gen1 / Gen2 |
+| --- | ---: | ---: | ---: | ---: | --- |
+| Linux x64 / live Xvfb | 4 | 0.565 | 176.89 → 187.28 | 3.384 | 19 / 19 / 19 |
+| Linux ARM64 / live Xvfb | 4 | 0.593 | 183.23 → 194.28 | 3.317 | 18 / 18 / 18 |
+| macOS Intel / live | 4 | 0.728 | 91.46 → 91.56 | 1.024 | 0 / 0 / 0 |
+| macOS ARM64 / live | 3 | 0.653 | 158.67 → 164.27 | 1.035 | 0 / 0 / 0 |
+| Windows x64 / static demo | 4 | 0.038 | 86.69 → 85.60 | 0.084 | 0 / 0 / 0 |
+| Windows ARM64 / static demo | 4 | 0.083 | 94.89 → 68.09 | 0.087 | 0 / 0 / 0 |
+
+These are single hosted-runner observations, not paired optimization results.
+The Linux full-GC frequency and resident-memory increase need attribution before
+changing polling or rendering policy. The observer does not force GC; this result
+alone does not identify the caller or prove a leak. Windows demo costs exclude
+live hardware polling and must not replace the installed WPF baseline above.
