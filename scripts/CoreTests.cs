@@ -5,6 +5,18 @@ class CoreTests {
     static void Check(bool ok,string message){if(!ok)throw new Exception(message);}
     static byte[] Frame(int width,int height,Func<int,int,byte> shade){var data=new byte[width*height*4];for(int y=0;y<height;y++)for(int x=0;x<width;x++){int i=(y*width+x)*4;data[i]=data[i+1]=data[i+2]=shade(x,y);data[i+3]=255;}return data;}
     static void Main(){
+        Check(typeof(MaterialPolicy).Assembly==typeof(Reading).Assembly,"Material policy still depends on platform assembly");
+        var lockedMaterial=new MaterialPolicy(20,true,false,false,false);
+        Check(lockedMaterial.Clear&&lockedMaterial.EffectiveOpacity(true)==.05,"Locked monitor opacity changed");
+        var settingsMaterial=new MaterialPolicy(20,true,true,false,false);
+        var unlockedMaterial=new MaterialPolicy(20,false,false,false,false);
+        Check(!settingsMaterial.Clear&&settingsMaterial.EffectiveOpacity(true)==.2&&unlockedMaterial.EffectiveOpacity(true)==.2,"Settings/unlock lost saved opacity");
+        var zeroMaterial=new MaterialPolicy(0,false,false,false,false);
+        Check(zeroMaterial.Clear&&zeroMaterial.EffectiveOpacity(true)==0,"Zero opacity lost transparency");
+        Check(lockedMaterial.EffectiveOpacity(false)==1&&!lockedMaterial.CanAdjustOpacity(false),"Unsupported backdrop lost readable fallback");
+        foreach(var material in new[]{new MaterialPolicy(0,true,false,true,false),new MaterialPolicy(0,true,false,false,true)})
+            Check(material.Solid&&material.EffectiveOpacity(true)==1&&!material.CanAdjustOpacity(true),"Solid/high contrast must override transparent lock preferences");
+        Console.WriteLine("PASS portable material policy: lock/settings/unlock, zero opacity and solid/high-contrast/unsupported fallback");
         CoreQuotaSessionTests.Run();
         Check(typeof(QuotaReading).Assembly==typeof(ContrastAnalysis).Assembly&&typeof(NetworkRate).Assembly==typeof(ContrastAnalysis).Assembly,"Quota/network boundary depends on the app");
         var quota=new QuotaReading();

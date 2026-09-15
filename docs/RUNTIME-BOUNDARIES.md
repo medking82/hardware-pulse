@@ -12,7 +12,7 @@ The native runtime has these existing boundaries:
 | Startup / SchedulerStore | Validate ownership and operate the app's scheduled tasks | Startup tests and isolated scheduler integration |
 | UpdateCheck | Validate/download installer assets and start installation | Updater verification tests |
 | UpdateCoordinator | Version selection, check schedule, operation state, retries and disposed-result handling | Headless UpdateCoordinatorTests |
-| MaterialPolicy | Derive effective opacity and backdrop flags from saved preferences and current display state | Headless material tests and WPF lock/settings roundtrip |
+| Pulse.Core / MaterialPolicy | Derive effective opacity and backdrop flags from saved preferences and current display state | Shared Core tests, headless material tests and WPF lock/settings roundtrip |
 | Pulse.Core / ContrastAnalysis | Bounded luminance analysis, temporal hysteresis and local region color/edge confidence | Headless CoreTests; no WPF, Win32 or capture dependencies |
 | LocalContrast | Windows capture exclusion, reusable GDI buffers and WPF mask creation | Actual capture, resize, dispose/resume and Screenshot mode integration |
 
@@ -280,3 +280,17 @@ device identifiers. Differential mapping and full Validate remain the downstream
 regression checks. Missing-WMI failure injection and other Windows devices are not
 covered by this local smoke test. This source extraction adds no worker/timer and
 does not establish a measurable performance improvement or additional OS support.
+
+## Portable material policy
+
+From baseline `d78e9c1`, MaterialPolicy lives in Core unchanged. It accepts saved
+opacity, lock/settings state, solid/high-contrast preferences and backdrop support;
+it returns effective opacity and presentation flags. Windows Controls still owns
+capability detection, brushes, backdrop calls and settings persistence. The policy
+does not implement blur or desktop rendering on another OS.
+
+CoreTests exercise the same lock/settings/unlock, zero-opacity and readable fallback
+rules on Framework and .NET 10. Test-MaterialPolicy now references the real Core DLL
+while retaining the existing settings/unknown-field roundtrip assertions. This is
+a source-only relocation with no new allocations beyond existing policy objects,
+no settings migration and no changed visual behavior. Rollback is one source commit.
