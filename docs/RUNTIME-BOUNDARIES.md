@@ -677,3 +677,10 @@ session, and performs 1,000 native acquire/read/release cycles, checking errors.
 The macOS adapter workflow checks native process architecture on Intel and Apple
 Silicon runners. Windows App packaging and the published installer are unchanged;
 this library is not a complete macOS App or signed/notarized distribution.
+macOS CPU validation (2026-09-15): native Intel x64 and Apple Silicon ARM64
+fixtures, live Core session and 1,000 Mach acquire/read/release cycles passed at
+`6700ecb21b5aee83909d6884d89ef041bcdaf0ae` in
+[CI run 34978438192](https://github.com/medking82/hardware-pulse/actions/runs/34978438192).
+Windows fixture execution and full `Validate.ps1 -ModernCore` passed. This is
+real system API coverage on hosted macOS runners; retained memory, long-duration
+polling cost, RAM and desktop UI have not been validated by this CPU-only module.
