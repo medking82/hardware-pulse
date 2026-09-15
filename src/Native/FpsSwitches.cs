@@ -10,7 +10,7 @@ namespace HardwarePulse {
     public sealed partial class Shell {
         Forms.ToolStripMenuItem trayFps;
         void WireFpsSwitches(){
-            Control<ContentControl>("FpsQuickIcon").Content=Icon("fps",16,"#A5E7D5");
+            Control<ContentControl>("FpsQuickIcon").Content=Icon("fps",16,"#9EDFD3");
             Control<CheckBox>("FpsQuick").Click+=delegate{SetFpsEnabled(Checked("FpsQuick"));};
             trayFps=new Forms.ToolStripMenuItem("FPS",null,delegate{SetFpsEnabled(!Checked("OverlayEnabled")||!Checked("OverlayFps"));});
             var trayIcon=Icon("fps",20,"#A5E7D5");trayIcon.Measure(new Size(20,20));trayIcon.Arrange(new Rect(0,0,20,20));

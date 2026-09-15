@@ -9,7 +9,7 @@ using System.Windows;
 [assembly:AssemblyProduct("Hardware Pulse")]
 [assembly:AssemblyCompany("Marck Wong")]
 [assembly:AssemblyCopyright("Copyright 2026 Marck Wong")]
-[assembly:AssemblyVersion("0.6.12.0")]
+[assembly:AssemblyVersion("0.6.13.0")]
 namespace HardwarePulse {
     internal static class Program {
         [STAThread] static int Main(string[] args){

@@ -66,6 +66,10 @@ try {
  $setFps=$shell.GetType().GetMethod('SetDesktopFps',$flags);$sample=[FrameMetrics]::new();$sample.Ready=$true;$sample.Current=144;$sample.Average=128;$sample.Minimum=60;$sample.Status='Live'
  $setFps.Invoke($shell,@($sample));InvokeShell UpdateDesktop
  $fpsRows=$desktop.GetType().GetField('rows',$flags).GetValue($desktop)
+ Assert ($fpsRows['fps'].IconColor -eq '#9EDFD3') 'FPS SVG does not use Pulse mint'
+ Toggle 'DesktopAppIconColors' $false;InvokeShell UpdateDesktop
+ Assert ($fpsRows['fps'].IconColor -ne '#9EDFD3') 'FPS SVG ignores text color mode'
+ Toggle 'DesktopAppIconColors' $true;InvokeShell UpdateDesktop
  Assert ($fpsRows['fps'].Value.Text.Replace([string][char]0x2007,'') -eq '144 NOW  128 AVG  60 MIN' -and $fpsRows['fps'].Value.TextWrapping -eq 'NoWrap') 'FPS statistics are missing or wrap'
  $slotWidth=$fpsRows['fps'].Value.ActualWidth
  foreach($fps in @(99,9,100)){$sample.Current=$fps;$setFps.Invoke($shell,@($sample));InvokeShell UpdateDesktop;$desktop.UpdateLayout();Assert ([Math]::Abs($fpsRows['fps'].Value.ActualWidth-$slotWidth) -lt 1 -and $fpsRows['fps'].Value.TextAlignment -eq 'Right') 'FPS digit-count changes move the numeric slot'}

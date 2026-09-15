@@ -2,6 +2,14 @@
 
 English first; 简体中文 follows each version. Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
+## 0.6.13 — 2026-09-15
+
+- Give FPS its own Pulse mint SVG color (#9EDFD3) in the App shortcut and Desktop App-color mode. Local contrast darkens mint over bright backgrounds; text-color mode follows the adaptive text instead.
+- Refine whole-label contrast selection and add a subtle, zero-offset opposite-color edge only where local backgrounds contain both light and dark regions. Separate enter/exit thresholds keep the edge from flickering near the boundary.
+- Clear adaptive edges when local contrast is disabled or capture becomes unavailable. Screenshot mode retains the current appearance.
+
+FPS SVG 使用 Pulse 薄荷青；Local Contrast 保留色相并调整亮度。复杂背景下加入细反色轮廓，简单背景保持清晰字形，无需增加面板背景。
+
 ## 0.6.12 — 2026-09-15
 
 - Keep Desktop FPS in one row with small NOW / AVG / MIN badges, three reserved tabular digit positions per reading, and a single dash when frames are unavailable. Minimum remains the rolling 60-second minimum, not 1% Low.
