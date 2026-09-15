@@ -6,6 +6,7 @@ on:
     paths:
       - 'src/Core/**'
       - 'src/Adapters/Common/**'
+      - 'scripts/FileCodexQuotaTests.cs'
       - 'src/Adapters/Linux/**'
       - 'scripts/LinuxAdapterTests/**'
       - 'src/Hosts/LinuxProbe/**'
@@ -16,6 +17,7 @@ on:
     paths:
       - 'src/Core/**'
       - 'src/Adapters/Common/**'
+      - 'scripts/FileCodexQuotaTests.cs'
       - 'src/Adapters/Linux/**'
       - 'scripts/LinuxAdapterTests/**'
       - 'src/Hosts/LinuxProbe/**'

@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - 'src/Core/**'
+      - 'src/Adapters/Common/**'
+      - 'scripts/FileCodexQuotaTests.cs'
       - 'src/Adapters/Mac/**'
       - 'scripts/MacAdapterTests/**'
       - 'src/Hosts/MacProbe/**'
@@ -14,6 +16,8 @@ on:
   pull_request:
     paths:
       - 'src/Core/**'
+      - 'src/Adapters/Common/**'
+      - 'scripts/FileCodexQuotaTests.cs'
       - 'src/Adapters/Mac/**'
       - 'scripts/MacAdapterTests/**'
       - 'src/Hosts/MacProbe/**'

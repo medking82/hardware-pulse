@@ -8,5 +8,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/Adapters/Linux/Pulse.Adapters.Linux.csproj" />
+    <Compile Include="../FileCodexQuotaTests.cs" Link="FileCodexQuotaTests.cs" />
   </ItemGroup>
 </Project>

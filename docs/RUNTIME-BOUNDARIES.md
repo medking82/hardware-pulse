@@ -870,3 +870,24 @@ CPU/RAM/Network assertions and unchanged Probe CLI contracts in
 [run 34986654557](https://github.com/medking82/hardware-pulse/actions/runs/34986654557).
 Local fixtures and full Windows native validation also passed. No actual login
 or external quota endpoint was accessed during validation.
+
+## macOS Codex file-login adapter
+
+`MacCodexQuota` now provides the same file-login capability as Linux. Both
+platform entry points guard their default constructor by OS, then delegate to
+`Adapters/Common/Modern/FileCodexQuota`. That owner contains the single bounded
+file reader, JSON graph conversion, fixed-endpoint HTTP client and disposal
+implementation. Paths follow CODEX_HOME or the user's .codex directory; existing
+Linux public construction and Read/Dispose behavior are retained.
+
+Modern IO source lives below Common/Modern and is included by the SDK project;
+the Framework Windows build explicitly compiles only Common's top-level flow
+source. Consequently Windows keeps its existing credential/HTTP implementation,
+without adding System.Text.Json or HttpClient to the installed Framework path.
+The existing Linux IO fixtures are now one shared source compiled into both
+platform suites and executed through each real platform adapter entry point.
+
+This supports read-only auth.json credentials on macOS, not Keychain-only login,
+token refresh or login UI. Neither CLI automatically opts into account access.
+Host composition, real endpoint/account validation, desktop UI and signed
+distribution remain required steps toward complete cross-platform releases.
