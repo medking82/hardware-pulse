@@ -7,5 +7,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../Core/Pulse.Core.csproj" />
+    <ProjectReference Include="../Common/Pulse.Adapters.Common.csproj" />
   </ItemGroup>
 </Project>

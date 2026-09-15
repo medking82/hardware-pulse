@@ -838,3 +838,28 @@ and native ARM64 in
 Local full validation passed, including existing native quota/session, HTTP
 allowlist and redirect checks. These are synthetic credential/transport tests,
 not verification of a live account or Linux/macOS credential discovery.
+
+## Linux Codex quota IO
+
+`LinuxCodexQuota` supplies the shared Codex flow with a read-only auth.json source
+and a reusable HttpClient. Default construction requires Linux and resolves
+`CODEX_HOME/auth.json`, falling back to the user's `.codex/auth.json`. The
+explicit path/handler constructor supports isolated fixtures without inspecting
+real login state. The host owns adapter disposal and refresh cadence; this
+adapter is not automatically enabled or composed into LinuxProbe.
+
+The request is GET to the fixed Codex usage HTTPS endpoint with the existing
+Bearer and optional account headers. The production handler disables redirects
+and cookies, retains normal certificate validation, and has no token refresh or
+credential writeback. A ten-second linked deadline covers headers and response
+body; caller cancellation propagates while a deadline produces Quota unavailable.
+Login and streamed response input are capped at 1 MiB, JSON depth at 32, and
+UTF-8 BOM is accepted. Decoded dictionaries/lists feed the existing Core decoder.
+Known HTTP status mapping is retained; unexpected exception text is never shown.
+
+Linux adapter fixtures cover synthetic file-to-request-to-decoder composition,
+token/account headers, missing and oversized login, bounded/invalid/deep JSON,
+unknown-length oversized response, redirect status rejection, actual production
+handler flags, timeout, caller cancellation and disposal. They make no external
+HTTP request and never use a real account. Live endpoint/account and keyring-only
+login support are not established by these fixtures. Windows IO remains unchanged.
