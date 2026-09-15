@@ -12,6 +12,8 @@ on:
       - 'scripts/Build-WindowsAdapters.ps1'
       - 'scripts/Test-WindowsAdapters.ps1'
       - 'scripts/WindowsAdapterTests.cs'
+      - 'scripts/WindowsCapabilityProbe.cs'
+      - 'scripts/Test-WindowsCapabilities.ps1'
       - 'scripts/Run-Hidden.ps1'
       - '.github/workflows/windows-adapters.yml'
   pull_request:
@@ -24,6 +26,8 @@ on:
       - 'scripts/Build-WindowsAdapters.ps1'
       - 'scripts/Test-WindowsAdapters.ps1'
       - 'scripts/WindowsAdapterTests.cs'
+      - 'scripts/WindowsCapabilityProbe.cs'
+      - 'scripts/Test-WindowsCapabilities.ps1'
       - 'scripts/Run-Hidden.ps1'
       - '.github/workflows/windows-adapters.yml'
   workflow_dispatch:
@@ -57,3 +61,6 @@ jobs:
       - name: Build and exercise Framework Windows adapters
         shell: pwsh
         run: ./scripts/Test-WindowsAdapters.ps1 -NativeArm64:($env:PULSE_TEST_ARCH -eq 'Arm64')
+      - name: Exercise native capability probe
+        shell: pwsh
+        run: ./scripts/Test-WindowsCapabilities.ps1 -NativeArm64:($env:PULSE_TEST_ARCH -eq 'Arm64')

@@ -902,3 +902,26 @@ six-platform Core/Common checks in
 and Framework Windows adapters in
 [run 34987581239](https://github.com/medking82/hardware-pulse/actions/runs/34987581239).
 Local full Windows validation passed. No real quota account was accessed.
+
+## Windows native capability probe
+
+`scripts/Test-WindowsCapabilities.ps1` builds a Framework probe against the actual
+Core/Windows adapter assemblies and verifies native process architecture, bounded
+PE metadata parsing and a live RAM read. CI runs it on Windows x64 and ARM64;
+the ARM64 launcher explicitly requests a native ARM64 process.
+
+Run `build/adapters/WindowsCapabilityProbe.exe --package build/app` to inspect an
+existing package. Its JSON reports OS/process architecture, RAM availability,
+network interface count, known package PE machine types and PawnIO installation
+indicators. It does not load package binaries, install a driver or elevate.
+No adapter identifiers, personal paths or credential contents are emitted.
+I386 metadata can represent managed AnyCPU; file presence and COFF machine types
+alone do not establish execution or hardware support.
+
+The current Windows build still explicitly targets x64. Local package inspection
+found AMD64 App, LibreHardwareMonitor and PresentMon binaries; Core and Windows
+adapter assemblies report I386 metadata. CPU temperature, fans, game FPS and
+desktop integration are explicitly `not-tested` by this probe. A native ARM64
+App build, dependency selection and real hardware/game verification remain
+necessary before offering an ARM64 installer. This developer probe does not
+change the installed Windows application or its sampling workload.
