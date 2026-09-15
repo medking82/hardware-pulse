@@ -46,7 +46,7 @@ try {
  try{Assert ($probe.Enable()) 'Probe exclusion unavailable';Settle;$visible=$probe.Capture([Windows.Media.Colors]::Transparent);$visible.CopyPixels($pixels,$visible.PixelWidth*4,0);Assert ($pixels[$left] -eq $pixels[$right]) 'Disabling local contrast did not restore overlay capture'}finally{$probe.Dispose()}
  'PASS local contrast: actual capture exclusion, split dark/light background, hysteresis; capture '+$watch.ElapsedMilliseconds+' ms'
  $front.Close()
- $factory=[Func[string,double,string,Windows.FrameworkElement]]{param($name,$size,$color);return [Windows.Controls.Border]::new()}
+ $factory=[Func[string,double,string,Windows.FrameworkElement]]{param($name,$size,$color);$shape=[Windows.Controls.Border]::new();$shape.Width=$shape.Height=$size;$shape.Background=[Windows.Media.BrushConverter]::new().ConvertFromString($color);return $shape}
  $view=[HardwarePulse.DesktopView]::new($factory,$true)
  try{
   $view.Left=150;$view.Top=150;$view.Width=300;$view.Height=150;$view.SizeToContent='Manual';$view.Topmost=$true
@@ -60,5 +60,19 @@ try {
   $visual=[Windows.Media.DrawingVisual]::new();$context=$visual.RenderOpen();$rect=[Windows.Rect]::new(0,0,300,150);$context.DrawRectangle([Windows.Media.VisualBrush]::new($grid),$null,$rect);$context.DrawRectangle([Windows.Media.VisualBrush]::new($view.Content),$null,$rect);$context.Close()
   $image=[Windows.Media.Imaging.RenderTargetBitmap]::new(300,150,96,96,[Windows.Media.PixelFormats]::Pbgra32);$image.Render($visual);$encoder=[Windows.Media.Imaging.PngBitmapEncoder]::new();$encoder.Frames.Add([Windows.Media.Imaging.BitmapFrame]::Create($image));$stream=[IO.File]::Create((Join-Path $PWD 'vendor/local-contrast-preview.png'));try{$encoder.Save($stream)}finally{$stream.Dispose()}
   $view.SetLocalContrast($false);Assert ($rows['demo'].Name.Foreground -is [Windows.Media.SolidColorBrush] -and $null -eq $rows['demo'].Name.Effect) 'Manual foreground/edge not restored'
+  # Give the icon a different background from its adjacent label.
+  $grid.ColumnDefinitions[0].Width=[Windows.GridLength]::new(52);$dark.Background=[Windows.Media.Brushes]::White;$light.Background=[Windows.Media.Brushes]::Black;Settle
+  $metrics[0].Title='CPU';$view.Render($metrics,24,10,'#FFFFFF',$true,1,$null);$view.SetLocalContrast($true);Settle;Settle
+  Assert ($rows['demo'].IconColor -eq '#141414' -and $rows['demo'].Name.Foreground.Color.R -eq 245) 'Icon sampled the label background instead of its own'
+  $dark.Background=[Windows.Media.Brushes]::Black;Settle;Settle
+  Assert ($rows['demo'].IconColor -eq '#F5F5F5') 'Icon did not brighten over a dark background'
+  $stableIcon=$rows['demo'].Icon;Settle;Assert ([object]::ReferenceEquals($stableIcon,$rows['demo'].Icon)) 'Stable icon was recreated every capture'
+  $customPalette=[Func[string,string]]{param($name);return '#112233'};$view.Render($metrics,24,10,'#FFFFFF',$true,1,$customPalette);Settle;Settle
+  $customTint=[Windows.Media.ColorConverter]::ConvertFromString($rows['demo'].IconColor);Assert ([HardwarePulse.DesktopContrast]::Luminance($customTint) -gt .65 -and $customTint.B -gt $customTint.R) 'Dark custom palette was not brightened enough'
+  $palette=[Func[string,string]]{param($name);return '#A5E7D5'};$view.Render($metrics,24,10,'#FFFFFF',$true,1,$palette);Settle;Settle
+  $tint=[Windows.Media.ColorConverter]::ConvertFromString($rows['demo'].IconColor);Assert ($tint.G -gt $tint.R -and [HardwarePulse.DesktopContrast]::Luminance($tint) -gt .6) 'App icon hue or dark-background readability lost'
+  $timer.Interval=[TimeSpan]::FromSeconds(15);$view.BeginScreenshot();$frozenIcon=$rows['demo'].Icon;$dark.Background=[Windows.Media.Brushes]::White;Settle
+  Assert ([object]::ReferenceEquals($frozenIcon,$rows['demo'].Icon)) 'Screenshot mode did not freeze icon appearance'
+  $view.SetLocalContrast($false);Assert ($rows['demo'].IconColor -eq '#A5E7D5' -and $null -eq $rows['demo'].IconHost.Effect) 'Disabling contrast did not restore base icon style'
  }finally{$view.Close()}
 }finally{if($capture){$capture.Dispose()};$front.Close();$behind.Close()}

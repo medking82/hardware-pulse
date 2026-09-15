@@ -14,7 +14,7 @@ namespace HardwarePulse {
     }
     public sealed class DesktopView : Window {
         public const double EdgePadding=16;
-        sealed class Row {public Border Border,IconHost;public TextBlock Name,Value;public FrameworkElement Icon;public string IconColor,BaseIconColor;public bool IsFps;public double IconSize;}
+        sealed class Row {public Border Border,IconHost;public TextBlock Name,Value;public FrameworkElement Icon;public string IconColor,BaseIconColor;public string IconName;public bool IconPalette;public byte IconShade=245;public double IconSize;}
         readonly Dictionary<string,Row> rows=new Dictionary<string,Row>();
         readonly ResponsivePanel stack=new ResponsivePanel{RowGap=0};readonly Border surface;
         readonly ScrollViewer scroll;
@@ -59,19 +59,20 @@ namespace HardwarePulse {
             };
         }
         public void SetEditorLabels(string hint,string complete,string back){editHint.Text=hint;done.Content=complete;returnToApp.Content=back;}
-        void RefreshFpsIcon(Row row){
-            if(!row.IsFps)return;
-            string tint=row.BaseIconColor;
-            var brush=row.Name.Foreground as SolidColorBrush;
-            if(LocalContrastAvailable&&brush!=null){
-                bool dark=DesktopContrast.Luminance(brush.Color)<.4;
-                tint=tint=="#9EDFD3"?(dark?"#285A50":"#9EDFD3"):brush.Color.ToString();
-            }
+        void ApplyIcon(Row row,string tint){
             if(row.IconColor==tint&&row.IconSize==lastSize)return;
-            row.Icon=icon("fps",lastSize,tint);row.IconHost.Child=row.Icon;row.IconColor=tint;row.IconSize=lastSize;
+            row.Icon=icon(row.IconName,lastSize,tint);row.IconHost.Child=row.Icon;row.IconColor=tint;row.IconSize=lastSize;
+        }
+        string AdaptiveIconTint(Row row){
+            if(!row.IconPalette)return row.IconShade==20?"#141414":"#F5F5F5";
+            var tint=(Color)ColorConverter.ConvertFromString(row.BaseIconColor);
+            double luminance=DesktopContrast.Luminance(tint);
+            if(row.IconShade==20){if(luminance>.035)tint=Color.FromRgb((byte)(tint.R*.2),(byte)(tint.G*.2),(byte)(tint.B*.2));}
+            else if(luminance<.65){tint=Color.FromRgb((byte)(tint.R*.15+255*.85),(byte)(tint.G*.15+255*.85),(byte)(tint.B*.15+255*.85));}
+            return tint.ToString();
         }
         void ResetLocalStyle(){
-            foreach(var row in rows.Values){row.Name.Foreground=row.Value.Foreground=foreground;row.Name.Effect=row.Value.Effect=null;RefreshFpsIcon(row);}
+            foreach(var row in rows.Values){row.Name.Foreground=row.Value.Foreground=foreground;row.Name.Effect=row.Value.Effect=row.IconHost.Effect=null;ApplyIcon(row,row.BaseIconColor);}
         }
         public static int ResizeEdge(Point point,Size size,double inset=8){
             if(point.X<0||point.Y<0||point.X>size.Width||point.Y>size.Height)return 0;
@@ -197,9 +198,9 @@ namespace HardwarePulse {
                 row.Name.ToolTip=metric.Title;if(localContrast==null||!LocalContrastAvailable){row.Name.Foreground=row.Value.Foreground=foreground;}row.Border.BorderBrush=line;
                 row.Border.Padding=new Thickness(0,spacing/2,0,spacing/2);row.Border.Visibility=Visibility.Visible;
                 string tint=iconColor==null?color:iconColor(metric.Icon);
-                row.IsFps=metric.Icon=="fps";row.BaseIconColor=tint;
-                if(row.IsFps&&LocalContrastAvailable){RefreshFpsIcon(row);continue;}
-                if(styleChanged||row.IconColor!=tint){row.Icon=icon(metric.Icon,size,tint);row.IconHost.Child=row.Icon;row.IconColor=tint;}
+                row.IconName=metric.Icon;row.BaseIconColor=tint;row.IconPalette=iconColor!=null&&tint!=color;
+                if(LocalContrastAvailable){ApplyIcon(row,AdaptiveIconTint(row));continue;}
+                ApplyIcon(row,tint);
             }
             // Desktop order is independent of the monitor cards.
             var ordered=metrics.Select(m=>rows[m.Key].Border).ToArray();
@@ -249,7 +250,17 @@ namespace HardwarePulse {
                         var edgeColor=shade==20?Colors.White:Colors.Black;
                         if(effect==null||effect.Color!=edgeColor){effect=new System.Windows.Media.Effects.DropShadowEffect{Color=edgeColor,ShadowDepth=0,BlurRadius=1.5,Opacity=.85};effect.Freeze();text.Effect=effect;}
                     }else text.Effect=null;
-                    if(text==row.Name)RefreshFpsIcon(row);
+
+                }
+                foreach(var row in rows.Values)if(row.Border.Visibility==Visibility.Visible&&row.IconHost.ActualWidth>0&&row.IconHost.ActualHeight>0){
+                    var point=row.IconHost.TranslatePoint(new Point(),this);
+                    var region=new Int32Rect((int)(point.X*image.PixelWidth/ActualWidth),(int)(point.Y*image.PixelHeight/ActualHeight),Math.Max(1,(int)Math.Ceiling(row.IconHost.ActualWidth*image.PixelWidth/ActualWidth)),Math.Max(1,(int)Math.Ceiling(row.IconHost.ActualHeight*image.PixelHeight/ActualHeight)));
+                    double minority;row.IconShade=capture.RegionColor(region,row.IconShade,out minority);ApplyIcon(row,AdaptiveIconTint(row));
+                    bool edge=minority>(row.IconHost.Effect==null?.12:.06);
+                    if(edge){
+                        var effect=row.IconHost.Effect as System.Windows.Media.Effects.DropShadowEffect;var edgeColor=row.IconShade==20?Colors.White:Colors.Black;
+                        if(effect==null||effect.Color!=edgeColor){effect=new System.Windows.Media.Effects.DropShadowEffect{Color=edgeColor,ShadowDepth=0,BlurRadius=1.5,Opacity=.85};effect.Freeze();row.IconHost.Effect=effect;}
+                    }else row.IconHost.Effect=null;
                 }
             }catch(ArgumentException){LocalContrastAvailable=false;}
             finally{contrastBusy=false;if(!LocalContrastAvailable)ResetLocalStyle();}

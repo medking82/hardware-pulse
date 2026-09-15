@@ -52,7 +52,7 @@ namespace HardwarePulse {
         }
         string DesktopIconColor(string icon,string textColor){
             string color=DesktopPaletteColor(icon,textColor);
-            if(icon=="fps"||!settings.Flag("desktopAlwaysOnTop")||SystemParameters.HighContrast||color==textColor)return color;
+            if(settings.Flag("desktopLocalContrast")||icon=="fps"||!settings.Flag("desktopAlwaysOnTop")||SystemParameters.HighContrast||color==textColor)return color;
             var tint=(System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(color);
             return "#"+((byte)(tint.R*.38)).ToString("X2")+((byte)(tint.G*.38)).ToString("X2")+((byte)(tint.B*.38)).ToString("X2");
         }
