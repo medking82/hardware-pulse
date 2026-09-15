@@ -576,3 +576,9 @@ and checks actual CPU/RAM reads through Core ReadingSession. The Linux adapter
 workflow runs this on Ubuntu x64 and ARM64, checking process architecture.
 This is a data-source prototype, not a Linux App release: UI, tray, desktop layer,
 Network, temperatures, fans, FPS and installation remain outside this module.
+Validation on 2026-09-15: Linux x64 and native ARM64 fixtures plus live procfs /
+ReadingSession integration both passed at commit
+`d95e8882058fce6c5109b4e6037d86a92ec53d59` in
+[Linux adapter CI](https://github.com/medking82/hardware-pulse/actions/runs/34975685365).
+Windows fixture execution and the full `Validate.ps1 -ModernCore` regression also
+passed. This does not yet establish polling overhead or container-aware metrics.
