@@ -11,6 +11,14 @@ namespace HardwarePulse {
         bool DesktopEnabled {get{return settings.Flag("desktopEnabled");}}
         bool DesktopFpsActive {get{return DesktopEnabled&&DesktopMetricEnabled("fps");}}
         string desktopFpsValue="—";
+        string desktopFpsAverage="—",desktopFpsMinimum="—";
+        string desktopFpsStatus="Waiting for target app";
+        void SetDesktopFps(FrameMetrics sample){
+            desktopFpsValue=sample.Ready?sample.Current.ToString("0"):"—";
+            desktopFpsAverage=sample.Ready?sample.Average.ToString("0"):"—";
+            desktopFpsMinimum=sample.Ready?sample.Minimum.ToString("0"):"—";
+            desktopFpsStatus=sample.Status;
+        }
         string DesktopColor(){string hex=settings.Text("desktopColor","#E4F3EF");return System.Text.RegularExpressions.Regex.IsMatch(hex,"^#[0-9a-fA-F]{6}$")?hex:"#E4F3EF";}
         void WireDesktop(){
             WireDesktopShortcut();
@@ -98,7 +106,11 @@ namespace HardwarePulse {
         }
         List<DesktopMetric> DesktopMetrics(){
             var result=new List<DesktopMetric>();
-            if(DesktopMetricEnabled("fps"))result.Add(new DesktopMetric("fps","FPS",desktopFpsValue,"fps"));
+            if(DesktopMetricEnabled("fps")){
+                result.Add(new DesktopMetric("fps",language.T("FPS · Current"),desktopFpsValue,"fps"){ToolTip=language.T(desktopFpsStatus)});
+                result.Add(new DesktopMetric("fpsAverage",language.T("FPS · Average"),desktopFpsAverage,"fps"){ToolTip=language.T("Rolling 60 s")});
+                result.Add(new DesktopMetric("fpsMinimum",language.T("FPS · Minimum"),desktopFpsMinimum,"fps"){ToolTip=language.T("Rolling 60 s")});
+            }
             foreach(var card in cards.Children.Cast<Border>()){
                 string key=(string)card.Tag;
                 if(key=="Network"&&!Available("lanLink")&&!Available("wifiLink")&&(Available("netDown")||Available("netUp"))){
@@ -130,7 +142,7 @@ namespace HardwarePulse {
             AddDesktopQuotas(result);
             result.RemoveAll(metric=>!DesktopMetricEnabled(metric.Key));
             if(result.Count==0)result.Add(new DesktopMetric("empty","Pulse",language.T("No cards shown. Choose cards in Settings."),"live"));
-            var order=DesktopOrderKeys();return result.OrderBy(metric=>{int index=Array.IndexOf(order,metric.Key);return index<0?int.MaxValue:index;}).ToList();
+            var order=DesktopOrderKeys();return result.OrderBy(metric=>{int index=Array.IndexOf(order,metric.Icon=="fps"?"fps":metric.Key);return index<0?int.MaxValue:index;}).ToList();
         }
         void UpdateDesktop(){
             UpdateDesktopLabels();if(!loaded||!DesktopEnabled)return;

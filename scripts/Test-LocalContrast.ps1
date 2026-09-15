@@ -18,6 +18,11 @@ try {
  Assert ($pixels[$left] -eq 245 -and $pixels[$right] -eq 20) 'Did not sample dark/light background through excluded overlay'
  Assert ([HardwarePulse.LocalContrast]::Select(.19,20) -eq 20 -and [HardwarePulse.LocalContrast]::Select(.19,245) -eq 245) 'Hysteresis loses prior color'
  Assert ([HardwarePulse.LocalContrast]::Select(.8,245) -eq 20 -and [HardwarePulse.LocalContrast]::Select(.02,20) -eq 245) 'Strong contrast change delayed'
+ $noise=New-Object single[] 1024;$scratch=New-Object single[] 1024
+ for($y=0;$y -lt 32;$y++){for($x=0;$x -lt 32;$x++){$noise[$y*32+$x]=if(($x+$y)%2){.29}else{.09}}}
+ [HardwarePulse.LocalContrast]::Smooth($noise,32,32,6,$scratch)
+ Assert (@($noise|Where-Object {$_ -lt .16 -or $_ -gt .22}).Count -eq 0) 'Fine texture still creates black/white speckles'
+ Assert ([Math]::Abs([HardwarePulse.LocalContrast]::Stabilize(.8,.1)-.8) -lt .001) 'Large background change delayed'
  $capture.Dispose();Settle
  $probe=[HardwarePulse.LocalContrast]::new($behind)
  try{Assert ($probe.Enable()) 'Probe exclusion unavailable';Settle;$visible=$probe.Capture([Windows.Media.Colors]::Transparent);$visible.CopyPixels($pixels,$visible.PixelWidth*4,0);Assert ($pixels[$left] -eq $pixels[$right]) 'Disabling local contrast did not restore overlay capture'}finally{$probe.Dispose()}

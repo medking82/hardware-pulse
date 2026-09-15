@@ -2,6 +2,16 @@
 
 English first; 简体中文 follows each version. Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
+## 0.6.11 — 2026-09-15
+
+- Show Desktop FPS as Current, Average and Minimum readings. Current uses the latest one-second frame window; Average and Minimum use the existing rolling 60-second window.
+- Keep FPS values on one line. No-frame states show only an em dash, with diagnostic status in the tooltip instead of the reading. The FPS visibility/order control moves the three readings together.
+- Reserve three tabular digit positions for FPS values, right-aligned without leading zeroes, so 9/99/100 transitions do not shift the value slot.
+- Smooth local background luminance at a font/DPI-scaled radius before choosing text contrast. Stabilize small changes across frames while allowing large changes immediately; this reduces fine-texture speckles without blurring glyphs.
+- Validate ready and waiting transitions, numeric statistics, no wrapping, and the complete regression suite.
+
+Desktop FPS 分开显示当前、平均与最低值；没有 frame 时三项只显示 —，不再显示 Waiting for frames 导致换行。平均和最低使用最近 60 秒滚动统计。
+
 ## 0.6.10 — 2026-09-15
 
 - Add opt-in local adaptive text contrast: an in-memory pixel mask uses black/white hysteresis, independent of SVG colors. Capture runs on a single background worker; Windows 10 build 19041+ is required. While enabled, screen capture may exclude the Desktop panel. HDR and fast-game performance still need field validation.

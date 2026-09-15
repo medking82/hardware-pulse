@@ -9,7 +9,7 @@ using System.Windows.Media;
 
 namespace HardwarePulse {
     public sealed class DesktopMetric {
-        public string Key,Title,Value,Icon;
+        public string Key,Title,Value,Icon,ToolTip;
         public DesktopMetric(string key,string title,string value,string icon){Key=key;Title=title;Value=value;Icon=icon;}
     }
     public sealed class DesktopView : Window {
@@ -24,7 +24,7 @@ namespace HardwarePulse {
         readonly Button done=new Button{MinHeight=32,Padding=new Thickness(12,4,12,4),Margin=new Thickness(0,0,8,0)};
         readonly Button returnToApp=new Button{MinHeight=32,Padding=new Thickness(12,4,12,4)};
         public event Action EditCompleted,ReturnRequested;
-        DesktopLayer layer;bool locked=true;string lastColor;double lastSize;
+        DesktopLayer layer;bool locked=true;string lastColor;double lastSize;double fpsMinimumWidth;
         Brush foreground,line,protection;
         string automaticColor="#F5F7FA";long lastSample;
         LocalContrast localContrast;bool contrastBusy;readonly System.Windows.Threading.DispatcherTimer contrastTimer=new System.Windows.Threading.DispatcherTimer();
@@ -89,6 +89,7 @@ namespace HardwarePulse {
             ResizeMode=isLocked?ResizeMode.NoResize:ResizeMode.CanResizeWithGrip;
             SetValue(WindowSnap.PositionLockedProperty,isLocked);
             bool styleChanged=lastColor!=color||lastSize!=size;
+            if(lastSize!=size){var digits=new TextBlock{Text="000",FontFamily=FontFamily,FontSize=size};System.Windows.Documents.Typography.SetNumeralAlignment(digits,FontNumeralAlignment.Tabular);digits.Measure(new Size(double.PositiveInfinity,double.PositiveInfinity));fpsMinimumWidth=Math.Ceiling(digits.DesiredSize.Width);}
             if(styleChanged){var tint=(Color)ColorConverter.ConvertFromString(color);foreground=new SolidColorBrush(tint);foreground.Freeze();line=new SolidColorBrush(Color.FromArgb(50,tint.R,tint.G,tint.B));line.Freeze();lastColor=color;lastSize=size;}
             if(isLocked)surface.Background=Brushes.Transparent;
             else if(surface.Background==Brushes.Transparent||surface.Background==null)surface.Background=new SolidColorBrush(Color.FromArgb(100,18,24,30));
@@ -99,7 +100,7 @@ namespace HardwarePulse {
                 Row row;if(!rows.TryGetValue(metric.Key,out row)){
                     row=new Row{Border=new Border{BorderThickness=new Thickness(0,0,0,1)},Name=new TextBlock(),Value=new TextBlock()};
                     var grid=new Grid();grid.ColumnDefinitions.Add(new ColumnDefinition{Width=GridLength.Auto});grid.ColumnDefinitions.Add(new ColumnDefinition{Width=new GridLength(1,GridUnitType.Star)});grid.ColumnDefinitions.Add(new ColumnDefinition{Width=GridLength.Auto});
-                    row.Value.TextWrapping=TextWrapping.Wrap;
+                    row.Value.TextWrapping=metric.Icon=="fps"?TextWrapping.NoWrap:TextWrapping.Wrap;
                     row.Icon=icon(metric.Icon,size,color);row.IconHost=new Border{Child=row.Icon,Padding=new Thickness(2),Margin=new Thickness(0,0,8,0),VerticalAlignment=VerticalAlignment.Center};grid.Children.Add(row.IconHost);
                     row.Name.VerticalAlignment=row.Value.VerticalAlignment=VerticalAlignment.Center;
                     row.Name.HorizontalAlignment=HorizontalAlignment.Left;row.Value.HorizontalAlignment=HorizontalAlignment.Right;
@@ -115,6 +116,8 @@ namespace HardwarePulse {
                     row.Border.Child=grid;rows.Add(metric.Key,row);
                 }
                 row.Name.Text=metric.Title;row.Value.Text=metric.Value;row.Name.FontSize=size;row.Value.FontSize=size;
+                if(metric.Icon=="fps"){row.Value.MinWidth=fpsMinimumWidth;row.Value.TextAlignment=TextAlignment.Right;}
+                row.Value.ToolTip=metric.ToolTip??metric.Value;
                 row.Name.ToolTip=metric.Title;if(localContrast==null||!LocalContrastAvailable){row.Name.Foreground=row.Value.Foreground=foreground;}row.Border.BorderBrush=line;
                 row.Border.Padding=new Thickness(0,spacing/2,0,spacing/2);row.Border.Visibility=Visibility.Visible;
                 string tint=iconColor==null?color:iconColor(metric.Icon);
@@ -139,7 +142,8 @@ namespace HardwarePulse {
             contrastBusy=true;var capture=localContrast;
             var background=surface.Background as SolidColorBrush;
             var color=background==null?Colors.Transparent:background.Color;var bounds=capture.Bounds();
-            System.Threading.Tasks.Task.Run(()=>capture.Capture(bounds,color)).ContinueWith(task=>{
+            int radius=Math.Max(2,(int)Math.Round(lastSize*.4*bounds.Width/ActualWidth));
+            System.Threading.Tasks.Task.Run(()=>capture.Capture(bounds,color,radius)).ContinueWith(task=>{
                 var error=task.Exception; // Observe capture failure even if the window has closed.
                 if(Dispatcher.HasShutdownStarted)return;
                 Dispatcher.BeginInvoke(new Action(delegate{try{

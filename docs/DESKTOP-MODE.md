@@ -54,6 +54,7 @@ Download and Upload participate in Reading Order. Their units follow Cards → N
 Settings → Desktop → Local adaptive text contrast is opt-in. It uses an in-memory
 pixel mask to choose black or white beneath each part of the text, with hysteresis
 instead of a fixed switching delay. SVG colors remain independent. One background
+texture smoothing pass scales with font size and DPI to avoid splitting glyphs into fine black/white speckles. Small luminance changes are temporally stabilized; large changes switch immediately. Text itself is not blurred. One background
 capture at a time is scheduled at 100 ms intervals. Moving/resizing discards obsolete
 frames; unsupported capture or panels above four million physical pixels fall back
 to standard text. Windows 10 build 19041+ is required. Pulse is excluded from screen
@@ -64,7 +65,7 @@ A locked panel at 0% background opacity has no outer frame. Row separators remai
 Text Color can always be selected; accepting a color disables both automatic modes.
 In Desktop Readings, enable FPS to reuse the existing FPS target and collector without
 opening the separate game overlay. FPS is off in Desktop by default. Missing capture
-data displays a waiting state rather than a fabricated zero.
+data displays only an em dash rather than a fabricated zero or a wrapping status message. Current (latest one second), Average and Minimum (rolling 60 seconds) are separate single-line readings controlled and ordered together by FPS. Minimum is not 1% Low. Diagnostic status remains in the tooltip.
 
 Desktop toggle shortcut defaults to Ctrl+Alt+F10. Click its button to enter a custom
 combination; Escape cancels. Registration failure preserves the existing binding.

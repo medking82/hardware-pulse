@@ -40,7 +40,7 @@ internal static class NativeTests {
         var panel=shell.Control<ResponsivePanel>("Cards");double width=shell.Window.Width,height=shell.Window.Height;
         foreach(int columns in new[]{1,2,3}){
             shell.Window.Width=columns==1?310:columns==2?660:1000;shell.Window.Height=820;Pump();shell.UpdatePanel();Settle();
-            Assert(panel.Columns==columns,"Responsive columns do not follow window width");
+            Assert(panel.Columns==columns,"Responsive columns do not follow window width: expected="+columns+" actual="+panel.Columns+" window="+shell.Window.ActualWidth+" panel="+panel.ActualWidth+" minimum="+panel.MinimumColumnWidth);
             var visible=panel.Children.Cast<Border>().Where(c=>c.Visibility==Visibility.Visible).ToArray();
             Assert(visible.All(c=>c.ActualWidth<=panel.CellWidth+.1),"Card exceeds its column");
             if(columns>1)Assert(Math.Abs(visible[0].TranslatePoint(new Point(),panel).Y-visible[1].TranslatePoint(new Point(),panel).Y)<1,"Cards are not side by side");

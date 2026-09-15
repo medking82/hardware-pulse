@@ -98,7 +98,7 @@ Leave a name blank to use device information. Hover over a field to see its auto
 SPD numbers identify sensor addresses, not physical slots. Installed slots are reported separately; assign a slot name only after confirming its sensor.|SPD 编号代表传感器地址，并非实体插槽。已安装插槽单独显示；确认对应关系后再命名。|SPD 編號代表感測器位址，並非實體插槽。已安裝插槽單獨顯示；確認對應關係後再命名。
 Changes save automatically.|更改自动保存。|變更自動儲存。
 About Pulse|关于 Pulse|關於 Pulse
-Version 0.6.10 · Marck Wong|版本 0.6.10 · Marck Wong|版本 0.6.10 · Marck Wong
+Version 0.6.11 · Marck Wong|版本 0.6.11 · Marck Wong|版本 0.6.11 · Marck Wong
 Sensors by LibreHardwareMonitor. Shared driver by PawnIO.|传感器：LibreHardwareMonitor。共享驱动：PawnIO。|感測器：LibreHardwareMonitor。共用驅動程式：PawnIO。
 Language|语言 / Language|語言 / Language
 Minimize|最小化|最小化
@@ -262,3 +262,6 @@ Use two modifiers (Ctrl, Alt, Shift) with a letter, number or F1–F11.|使用 C
 Shortcut unavailable. Choose another combination.|快捷键不可用，请选择其他组合。|快捷鍵不可用，請選擇其他組合。
 Shortcut ready; game bindings may still overlap.|快捷键已注册；仍可能与游戏内键位重叠。|快捷鍵已註冊；仍可能與遊戲內鍵位重疊。
 Show or hide Desktop without opening App. Enable Always on top to see it over games.|显示或隐藏 Desktop，不打开 App。游戏中查看请开启“置顶显示”。|顯示或隱藏 Desktop，不開啟 App。遊戲中查看請開啟「置頂顯示」。
+FPS · Current|FPS · 当前|FPS · 目前
+FPS · Average|FPS · 平均|FPS · 平均
+FPS · Minimum|FPS · 最低|FPS · 最低

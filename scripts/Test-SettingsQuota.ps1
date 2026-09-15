@@ -63,6 +63,14 @@ try {
  Assert ($shell.GetType().GetProperty('DesktopFpsActive',$flags).GetValue($shell)) 'Desktop FPS depends on overlay switch'
  $metrics=$shell.GetType().GetMethod('DesktopMetrics',$flags).Invoke($shell,@());Assert (@($metrics|Where-Object Key -eq 'fps').Count -eq 1) 'Desktop FPS reading missing'
  Assert (-not $shell.Window.FindName('OverlayEnabled').IsChecked) 'Desktop FPS enables separate overlay'
+ $setFps=$shell.GetType().GetMethod('SetDesktopFps',$flags);$sample=[FrameMetrics]::new();$sample.Ready=$true;$sample.Current=144;$sample.Average=128;$sample.Minimum=60;$sample.Status='Live'
+ $setFps.Invoke($shell,@($sample));InvokeShell UpdateDesktop
+ $fpsRows=$desktop.GetType().GetField('rows',$flags).GetValue($desktop)
+ foreach($pair in @(@('fps','144'),@('fpsAverage','128'),@('fpsMinimum','60'))){Assert ($fpsRows[$pair[0]].Value.Text -eq $pair[1] -and $fpsRows[$pair[0]].Value.TextWrapping -eq 'NoWrap') 'FPS statistics are missing or wrap'}
+ $slotWidth=$fpsRows['fps'].Value.ActualWidth
+ foreach($fps in @(99,9,100)){$sample.Current=$fps;$setFps.Invoke($shell,@($sample));InvokeShell UpdateDesktop;$desktop.UpdateLayout();Assert ([Math]::Abs($fpsRows['fps'].Value.ActualWidth-$slotWidth) -lt 1 -and $fpsRows['fps'].Value.TextAlignment -eq 'Right') 'FPS digit-count changes move the numeric slot'}
+ $sample.Ready=$false;$sample.Status='Waiting for frames';$setFps.Invoke($shell,@($sample));InvokeShell UpdateDesktop
+ foreach($key in @('fps','fpsAverage','fpsMinimum')){Assert ($fpsRows[$key].Value.Text -eq '—') 'Waiting FPS leaks status into reading'}
  $settings.Map('desktopVisible')['fps']=$false;InvokeShell StartOverlay;InvokeShell UpdateDesktop
  $shell.Window.Hide();InvokeShell ToggleDesktopFromShortcut;Assert (-not $settings.Flag('desktopEnabled') -and -not $shell.Window.IsVisible) 'Shortcut hide opens App'
  InvokeShell ToggleDesktopFromShortcut;Assert ($settings.Flag('desktopEnabled') -and $settings.Flag('desktopLocked') -and -not $shell.Window.IsVisible) 'Shortcut show steals App focus or leaves Desktop unlocked'
