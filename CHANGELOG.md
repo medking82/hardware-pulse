@@ -1,6 +1,14 @@
-# Changelog
+﻿# Changelog
 
 English first; 简体中文 follows each version. Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
+
+## 0.6.17 — 2026-09-15
+
+- Fix dragging at zero Desktop background opacity. Windows passed fully transparent pixels through before WPF received mouse input, so unlocked blank areas could not start a drag.
+- Give only the unlocked editor a 1/255-alpha input surface, including resize corners. Saved opacity is unchanged; locking removes the surface and preserves true zero-opacity click-through.
+- Native hit-test regression reproduces the old failure and verifies blank space and resize corners at 0% and 30%, plus transparent locked state.
+
+修复 Desktop background opacity 为 0% 时无法拖动的问题。Unlocked editor 使用极低 alpha 的 input surface；Locked 后恢复真正透明，保留用户保存的 opacity。
 
 ## 0.6.16 — 2026-09-15
 

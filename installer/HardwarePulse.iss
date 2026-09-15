@@ -1,7 +1,7 @@
 ﻿[Setup]
 AppId={{75E8FDDA-D799-4D8A-882D-972DC72151C2}
 AppName=Hardware Pulse
-AppVersion=0.6.16
+AppVersion=0.6.17
 AppPublisher=Marck Wong
 AppPublisherURL=https://github.com/medking82
 AppSupportURL=https://github.com/medking82/hardware-pulse/issues
@@ -13,7 +13,7 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 MinVersion=10.0.19045
 OutputDir=..\dist
-OutputBaseFilename=HardwarePulse-0.6.16-Setup
+OutputBaseFilename=HardwarePulse-0.6.17-Setup
 SetupIconFile=..\assets\pulse.ico
 UninstallDisplayIcon={app}\HardwarePulse.exe
 Compression=lzma2

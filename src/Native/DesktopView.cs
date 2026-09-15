@@ -154,6 +154,9 @@ namespace HardwarePulse {
             stack.Width=double.NaN;
             locked=isLocked;
             Focusable=!isLocked;
+            // Layered windows pass alpha-zero pixels through before WPF hit testing.
+            // Cover blank space and resize corners only while editing (1/255 alpha).
+            Background=isLocked?Brushes.Transparent:new SolidColorBrush(Color.FromArgb(1,0,0,0));
             editor.Visibility=isLocked?Visibility.Collapsed:Visibility.Visible;
             ResizeMode=isLocked?ResizeMode.NoResize:ResizeMode.CanResizeWithGrip;
             SetValue(WindowSnap.PositionLockedProperty,isLocked);

@@ -72,10 +72,13 @@ Add-Type @'
 using System;using System.Runtime.InteropServices;
 public static class DesktopStyleProbe {
  [DllImport("user32.dll",EntryPoint="GetWindowLongPtrW")] public static extern IntPtr GetWindowLongPtr(IntPtr hwnd,int index);
+ [StructLayout(LayoutKind.Sequential)] public struct Point {public int X,Y; public Point(int x,int y){X=x;Y=y;}}
+ [DllImport("user32.dll")] public static extern IntPtr WindowFromPoint(Point point);
 }
 '@
 $native=[HardwarePulse.DesktopView]::new($icon,$false)
 try{
+    $native.Left=60;$native.Top=60;$native.Width=430;$native.Height=350;$native.SizeToContent='Manual'
     $native.Render($items,16,10,'#FFFFFF',$false,1,$null);$native.Show();$native.SetAlwaysOnTop($true)
     $handle=[Windows.Interop.WindowInteropHelper]::new($native).Handle
     Assert (([DesktopStyleProbe]::GetWindowLongPtr($handle,-20).ToInt64() -band 0x08000020) -eq 0) 'New unlocked native editor blocks activation or mouse input'
@@ -83,5 +86,17 @@ try{
     Assert (([DesktopStyleProbe]::GetWindowLongPtr($handle,-20).ToInt64() -band 0x08000020) -eq 0x08000020) 'Locked native panel lost no-activate/click-through'
     $native.Render($items,16,10,'#FFFFFF',$false,1,$null)
     Assert (([DesktopStyleProbe]::GetWindowLongPtr($handle,-20).ToInt64() -band 0x08000020) -eq 0) 'Unlock fails to restore native interaction'
+    foreach($opacity in @(0,30)){
+        $native.SetTextOpacity(100,$false,$true,$opacity,0);$native.UpdateLayout()
+        $wait=[Diagnostics.Stopwatch]::StartNew();while($wait.ElapsedMilliseconds -lt 300){$native.Dispatcher.Invoke([Action]{},[Windows.Threading.DispatcherPriority]::Background);Start-Sleep -Milliseconds 10}
+        foreach($point in @([Windows.Point]::new(10,120),[Windows.Point]::new(3,3))){
+            $screen=$native.PointToScreen($point)
+            $target=[DesktopStyleProbe]::WindowFromPoint([DesktopStyleProbe+Point]::new([int]$screen.X,[int]$screen.Y))
+            Assert ($target -eq $handle) "Unlocked Desktop at $opacity percent passes native input through at $point"
+        }
+    }
+    $native.Render($items,16,10,'#FFFFFF',$true,1,$null);$native.SetTextOpacity(100,$false,$true,0,0)
+    Assert ($native.Background.Color.A -eq 0 -and $native.Content.Background.Color.A -eq 0) 'Locked zero-opacity Desktop retains an input backdrop'
+    'PASS native zero-opacity Desktop: blank drag area, resize corner, locked transparency'
     'PASS native Desktop editor styles: initial unlock, lock, unlock'
 }finally{$native.Close()}
