@@ -20,7 +20,7 @@ See [Desktop Mode](docs/DESKTOP-MODE.md) for wallpaper integration, appearance c
 
 Use **Ctrl+Alt+F10** to show/hide Desktop without opening App. Customize or disable it in Settings → Desktop; enable Always on top for games. / Desktop 快捷键可自定义，游戏中查看请开启置顶显示。
 
-Latest: **0.6.16** adds Pulse mint FPS icons and subtle adaptive text edges on mixed backgrounds. Desktop FPS stays in one row with NOW / AVG / MIN badges. Screenshot mode in the tray freezes colors and allows Win+Shift+S for 15 seconds; local contrast then resumes. / Desktop FPS 单行角标；tray 中的 Screenshot mode 可在 15 秒内截图。
+Latest: **0.6.16** restores dragging and button input in the unlocked Desktop editor. Pulse mint FPS icons and subtle adaptive text edges help on mixed backgrounds. Desktop FPS stays in one row with NOW / AVG / MIN badges. Screenshot mode in the tray freezes colors and allows Win+Shift+S for 15 seconds; local contrast then resumes. / Desktop FPS 单行角标；tray 中的 Screenshot mode 可在 15 秒内截图。
 
 Appearance → Colors selects Hardware Colors or a custom Unified Color for Monitor icons and temperatures. Cards → Network Speed Unit selects Auto, KB/s, MB/s or Mbit/s (decimal units; 1 MB/s = 8 Mbit/s). Network shows the busiest adapter by combined download/upload rate, with its name visible, and is not the sum of all adapters. Desktop reading order includes Download and Upload.
 
@@ -45,14 +45,12 @@ Author:**[Marck Wong](https://github.com/medking82)**
 <a id="en"></a>
 
 ## English
-### Updates and desktop placement / 更新与桌面位置
+
+### Updates and desktop placement
 
 - General offers optional background update checks and downloads. The installer is validated against the fixed GitHub repository, expected size and SHA-256 before **Install and Restart** launches it. Installation requires a click and Windows elevation; failure or cancellation can be retried.
 - **Lock Position and Size** disables window movement, resizing and card reordering. Locked Monitor uses one-quarter of your saved background opacity and disables blur; Settings remains readable. Unlock in Settings or the tray to restore the previous appearance. Solid/high-contrast preferences take precedence. This does not embed Pulse into the desktop layer.
 - App language defaults to **Auto (System)**, with English fallback; installer supports English, Simplified and Traditional Chinese, preselected from Windows UI language.
-- General 支持可选的后台 update check/download，校验 GitHub repo、文件大小和 SHA-256 后，点击 **Install and Restart** 安装；失败或取消可以重试。
-- **Lock Position and Size** 禁用移动、resize 和 card reorder。锁定 Monitor 的背景 opacity 降为原设置的四分之一并关闭 blur；Settings 保持可读。从 tray 或 Settings 解锁后恢复；Solid/high contrast 优先。这还不是 desktop layer 嵌入。
-- App 默认 **Auto (System)**，installer 也根据 Windows UI language 预选 English、简体或繁体中文。
 
 The published version is **0.6.16** with multilingual UI and animated card reordering. Use the download link above for the latest installer.
 
@@ -138,6 +136,12 @@ real WPF Settings navigation, autosave/restore, discovery fixtures, usage units,
 
 ## 简体中文
 
+### 更新与 Desktop 位置
+
+- General 支持可选的后台 update check/download，校验 GitHub repo、文件大小和 SHA-256 后，点击 **Install and Restart** 安装；失败或取消可以重试。
+- **Lock Position and Size** 禁用移动、resize 和 card reorder。锁定 Monitor 的背景 opacity 降为原设置的四分之一并关闭 blur；Settings 保持可读。从 tray 或 Settings 解锁后恢复；Solid/high contrast 优先。这还不是 desktop layer 嵌入。
+- App 默认 **Auto (System)**，installer 也根据 Windows UI language 预选 English、简体或繁体中文。
+
 当前 version 为 **0.6.16**，包含 multi-language UI。使用上方 download link 获取最新 installer。
 
 适用于 **Windows 10 22H2 / Windows 11 x64** 的轻量桌面硬件 widget，集中显示 CPU、GPU、Memory、NVMe 和 Fan readings，以及实时 RAM/VRAM usage。
@@ -169,13 +173,13 @@ DIMM 品牌、型号和已安装的 slots 来自 SMBIOS。**SPD #1/#3 是 sensor
 
 ### In-place upgrade
 
-Install 0.6.16 over the existing version; a clean install is not required. Setup stops the old collector, replaces the app and its two owned startup tasks, and removes an explicit list of obsolete app scripts/source files. Preferences and desktop geometry remain in LocalAppData. Windows PowerShell and shared PawnIO remain installed. An interrupted or failed upgrade may require rerunning setup; file cleanup is not a transactional rollback.
+可直接安装 0.6.16 覆盖现有 version，无需 clean install。Setup 会停止旧 collector、替换 App 及其两个 startup tasks，并清理明确列出的旧 scripts/source files。Preferences 和 Desktop geometry 保留在 LocalAppData；Windows PowerShell 和共享 PawnIO 保持安装。Upgrade 中断或失败时可能需要重新运行 setup；文件清理不提供 transactional rollback。
 
 ### Installer 与自动启动
 
 Installer 会预先检查 .NET Framework 4.8。PawnIO library 或 driver registration 缺失时，会自动运行内置的官方 installer，并在完成后再次检查；失败时不会继续注册 startup。Windows 自带的 components 若缺失或损坏，需要先修复 Windows；installer 不会自动修改 Windows features 或 security settings。这些 checks 验证安装状态，不保证 driver 能在所有 security policies 下加载。
 
-Release 中的 `HardwarePulse-Setup.exe`（version 0.3.0）包含 app、固定 version 的 LibreHardwareMonitor libraries、license notices/source archives，以及官方 PawnIO 2.2.0 prerequisite installer，无需在运行时下载 dependencies。目标 Windows versions 自带 .NET Framework 4.8 和 Windows PowerShell 5.1；setup 会检查 .NET requirement。
+Release 中的 `HardwarePulse-Setup.exe`（version 0.6.16）包含 app、固定 version 的 LibreHardwareMonitor libraries、license notices/source archives，以及官方 PawnIO 2.2.0 prerequisite installer，无需在运行时下载 dependencies。目标 Windows versions 自带 .NET Framework 4.8 和 Windows PowerShell 5.1；setup 会检查 .NET requirement。
 
 请使用当前 Windows administrator account 安装，并确认 UAC。代码安装到 Program Files；installer 会注册当前用户的 interactive collector task，以及普通权限的 widget task。Widget 在登录后延迟 10 秒启动。Uninstall 会保留共享 PawnIO 和用户设置。此 version 不支持使用另一个 administrator account，为 standard user 代为安装。
 
