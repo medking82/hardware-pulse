@@ -471,3 +471,30 @@ Sources: Avalonia 12.1.2
 [X11FramebufferSurface.cs](https://github.com/AvaloniaUI/Avalonia/blob/12.1.2/src/Avalonia.X11/X11FramebufferSurface.cs),
 [UnmanagedBlob.cs](https://github.com/AvaloniaUI/Avalonia/blob/12.1.2/src/Avalonia.Base/Platform/Internal/UnmanagedBlob.cs),
 and .NET [GC reason enum](https://github.com/dotnet/runtime/blob/v10.0.0/src/coreclr/gc/gc.h).
+
+### Retained framebuffer result
+
+At `63cad3f6c53ef6bcb98484742817e662ae1b899d`,
+[run 35026048603](https://github.com/medking82/hardware-pulse/actions/runs/35026048603)
+passed all six jobs, including four extracted package launches. Within each Linux
+runner, the diagnostic transient control ran first, then retention; both had 61
+valid live CPU/RAM/network polls over approximately 61 seconds.
+
+| Architecture | Transient → retained CPU % of machine | Gen2 collections in interval | End working set MiB, transient → retained |
+| --- | --- | --- | --- |
+| x64 | 0.6706 → 0.6057 | 19 → 0 | 188.71 → 186.54 |
+| ARM64 | 0.5722 → 0.5056 | 18 → 0 | 196.23 → 191.60 |
+
+Transient diagnostics recorded only reason 7 collections; retention recorded
+none, including warm-up. The independently launched retained self-contained
+packages also recorded zero collections. This isolates repeated X11 software
+framebuffer allocation/memory-pressure reporting as the source of these induced
+collections under Xvfb. Retention removes that churn without reducing polling.
+Paired CPU fell approximately 9.7% / 11.6% in this single sequential experiment;
+this is not a universal savings estimate or randomized repeated benchmark.
+
+Retained managed heap rose naturally without collection (about 3.2 MiB during
+the interval), and working set still grew within each run. Endpoint differences
+do not establish lower steady-state RAM or absence of a leak. Longer runs and
+real desktop/GPU environments remain unmeasured. Hardware renderer policy and
+the shipped Windows WPF runtime are unchanged.
