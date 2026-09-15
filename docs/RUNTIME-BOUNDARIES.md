@@ -951,14 +951,14 @@ One serial worker owns the sessions; a one-second PeriodicTimer schedules polls,
 IO runs off the UI thread, pause skips polling, and closing cancels the worker.
 Updates reuse existing controls. Network interface selection creates a fresh
 baseline; missing data clears the displayed value. macOS RAM is labeled an
-estimate, and memory uses GiB. There is no credential access or quota polling.
+estimate, and memory uses GiB. Codex quota access is explicitly opt-in (see below).
 
 The native resizable window uses the platform default font, system theme, solid
 background, existing vector assets and responsive one/two-column cards. Headless
 Skia tests render the actual controls and exercise width changes, unavailable
 values, keyboard pause and worker shutdown. CI separately starts real Windows
 demo windows and Linux/macOS live windows; headless results do not prove native
-window behavior. Desktop layer, tray, persistence, quota, temperatures, fans,
+window behavior. Desktop layer, tray, persistence, other quota providers, temperatures, fans,
 FPS, blur and platform packaging remain unimplemented in this host.
 
 Validation at `52a5b411f69b854e02cfdaac67b1cacb4d36028c` (2026-09-15):
@@ -969,3 +969,32 @@ windows completed three samples with live CPU/RAM available; Windows native
 windows used explicitly labeled demo values. This does not verify Wayland,
 game overlays, long-running performance or a distributable App package.
 Local full Windows regression and locked dependency restore also passed.
+
+## Desktop Codex quota composition
+
+The shared UI now contains an opt-in Codex card. It is off at startup and creates
+no credential reader or HTTP client until enabled. The host composes
+LinuxCodexQuota or MacCodexQuota for each read, disposing the adapter afterward;
+demo mode always uses labeled synthetic quota, including on Windows.
+Existing file-login, fixed-endpoint, bounded-response and cancellation policies
+remain owned by the platform adapter. Login UI, token refresh and keychain-only
+credentials are not implemented by Pulse.
+
+CodexQuotaPanel owns controls and a dispatcher timer only while enabled.
+Core QuotaSession owns its five-minute refresh cadence, one pending request,
+cancellation and result generation. Manual refresh uses the same session;
+hardware pause is separate. Disable clears the visible readings and cancels the
+request; closing the window disposes the session. Canceled results cannot replace
+a newly enabled generation. No quota preference is persisted yet.
+
+The card displays AllWindows, falling back to Windows only when the full list is
+empty. Unknown remaining values render as an em dash without a progress bar.
+Failures clear previous bars; login-required state directs users back to Codex.
+Rows wrap, and reset times use the local timezone. Controls are rebuilt only when
+the session publishes a new reading, not on every timer tick.
+
+Headless tests run an actual dispatcher loop (RunJobs alone does not advance
+dispatcher timers), using synthetic readers to verify keyboard opt-in, additional
+quota pools, unknown values, retry, disable/re-enable stale-result rejection and
+request cancellation. Tests and native smoke mode do not read real credentials
+or contact the quota endpoint. Actual account verification remains outstanding.

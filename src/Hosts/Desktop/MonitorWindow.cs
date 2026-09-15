@@ -3,8 +3,6 @@ using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
-using Avalonia.Platform;
-using System.Xml.Linq;
 
 namespace HardwarePulse.Desktop;
 
@@ -17,7 +15,8 @@ public sealed class MonitorWindow : Window {
     readonly Grid cards=new(){ColumnDefinitions=new("*,*"),RowDefinitions=new("Auto,Auto")};
     readonly Border[] panels;
     readonly ComboBox interfaces=new(){HorizontalAlignment=HorizontalAlignment.Stretch,PlaceholderText="Select network interface"};
-    readonly CheckBox pause=new(){Content="Pause monitoring"};
+    readonly CheckBox pause=new(){Name="PauseHardware",Content="Pause hardware monitoring"};
+    readonly CodexQuotaPanel quota;
     public Task Sampling {get;private set;}=Task.CompletedTask;
     public MonitorWindow(MonitorSource source,bool smoke=false,bool start=true) {
         this.source=source;this.smoke=smoke;
@@ -28,21 +27,18 @@ public sealed class MonitorWindow : Window {
         foreach(var panel in panels)cards.Children.Add(panel);
         var body=new StackPanel{Spacing=16,Margin=new Thickness(24)};
         body.Children.Add(heading);body.Children.Add(status);body.Children.Add(interfaces);body.Children.Add(cards);body.Children.Add(pause);
-        body.Children.Add(new TextBlock{Text="Preview · CPU, memory and network. Temperature, fans, FPS, AI quota and Desktop overlay are not connected yet.",TextWrapping=TextWrapping.Wrap,Opacity=.75});
+        quota=new CodexQuotaPanel(source.IsDemo);body.Children.Add(quota);
+        body.Children.Add(new TextBlock{Text="Preview · Temperature, fans, FPS and Desktop overlay are not connected yet.",TextWrapping=TextWrapping.Wrap,Opacity=.75});
         Content=new ScrollViewer{Content=body,HorizontalScrollBarVisibility=Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled};
         SizeChanged+=(_,_)=>LayoutCards();LayoutCards();
         if(start)Opened+=(_,_)=>Sampling=SampleAsync();
-        Closed+=(_,_)=>stop.Cancel();
+        Closed+=(_,_)=>{stop.Cancel();quota.Dispose();};
     }
     static TextBlock Value()=>new(){Text="—",FontSize=23,FontWeight=FontWeight.SemiBold,TextWrapping=TextWrapping.Wrap};
     static Border Card(string title,TextBlock value,string detail,string icon) {
         var stack=new StackPanel{Spacing=10};
         var header=new StackPanel{Orientation=Orientation.Horizontal,Spacing=10};
-        using(var stream=AssetLoader.Open(new Uri($"avares://Pulse.Desktop/Assets/{icon}.svg"))) {
-            // These repository-owned icons contain one stroked path in a 24x24 viewBox.
-            var path=XDocument.Load(stream).Descendants().Single(x=>x.Name.LocalName=="path");
-            header.Children.Add(new Avalonia.Controls.Shapes.Path{Data=Geometry.Parse(path.Attribute("d")!.Value),Width=24,Height=24,Stroke=new SolidColorBrush(Color.Parse("#38877E")),StrokeThickness=1.7,StrokeLineCap=PenLineCap.Round,StrokeJoin=PenLineJoin.Round});
-        }
+        header.Children.Add(AppIcon.Create(icon));
         header.Children.Add(new TextBlock{Text=title,FontWeight=FontWeight.SemiBold,VerticalAlignment=VerticalAlignment.Center});
         stack.Children.Add(header);stack.Children.Add(value);
         stack.Children.Add(new TextBlock{Text=detail,Opacity=.75,TextWrapping=TextWrapping.Wrap});

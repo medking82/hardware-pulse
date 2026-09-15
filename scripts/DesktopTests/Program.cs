@@ -29,7 +29,7 @@ static class Tests {
                 frame!.Save(System.IO.Path.Combine(args[0],$"desktop-{width}.png"),Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
             }
         }
-        var pause=window.GetVisualDescendants().OfType<CheckBox>().Single();
+        var pause=window.GetVisualDescendants().OfType<CheckBox>().Single(x=>x.Name=="PauseHardware");
         pause.Focus();window.KeyPress(Key.Space,RawInputModifiers.None,PhysicalKey.Space," ");window.KeyRelease(Key.Space,RawInputModifiers.None,PhysicalKey.Space," ");
         Check(pause.IsChecked==true,"Pause keyboard interaction");
         window.Present(new("—","—","—","—",false,false));
@@ -42,6 +42,7 @@ static class Tests {
         live.Close();
         while(!live.Sampling.IsCompleted&&DateTime.UtcNow<limit){Dispatcher.UIThread.RunJobs();Thread.Sleep(10);}
         Check(live.Sampling.IsCompletedSuccessfully,"Close cancels and completes sampling");
+        QuotaPanelTests.Run(args.Length==1?args[0]:null);
         Console.WriteLine("PASS Desktop rendering, responsive cards, unavailable state, keyboard and worker shutdown");
     }
 }
