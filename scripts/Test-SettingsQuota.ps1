@@ -123,7 +123,7 @@ try {
    $png=[Windows.Media.Imaging.PngBitmapEncoder]::new();$png.Frames.Add([Windows.Media.Imaging.BitmapFrame]::Create($bitmap));$stream=[IO.File]::Create((Join-Path $state ('topmost-'+$background+'.png')));try{$png.Save($stream)}finally{$stream.Dispose()}
   }
   Toggle 'DesktopLocked' $false;$nativeLayer.SetLocked($false);$handle=[Windows.Interop.WindowInteropHelper]::new($nativeWindow).Handle;$style=[SettingsQuotaFixture]::Style($handle,-20).ToInt64()
-  Assert (($style -band 8) -ne 0 -and ($style -band 32) -eq 0 -and ($style -band 0x08000000) -ne 0) 'Editing must retain topmost/no-activate but accept mouse input'
+  Assert (($style -band 8) -ne 0 -and ($style -band 0x08000020) -eq 0) 'Editing must retain topmost and allow activation and mouse input'
   Toggle 'DesktopAlwaysOnTop' $false;Toggle 'DesktopLocked' $true;$nativeLayer.SetAlwaysOnTop($false);$nativeLayer.SetLocked($true)
   $shell.Window.FindName('DesktopTextOpacity').Value=15;Toggle 'DesktopAutoContrast' $false;Toggle 'DesktopAutoContrast' $true;Assert ([Math]::Abs($stack.Opacity-.15) -lt .001) 'Desktop Auto Contrast changes text opacity'
   Assert ($surface.VerticalAlignment -eq 'Stretch') 'Desktop geometry not restored'

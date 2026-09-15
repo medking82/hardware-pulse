@@ -68,3 +68,20 @@ try {
     }
     'PASS Desktop content widths: spare space, narrow wrapping, no overlap, one/two/three columns'
 } finally {$view.Close()}
+Add-Type @'
+using System;using System.Runtime.InteropServices;
+public static class DesktopStyleProbe {
+ [DllImport("user32.dll",EntryPoint="GetWindowLongPtrW")] public static extern IntPtr GetWindowLongPtr(IntPtr hwnd,int index);
+}
+'@
+$native=[HardwarePulse.DesktopView]::new($icon,$false)
+try{
+    $native.Render($items,16,10,'#FFFFFF',$false,1,$null);$native.Show();$native.SetAlwaysOnTop($true)
+    $handle=[Windows.Interop.WindowInteropHelper]::new($native).Handle
+    Assert (([DesktopStyleProbe]::GetWindowLongPtr($handle,-20).ToInt64() -band 0x08000020) -eq 0) 'New unlocked native editor blocks activation or mouse input'
+    $native.Render($items,16,10,'#FFFFFF',$true,1,$null)
+    Assert (([DesktopStyleProbe]::GetWindowLongPtr($handle,-20).ToInt64() -band 0x08000020) -eq 0x08000020) 'Locked native panel lost no-activate/click-through'
+    $native.Render($items,16,10,'#FFFFFF',$false,1,$null)
+    Assert (([DesktopStyleProbe]::GetWindowLongPtr($handle,-20).ToInt64() -band 0x08000020) -eq 0) 'Unlock fails to restore native interaction'
+    'PASS native Desktop editor styles: initial unlock, lock, unlock'
+}finally{$native.Close()}

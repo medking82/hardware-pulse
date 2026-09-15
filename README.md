@@ -12,7 +12,7 @@
 
 [Dependency maintenance and Linux/macOS roadmap](docs/DEPENDENCIES.md)
 
-**[Download 0.6.15 / 下载 0.6.15 EXE](https://github.com/medking82/hardware-pulse/releases/download/v0.6.15/HardwarePulse-Setup.exe)** · [0.6.15 release notes](https://github.com/medking82/hardware-pulse/releases/tag/v0.6.15)
+**[Download 0.6.16 / 下载 0.6.16 EXE](https://github.com/medking82/hardware-pulse/releases/download/v0.6.16/HardwarePulse-Setup.exe)** · [0.6.16 release notes](https://github.com/medking82/hardware-pulse/releases/tag/v0.6.16)
 
 **0.5.0** migrates the installed UI, collector and startup helpers to C#/.NET without a PowerShell runtime dependency. [Measured comparison](docs/PERFORMANCE-0.5.0.md). The installer remains self-signed; SignPath approval is pending. / Runtime 已迁移为 C#/.NET；详见 benchmark，仍为 self-signed。
 
@@ -20,18 +20,18 @@ See [Desktop Mode](docs/DESKTOP-MODE.md) for wallpaper integration, appearance c
 
 Use **Ctrl+Alt+F10** to show/hide Desktop without opening App. Customize or disable it in Settings → Desktop; enable Always on top for games. / Desktop 快捷键可自定义，游戏中查看请开启置顶显示。
 
-Latest: **0.6.15** adds Pulse mint FPS icons and subtle adaptive text edges on mixed backgrounds. Desktop FPS stays in one row with NOW / AVG / MIN badges. Screenshot mode in the tray freezes colors and allows Win+Shift+S for 15 seconds; local contrast then resumes. / Desktop FPS 单行角标；tray 中的 Screenshot mode 可在 15 秒内截图。
+Latest: **0.6.16** adds Pulse mint FPS icons and subtle adaptive text edges on mixed backgrounds. Desktop FPS stays in one row with NOW / AVG / MIN badges. Screenshot mode in the tray freezes colors and allows Win+Shift+S for 15 seconds; local contrast then resumes. / Desktop FPS 单行角标；tray 中的 Screenshot mode 可在 15 秒内截图。
 
 Appearance → Colors selects Hardware Colors or a custom Unified Color for Monitor icons and temperatures. Cards → Network Speed Unit selects Auto, KB/s, MB/s or Mbit/s (decimal units; 1 MB/s = 8 Mbit/s). Network shows the busiest adapter by combined download/upload rate, with its name visible, and is not the sum of all adapters. Desktop reading order includes Download and Upload.
 
-Settings in 0.6.15: Settings → AI Quota enables independent Codex,
+Settings in 0.6.16: Settings → AI Quota enables independent Codex,
 Antigravity and Claude quota readings in Monitor and Desktop Mode. Only remaining
 percentages and reset times are read, every five minutes. Token Monitor is not
 required. Sign in through Codex/Claude Code first; keep Antigravity running.
 Each provider is off by default. Expired login must be renewed in its owning app.
 
 
-Version 0.6.15 also displays negotiated Network Link Speed for the selected
+Version 0.6.16 also displays negotiated Network Link Speed for the selected
 adapter, in Mbit/s or Gbit/s. This is the adapter connection rate, not a measured
 internet speed or the current Download/Upload throughput. Missing speed is shown
 as unknown, and disconnected adapters are labeled.
@@ -54,7 +54,7 @@ Author:**[Marck Wong](https://github.com/medking82)**
 - **Lock Position and Size** 禁用移动、resize 和 card reorder。锁定 Monitor 的背景 opacity 降为原设置的四分之一并关闭 blur；Settings 保持可读。从 tray 或 Settings 解锁后恢复；Solid/high contrast 优先。这还不是 desktop layer 嵌入。
 - App 默认 **Auto (System)**，installer 也根据 Windows UI language 预选 English、简体或繁体中文。
 
-The published version is **0.6.15** with multilingual UI and animated card reordering. Use the download link above for the latest installer.
+The published version is **0.6.16** with multilingual UI and animated card reordering. Use the download link above for the latest installer.
 
 A compact hardware widget by **[Marck Wong](https://github.com/medking82)** for **Windows 10 22H2 / Windows 11 x64**.
 
@@ -87,13 +87,13 @@ Sensors are read-only; this app does not tune fan curves or Curve Optimizer.
 
 ### In-place upgrade
 
-Install 0.6.15 over the existing version; a clean install is not required. Setup stops the old collector, replaces the app and its two owned startup tasks, and removes an explicit list of obsolete app scripts/source files. Preferences and desktop geometry remain in LocalAppData. Windows PowerShell and shared PawnIO remain installed. An interrupted or failed upgrade may require rerunning setup; file cleanup is not a transactional rollback.
+Install 0.6.16 over the existing version; a clean install is not required. Setup stops the old collector, replaces the app and its two owned startup tasks, and removes an explicit list of obsolete app scripts/source files. Preferences and desktop geometry remain in LocalAppData. Windows PowerShell and shared PawnIO remain installed. An interrupted or failed upgrade may require rerunning setup; file cleanup is not a transactional rollback.
 
 ### Installer
 
 Setup checks .NET Framework 4.8 before installation. If the PawnIO library or driver registration is missing, it runs the bundled official installer and checks again before registering startup. Missing or damaged Windows components require Windows repair; setup does not change Windows features or security settings. These checks establish installation presence, not successful driver loading under every security policy.
 
-The release asset `HardwarePulse-Setup.exe` (version 0.6.15) bundles the application, pinned LibreHardwareMonitor libraries,
+The release asset `HardwarePulse-Setup.exe` (version 0.6.16) bundles the application, pinned LibreHardwareMonitor libraries,
 license notices/source archives and official PawnIO 2.2.0 prerequisite installer. No runtime downloads. The target Windows versions include .NET Framework 4.8; setup checks that requirement.
 The installer requires UAC elevation and is intended for installation by the current administrator
 account. It installs protected code in Program Files and registers the current-user interactive
@@ -138,7 +138,7 @@ real WPF Settings navigation, autosave/restore, discovery fixtures, usage units,
 
 ## 简体中文
 
-当前 version 为 **0.6.15**，包含 multi-language UI。使用上方 download link 获取最新 installer。
+当前 version 为 **0.6.16**，包含 multi-language UI。使用上方 download link 获取最新 installer。
 
 适用于 **Windows 10 22H2 / Windows 11 x64** 的轻量桌面硬件 widget，集中显示 CPU、GPU、Memory、NVMe 和 Fan readings，以及实时 RAM/VRAM usage。
 
@@ -169,7 +169,7 @@ DIMM 品牌、型号和已安装的 slots 来自 SMBIOS。**SPD #1/#3 是 sensor
 
 ### In-place upgrade
 
-Install 0.6.15 over the existing version; a clean install is not required. Setup stops the old collector, replaces the app and its two owned startup tasks, and removes an explicit list of obsolete app scripts/source files. Preferences and desktop geometry remain in LocalAppData. Windows PowerShell and shared PawnIO remain installed. An interrupted or failed upgrade may require rerunning setup; file cleanup is not a transactional rollback.
+Install 0.6.16 over the existing version; a clean install is not required. Setup stops the old collector, replaces the app and its two owned startup tasks, and removes an explicit list of obsolete app scripts/source files. Preferences and desktop geometry remain in LocalAppData. Windows PowerShell and shared PawnIO remain installed. An interrupted or failed upgrade may require rerunning setup; file cleanup is not a transactional rollback.
 
 ### Installer 与自动启动
 

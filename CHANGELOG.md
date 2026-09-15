@@ -2,6 +2,14 @@
 
 English first; 简体中文 follows each version. Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
+## 0.6.16 — 2026-09-15
+
+- Restore normal activation and mouse input when Desktop is unlocked. Previously the real Desktop layer retained WS_EX_NOACTIVATE even though the editor controls were visible; isolated tests did not include this layer.
+- Preserve no-activation and click-through only while locked. Apply the requested lock state when the native layer is first created, avoiding a temporarily locked editor.
+- Verify native extended styles through initial unlock, lock and unlock. A test using the real Desktop layer was confirmed to support both dragging and button clicks.
+
+修复正式 Desktop layer 解锁后仍保留 non-activating style 的问题。带真实 layer 的测试已确认拖动和按钮都正常；锁定后仍保持 click-through。
+
 ## 0.6.15 — 2026-09-15
 
 - Route unlocked Desktop content through the client Preview mouse event and explicitly start WPF DragMove. Retain native edge resizing and interactive editor controls. An isolated test window recorded continuous position changes during dragging.

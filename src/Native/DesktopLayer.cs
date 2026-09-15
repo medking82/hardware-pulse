@@ -26,18 +26,20 @@ namespace HardwarePulse {
         readonly Window window;readonly IntPtr hwnd;readonly WinEvent callback;
         IntPtr hook;bool closed,queued,locked,styleApplied,alwaysOnTop;
         public bool Attached {get;private set;}
-        public DesktopLayer(Window window) {
+        public DesktopLayer(Window window,bool initiallyLocked=true) {
             this.window=window;hwnd=new WindowInteropHelper(window).Handle;
             callback=delegate {if(closed||queued)return;queued=true;window.Dispatcher.BeginInvoke(DispatcherPriority.Background,new Action(delegate{queued=false;if(!closed)Refresh();}));};
             hook=SetWinEventHook(3,3,IntPtr.Zero,callback,0,0,0); // foreground changed
-            SetLocked(true);
+            SetLocked(initiallyLocked);
         }
         public void SetLocked(bool value) {
             if(styleApplied&&locked==value)return;
             locked=value;
             long style=GetWindowLongPtr(hwnd,-20).ToInt64();
-            style|=0x80|0x08000000; // tool window; never activate
-            style=value?style|0x20:style&~0x20L;
+            style|=0x80; // tool window
+            // Only the locked readout is non-activating and click-through.
+            // The editor must receive normal activation and mouse input.
+            style=value?style|0x08000020L:style&~0x08000020L;
             SetWindowLongPtr(hwnd,-20,new IntPtr(style));
             styleApplied=true;
         }

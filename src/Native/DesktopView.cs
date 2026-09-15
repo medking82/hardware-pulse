@@ -47,7 +47,7 @@ namespace HardwarePulse {
             surface=new Border{Padding=new Thickness(16),CornerRadius=new CornerRadius(16),BorderThickness=new Thickness(1),Child=content};Content=surface;
             done.Click+=delegate{if(EditCompleted!=null)EditCompleted();};returnToApp.Click+=delegate{if(ReturnRequested!=null)ReturnRequested();};
             SourceInitialized+=delegate{HwndSource.FromHwnd(new WindowInteropHelper(this).Handle).AddHook(ResizeHook);};
-            SourceInitialized+=delegate{WindowSnap.Attach(this,true,EdgePadding);if(!isolated)layer=new DesktopLayer(this);};
+            SourceInitialized+=delegate{WindowSnap.Attach(this,true,EdgePadding);if(!isolated)layer=new DesktopLayer(this,locked);};
             contrastTimer.Interval=TimeSpan.FromMilliseconds(100);contrastTimer.Tick+=delegate{RefreshLocalContrast();};
             screenshotTimer.Interval=TimeSpan.FromSeconds(15);screenshotTimer.Tick+=delegate{screenshotTimer.Stop();ScreenshotActive=false;if(localContrast!=null)SetLocalContrast(true);};
             Closed+=delegate{screenshotTimer.Stop();contrastTimer.Stop();if(localContrast!=null)localContrast.Dispose();if(layer!=null)layer.Dispose();};
@@ -153,6 +153,7 @@ namespace HardwarePulse {
             stack.RequestedColumns=columns;stack.MinimumColumnWidth=Math.Max(280,24*size);stack.InvalidateMeasure();
             stack.Width=double.NaN;
             locked=isLocked;
+            Focusable=!isLocked;
             editor.Visibility=isLocked?Visibility.Collapsed:Visibility.Visible;
             ResizeMode=isLocked?ResizeMode.NoResize:ResizeMode.CanResizeWithGrip;
             SetValue(WindowSnap.PositionLockedProperty,isLocked);
