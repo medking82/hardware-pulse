@@ -524,3 +524,14 @@ permissions, relevant-path triggers, explicit dispatch, non-fail-fast jobs and a
 full Validate remains required; remote logs establish coverage only for their
 exact tested commit. Revert the workflow and test-only architecture probe to roll
 back, without changing user settings, repository secrets or permissions.
+
+The first adapter CI run [34973589831](https://github.com/medking82/hardware-pulse/actions/runs/34973589831)
+passed x64 but rejected the ARM64 job because its Framework AnyCPU EXE ran as
+X64. This is the documented Framework compatibility default, not a passed native
+ARM64 test. See the [.NET team's architecture tour](https://github.com/dotnet/core/issues/7709).
+Test-WindowsAdapters now offers -NativeArm64, restricted to an ARM64 Windows host,
+which launches only its test EXE via start /machine arm64 /b /wait under the hidden
+runner. It preserves the test exit code, without registry edits, elevation or an
+App launch change. The test still requires RuntimeInformation to report Arm64.
+The AnyCPU adapter/Core DLL build remains unchanged. Local x64 validation covers
+the existing launch; a wrong-host preflight rejects native ARM64 before building.

@@ -52,4 +52,4 @@ jobs:
           persist-credentials: false
       - name: Build and exercise Framework Windows adapters
         shell: pwsh
-        run: ./scripts/Test-WindowsAdapters.ps1
+        run: ./scripts/Test-WindowsAdapters.ps1 -NativeArm64:($env:PULSE_TEST_ARCH -eq 'Arm64')
