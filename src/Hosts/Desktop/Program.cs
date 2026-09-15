@@ -11,13 +11,17 @@ public static class Program {
     [STAThread]
     public static int Main(string[] args) {
         if(args.Length==1&&args[0]=="--help") {
-            Console.WriteLine("Pulse Desktop preview: [--demo] [--smoke-test | --measure-session]. Measurement warms up for 10 seconds, then measures 60 seconds without personal settings. Linux/macOS live CPU, RAM and selected network. Windows requires --demo; use the existing WPF App for live Windows monitoring.");return 0;
+            Console.WriteLine("Pulse Desktop preview: [--demo] [--smoke-test | --measure-session [--diagnose-gc]]. Measurement warms up for 10 seconds, then measures 60 seconds without personal settings. Optional GC diagnostics include startup and add observer overhead. Linux/macOS live CPU, RAM and selected network. Windows requires --demo; use the existing WPF App for live Windows monitoring.");return 0;
         }
-        if(args.Any(a=>a!="--demo"&&a!="--smoke-test"&&a!="--measure-session")||args.Distinct().Count()!=args.Length)return 2;
+        if(args.Any(a=>a!="--demo"&&a!="--smoke-test"&&a!="--measure-session"&&a!="--diagnose-gc")||args.Distinct().Count()!=args.Length)return 2;
         Demo=args.Contains("--demo");Smoke=args.Contains("--smoke-test");Measure=args.Contains("--measure-session");
         if(Smoke&&Measure)return 2;
+        bool diagnose=args.Contains("--diagnose-gc");
+        if(diagnose&&!Measure)return 2;
         if(!Demo&&!OperatingSystem.IsLinux()&&!OperatingSystem.IsMacOS())return 4;
+        using var gc=diagnose?new GcDiagnostics():null;
         int result=BuildApp().StartWithClassicDesktopLifetime(args);
+        if(gc!=null)Console.WriteLine("DIAG_GC "+gc.Report());
         return Environment.ExitCode!=0?Environment.ExitCode:result;
     }
     public static AppBuilder BuildApp()=>AppBuilder.Configure<PulseApplication>().UsePlatformDetect();

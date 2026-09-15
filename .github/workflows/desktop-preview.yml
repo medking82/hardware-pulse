@@ -62,6 +62,11 @@ jobs:
       - name: Native macOS window with live telemetry
         if: runner.os == 'macOS'
         run: dotnet src/Hosts/Desktop/bin/Release/net10.0/Pulse.Desktop.dll --smoke-test
+      - name: Linux GC attribution with demo and live readings
+        if: runner.os == 'Linux'
+        run: |
+          timeout 120s xvfb-run -a dotnet src/Hosts/Desktop/bin/Release/net10.0/Pulse.Desktop.dll --demo --measure-session --diagnose-gc
+          timeout 120s xvfb-run -a dotnet src/Hosts/Desktop/bin/Release/net10.0/Pulse.Desktop.dll --measure-session --diagnose-gc
       - name: Package and launch extracted Linux AppHost
         if: runner.os == 'Linux'
         run: xvfb-run -a python3 scripts/package_desktop.py --rid ${{ matrix.rid }} --measure-session

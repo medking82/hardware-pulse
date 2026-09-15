@@ -442,3 +442,12 @@ The Linux full-GC frequency and resident-memory increase need attribution before
 changing polling or rendering policy. The observer does not force GC; this result
 alone does not identify the caller or prove a leak. Windows demo costs exclude
 live hardware polling and must not replace the installed WPF baseline above.
+
+GC attribution uses opt-in `--measure-session --diagnose-gc`. An EventListener
+counts runtime GCStart_V2 depth/reason/type events across the entire process,
+including warm-up, and emits `DIAG_GC` on exit. It records no stacks or object
+contents. Event delivery can lag the final snapshot; these counts need not equal
+the narrower benchmark interval. Diagnostic overhead is included, so compare
+demo/live diagnostic runs to each other rather than treating them as unchanged
+baseline measurements. Normal launches create no listener. Linux CI runs both
+scenarios on the same runner, with identical one-second polling and Xvfb backend.
