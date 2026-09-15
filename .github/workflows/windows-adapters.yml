@@ -1,0 +1,55 @@
+name: Windows adapters
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/Core/**'
+      - 'src/Adapters/Windows/**'
+      - 'scripts/Build-Core.ps1'
+      - 'scripts/Build-WindowsAdapters.ps1'
+      - 'scripts/Test-WindowsAdapters.ps1'
+      - 'scripts/WindowsAdapterTests.cs'
+      - 'scripts/Run-Hidden.ps1'
+      - '.github/workflows/windows-adapters.yml'
+  pull_request:
+    paths:
+      - 'src/Core/**'
+      - 'src/Adapters/Windows/**'
+      - 'scripts/Build-Core.ps1'
+      - 'scripts/Build-WindowsAdapters.ps1'
+      - 'scripts/Test-WindowsAdapters.ps1'
+      - 'scripts/WindowsAdapterTests.cs'
+      - 'scripts/Run-Hidden.ps1'
+      - '.github/workflows/windows-adapters.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: adapters-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  adapters:
+    name: Adapters / ${{ matrix.runner }} / ${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: windows-2022
+            arch: X64
+          - runner: windows-11-arm
+            arch: Arm64
+    env:
+      PULSE_TEST_ARCH: ${{ matrix.arch }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build and exercise Framework Windows adapters
+        shell: pwsh
+        run: ./scripts/Test-WindowsAdapters.ps1

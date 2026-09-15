@@ -5,6 +5,10 @@ using HardwarePulse;
 class WindowsAdapterTests {
     static void Check(bool value,string message){if(!value)throw new Exception(message);}
     static void Main(){
+        string architecture=System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture.ToString();
+        string expected=Environment.GetEnvironmentVariable("PULSE_TEST_ARCH");
+        Check(string.IsNullOrEmpty(expected)||expected==architecture,"Expected adapter process architecture "+expected+", got "+architecture);
+        Console.WriteLine("Adapter test host: "+System.Runtime.InteropServices.RuntimeInformation.OSDescription+" / "+architecture+" / "+System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription);
         Check(typeof(FrameCapture).Assembly==typeof(SensorProfile).Assembly,"FPS capture did not enter adapter assembly");
         var csv=FrameCapture.ParseCsv("\"Game, \"\"Demo\"\".exe\",42,0x1,16.0");
         Check(csv.Length==4&&csv[0]=="Game, \"Demo\".exe"&&csv[1]=="42","Quoted CSV fields changed");

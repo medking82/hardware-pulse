@@ -501,3 +501,26 @@ PresentMon/driver payloads, platform collectors, native Desktop integration and
 installers still need independent OS/device validation. CI introduces no runtime
 changes or installer release. Rollback is the workflow and test-host assertion
 commit; no user settings or repository secret changes are required.
+
+## Windows adapter CI
+
+`.github/workflows/windows-adapters.yml` builds the Framework Core and Windows
+adapter assemblies with the existing csc toolchain, then runs WindowsAdapterTests
+on Windows x64 and ARM64 hosted runners. RuntimeInformation records the actual
+test-process architecture and Framework version; PULSE_TEST_ARCH rejects an
+unexpected runtime architecture. The additional RuntimeInformation reference is
+test-only and does not alter the adapter or App dependencies.
+
+Coverage includes live read-only physical RAM bounds, optional WMI module/disk
+metadata and network links, invalid WLAN input, and synthetic FPS CSV/PID/reset/
+freshness behavior. No driver, PresentMon process, credentials, quota HTTP request,
+installer or App window is used. A runner may have no Wi-Fi or physical sensor
+inventory; optional metadata remains optional. Passing does not establish CPU
+sensor/temperature/fan coverage or game FPS capture on ARM64.
+
+The workflow uses pinned checkout with credentials disabled, contents-read
+permissions, relevant-path triggers, explicit dispatch, non-fail-fast jobs and a
+15-minute timeout. It introduces no runtime/defaults or package changes. Local
+full Validate remains required; remote logs establish coverage only for their
+exact tested commit. Revert the workflow and test-only architecture probe to roll
+back, without changing user settings, repository secrets or permissions.
