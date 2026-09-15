@@ -5,6 +5,14 @@ using HardwarePulse;
 class WindowsAdapterTests {
     static void Check(bool value,string message){if(!value)throw new Exception(message);}
     static void Main(){
+        Check(typeof(WindowsHardware).Assembly==typeof(SensorProfile).Assembly,"Hardware queries did not enter adapter assembly");
+        var memory=WindowsHardware.ReadMemory();
+        Check(memory!=null&&memory.totalGb>0&&memory.usedGb>=0&&memory.usedGb<=memory.totalGb,"Live physical memory query returned invalid capacity/usage");
+        string memoryName;var modules=WindowsHardware.ReadMemoryModules(out memoryName);
+        Check(!string.IsNullOrEmpty(memoryName),"Memory display name lost its fallback");
+        foreach(var module in modules)Check(module.capacityGb>=0&&module.brand!=null&&module.part!=null&&module.slot!=null,"Invalid module metadata");
+        foreach(var disk in WindowsHardware.ReadDisks())Check(disk.model!=null&&disk.volumes!=null,"Invalid disk metadata");
+        Console.WriteLine("PASS Windows hardware adapter: live RAM bounds, optional module and disk metadata; no identifiers exported");
         Check(typeof(WindowsNetwork).Assembly==typeof(SensorProfile).Assembly,"Network sampling did not enter the adapter assembly");
         Check(WifiSignal.Read("not-an-interface-id")==null,"Invalid Wi-Fi interface fabricated a signal");
         var mapped=new HashSet<string>();

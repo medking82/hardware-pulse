@@ -262,3 +262,21 @@ Windows machine, not simulated disconnect/reconnect or hardware coverage for eve
 NIC. Existing differential fixtures still verify the downstream sensor mapping.
 Test-WindowsAdapters is included in Validate. Source rollback requires no settings
 migration; no CPU/RAM improvement is claimed for this extraction.
+
+## Windows memory and inventory queries
+
+From release baseline `2988517` (v0.6.22), WindowsHardware owns GlobalMemoryStatusEx,
+Win32_PhysicalMemory and disk-to-volume WMI queries. ReadMemory returns the same
+used/usable physical capacity in binary gigabytes or null when unavailable.
+ReadMemoryModules and ReadDisks preserve existing metadata, labels and fallback
+values. The adapter contains no LHM, WPF, file publication or scheduling logic.
+
+Collector calls inventory once after opening hardware, then calls ReadMemory once
+per existing sample. Its warning handling, snapshot schema, STOP/watchdog behavior,
+driver ownership and two-second cadence are unchanged. No WMI query is moved into
+the sampling loop. WindowsAdapterTests exercise these methods through the real DLL
+and check live memory bounds and optional inventory metadata without printing
+device identifiers. Differential mapping and full Validate remain the downstream
+regression checks. Missing-WMI failure injection and other Windows devices are not
+covered by this local smoke test. This source extraction adds no worker/timer and
+does not establish a measurable performance improvement or additional OS support.
