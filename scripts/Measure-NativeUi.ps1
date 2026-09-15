@@ -1,4 +1,4 @@
-﻿param([Parameter(Mandatory=$true)][string]$AppDirectory,[ValidateRange(2,3600)][int]$Seconds=30)
+﻿param([Parameter(Mandatory=$true)][string]$AppDirectory,[ValidateRange(2,3600)][int]$Seconds=30,[ValidateSet('monitor','desktop','desktop-contrast')][string]$Scene='monitor')
 $ErrorActionPreference='Stop'
 $root=Split-Path $PSScriptRoot
 $AppDirectory=[IO.Path]::GetFullPath($AppDirectory)
@@ -7,6 +7,7 @@ $version=[Reflection.AssemblyName]::GetAssemblyName($appFile).Version.ToString()
 $appHash=(Get-FileHash $appFile -Algorithm SHA256).Hash
 $coreHash=(Get-FileHash (Join-Path $AppDirectory 'Pulse.Core.dll') -Algorithm SHA256).Hash
 $adapterHash=(Get-FileHash (Join-Path $AppDirectory 'Pulse.Adapters.Windows.dll') -Algorithm SHA256).Hash
+$harnessHash=(Get-FileHash (Join-Path $AppDirectory 'NativeTests.exe') -Algorithm SHA256).Hash
 $state=Join-Path $root ('vendor/ui-measure-'+[Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $state | Out-Null
 $info=[Diagnostics.ProcessStartInfo]::new()
@@ -14,7 +15,7 @@ $info.FileName=Join-Path $AppDirectory 'NativeTests.exe'
 $info.WorkingDirectory=$root
 $info.UseShellExecute=$false;$info.CreateNoWindow=$true
 $info.RedirectStandardOutput=$true;$info.RedirectStandardError=$true
-$info.ArgumentList.Add($state);$info.ArgumentList.Add('bench')
+$info.ArgumentList.Add($state);$info.ArgumentList.Add('bench');$info.ArgumentList.Add($Scene)
 $process=[Diagnostics.Process]::Start($info)
 $stdout=$process.StandardOutput.ReadToEndAsync();$stderr=$process.StandardError.ReadToEndAsync()
 try {
@@ -23,6 +24,8 @@ try {
         if($process.HasExited -or $watch.Elapsed.TotalSeconds -gt 20){throw 'UI benchmark did not start'}
         Start-Sleep -Milliseconds 100
     }
+    $ready=Get-Content "$state/ready.json" -Raw|ConvertFrom-Json
+    if($ready.scene -ne $Scene){throw 'Benchmark harness scene mismatch; rebuild NativeTests.exe'}
     $snapshot=Get-Content "$state/runtime/snapshot.json" -Raw | ConvertFrom-Json
     $samples=@();$cpuStart=$null;$start=$null
     for($i=0;$i -lt [Math]::Ceiling(($Seconds+10)/2);$i++){
@@ -38,7 +41,7 @@ try {
         if($i -ge 5){$process.Refresh();$samples+= [pscustomobject]@{workingSet=$process.WorkingSet64;privateBytes=$process.PrivateMemorySize64}}
     }
     $process.Refresh()
-    $result=[pscustomobject]@{scope='Monitor test harness; excludes live collector, FPS and Local Contrast';version=$version;appSha256=$appHash;coreSha256=$coreHash;adapterSha256=$adapterHash;logicalProcessors=[Environment]::ProcessorCount;warmupSeconds=10;requestedSeconds=$Seconds;sampleIntervalSeconds=2;widthDip=310;heightDip=690;app=$AppDirectory;seconds=$start.Elapsed.TotalSeconds;cpuPercent=100*($process.TotalProcessorTime-$cpuStart).TotalSeconds/$start.Elapsed.TotalSeconds/[Environment]::ProcessorCount;workingSetMiB=($samples.workingSet|Measure-Object -Average).Average/1MB;privateMiB=($samples.privateBytes|Measure-Object -Average).Average/1MB;samples=$samples.Count}
+    $result=[pscustomobject]@{scope='Isolated UI harness; excludes live collector, FPS, quota requests and desktop layer integration';harnessSha256=$harnessHash;scene=$Scene;background=$(if($Scene -eq 'monitor'){'host desktop'}else{'fixed black-white-gray gradient'});localContrast=$ready.localContrast;version=$version;appSha256=$appHash;coreSha256=$coreHash;adapterSha256=$adapterHash;logicalProcessors=[Environment]::ProcessorCount;warmupSeconds=10;requestedSeconds=$Seconds;sampleIntervalSeconds=2;widthDip=$ready.widthDip;heightDip=$ready.heightDip;widthPixels=$ready.widthPixels;heightPixels=$ready.heightPixels;app=$AppDirectory;seconds=$start.Elapsed.TotalSeconds;cpuPercent=100*($process.TotalProcessorTime-$cpuStart).TotalSeconds/$start.Elapsed.TotalSeconds/[Environment]::ProcessorCount;workingSetMiB=($samples.workingSet|Measure-Object -Average).Average/1MB;privateMiB=($samples.privateBytes|Measure-Object -Average).Average/1MB;samples=$samples.Count}
     $result|ConvertTo-Json|Set-Content "$state/result.json" -Encoding utf8
     $result|ConvertTo-Json
 } finally {

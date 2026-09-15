@@ -153,3 +153,42 @@ warmup/interval metadata and reject invalid sample durations/counts. UI sampling
 fails if its test process exits early. Measurement-only metadata changes have no
 installed runtime effect. Raw baseline evidence is kept locally under vendor as
 ui-baseline-0.6.24.json and contrast-baseline-0.6.24.json.
+
+## Matched Desktop Local Contrast off/on (0.6.24)
+
+Use `Measure-NativeUi.ps1 -AppDirectory <built-app> -Scene desktop` and
+`-Scene desktop-contrast`. NativeTests must be rebuilt with the scene-aware
+harness. The wrapper rejects a mismatched ready marker and records actual DIP/
+pixel bounds, requested/active contrast, runtime and harness hashes. The test
+process checks contrast availability during the run and exits if it changes.
+
+Runtime source remains `d58919f9f41215fae7f065727144c0b654e8af73` (0.6.24).
+The measured build has App SHA-256
+`0ec363603cc51ffd629ea433ef72dc05b5e45cb588e7d3cc9176c49f58a597dc`;
+all six runs used the same App/Core/adapter binaries. NativeTests uses isolated
+state and the shared synthetic Snapshot fixture; no installed preferences change.
+
+Three fresh-process off/on pairs, sequentially. Each warms up 10 seconds, then
+measures 30 seconds with 15 memory samples. Fixed locked, topmost DesktopView,
+320×850 DIP / 480×1275 pixels, one column, 16 DIP font, 6 DIP spacing, 100% text
+opacity, 0% background opacity, Auto Contrast off. Only Local Contrast differs.
+Both use the same static black/white/gray gradient window behind the panel and
+synthetic sensor updates every two seconds. CPU uses all 16 logical processors.
+
+| Pair | CPU off | CPU on | CPU delta (percentage points) | Private-memory delta | Working-set delta |
+| --- | --- | --- | --- | --- | --- |
+| 1 | 0.029% | 0.487% | +0.458 | +13.51 MiB | +22.84 MiB |
+| 2 | 0.032% | 0.406% | +0.374 | +13.54 MiB | +21.84 MiB |
+| 3 | 0.016% | 0.432% | +0.416 | +15.44 MiB | +23.03 MiB |
+
+These are per-process mean-memory differences, not retained-object sizes or a
+whole-system impact estimate. Short-run CPU varies and no confidence interval is
+claimed. This includes real DesktopView rendering and Local Contrast's async
+capture/analysis timer. Isolation bypasses the Windows wallpaper-layer adapter;
+live collector, quota network calls and game/FPS capture are absent. The backdrop
+is static. GPU/DWM cost, moving high-frequency backgrounds, resizing, DPI changes,
+long-duration leaks and game frametime still need separate matched measurements.
+
+This measurement-only iteration changes no runtime, sampling interval, defaults
+or release binary. Local raw evidence: vendor/desktop-paired-0.6.24.json. The
+original monitor benchmark remains available through the default `monitor` scene.

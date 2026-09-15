@@ -140,11 +140,32 @@ internal static class NativeTests {
                 }app.Shutdown();return 0;
             }
             if(args.Length>1&&args[1]=="bench"){
-                using(var bench=new Shell(paths,true)){
+                string scene=args.Length>2?args[2]:"monitor";
+                Assert(scene=="monitor"||scene=="desktop"||scene=="desktop-contrast","Unknown benchmark scene");
+                bool desktopScene=scene!="monitor",contrast=scene=="desktop-contrast";Window backdrop=null;
+                if(desktopScene){
+                    Json.WriteAtomic(Path.Combine(state,"widget-settings.json"),new {language="en",desktopEnabled=true,desktopLocked=true,desktopAlwaysOnTop=true,desktopLocalContrast=contrast,desktopAutoContrast=false,desktopOverlayOpacity=0,desktopBackgroundOpacity=0,desktopTextOpacity=100,desktopFontSize=16,desktopSpacing=6,desktopColumns=1,desktopLeft=100,desktopTop=30,desktopWidth=320,desktopHeight=850});
+                    var gradient=new LinearGradientBrush{StartPoint=new Point(0,0),EndPoint=new Point(1,1)};
+                    gradient.GradientStops.Add(new GradientStop(Colors.Black,0));gradient.GradientStops.Add(new GradientStop(Colors.White,.4));gradient.GradientStops.Add(new GradientStop(Colors.Gray,.7));gradient.GradientStops.Add(new GradientStop(Colors.Black,1));
+                    backdrop=new Window{WindowStyle=WindowStyle.None,ResizeMode=ResizeMode.NoResize,ShowInTaskbar=false,ShowActivated=false,Left=100,Top=30,Width=320,Height=850,Topmost=true,Background=gradient};backdrop.Show();
+                }
+                try{using(var bench=new Shell(paths,true)){
                     bench.Window.ShowInTaskbar=false;bench.Window.ShowActivated=false;bench.Window.Width=310;bench.Window.Height=690;
-                    bench.Window.ContentRendered+=delegate{Json.WriteAtomic(Path.Combine(state,"ready.json"),new {ready=DateTimeOffset.Now.ToString("o")});};bench.Show();bench.UpdatePanel();
-                    var stop=new DispatcherTimer {Interval=TimeSpan.FromSeconds(2)};stop.Tick+=delegate{if(File.Exists(Path.Combine(state,"BENCH-STOP"))){stop.Stop();bench.Exit();app.Shutdown();}};stop.Start();app.Run();
-                }return 0;
+                    bench.Show();bench.UpdatePanel();Pump();
+                    Window view=bench.Window;DesktopView desktopBench=null;
+                    if(desktopScene){
+                        desktopBench=Field<DesktopView>(bench,"desktop");Assert(desktopBench!=null&&desktopBench.Locked,"Desktop benchmark did not open locked");
+                        desktopBench.Topmost=true;bench.Window.Hide();view=desktopBench;Pump();
+                        Assert(desktopBench.LocalContrastAvailable==contrast,"Requested contrast unavailable");
+                    }
+                    var origin=view.PointToScreen(new Point());var end=view.PointToScreen(new Point(view.ActualWidth,view.ActualHeight));
+                    Json.WriteAtomic(Path.Combine(state,"ready.json"),new {ready=DateTimeOffset.Now.ToString("o"),scene=scene,widthDip=view.ActualWidth,heightDip=view.ActualHeight,widthPixels=end.X-origin.X,heightPixels=end.Y-origin.Y,localContrast=contrast});
+                    var stop=new DispatcherTimer {Interval=TimeSpan.FromSeconds(2)};
+                    stop.Tick+=delegate{
+                        if(File.Exists(Path.Combine(state,"BENCH-STOP"))){stop.Stop();bench.Exit();app.Shutdown();return;}
+                        Assert(desktopBench==null||desktopBench.LocalContrastAvailable==contrast,"Contrast state changed during benchmark");
+                    };stop.Start();app.Run();
+                }}finally{if(backdrop!=null)backdrop.Close();}return 0;
             }
             SharedFeatures();
             foreach(bool desktopMode in new[]{true,false}){
