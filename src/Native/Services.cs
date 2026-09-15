@@ -76,7 +76,7 @@ namespace HardwarePulse {
         }
         void StopOverlay(){overlayTimer.Stop();if(frames!=null)frames.Dispose();frames=null;overlay.Hide();if(target!=null)target.Dispose();target=null;}
         void StartOverlay(){SyncFpsSwitches();StopOverlay();desktopFpsValue=desktopFpsAverage=desktopFpsMinimum="—";if(!Checked("OverlayEnabled")&&!DesktopFpsActive){Text("OverlayStatus",language.T("FPS capture stopped"));return;}if(isolated)return;if(Checked("OverlayEnabled")&&Checked("OverlayFps")||DesktopFpsActive)frames=new FpsClient(paths.Exe);overlayTimer.Start();UpdateOverlay();}
-        static string OverlayValue(Reading data,string key,string unit){double value;return data.values.TryGetValue(key,out value)?value.ToString("0.#")+unit:"—";}
+        static string OverlayValue(Reading data,string key,string unit){double value;return data.values.TryGetValue(key,out value)?value.ToString(unit=="°C"||unit=="%"?"0.0":"0.#")+unit:"—";}
         void UpdateOverlay(){desktopFpsValue=desktopFpsAverage=desktopFpsMinimum="—";desktopFpsStatus="Waiting for target app";if((!Checked("OverlayEnabled")&&!DesktopFpsActive)||isolated){overlay.Hide();return;}
             var choice=Control<ComboBox>("GamePicker").SelectedItem as ComboBoxItem;string name=choice==null?"":(string)choice.Tag;
             var next=OverlayTarget.Resolve(name,target);if(!object.ReferenceEquals(next,target)){if(target!=null)target.Dispose();target=next;}

@@ -2,6 +2,15 @@
 
 English first; 简体中文 follows each version. Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
+## 0.6.19 — 2026-09-15
+
+- Keep Desktop temperatures and processor utilization at one decimal place, including whole readings such as 54.0 °C and 4.0%.
+- Keep Desktop RAM/VRAM used capacity, total capacity and utilization at one decimal place, such as 2.0 / 8.0 GB · 25.0%. App card utilization uses the same precision.
+- Apply fixed one-decimal temperatures and utilization to the separate overlay. FPS and fan RPM retain integer formatting.
+- Update the native WPF regression expectations for whole-valued temperature and memory readings.
+
+温度、CPU/GPU utilization、RAM/VRAM capacity 与 utilization 固定保留一位小数，整数也显示末尾 .0，例如 54.0 °C、42.0%。FPS 与 fan RPM 继续使用整数。
+
 ## 0.6.18 — 2026-09-15
 
 - Reduce Local Contrast overhead by reusing capture buffers, bounding analysis to 160,000 pixels, caching luminance conversion and avoiding per-label pixel copies and unchanged foreground brush replacement.

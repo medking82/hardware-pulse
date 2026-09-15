@@ -287,9 +287,9 @@ internal static class NativeTests {
                 Assert(Tree(Tree(desktop).OfType<ResponsivePanel>().Single()).OfType<TextBlock>().First().Text=="VRAM","Desktop reorder not applied to readings");
                 reorderDesktop.Begin(10);reorderDesktop.Move(10000);reorderDesktop.Complete(true);
                 Assert(desktopOrder.Children[0]==vramRow,"Canceled desktop drag changed order");
-                Assert(Tree(desktop).OfType<TextBlock>().Any(t=>t.Text.Contains("49 °C")),"Desktop did not use existing GPU readings");
+                Assert(Tree(desktop).OfType<TextBlock>().Any(t=>t.Text.Contains("49.0 °C")),"Desktop did not use existing GPU readings");
                 Assert(Tree(desktop).OfType<Button>().Count(b=>b.IsVisible)==2,"Desktop editor lost its actions");
-                Assert(Tree(desktop).OfType<TextBlock>().Any(t=>t.Text=="VRAM")&&Tree(desktop).OfType<TextBlock>().Any(t=>t.Text=="2 / 8 GB · 25%"),"Desktop VRAM usage missing");
+                Assert(Tree(desktop).OfType<TextBlock>().Any(t=>t.Text=="VRAM")&&Tree(desktop).OfType<TextBlock>().Any(t=>t.Text=="2.0 / 8.0 GB · 25.0%"),"Desktop VRAM usage missing");
                 var fanSnapshot=Snapshot();fanSnapshot.sequence=20;fanSnapshot.sensors=fanSnapshot.sensors.Concat(new[]{
                     new Sensor{id="/gpu/fan/0",hardwareId="/gpu",hardwareType="GpuNvidia",hardware="Demo GPU",name="GPU Fan 1",type="Fan",value=700},
                     new Sensor{id="/gpu/fan/1",hardwareId="/gpu",hardwareType="GpuNvidia",hardware="Demo GPU",name="GPU Fan 2",type="Fan",value=0}

@@ -1,6 +1,7 @@
 ﻿param([string]$AppPath='build/native/app')
 $ErrorActionPreference='Stop'
 Add-Type -AssemblyName PresentationFramework,PresentationCore,WindowsBase,System.Xaml
+Add-Type 'public static class ContrastTestComposition { [System.Runtime.InteropServices.DllImport("dwmapi.dll")] public static extern int DwmFlush(); }'
 [void][Reflection.Assembly]::LoadFrom((Join-Path ([IO.Path]::GetFullPath($AppPath)) 'HardwarePulse.exe'))
 function Settle { $watch=[Diagnostics.Stopwatch]::StartNew();while($watch.ElapsedMilliseconds -lt 200){[Windows.Threading.Dispatcher]::CurrentDispatcher.Invoke([Action]{},[Windows.Threading.DispatcherPriority]::Background);Start-Sleep -Milliseconds 10} }
 function Assert($condition,$message){if(!$condition){throw $message}}
@@ -24,11 +25,17 @@ try {
  Assert (@($noise|Where-Object {$_ -lt .16 -or $_ -gt .22}).Count -eq 0) 'Fine texture still creates black/white speckles'
  Assert ([Math]::Abs([HardwarePulse.LocalContrast]::Stabilize(.8,.1)-.8) -lt .001) 'Large background change delayed'
  # Exercise the bounded grid and native buffer lifecycle at a larger physical size.
- foreach($window in @($behind,$front)){$window.Width=600;$window.Height=500};Settle
+ foreach($window in @($behind,$front)){$window.Width=600;$window.Height=500;$window.UpdateLayout()};Settle
+ Assert ([ContrastTestComposition]::DwmFlush() -eq 0) 'Desktop composition did not synchronize after resize'
  $large=$capture.Capture([Windows.Media.Colors]::Transparent)
  Assert ($large.PixelWidth*$large.PixelHeight -le 160000 -and $large.PixelWidth -lt $capture.Bounds().Width) 'Large capture did not use a bounded grid'
  $minority=0.0;$region=[Windows.Int32Rect]::new(10,10,[int]($large.PixelWidth/4),[int]($large.PixelHeight/2))
- Assert ($capture.RegionColor($region,20,[ref]$minority) -eq 245 -and $minority -eq 0) 'Reduced grid lost dark-background contrast'
+ $shade=$capture.RegionColor($region,20,[ref]$minority)
+ if($shade -ne 245 -or $minority -ne 0){
+  $encoder=[Windows.Media.Imaging.PngBitmapEncoder]::new();$encoder.Frames.Add([Windows.Media.Imaging.BitmapFrame]::Create($large))
+  $stream=[IO.File]::Create((Join-Path $PWD 'vendor/contrast-failed-mask.png'));try{$encoder.Save($stream)}finally{$stream.Dispose()}
+  throw "Reduced grid lost dark-background contrast: shade=$shade minority=$minority region=$region bounds=$($capture.Bounds())"
+ }
  $capture.Dispose();Assert ($capture.Enable()) 'Capture could not resume after disposal';Settle
  Assert ($null -ne $capture.Capture([Windows.Media.Colors]::Transparent)) 'Capture buffers did not recover'
  foreach($window in @($behind,$front)){$window.Width=300;$window.Height=150};Settle
