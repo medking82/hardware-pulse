@@ -98,7 +98,7 @@ Leave a name blank to use device information. Hover over a field to see its auto
 SPD numbers identify sensor addresses, not physical slots. Installed slots are reported separately; assign a slot name only after confirming its sensor.|SPD 编号代表传感器地址，并非实体插槽。已安装插槽单独显示；确认对应关系后再命名。|SPD 編號代表感測器位址，並非實體插槽。已安裝插槽單獨顯示；確認對應關係後再命名。
 Changes save automatically.|更改自动保存。|變更自動儲存。
 About Pulse|关于 Pulse|關於 Pulse
-Version 0.6.9 · Marck Wong|版本 0.6.9 · Marck Wong|版本 0.6.9 · Marck Wong
+Version 0.6.10 · Marck Wong|版本 0.6.10 · Marck Wong|版本 0.6.10 · Marck Wong
 Sensors by LibreHardwareMonitor. Shared driver by PawnIO.|传感器：LibreHardwareMonitor。共享驱动：PawnIO。|感測器：LibreHardwareMonitor。共用驅動程式：PawnIO。
 Language|语言 / Language|語言 / Language
 Minimize|最小化|最小化
@@ -251,3 +251,14 @@ Background opacity is separate from text. Topmost uses its own background settin
 Selected|已选择|已選擇
 Auto Contrast adjusts colors. Background and text opacity always follow your sliders.|自动对比度调整配色。背景与文字不透明度始终按滑块设置生效。|自動對比度調整配色。背景與文字不透明度始終按滑桿設定生效。
 Desktop locked. Right-click the Pulse tray icon and choose Edit Desktop to unlock.|桌面已锁定。右键点击系统托盘中的 Pulse 图标，选择“编辑桌面”即可解锁。|桌面已鎖定。右鍵點擊系統匣中的 Pulse 圖示，選擇「編輯桌面」即可解鎖。
+Local adaptive text contrast|局部自适应文字对比度|局部自適應文字對比度
+Adapts text to the background beneath each pixel. Pulse may disappear from screenshots and recordings while enabled.|按文字背后的画面局部调整黑白对比度。开启时，截图及录屏可能不包含 Pulse。|按文字背後的畫面局部調整黑白對比度。開啟時，截圖及錄影可能不包含 Pulse。
+Local contrast active|局部对比度已启用|局部對比度已啟用
+Local contrast unavailable; using standard text color|局部对比度不可用；使用标准文字颜色|局部對比度不可用；使用標準文字顏色
+Enable FPS here to monitor the target app without opening the separate FPS overlay.|在这里开启 FPS，无需打开独立 FPS 浮层；监控对象沿用 FPS 设置。|在這裡開啟 FPS，無需開啟獨立 FPS 浮層；監控對象沿用 FPS 設定。
+Desktop toggle shortcut|Desktop 显示快捷键|Desktop 顯示快捷鍵
+Press a shortcut; Esc cancels|按下组合键；Esc 取消|按下組合鍵；Esc 取消
+Use two modifiers (Ctrl, Alt, Shift) with a letter, number or F1–F11.|使用 Ctrl、Alt、Shift 中至少两个，加字母、数字或 F1–F11。|使用 Ctrl、Alt、Shift 中至少兩個，加字母、數字或 F1–F11。
+Shortcut unavailable. Choose another combination.|快捷键不可用，请选择其他组合。|快捷鍵不可用，請選擇其他組合。
+Shortcut ready; game bindings may still overlap.|快捷键已注册；仍可能与游戏内键位重叠。|快捷鍵已註冊；仍可能與遊戲內鍵位重疊。
+Show or hide Desktop without opening App. Enable Always on top to see it over games.|显示或隐藏 Desktop，不打开 App。游戏中查看请开启“置顶显示”。|顯示或隱藏 Desktop，不開啟 App。遊戲中查看請開啟「置頂顯示」。

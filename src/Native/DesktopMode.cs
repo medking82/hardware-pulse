@@ -9,8 +9,13 @@ namespace HardwarePulse {
     public sealed partial class Shell {
         DesktopView desktop;Forms.ToolStripMenuItem trayDesktop,trayDesktopEdit,trayDesktopLock;bool syncingDesktopOpacity;
         bool DesktopEnabled {get{return settings.Flag("desktopEnabled");}}
+        bool DesktopFpsActive {get{return DesktopEnabled&&DesktopMetricEnabled("fps");}}
+        string desktopFpsValue="—";
         string DesktopColor(){string hex=settings.Text("desktopColor","#E4F3EF");return System.Text.RegularExpressions.Regex.IsMatch(hex,"^#[0-9a-fA-F]{6}$")?hex:"#E4F3EF";}
         void WireDesktop(){
+            WireDesktopShortcut();
+            Control<CheckBox>("DesktopLocalContrast").IsChecked=settings.Flag("desktopLocalContrast");
+            Control<CheckBox>("DesktopLocalContrast").Click+=delegate{settings.Data["desktopLocalContrast"]=Checked("DesktopLocalContrast");UpdateDesktop();QueueSave();};
             Click("DesktopRecommended",delegate{
                 settings.Data["desktopAutoContrast"]=true;Control<CheckBox>("DesktopAutoContrast").IsChecked=true;
                 Control<Slider>("DesktopFontSize").Value=16;Control<Slider>("DesktopSpacing").Value=10;Control<Slider>("DesktopTextOpacity").Value=100;
@@ -42,8 +47,9 @@ namespace HardwarePulse {
             }
             Click("DesktopColor",delegate{using(var dialog=new Forms.ColorDialog{FullOpen=true,Color=System.Drawing.ColorTranslator.FromHtml(DesktopColor())}){
                 if(dialog.ShowDialog()!=Forms.DialogResult.OK)return;
-                settings.Data["desktopColor"]="#"+dialog.Color.R.ToString("X2")+dialog.Color.G.ToString("X2")+dialog.Color.B.ToString("X2");UpdateDesktop();QueueSave();
+                settings.Data["desktopColor"]="#"+dialog.Color.R.ToString("X2")+dialog.Color.G.ToString("X2")+dialog.Color.B.ToString("X2");
                 settings.Data["desktopAutoContrast"]=false;Control<CheckBox>("DesktopAutoContrast").IsChecked=false;UpdateDesktop();QueueSave();
+                settings.Data["desktopLocalContrast"]=false;Control<CheckBox>("DesktopLocalContrast").IsChecked=false;UpdateDesktop();QueueSave();
             }});
             Click("DesktopDone",delegate{SetDesktopLocked(true);Save();if(DesktopEnabled)Window.Hide();});
             Click("DesktopMove",delegate{if(!DesktopEnabled)SetDesktopEnabled(true);else EditDesktop();});
@@ -55,7 +61,7 @@ namespace HardwarePulse {
             settings.Data["desktopEnabled"]=enabled;Control<CheckBox>("DesktopEnabled").IsChecked=enabled;
             if(enabled){settings.Data["desktopLocked"]=false;Control<CheckBox>("DesktopLocked").IsChecked=false;}
             if(!enabled&&desktop!=null){desktop.Close();desktop=null;}
-            UpdateDesktop();Save();
+            StartOverlay();UpdateDesktop();Save();
             if(enabled)EditDesktop();else{Show();ShowSettings(false);}
         }
         void SetDesktopLocked(bool value){bool wasLocked=settings.Flag("desktopLocked",true);settings.Data["desktopLocked"]=value;Control<CheckBox>("DesktopLocked").IsChecked=value;UpdateDesktop();Save();if(value&&!wasLocked&&!isolated&&tray!=null)tray.ShowBalloonTip(5000,"Pulse",language.T("Desktop locked. Right-click the Pulse tray icon and choose Edit Desktop to unlock."),Forms.ToolTipIcon.Info);}
@@ -75,7 +81,7 @@ namespace HardwarePulse {
             Text("DesktopOverlayOpacityValue",Math.Round(overlaySlider.Value)+"%");
             syncingDesktopOpacity=true;try{var slider=Control<Slider>("DesktopTextOpacity");slider.Minimum=0;slider.Value=settings.Number("desktopTextOpacity",100,0,100);}finally{syncingDesktopOpacity=false;}
             Control<Button>("DesktopColor").Content=DesktopColor();
-            Control<Button>("DesktopColor").IsEnabled=!Checked("DesktopAutoContrast");
+            Control<Button>("DesktopColor").IsEnabled=true;
             Text("DesktopFontValue",Control<Slider>("DesktopFontSize").Value+" px");Text("DesktopSpacingValue",Control<Slider>("DesktopSpacing").Value+" px");
             Text("DesktopTextOpacityValue",Control<Slider>("DesktopTextOpacity").Value+"%");
             Control<Button>("DesktopDone").IsEnabled=DesktopEnabled;
@@ -92,6 +98,7 @@ namespace HardwarePulse {
         }
         List<DesktopMetric> DesktopMetrics(){
             var result=new List<DesktopMetric>();
+            if(DesktopMetricEnabled("fps"))result.Add(new DesktopMetric("fps","FPS",desktopFpsValue,"fps"));
             foreach(var card in cards.Children.Cast<Border>()){
                 string key=(string)card.Tag;
                 if(key=="Network"&&!Available("lanLink")&&!Available("wifiLink")&&(Available("netDown")||Available("netUp"))){
@@ -137,13 +144,15 @@ namespace HardwarePulse {
                 desktop.PositionSaved+=SaveDesktopPosition;
             }
             bool overlay=settings.Flag("desktopAlwaysOnTop")&&!SystemParameters.HighContrast;
-            string effectiveColor=overlay?"#101820":desktop.ResolveColor(Checked("DesktopAutoContrast"),DesktopColor());
+            string effectiveColor=overlay&&Checked("DesktopAutoContrast")?"#101820":desktop.ResolveColor(Checked("DesktopAutoContrast"),DesktopColor());
             desktop.SetEditorLabels(language.T("Drag the center to move. Drag any edge or corner to resize."),language.T("Lock Desktop"),language.T("Return to App"));
             desktop.Render(DesktopMetrics(),Control<Slider>("DesktopFontSize").Value,Control<Slider>("DesktopSpacing").Value,effectiveColor,settings.Flag("desktopLocked",true),(int)settings.Number("desktopColumns",0,0,3),name=>DesktopIconColor(name,effectiveColor));
             desktop.SetTextOpacity(Control<Slider>("DesktopTextOpacity").Value,Checked("DesktopAutoContrast"),overlay,Control<Slider>("DesktopOverlayOpacity").Value,Control<Slider>("DesktopBackgroundOpacity").Value);
             if(!desktop.IsVisible)desktop.Show();
             desktop.SetAlwaysOnTop(settings.Flag("desktopAlwaysOnTop"));
             desktop.RefreshLayer();
+            desktop.SetLocalContrast(Checked("DesktopLocalContrast"));
+            Text("DesktopLocalContrastStatus",!Checked("DesktopLocalContrast")?"":language.T(desktop.LocalContrastAvailable?"Local contrast active":"Local contrast unavailable; using standard text color"));
             Text("DesktopStatus",language.T(desktop.LayerAvailable?"Use the system tray to edit or exit Desktop Mode.":"Waiting for Windows desktop"));
         }
     }

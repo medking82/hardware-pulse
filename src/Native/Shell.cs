@@ -95,6 +95,6 @@ namespace HardwarePulse {
         public void ShowHome(){ShowSettings(false);Show();}
         public void Show(){Window.Show();Window.WindowState=WindowState.Normal;Window.Activate();}
         public void Exit(){exit=true;Window.Close();}
-        public void Dispose(){if(disposed)return;disposed=true;quotas.Dispose();poll.Stop();saveTimer.Stop();StopOverlay();overlay.Close();if(desktop!=null){desktop.Close();desktop=null;}updateTimer.Stop();updater.Dispose();tray.Visible=false;tray.Dispose();if(!isolated){try{if(File.Exists(paths.Snapshot))File.WriteAllText(paths.Stop,"Pulse Exit");}catch(Exception e){File.WriteAllText(Path.Combine(paths.State,"shutdown-error.txt"),e.Message);}}}
+        public void Dispose(){if(disposed)return;disposed=true;if(desktopHotkey!=null)desktopHotkey.Dispose();quotas.Dispose();poll.Stop();saveTimer.Stop();StopOverlay();overlay.Close();if(desktop!=null){desktop.Close();desktop=null;}updateTimer.Stop();updater.Dispose();tray.Visible=false;tray.Dispose();if(!isolated){try{if(File.Exists(paths.Snapshot))File.WriteAllText(paths.Stop,"Pulse Exit");}catch(Exception e){File.WriteAllText(Path.Combine(paths.State,"shutdown-error.txt"),e.Message);}}}
     }
 }

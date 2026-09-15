@@ -27,6 +27,8 @@ namespace HardwarePulse {
         DesktopLayer layer;bool locked=true;string lastColor;double lastSize;
         Brush foreground,line,protection;
         string automaticColor="#F5F7FA";long lastSample;
+        LocalContrast localContrast;bool contrastBusy;readonly System.Windows.Threading.DispatcherTimer contrastTimer=new System.Windows.Threading.DispatcherTimer();
+        public bool LocalContrastAvailable {get;private set;}
         public event Action PositionSaved;
         public bool LayerAvailable {get{return isolated||layer!=null&&layer.Attached;}}
         public bool Locked {get{return locked;}}
@@ -43,7 +45,8 @@ namespace HardwarePulse {
             done.Click+=delegate{if(EditCompleted!=null)EditCompleted();};returnToApp.Click+=delegate{if(ReturnRequested!=null)ReturnRequested();};
             SourceInitialized+=delegate{HwndSource.FromHwnd(new WindowInteropHelper(this).Handle).AddHook(ResizeHook);};
             SourceInitialized+=delegate{WindowSnap.Attach(this,true,EdgePadding);if(!isolated)layer=new DesktopLayer(this);};
-            Closed+=delegate{if(layer!=null)layer.Dispose();};
+            contrastTimer.Interval=TimeSpan.FromMilliseconds(100);contrastTimer.Tick+=delegate{RefreshLocalContrast();};
+            Closed+=delegate{contrastTimer.Stop();if(localContrast!=null)localContrast.Dispose();if(layer!=null)layer.Dispose();};
             SizeChanged+=delegate{if(IsLoaded&&SizeToContent==SizeToContent.Manual&&PositionSaved!=null)PositionSaved();};
             MouseLeftButtonDown+=delegate(object sender,MouseButtonEventArgs e){if(locked||e.Handled||e.ButtonState!=MouseButtonState.Pressed)return;DragMove();KeepOnScreen();if(PositionSaved!=null)PositionSaved();};
         }
@@ -112,7 +115,7 @@ namespace HardwarePulse {
                     row.Border.Child=grid;rows.Add(metric.Key,row);
                 }
                 row.Name.Text=metric.Title;row.Value.Text=metric.Value;row.Name.FontSize=size;row.Value.FontSize=size;
-                row.Name.ToolTip=metric.Title;row.Name.Foreground=row.Value.Foreground=foreground;row.Border.BorderBrush=line;
+                row.Name.ToolTip=metric.Title;if(localContrast==null||!LocalContrastAvailable){row.Name.Foreground=row.Value.Foreground=foreground;}row.Border.BorderBrush=line;
                 row.Border.Padding=new Thickness(0,spacing/2,0,spacing/2);row.Border.Visibility=Visibility.Visible;
                 string tint=iconColor==null?color:iconColor(metric.Icon);
                 if(styleChanged||row.IconColor!=tint){row.Icon=icon(metric.Icon,size,tint);row.IconHost.Child=row.Icon;row.IconColor=tint;}
@@ -124,6 +127,37 @@ namespace HardwarePulse {
             UpdateLayout();KeepOnScreen();
         }
         public void SetAlwaysOnTop(bool value){if(layer!=null)layer.SetAlwaysOnTop(value);}
+        public void SetLocalContrast(bool enabled){
+            if(!enabled||SystemParameters.HighContrast){contrastTimer.Stop();if(localContrast!=null){localContrast.Dispose();localContrast=null;}LocalContrastAvailable=false;foreach(var row in rows.Values)row.Name.Foreground=row.Value.Foreground=foreground;return;}
+            if(localContrast==null)localContrast=new LocalContrast(this);
+            LocalContrastAvailable=localContrast.Enable();
+            if(LocalContrastAvailable&&!contrastTimer.IsEnabled)contrastTimer.Start();
+            if(LocalContrastAvailable)RefreshLocalContrast();
+        }
+        void RefreshLocalContrast(){
+            if(localContrast==null||!IsVisible||contrastBusy)return;
+            contrastBusy=true;var capture=localContrast;
+            var background=surface.Background as SolidColorBrush;
+            var color=background==null?Colors.Transparent:background.Color;var bounds=capture.Bounds();
+            System.Threading.Tasks.Task.Run(()=>capture.Capture(bounds,color)).ContinueWith(task=>{
+                var error=task.Exception; // Observe capture failure even if the window has closed.
+                if(Dispatcher.HasShutdownStarted)return;
+                Dispatcher.BeginInvoke(new Action(delegate{try{
+                if(localContrast!=capture||!IsVisible||capture.Bounds()!=bounds)return;
+                var image=error==null?task.Result:null;
+                if(image==null){LocalContrastAvailable=false;return;}
+                LocalContrastAvailable=true;
+                foreach(var row in rows.Values)if(row.Border.Visibility==Visibility.Visible)foreach(var text in new[]{row.Name,row.Value}){
+                    if(text.ActualWidth<=0||text.ActualHeight<=0)continue;
+                    var point=text.TranslatePoint(new Point(),this);
+                    var brush=new ImageBrush(image){ViewportUnits=BrushMappingMode.Absolute,Viewport=new Rect(-point.X,-point.Y,ActualWidth,ActualHeight),Stretch=Stretch.Fill};
+                    brush.Freeze();text.Foreground=brush;
+                }
+            }catch(ArgumentException){LocalContrastAvailable=false;}
+            finally{contrastBusy=false;if(!LocalContrastAvailable)foreach(var row in rows.Values)row.Name.Foreground=row.Value.Foreground=foreground;}
+                }));
+            });
+        }
         public void RefreshLayer(){if(layer!=null){layer.SetLocked(locked);layer.Refresh();}}
         public string ResolveColor(bool automatic,string custom){
             if(!automatic)return custom;
@@ -146,10 +180,11 @@ namespace HardwarePulse {
             Color outline=DesktopContrast.Outline(tint);
             Color backing=outline==Colors.Black?Color.FromArgb(220,20,29,38):Color.FromArgb(230,245,247,250);
             if(!overlay&&desktopBackgroundOpacity>=0)backing.A=(byte)Math.Round(255*Math.Max(0,Math.Min(100,desktopBackgroundOpacity))/100);
-            if(overlay)backing=Color.FromArgb((byte)Math.Round(255*Math.Max(0,Math.Min(100,backgroundOpacity))/100),245,247,250);
+            if(overlay)backing.A=(byte)Math.Round(255*Math.Max(0,Math.Min(100,backgroundOpacity))/100);
             if(protection==null||((SolidColorBrush)protection).Color!=backing){protection=new SolidColorBrush(backing);protection.Freeze();}
             surface.Background=automatic||overlay||desktopBackgroundOpacity>0?protection:locked?Brushes.Transparent:new SolidColorBrush(Color.FromArgb(100,18,24,30));
-            surface.BorderBrush=automatic||overlay?line:Brushes.Transparent;
+            // A fully transparent locked panel must not leave a rounded frame behind.
+            surface.BorderBrush=(automatic||overlay)&&(!locked||backing.A>0)?line:Brushes.Transparent;
             foreach(var row in rows.Values){
                 row.Name.Background=row.Value.Background=row.IconHost.Background=null;
                 row.Name.Padding=row.Value.Padding=new Thickness(0);

@@ -2,7 +2,9 @@
 
 Hardware Pulse reads hardware sensors and stores settings and current snapshots locally. It does not upload sensor readings, game captures, hardware models, custom names or usage history.
 
-Desktop Mode's optional Auto Contrast samples six nearby screen pixels at most once every two seconds while the desktop is foreground and the readout is locked. These color samples are used locally to choose light or dark text; they are not stored or transmitted. Disable Auto Contrast to use a custom text color without background sampling.
+Desktop Mode's optional Auto Contrast samples six nearby screen pixels at most once every two seconds while the desktop is foreground and the readout is locked. These color samples are used locally to choose light or dark text; they are not stored or transmitted.
+
+The separate, opt-in Local adaptive text contrast captures the screen rectangle covered by the Desktop panel, including visible content from other apps. It processes those pixels in memory to color text black or white; it does not save or transmit images. Sampling is scheduled every 100 ms with at most one capture in flight, and pauses while the panel is hidden. Windows capture exclusion prevents Pulse from sampling itself; this also means screenshots, recordings and screen sharing may omit the panel while the feature is enabled. Disabling it restores capture visibility. Choosing a custom Text Color disables both contrast modes.
 
 Network readings use local adapter byte counters through LibreHardwareMonitor. Pulse does not inspect packet contents or run a speed test; adapter names and rates stay in the local snapshot.
 

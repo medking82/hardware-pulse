@@ -49,6 +49,31 @@ Auto Contrast samples six pixels in transparent padding on both sides at most on
 
 Download and Upload participate in Reading Order. Their units follow Cards → Network Speed Unit. Network uses the same Collector, shows one busiest adapter, and does not add counters from overlapping adapters. Monitor icon/temperature color settings are separate from Desktop Auto Contrast.
 
+## Local adaptive text contrast and Desktop FPS
+
+Settings → Desktop → Local adaptive text contrast is opt-in. It uses an in-memory
+pixel mask to choose black or white beneath each part of the text, with hysteresis
+instead of a fixed switching delay. SVG colors remain independent. One background
+capture at a time is scheduled at 100 ms intervals. Moving/resizing discards obsolete
+frames; unsupported capture or panels above four million physical pixels fall back
+to standard text. Windows 10 build 19041+ is required. Pulse is excluded from screen
+capture while enabled, so screenshots/recordings may omit the panel. Turning it off
+restores capture visibility. HDR and fast-game performance are not yet field-validated.
+
+A locked panel at 0% background opacity has no outer frame. Row separators remain.
+Text Color can always be selected; accepting a color disables both automatic modes.
+In Desktop Readings, enable FPS to reuse the existing FPS target and collector without
+opening the separate game overlay. FPS is off in Desktop by default. Missing capture
+data displays a waiting state rather than a fabricated zero.
+
+Desktop toggle shortcut defaults to Ctrl+Alt+F10. Click its button to enter a custom
+combination; Escape cancels. Registration failure preserves the existing binding.
+Use at least two of Ctrl/Alt/Shift plus a letter, digit or F1–F11; Windows-key and
+F12 shortcuts are reserved. Disable the shortcut to release it. Toggling shows a
+locked Desktop or hides it without opening App or requesting focus. Enable Always
+on top beforehand to see it over a game. Registration checks detect registered
+global conflicts, not every game's internal key bindings.
+
 ## Window boundary
 
 `DesktopLayer` places only Pulse's transparent top-level tool window immediately above

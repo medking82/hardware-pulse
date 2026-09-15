@@ -59,6 +59,14 @@ try {
  foreach($size in @(340,1200)){$shell.Window.Width=$size;$shell.Window.Height=900;Capture ('desktop-settings-'+$size+'.png')}
  $shell.ShowSettings($false);Toggle 'DesktopEnabled' $true
  $desktop=$shell.GetType().GetField('desktop',$flags).GetValue($shell);Assert (-not $desktop.Locked) 'Desktop enable did not enter editor'
+ $settings.Map('desktopVisible')['fps']=$true;Toggle 'OverlayEnabled' $false;InvokeShell StartOverlay;InvokeShell UpdateDesktop
+ Assert ($shell.GetType().GetProperty('DesktopFpsActive',$flags).GetValue($shell)) 'Desktop FPS depends on overlay switch'
+ $metrics=$shell.GetType().GetMethod('DesktopMetrics',$flags).Invoke($shell,@());Assert (@($metrics|Where-Object Key -eq 'fps').Count -eq 1) 'Desktop FPS reading missing'
+ Assert (-not $shell.Window.FindName('OverlayEnabled').IsChecked) 'Desktop FPS enables separate overlay'
+ $settings.Map('desktopVisible')['fps']=$false;InvokeShell StartOverlay;InvokeShell UpdateDesktop
+ $shell.Window.Hide();InvokeShell ToggleDesktopFromShortcut;Assert (-not $settings.Flag('desktopEnabled') -and -not $shell.Window.IsVisible) 'Shortcut hide opens App'
+ InvokeShell ToggleDesktopFromShortcut;Assert ($settings.Flag('desktopEnabled') -and $settings.Flag('desktopLocked') -and -not $shell.Window.IsVisible) 'Shortcut show steals App focus or leaves Desktop unlocked'
+ InvokeShell EditDesktop;$desktop=$shell.GetType().GetField('desktop',$flags).GetValue($shell)
  $controls=$desktop.Content.Child.Children[0].Children[1].Children
  Assert ($controls[0].IsVisible -and $controls[0].Content -eq '锁定桌面') 'Editor has no visible Lock button'
  $controls[0].RaiseEvent([Windows.RoutedEventArgs]::new([Windows.Controls.Button]::ClickEvent));Pump
@@ -87,6 +95,8 @@ try {
    foreach($auto in @($false,$true)){Toggle 'DesktopAutoContrast' $auto;Assert ($shell.Window.FindName('DesktopTextOpacity').Value -eq $alpha -and [Math]::Abs($stack.Opacity-$alpha/100) -lt .001) 'Auto Contrast overrides user opacity'}
   }
   $shell.Window.FindName('DesktopTextOpacity').Value=15;$shell.Window.FindName('DesktopOverlayOpacity').Value=0;$shell.Save()
+  Assert ($surface.BorderBrush.Color.A -eq 0) 'Zero-opacity locked panel leaves an outer frame'
+  Assert ($shell.Window.FindName('DesktopColor').IsEnabled) 'Auto Contrast prevents choosing a custom text color'
   $opacitySaved=[HardwarePulse.Settings]::new((Join-Path $state 'widget-settings.json'));Assert ($opacitySaved.Number('desktopTextOpacity',100,0,100) -eq 15 -and $opacitySaved.Number('desktopOverlayOpacity',55,0,100) -eq 0) 'Low opacity does not survive reload'
   $shell.Window.FindName('DesktopTextOpacity').Value=100
   $shell.Window.FindName('DesktopOverlayOpacity').Value=65

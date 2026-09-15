@@ -2,6 +2,16 @@
 
 English first; 简体中文 follows each version. Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
+## 0.6.10 — 2026-09-15
+
+- Add opt-in local adaptive text contrast: an in-memory pixel mask uses black/white hysteresis, independent of SVG colors. Capture runs on a single background worker; Windows 10 build 19041+ is required. While enabled, screen capture may exclude the Desktop panel. HDR and fast-game performance still need field validation.
+- Remove the outer frame of locked Desktop panels at 0% background opacity. Make Text Color actionable in automatic modes; a selection returns to manual color.
+- Add an optional FPS Desktop reading using the existing collector and target selection without enabling the separate FPS overlay.
+- Add a customizable Desktop toggle shortcut, default Ctrl+Alt+F10, with registration conflict checks and no App activation. Reserved Windows/F12 combinations are not accepted; game-local bindings may still overlap.
+- Validate actual capture exclusion/restoration, split dark/light backgrounds, WPF brush placement, opacity, FPS separation and the existing regression suite.
+
+新增可选的局部文字自适应对比度，黑白配色按像素位置变化，SVG 配色独立。此模式可能从截图及录屏中排除 Desktop panel。修复 0% background 残留外框与 Text Color 无法选择；Desktop readings 可单独开启 FPS，无需独立 overlay。HDR 与高速游戏效果仍待实测。
+
 ## 0.6.9 — 2026-09-15
 
 - Make resize follow the pointer without repeatedly restarting card motion, add a column threshold buffer and reuse the dragged card transform. Text remains directly rendered during size adjustments.
