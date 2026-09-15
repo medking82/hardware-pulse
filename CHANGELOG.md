@@ -2,6 +2,12 @@
 
 English first; 简体中文 follows each version. Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
+## 0.6.1 — 2026-09-15
+
+- Desktop names use available row width instead of a fixed cap; narrow rows wrap without overlapping readings.
+- Show available updates, download progress, retry and install actions beside Settings on the home screen.
+- Make the Desktop icon palette switch visible without expanding Customize Desktop.
+
 ## 0.6.0 — 2026-09-15
 
 - App cards adapt to one, two, or three columns with animated reordering and keyboard controls.

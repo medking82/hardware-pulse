@@ -72,13 +72,20 @@ namespace HardwarePulse {
             foreach(var metric in metrics){
                 Row row;if(!rows.TryGetValue(metric.Key,out row)){
                     row=new Row{Border=new Border{BorderThickness=new Thickness(0,0,0,1)},Name=new TextBlock(),Value=new TextBlock()};
-                    var grid=new Grid();grid.ColumnDefinitions.Add(new ColumnDefinition{Width=GridLength.Auto});grid.ColumnDefinitions.Add(new ColumnDefinition{Width=new GridLength(1,GridUnitType.Star)});grid.ColumnDefinitions.Add(new ColumnDefinition{Width=new GridLength(2,GridUnitType.Star)});
+                    var grid=new Grid();grid.ColumnDefinitions.Add(new ColumnDefinition{Width=GridLength.Auto});grid.ColumnDefinitions.Add(new ColumnDefinition{Width=new GridLength(1,GridUnitType.Star)});grid.ColumnDefinitions.Add(new ColumnDefinition{Width=GridLength.Auto});
                     row.Value.TextWrapping=TextWrapping.Wrap;
                     row.Icon=icon(metric.Icon,size,color);row.IconHost=new Border{Child=row.Icon,Padding=new Thickness(2),Margin=new Thickness(0,0,8,0),VerticalAlignment=VerticalAlignment.Center};grid.Children.Add(row.IconHost);
                     row.Name.VerticalAlignment=row.Value.VerticalAlignment=VerticalAlignment.Center;
                     row.Name.HorizontalAlignment=HorizontalAlignment.Left;row.Value.HorizontalAlignment=HorizontalAlignment.Right;
-                    row.Name.Margin=new Thickness(0,0,20,0);row.Name.MaxWidth=220;row.Name.TextTrimming=TextTrimming.CharacterEllipsis;Grid.SetColumn(row.Name,1);Grid.SetColumn(row.Value,2);grid.Children.Add(row.Name);grid.Children.Add(row.Value);
+                    row.Name.Margin=new Thickness(0,0,12,0);row.Name.TextWrapping=TextWrapping.Wrap;Grid.SetColumn(row.Name,1);Grid.SetColumn(row.Value,2);grid.Children.Add(row.Name);grid.Children.Add(row.Value);
                     System.Windows.Documents.Typography.SetNumeralAlignment(row.Value,FontNumeralAlignment.Tabular);
+                                        // Let the reading take its natural width, but reserve usable space for
+                    // the name when a long reading meets a narrow panel. No fixed label cap.
+                    grid.SizeChanged+=delegate{
+                        double available=Math.Max(1,grid.ActualWidth-row.IconHost.ActualWidth-row.IconHost.Margin.Right-row.Name.Margin.Right);
+                        double limit=Math.Max(1,available*.65);
+                        if(double.IsInfinity(row.Value.MaxWidth)||Math.Abs(row.Value.MaxWidth-limit)>.5)row.Value.MaxWidth=limit;
+                    };
                     row.Border.Child=grid;rows.Add(metric.Key,row);
                 }
                 row.Name.Text=metric.Title;row.Value.Text=metric.Value;row.Name.FontSize=size;row.Value.FontSize=size;

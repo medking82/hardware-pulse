@@ -98,7 +98,7 @@ Leave a name blank to use device information. Hover over a field to see its auto
 SPD numbers identify sensor addresses, not physical slots. Installed slots are reported separately; assign a slot name only after confirming its sensor.|SPD 编号代表传感器地址，并非实体插槽。已安装插槽单独显示；确认对应关系后再命名。|SPD 編號代表感測器位址，並非實體插槽。已安裝插槽單獨顯示；確認對應關係後再命名。
 Changes save automatically.|更改自动保存。|變更自動儲存。
 About Pulse|关于 Pulse|關於 Pulse
-Version 0.6.0 · Marck Wong|版本 0.6.0 · Marck Wong|版本 0.6.0 · Marck Wong
+Version 0.6.1 · Marck Wong|版本 0.6.1 · Marck Wong|版本 0.6.1 · Marck Wong
 Sensors by LibreHardwareMonitor. Shared driver by PawnIO.|传感器：LibreHardwareMonitor。共享驱动：PawnIO。|感測器：LibreHardwareMonitor。共用驅動程式：PawnIO。
 Language|语言 / Language|語言 / Language
 Minimize|最小化|最小化
@@ -221,3 +221,8 @@ Desktop is ready. Right-click the Pulse tray icon to edit or return to the App.|
 Adapts text and a single rounded backdrop to keep readings clear.|自动调整文字与统一圆角背景，让数据清晰可读。|自動調整文字與統一圓角背景，讓資料清晰可讀。
 Auto Contrast uses a readable panel. Turn it off for transparent text and custom colors.|自动对比度使用易读背景。关闭后可使用透明背景与自定义文字颜色。|自動對比度使用易讀背景。關閉後可使用透明背景與自訂文字顏色。
 Auto columns|自动列数|自動欄數
+
+Update to|更新至|更新至
+Install and restart|安装并重启|安裝並重新啟動
+Retry update|重试更新|重試更新
+Installing update…|正在安装更新…|正在安裝更新…

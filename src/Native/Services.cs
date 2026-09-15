@@ -21,6 +21,12 @@ namespace HardwarePulse {
             Click("CheckUpdates",()=>RunUpdate(updater.CheckAsync(DateTime.Now,settings.Flag("autoDownload"))));
             Click("GetUpdate",()=>RunUpdate(updater.DownloadAsync()));
             Click("InstallUpdate",delegate{updater.Install();RenderUpdate();if(updater.Installing)updateTimer.Start();});
+            Click("HomeUpdate",delegate{
+                if(updater.Busy)return;
+                if(updater.Ready){updater.Install();RenderUpdate();if(updater.Installing)updateTimer.Start();}
+                else if(updater.CanDownload)RunUpdate(updater.DownloadAsync());
+                else RunUpdate(updater.CheckAsync(DateTime.Now,settings.Flag("autoDownload")));
+            });
             updateTimer.Interval=TimeSpan.FromMilliseconds(500);updateTimer.Tick+=delegate{RenderUpdate();if(!updater.Busy)updateTimer.Stop();};
             poll.Tick+=delegate{if(!isolated&&settings.Flag("autoUpdates")&&updater.ShouldCheck(DateTime.Now))RunUpdate(updater.CheckAsync(DateTime.Now,settings.Flag("autoDownload")));};
         }
@@ -40,6 +46,18 @@ namespace HardwarePulse {
             Control<Button>("InstallUpdate").IsEnabled=updater.Ready&&!updater.Busy;
             Control<ProgressBar>("DownloadProgress").Visibility=updater.Downloading?Visibility.Visible:Visibility.Collapsed;
             Control<ProgressBar>("DownloadProgress").Value=updater.Progress;
+            var home=Control<Button>("HomeUpdate");
+            bool failed=updater.StatusKey=="Update check failed; try again"||updater.StatusKey=="Update download failed; try again"||updater.StatusKey=="Installation canceled or failed; try again";
+            string caption=updater.Installing?language.T("Installing update…"):
+                updater.Downloading?language.T("Downloading update")+" · "+updater.Progress+"%":
+                updater.Checking?language.T("Checking for updates…"):
+                failed?language.T("Retry update"):
+                updater.Ready?language.T("Install and restart"):
+                updater.CanDownload?language.T("Update to")+" "+updater.VersionText:null;
+            home.Visibility=caption==null?Visibility.Collapsed:Visibility.Visible;
+            home.Content=caption;home.IsEnabled=!updater.Busy;
+            home.ToolTip=updater.StatusKey==null?null:language.T(updater.StatusKey);
+            System.Windows.Automation.AutomationProperties.SetName(home,caption??language.T("Check for Updates"));
         }
         void WireOverlay(){
             var state=settings.Map("overlay");
