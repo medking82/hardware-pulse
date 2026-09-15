@@ -2,6 +2,15 @@
 
 English first; 简体中文 follows each version. Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
+## 0.6.21 — 2026-09-15
+
+- Apply Local Contrast to every Desktop SVG icon using the background beneath that icon, independently of its label and value. Previously only the FPS icon adapted, using its adjacent label.
+- Preserve App palette hue while adjusting brightness; use dark/light contrast in text-color mode. Remove the unconditional topmost icon darkening while Local Contrast is enabled.
+- Add a thin opposite-color outline over mixed backgrounds. Reuse unchanged icons and retain Screenshot mode freezing and base-style restoration when Local Contrast is disabled.
+- Verify independent icon/label sampling, dark custom palettes, stable icon reuse, Screenshot mode and style restoration alongside the complete regression suite.
+
+开启 Local Contrast 后，所有 Desktop SVG icons 按自身位置的背景独立调整明暗。App 配色保留色相；关闭配色时使用黑白对比色，复杂背景加入细 outline。Screenshot mode 保持配色冻结。
+
 ## 0.6.20 — 2026-09-15
 
 - Add Settings → General → Export Diagnostics with English, Simplified Chinese and Traditional Chinese labels. Choose where to save the local JSON report.
