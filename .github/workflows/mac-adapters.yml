@@ -1,0 +1,53 @@
+name: macOS adapter
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/Core/**'
+      - 'src/Adapters/Mac/**'
+      - 'scripts/MacAdapterTests/**'
+      - '.github/workflows/mac-adapters.yml'
+  pull_request:
+    paths:
+      - 'src/Core/**'
+      - 'src/Adapters/Mac/**'
+      - 'scripts/MacAdapterTests/**'
+      - '.github/workflows/mac-adapters.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mac-adapter-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mac:
+    name: macOS adapter / ${{ matrix.runner }} / ${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15-intel
+            arch: X64
+          - runner: macos-15
+            arch: Arm64
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+      DOTNET_NOLOGO: '1'
+      PULSE_TEST_ARCH: ${{ matrix.arch }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: '10.0.401'
+      - name: Record SDK and runtime
+        run: dotnet --info
+      - name: Run fixtures and live Mach assertions
+        run: dotnet run --project scripts/MacAdapterTests/Pulse.Mac.Tests.csproj --configuration Release --disable-build-servers -p:UseSharedCompilation=false -- --live

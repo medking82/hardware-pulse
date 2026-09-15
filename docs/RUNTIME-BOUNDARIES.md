@@ -649,3 +649,31 @@ passed at `b82d35f5b9763d47202c95164cfecd26826fda4e` in
 alongside adapter fixtures/live tests. Local Windows CLI rejection/help tests and
 full `Validate.ps1 -ModernCore` also passed. Physical network selection and UI
 integration remain outside this prototype's verification.
+## macOS CPU adapter prototype
+
+`src/Adapters/Mac/Pulse.Adapters.Mac.csproj` targets .NET 10 and references only
+Core. `MacCpuReadings.Read(now)` plugs into ReadingSession and produces aggregate
+`cpuLoad` percent from Mach user/system/nice versus total interval ticks. It owns
+no timer, worker or driver and does not claim RAM, temperature, fan or FPS support.
+
+Native interop uses libSystem's `host_statistics(HOST_CPU_LOAD_INFO)` with four
+32-bit counters. `mach_task_self()` is an exported-variable macro, so the adapter
+reads `mach_task_self_` rather than attempting to import a nonexistent function.
+Each `mach_host_self` send-right acquisition is balanced by
+`mach_port_deallocate` in a finally block. Nonzero native return codes and invalid
+counts become unavailable readings. First/unchanged samples do not fabricate
+zero load. Counter decreases, including 32-bit wrap, skip one interval and reset
+the baseline; successful idle intervals still report real zero. The host polls
+one instance serially. Non-macOS default construction is rejected before native
+calls; injected fixtures remain portable.
+
+References: Apple XNU [host_info.h](https://github.com/apple-oss-distributions/xnu/blob/main/osfmk/mach/host_info.h),
+[mach_init.h](https://github.com/apple-oss-distributions/xnu/blob/main/libsyscall/mach/mach/mach_init.h),
+and [mach_host_self](https://github.com/apple-oss-distributions/xnu/blob/main/osfmk/man/mach_host_self.html).
+
+`dotnet run --project scripts/MacAdapterTests/Pulse.Mac.Tests.csproj -c Release`
+runs fixtures; `-- --live` additionally requires macOS, reads CPU through a Core
+session, and performs 1,000 native acquire/read/release cycles, checking errors.
+The macOS adapter workflow checks native process architecture on Intel and Apple
+Silicon runners. Windows App packaging and the published installer are unchanged;
+this library is not a complete macOS App or signed/notarized distribution.
