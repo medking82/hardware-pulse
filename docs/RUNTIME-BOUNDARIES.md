@@ -960,3 +960,12 @@ values, keyboard pause and worker shutdown. CI separately starts real Windows
 demo windows and Linux/macOS live windows; headless results do not prove native
 window behavior. Desktop layer, tray, persistence, quota, temperatures, fans,
 FPS, blur and platform packaging remain unimplemented in this host.
+
+Validation at `52a5b411f69b854e02cfdaac67b1cacb4d36028c` (2026-09-15):
+[Desktop preview run 34990240159](https://github.com/medking82/hardware-pulse/actions/runs/34990240159)
+passed on all six Windows/Linux/macOS x64/ARM64 runners. Each ran the real-control
+render/layout/keyboard/shutdown checks. Linux X11 (under Xvfb) and macOS native
+windows completed three samples with live CPU/RAM available; Windows native
+windows used explicitly labeled demo values. This does not verify Wayland,
+game overlays, long-running performance or a distributable App package.
+Local full Windows regression and locked dependency restore also passed.
