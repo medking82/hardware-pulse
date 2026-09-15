@@ -891,3 +891,14 @@ This supports read-only auth.json credentials on macOS, not Keychain-only login,
 token refresh or login UI. Neither CLI automatically opts into account access.
 Host composition, real endpoint/account validation, desktop UI and signed
 distribution remain required steps toward complete cross-platform releases.
+
+Validation at `6dcdc0bf41ae956bb35e8ce83c105aceb0029251` (2026-09-15):
+macOS Intel/Apple Silicon file-login IO fixtures and existing live/CLI checks
+passed in [run 34987581234](https://github.com/medking82/hardware-pulse/actions/runs/34987581234).
+Linux x64/ARM64 regression passed in
+[run 34987581257](https://github.com/medking82/hardware-pulse/actions/runs/34987581257),
+six-platform Core/Common checks in
+[run 34987581261](https://github.com/medking82/hardware-pulse/actions/runs/34987581261),
+and Framework Windows adapters in
+[run 34987581239](https://github.com/medking82/hardware-pulse/actions/runs/34987581239).
+Local full Windows validation passed. No real quota account was accessed.
