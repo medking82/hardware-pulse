@@ -368,3 +368,29 @@ requests a new statistics object each poll. Read failure invalidates selection;
 fixtures verify re-resolution, fresh counters and reset recovery. The paced
 window uses the selected path. This comparison isolates source lookup without
 changing the host polling cadence or introducing a background subscription.
+
+Paired result at `a9e9af2741e55e35dce9786b9b83b179885015e8`,
+[CI run 34984104231](https://github.com/medking82/hardware-pulse/actions/runs/34984104231):
+native Intel/ARM64 loopback, CPU/RAM, recovery fixtures and CLI contracts all
+passed. Local full Windows validation passed. Three-round medians, same-process
+enumerated / selected comparison (.NET 10.0.12, 9 / 11 interfaces respectively):
+
+| Runner | Managed bytes/poll: enumerated / selected | Elapsed ms/poll: enumerated / selected | Process CPU ms/poll: enumerated / selected |
+| --- | --- | --- | --- |
+| Intel x64 | 177,392.128 / 1,049.632 | 3.58650 / 0.05761 | 3.58418 / 0.05720 |
+| Apple Silicon ARM64 | 215,729.472 / 1,049.632 | 1.62272 / 0.02023 | 1.61636 / 0.02032 |
+
+Managed allocation fell approximately 99.4% / 99.5%. Selected-source measured
+loops had zero GC collections and all 1,000 readings per round were valid.
+Warm-up includes initial resolution, so these numbers describe steady reads,
+not first selection or recovery cost. Missing interfaces still require lookup.
+
+The selected-source 60-second paced window recorded 0.00628% / 0.01046% process
+CPU normalized across 4 / 3 exposed CPUs, with 162,720 / 162,856 allocated bytes
+for all adapter/session polls. Working-set endpoint changes were +53,248 /
++32,768 bytes; no natural GC occurred. Post-collection managed heap was 361,856 /
+349,344 bytes versus 393,928 / 388,744 before the window. These process figures
+are descriptive; the prior paced run used different runner instances and is
+not a paired before/after CPU or working-set experiment. The directly paired
+evidence above supports the per-poll improvement, not an App RAM-saving claim.
+Raw local evidence: `vendor/mac-network-selection-ci-34984104231.log`.
