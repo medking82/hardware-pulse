@@ -9,6 +9,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../Common/ProbeRuntime.cs" Link="ProbeRuntime.cs" />
-    <ProjectReference Include="../../Adapters/Linux/Pulse.Adapters.Linux.csproj" />
+    <ProjectReference Include="../../Adapters/Mac/Pulse.Adapters.Mac.csproj" />
   </ItemGroup>
 </Project>

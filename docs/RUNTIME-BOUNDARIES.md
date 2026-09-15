@@ -720,3 +720,32 @@ CPU fixtures and 1,000 live native CPU calls remained passing after the Mach
 ownership extraction. Local Windows fixtures and full validation passed too.
 This establishes native ABI/read coverage, not Activity Monitor parity or a
 long-duration resource/performance claim.
+## Run the macOS headless probe
+
+The macOS host in `src/Hosts/MacProbe` composes the CPU and RAM adapters through
+Core ReadingSessions. Linux and macOS compile the same `Hosts/Common/ProbeRuntime`
+source for one-second baseline/final sampling and JSON output. This host-only
+code deliberately keeps timing and serialization outside Core; it adds neither
+a shared background process nor a runtime plugin framework. Linux's existing
+CLI arguments, schema and output fields are preserved.
+
+On macOS with the .NET 10 SDK, from the repository root:
+
+```sh
+dotnet build src/Hosts/MacProbe/Pulse.Mac.Probe.csproj -c Release
+dotnet src/Hosts/MacProbe/bin/Release/net10.0/Pulse.Mac.Probe.dll
+```
+
+The probe emits one schema-1 diagnostic envelope (`platform: macos`) with `cpu`
+and `memory` source readings, architecture, units and `complete`, then exits.
+RAM retains the adapter's explicit estimate label. Errors stay attached to their
+source; unavailable requested metrics yield exit 3 instead of fabricated values.
+Other exit codes match Linux: 0 complete, 2 invalid arguments, 4 unsupported OS.
+`--help` works without native reads. Network arguments are rejected because this
+host does not yet have a macOS Network adapter. Nothing is saved or installed.
+
+Both platform workflows watch shared host changes and execute their actual CLI
+process tests. Windows locally verifies build/help/argument/OS guards; native
+Linux and macOS runners verify real output and architecture. This remains a
+framework-dependent diagnostic prototype; desktop UI, signing and installer
+release are separate work.

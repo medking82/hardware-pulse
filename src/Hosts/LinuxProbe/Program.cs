@@ -1,7 +1,5 @@
 using System;
 using System.Runtime.InteropServices;
-using System.Text.Json;
-using System.Threading;
 using HardwarePulse;
 
 static class Program {
@@ -19,16 +17,14 @@ static class Program {
         }
         var cpuRam=new ReadingSession(new LinuxReadings().Read);
         var network=networkName==null?null:new ReadingSession(new LinuxNetworkReadings(networkName).Read);
-        var now=DateTimeOffset.UtcNow;cpuRam.Poll(now);network?.Poll(now);
-        Thread.Sleep(1000);
-        now=DateTimeOffset.UtcNow;cpuRam.Poll(now);network?.Poll(now);
+        ProbeRuntime.Capture(cpuRam,network);
         bool complete=cpuRam.Latest.error==null&&cpuRam.Latest.values.ContainsKey("cpuLoad")&&cpuRam.HasUsage("ram")
             &&(network==null||(network.Latest.error==null&&network.Latest.values.ContainsKey("netDown")&&network.Latest.values.ContainsKey("netUp")));
-        Console.Out.WriteLine(JsonSerializer.Serialize(new {
+        ProbeRuntime.Write(new {
             schema=1,platform="linux",architecture=RuntimeInformation.ProcessArchitecture.ToString(),complete,
             units=new {cpuLoad="percent",ram="GiB",network="bytes/second"},
             cpuRam=cpuRam.Latest,network=network?.Latest
-        },new JsonSerializerOptions {IncludeFields=true,WriteIndented=true}));
+        });
         return complete?0:3;
     }
 }

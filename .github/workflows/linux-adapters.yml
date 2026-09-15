@@ -8,6 +8,7 @@ on:
       - 'src/Adapters/Linux/**'
       - 'scripts/LinuxAdapterTests/**'
       - 'src/Hosts/LinuxProbe/**'
+      - 'src/Hosts/Common/**'
       - 'scripts/test_linux_probe.py'
       - '.github/workflows/linux-adapters.yml'
   pull_request:
@@ -16,6 +17,7 @@ on:
       - 'src/Adapters/Linux/**'
       - 'scripts/LinuxAdapterTests/**'
       - 'src/Hosts/LinuxProbe/**'
+      - 'src/Hosts/Common/**'
       - 'scripts/test_linux_probe.py'
       - '.github/workflows/linux-adapters.yml'
   workflow_dispatch:

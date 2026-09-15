@@ -7,12 +7,18 @@ on:
       - 'src/Core/**'
       - 'src/Adapters/Mac/**'
       - 'scripts/MacAdapterTests/**'
+      - 'src/Hosts/MacProbe/**'
+      - 'src/Hosts/Common/**'
+      - 'scripts/test_mac_probe.py'
       - '.github/workflows/mac-adapters.yml'
   pull_request:
     paths:
       - 'src/Core/**'
       - 'src/Adapters/Mac/**'
       - 'scripts/MacAdapterTests/**'
+      - 'src/Hosts/MacProbe/**'
+      - 'src/Hosts/Common/**'
+      - 'scripts/test_mac_probe.py'
       - '.github/workflows/mac-adapters.yml'
   workflow_dispatch:
 
@@ -55,3 +61,7 @@ jobs:
           "$RUNNER_TEMP/check-memory-abi"
       - name: Run fixtures and live Mach assertions
         run: dotnet run --project scripts/MacAdapterTests/Pulse.Mac.Tests.csproj --configuration Release --disable-build-servers -p:UseSharedCompilation=false -- --live
+      - name: Build headless probe
+        run: dotnet build src/Hosts/MacProbe/Pulse.Mac.Probe.csproj --configuration Release --disable-build-servers -p:UseSharedCompilation=false
+      - name: Test headless probe process contracts
+        run: python3 scripts/test_mac_probe.py dotnet src/Hosts/MacProbe/bin/Release/net10.0/Pulse.Mac.Probe.dll
