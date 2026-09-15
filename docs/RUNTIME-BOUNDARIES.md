@@ -773,3 +773,15 @@ aggregate Wi-Fi/LAN/VPN links or claim link speed and signal support. The native
 fixture sends UDP traffic over `lo0`; Linux retains its existing `lo` fixture.
 This adapter remains separate from the macOS CLI until host composition is added.
 Network polling cost and long-running resource use have not yet been measured.
+
+Network validation (2026-09-15) passed at
+`a27f97a13cbe46d785ec75ad745863e02d6f9100`: macOS Intel/Apple Silicon native
+loopback and existing CPU/RAM/CLI checks in
+[run 34981727987](https://github.com/medking82/hardware-pulse/actions/runs/34981727987),
+unchanged Linux x64/ARM64 checks in
+[run 34981727961](https://github.com/medking82/hardware-pulse/actions/runs/34981727961),
+Core on all six OS/architecture targets in
+[run 34981728005](https://github.com/medking82/hardware-pulse/actions/runs/34981728005),
+and Windows adapter regression in
+[run 34981727948](https://github.com/medking82/hardware-pulse/actions/runs/34981727948).
+Local platform fixtures and full Windows native validation also passed.
