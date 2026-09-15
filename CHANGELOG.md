@@ -2,6 +2,15 @@
 
 English first; 简体中文 follows each version. Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
+## 0.6.22 — 2026-09-15
+
+- Extract shared readings/session state, quota contracts/refresh lifecycle, network formatting and existing contrast analysis into Pulse.Core.dll.
+- Separate snapshot parsing, sensor mapping, quota providers and LAN/Wi-Fi sampling into Pulse.Adapters.Windows.dll. Preserve credentials, request validation, sensor identifiers, refresh intervals and existing process isolation.
+- Add a .NET 10 Core target and reuse the same headless tests alongside the shipped Framework build. Add standalone Windows adapter smoke checks and package dependency checks.
+- Preserve the current Windows x64 app and settings. No additional process or sampling timer is introduced; this release does not claim a measured CPU/RAM reduction or ARM64/Linux/macOS/Windows 7 support.
+
+共享 readings、quota lifecycle、network formatting 与 contrast analysis 进入 Core；Windows data/network adapters 独立成 DLL。现有 Windows app、settings 与 refresh 行为保持兼容，Framework/.NET 10 Core tests 和完整 regression checks 通过。其他平台尚未完成适配。
+
 ## 0.6.21 — 2026-09-15
 
 - Apply Local Contrast to every Desktop SVG icon using the background beneath that icon, independently of its label and value. Previously only the FPS icon adapted, using its adjacent label.
