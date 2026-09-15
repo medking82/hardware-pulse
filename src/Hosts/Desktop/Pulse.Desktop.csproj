@@ -6,6 +6,8 @@
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <RuntimeIdentifiers>linux-x64;linux-arm64;osx-x64;osx-arm64</RuntimeIdentifiers>
+    <RuntimeFrameworkVersion>10.0.12</RuntimeFrameworkVersion>
   </PropertyGroup>
   <ItemGroup>
     <AvaloniaResource Include="../../../assets/cpu.svg;../../../assets/memory.svg;../../../assets/down.svg;../../../assets/up.svg;../../../assets/codex.svg" Link="Assets/%(Filename)%(Extension)" />

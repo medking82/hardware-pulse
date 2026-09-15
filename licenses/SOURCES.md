@@ -29,3 +29,17 @@ LobeHub Icons as vendored by the same Token Monitor checkout. Antigravity uses
 the mask silhouette for themeable monochrome rendering. See LobeIcons-MIT.txt
 (copyright 2023 LobeHub), https://github.com/lobehub/lobe-icons.
 Provider names and marks belong to their respective owners; no affiliation implied.
+# Shared Desktop preview dependencies
+
+The self-contained preview uses Avalonia 12.1.2 and .NET 10.0.12. Vendored
+upstream notices were read from these versioned sources:
+
+- Avalonia-MIT.txt and Avalonia-NOTICE.md: https://github.com/AvaloniaUI/Avalonia/tree/12.1.2
+- DotNet-MIT.txt and DotNet-NOTICES.txt: https://github.com/dotnet/runtime/tree/v10.0.12
+- MicroCom-MIT.txt: https://github.com/kekekeks/MicroCom/blob/76785efcafd91b5902fd19dd11145f6dd655b7b4/LICENSE
+- SkiaSharp-MIT.txt: LICENSE.txt in the locked SkiaSharp 3.119.4 NuGet package.
+- HarfBuzzSharp-MIT.txt: LICENSE.txt in the locked HarfBuzzSharp 8.3.1.3 NuGet package.
+
+These supplement the existing Pulse and icon/decoder notices. Native Skia and
+HarfBuzz transitive notice coverage still needs a distribution audit before a
+public preview release; CI archives are development validation artifacts.

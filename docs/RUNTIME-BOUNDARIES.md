@@ -959,7 +959,7 @@ Skia tests render the actual controls and exercise width changes, unavailable
 values, keyboard pause and worker shutdown. CI separately starts real Windows
 demo windows and Linux/macOS live windows; headless results do not prove native
 window behavior. Desktop layer, tray, persistence, other quota providers, temperatures, fans,
-FPS, blur and platform packaging remain unimplemented in this host.
+FPS, blur and public platform distribution remain unimplemented in this host.
 
 Validation at `52a5b411f69b854e02cfdaac67b1cacb4d36028c` (2026-09-15):
 [Desktop preview run 34990240159](https://github.com/medking82/hardware-pulse/actions/runs/34990240159)
@@ -1005,3 +1005,32 @@ passed all six Windows/Linux/macOS x64/ARM64 jobs. Each executed the synthetic
 Codex UI lifecycle tests and existing native window smoke checks. Local full
 Windows validation, including Modern Core, also passed. No live account or
 credential file was accessed during these checks.
+
+## Self-contained Desktop development packages
+
+`scripts/package_desktop.py --rid <RID>` publishes linux-x64, linux-arm64,
+osx-x64 or osx-arm64 with .NET 10.0.12 and locked Avalonia dependencies. It creates
+a tar.gz and SHA-256 sidecar under dist/desktop-preview. Linux uses a directly
+executable folder; macOS uses Pulse Preview.app/Contents/MacOS with Info.plist.
+These are development CI artifacts, not installer releases or notarized apps.
+
+Each archive carries source commit, dirty-state marker, RID, a full file digest
+manifest, dependency lock and available upstream licenses/notices. Normal builds
+reject tracked source changes; --allow-dirty is for local validation only.
+The verifier extracts into a separate temporary directory, checks inventory,
+hashes, executable permissions, native AppHost architecture, included runtime
+configuration and native runtime/graphics libraries. Native CI starts the
+extracted executable for three live CPU/RAM samples with DOTNET_ROOT pointing
+at a nonexistent directory. It does not invoke dotnet to launch the package.
+
+Windows can cross-publish and inspect Linux archive structure, but cannot prove
+native Linux execution. Unix permissions are encoded explicitly into tar so
+Windows-produced archives retain the AppHost executable bit. Negative fixtures
+reject altered files, inventory changes, framework-dependent runtime config,
+missing executable permissions and incorrect archive digests.
+
+CI retains successful native packages for seven days. Self-contained packaging
+removes the installed .NET requirement, not native OS graphics/font dependencies.
+Gatekeeper/quarantine behavior, Developer ID signing/notarization, native Skia
+and HarfBuzz transitive notice audit, installation/update UX and broader device
+testing remain release work. Packages do not register startup or install files.

@@ -2,6 +2,7 @@ vendor/
 build/
 **/bin/
 **/obj/
+**/__pycache__/
 dist/
 runtime/
 *.log
