@@ -1106,3 +1106,11 @@ At `13c638b34c2ad2d7a21287ed004f39ead8ce6247`,
 passed all six jobs and all four native Linux/macOS package checks. Local full
 Windows validation, package negative tests and a cross-published Linux ARM64
 archive inspection also passed. No installed App or personal settings changed.
+
+macOS distribution resources now live inside `Pulse Preview.app/Contents/Resources`:
+the Pulse license, dependency notices and package lock travel with the App when
+the bundle is copied out of the archive. Linux keeps its existing root layout.
+Package validation checks the platform-specific resource directory, and a
+relocation fixture copies only the .app to prove it does not depend on outer
+archive notices. Local full validation and an osx-arm64 cross-publish/archive
+inspection passed; native launch remains covered by the package CI matrix.

@@ -48,6 +48,23 @@ class PackageTests(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, "Missing distribution notice"):
             package.verify(self.folder, "linux-x64")
 
+    def test_mac_notices_travel_with_app(self):
+        # Outer archive notices alone cannot satisfy the movable .app bundle.
+        with self.assertRaisesRegex(AssertionError, "Missing distribution notice"):
+            package.verify_notices(self.folder, "osx-arm64")
+        resources = self.folder / "Pulse Preview.app/Contents/Resources"
+        resources.mkdir(parents=True)
+        shutil.copy2(self.folder / "LICENSE", resources / "LICENSE")
+        shutil.copytree(self.folder / "licenses", resources / "licenses")
+        package.verify_notices(self.folder, "osx-arm64")
+        moved = Path(self.temp.name) / "relocated"
+        moved.mkdir()
+        shutil.copytree(self.folder / "Pulse Preview.app", moved / "Pulse Preview.app")
+        package.verify_notices(moved, "osx-arm64")
+        (moved / "Pulse Preview.app/Contents/Resources/licenses/SkiaSharp-HarfBuzzSharp-NOTICES.txt").unlink()
+        with self.assertRaisesRegex(AssertionError, "Missing distribution notice"):
+            package.verify_notices(moved, "osx-arm64")
+
     def test_inventory_and_digest(self):
         package.verify(self.folder, "linux-x64")
         (self.folder / "unexpected.txt").write_text("extra")

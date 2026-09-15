@@ -32,6 +32,17 @@ def executable_path(rid):
     return Path("Pulse Preview.app/Contents/MacOS/Pulse.Desktop") if rid.startswith("osx-") else Path("Pulse.Desktop")
 
 
+def resources_path(rid):
+    return Path("Pulse Preview.app/Contents/Resources") if rid.startswith("osx-") else Path(".")
+
+
+def verify_notices(folder, rid):
+    resources = folder / resources_path(rid)
+    for name in ("LICENSE", *("licenses/" + name for name in REQUIRED_NOTICES)):
+        notice = resources / name
+        assert notice.is_file() and notice.stat().st_size > 0, "Missing distribution notice: " + name
+
+
 def verify(folder, rid):
     manifest = json.loads((folder / "manifest.json").read_text())
     assert manifest["rid"] == rid and manifest["kind"] == "development-preview"
@@ -40,9 +51,7 @@ def verify(folder, rid):
     assert actual == set(expected), "Package file inventory changed"
     for name, value in expected.items():
         assert digest(folder / name) == value, "Package digest mismatch: " + name
-    for name in ("LICENSE", *("licenses/" + name for name in REQUIRED_NOTICES)):
-        notice = folder / name
-        assert notice.is_file() and notice.stat().st_size > 0, "Missing distribution notice: " + name
+    verify_notices(folder, rid)
     exe = folder / executable_path(rid)
     assert exe.is_file(), "Missing executable"
     if os.name != "nt":
@@ -89,9 +98,11 @@ def build(rid, dotnet, allow_dirty=False):
                 "CFBundleName": "Pulse Preview", "CFBundleDisplayName": "Pulse Preview",
                 "CFBundleIdentifier": "io.github.medking82.pulse.preview", "CFBundleExecutable": "Pulse.Desktop",
                 "CFBundlePackageType": "APPL", "CFBundleVersion": "1", "NSHighResolutionCapable": True}))
-        shutil.copy2(ROOT / "LICENSE", package / "LICENSE")
-        shutil.copytree(ROOT / "licenses", package / "licenses")
-        shutil.copy2(ROOT / "src/Hosts/Desktop/packages.lock.json", package / "packages.lock.json")
+        resources = package / resources_path(rid)
+        resources.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(ROOT / "LICENSE", resources / "LICENSE")
+        shutil.copytree(ROOT / "licenses", resources / "licenses")
+        shutil.copy2(ROOT / "src/Hosts/Desktop/packages.lock.json", resources / "packages.lock.json")
         (package / "README.txt").write_text(
             "Pulse Desktop development preview\n\n"
             "Linux: run ./Pulse.Desktop in a graphical desktop (X11 tested).\n"
@@ -101,7 +112,7 @@ def build(rid, dotnet, allow_dirty=False):
             "Settings remember window size, theme, network choice and explicit Codex opt-in.\n"
             "Tray, Desktop overlay, FPS and other quota providers are not connected.\n"
             "No installation, startup registration or automatic updates are performed.\n"
-            "Upstream licenses and native third-party notices are included in licenses/.\n"
+            "Upstream notices are in licenses/ on Linux, or inside the macOS App's Contents/Resources/licenses/.\n"
             "This CI artifact is for validation; public release remains pending.\n", encoding="utf-8")
         files = {p.relative_to(package).as_posix(): digest(p) for p in sorted(package.rglob("*")) if p.is_file()}
         (package / "manifest.json").write_text(json.dumps({"schema": 1, "kind": "development-preview",
