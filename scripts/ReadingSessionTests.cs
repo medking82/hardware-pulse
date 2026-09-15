@@ -14,7 +14,7 @@ static class ReadingSessionTests {
         try {
             string path=Path.Combine(args[0],"snapshot.json");Directory.CreateDirectory(args[0]);
             var now=new DateTimeOffset(2026,9,14,12,0,0,TimeSpan.Zero);
-            var session=new ReadingSession(path);session.Poll(now);
+            var session=new ReadingSession(time=>SensorProfile.Read(path,time));session.Poll(now);
             Check(session.Latest.state=="OFFLINE"&&session.Peaks.Count==0,"Missing initial snapshot");
             Json.WriteAtomic(path,Snapshot(now,1,1,50));session.Poll(now);
             Check(session.Latest.values["cpu"]==50&&session.Peaks["cpu"]==50&&session.HasUsage("ram"),"First live reading");
@@ -32,7 +32,7 @@ static class ReadingSessionTests {
             Check(session.Latest.state=="LIVE"&&!session.HasUsage("ram")&&session.Peaks["cpu"]==70,"Restart must retain session peak and replace capabilities");
             Json.WriteAtomic(path,Snapshot(now,2,2,85));session.Poll(now);
             Check(session.Peaks["cpu"]==85,"Restarted collector sequence must advance peaks");
-            var freshSession=new ReadingSession(path);freshSession.Poll(now);
+            var freshSession=new ReadingSession(time=>SensorProfile.Read(path,time));freshSession.Poll(now);
             Check(freshSession.Peaks["cpu"]==85,"Independent session initial peak");
             Json.WriteAtomic(path,Snapshot(now,2,3,95));freshSession.Poll(now);
             Check(session.Peaks["cpu"]==85&&freshSession.Peaks["cpu"]==95,"Session histories must be independent");

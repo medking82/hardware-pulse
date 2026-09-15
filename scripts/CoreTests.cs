@@ -5,6 +5,24 @@ class CoreTests {
     static void Check(bool ok,string message){if(!ok)throw new Exception(message);}
     static byte[] Frame(int width,int height,Func<int,int,byte> shade){var data=new byte[width*height*4];for(int y=0;y<height;y++)for(int x=0;x<width;x++){int i=(y*width+x)*4;data[i]=data[i+1]=data[i+2]=shade(x,y);data[i+3]=255;}return data;}
     static void Main(){
+        // Exercise the exact session assembly consumed by the app with no files or Windows adapter.
+        Check(typeof(Reading).Assembly==typeof(ContrastAnalysis).Assembly&&typeof(ReadingSession).Assembly==typeof(ContrastAnalysis).Assembly,"Readings/session were not extracted into Core");
+        var now=new DateTimeOffset(2026,9,15,0,0,0,TimeSpan.Zero);int calls=0;
+        var next=new Reading();
+        var session=new ReadingSession(time=>{Check(time==now,"Host time was not forwarded");calls++;return next;});
+        session.Poll(now);Check(session.Latest.state=="OFFLINE"&&session.Peaks.Count==0,"Initial unavailable reading changed");
+        next=new Reading {state="LIVE",identity="portable:1",available=new System.Collections.Generic.Dictionary<string,bool>{{"cpu",true}}};
+        next.values["cpu"]=54;next.names["CPU"]="Portable CPU";next.usage["ram"]=new Usage {used=8,total=16,percent=50};
+        session.Poll(now);Check(session.Peaks["cpu"]==54&&session.HasUsage("ram"),"Injected live reading did not establish history");
+        next=new Reading {state="LIVE",identity="portable:1",available=session.Latest.available,names=session.Latest.names,usage=session.Latest.usage};next.values["cpu"]=90;
+        session.Poll(now);Check(session.Peaks["cpu"]==54&&session.Latest.values["cpu"]==90,"Duplicate source identity changed peak policy");
+        next=new Reading {state="STALE"};session.Poll(now);
+        Check(session.Latest.values.Count==0&&session.Latest.available["cpu"]&&session.Latest.names["CPU"]=="Portable CPU"&&session.HasUsage("ram"),"Unavailable state lost capability metadata or retained live values");
+        next=new Reading {state="LIVE",identity="portable:2",available=new System.Collections.Generic.Dictionary<string,bool>()};next.values["cpu"]=65;
+        session.Poll(now);Check(session.Peaks["cpu"]==65&&!session.HasUsage("ram"),"Live recovery did not replace capabilities");
+        Check(calls==5,"Session introduced extra sampling");
+        var separate=new ReadingSession(time=>new Reading {state="OFFLINE"});separate.Poll(now);Check(separate.Peaks.Count==0&&session.Peaks["cpu"]==65,"Session history leaked across consumers");
+        Console.WriteLine("PASS portable readings/session: injected source, host clock, duplicate identity, peaks, stale/recovery and independent state; no file adapter");
         foreach(var shape in new[]{new[]{480,1275},new[]{1600,2500},new[]{1,4000000},new[]{399,401},new[]{64,32}}){
             int step=ContrastAnalysis.SampleStep(shape[0],shape[1]);
             Check(((long)shape[0]+step-1)/step*(((long)shape[1]+step-1)/step)<=ContrastAnalysis.MaximumPixels,"Sampling budget exceeded");

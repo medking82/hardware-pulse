@@ -4,9 +4,9 @@ using System.Collections.ObjectModel;
 
 namespace HardwarePulse {
     // One UI session owns its history; neither WPF nor the collector owns peaks.
-    // The UI timer calls Poll on its own thread. No timers or threads are created here.
+    // The host supplies normalized readings and calls Poll serially. No IO, timers or threads live here.
     public sealed class ReadingSession {
-        readonly string snapshotPath;
+        readonly Func<DateTimeOffset,Reading> read;
         readonly Dictionary<string,double> peaks=new Dictionary<string,double>();
         readonly HashSet<string> usageCapabilities=new HashSet<string>();
         string identity="";
@@ -14,8 +14,9 @@ namespace HardwarePulse {
         public Reading Latest { get; private set; }
         public IReadOnlyDictionary<string,double> Peaks { get; private set; }
 
-        public ReadingSession(string snapshotPath) {
-            this.snapshotPath=snapshotPath;
+        public ReadingSession(Func<DateTimeOffset,Reading> read) {
+            if(read==null)throw new ArgumentNullException("read");
+            this.read=read;
             Latest=new Reading();
             Peaks=new ReadOnlyDictionary<string,double>(peaks);
         }
@@ -24,7 +25,7 @@ namespace HardwarePulse {
 
         public void Poll(DateTimeOffset now) {
             var previous=Latest;
-            Latest=SensorProfile.Read(snapshotPath,now);
+            Latest=read(now);
             if(Latest.state!="LIVE") {
                 Latest.available=previous.available;
                 Latest.names=previous.names;

@@ -39,7 +39,7 @@ namespace HardwarePulse {
         void ThemeCatalog(){foreach(var node in Tree(Window)){if(node is ComboBox||node is ComboBoxItem||object.ReferenceEquals(node,Control<TextBlock>("OverlayPreviewText")))continue;var prop=node.GetType().GetProperty("Foreground");if(prop!=null){var brush=prop.GetValue(node,null) as Brush;if(brush!=null)themed.Add(Tuple.Create((object)node,prop,brush));}}}
         public Shell(PulsePaths paths,bool isolated=false){
             this.paths=paths;this.isolated=isolated;Directory.CreateDirectory(paths.State);
-            readings=new ReadingSession(paths.Snapshot);
+            readings=new ReadingSession(now=>SensorProfile.Read(paths.Snapshot,now));
             settings=new Settings(Path.Combine(paths.State,"widget-settings.json"));language=new Languages(Path.Combine(paths.Root,"Languages.txt"));language.Preference=settings.Text("language","auto");
             using(var stream=File.OpenRead(Path.Combine(paths.Root,"Panel.xaml")))Window=(Window)XamlReader.Load(stream);
             Catalog(Window);BuildSettingsLayout();ReplaceCardPanel("Cards");ReplaceCardPanel("QuotaCards");cards=Control<StackPanel>("Cards");
