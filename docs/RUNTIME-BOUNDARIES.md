@@ -998,3 +998,10 @@ dispatcher timers), using synthetic readers to verify keyboard opt-in, additiona
 quota pools, unknown values, retry, disable/re-enable stale-result rejection and
 request cancellation. Tests and native smoke mode do not read real credentials
 or contact the quota endpoint. Actual account verification remains outstanding.
+
+Validation at `6ab4bb7377ce0562ac80d79e9c4df10ac8d1249c` (2026-09-15):
+[run 34991684994](https://github.com/medking82/hardware-pulse/actions/runs/34991684994)
+passed all six Windows/Linux/macOS x64/ARM64 jobs. Each executed the synthetic
+Codex UI lifecycle tests and existing native window smoke checks. Local full
+Windows validation, including Modern Core, also passed. No live account or
+credential file was accessed during these checks.
