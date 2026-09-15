@@ -2,10 +2,12 @@
 
 English first; 简体中文 follows each version. Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
-## Unreleased
+## 0.6.7 — 2026-09-15
 
 - Optional Desktop Always on top: default wallpaper-level behavior is preserved; locked panels pass mouse input through, editing retains no-activate behavior, and disabling the option returns to the desktop layer.
 - Apply the saved lock state immediately after the native Desktop window is created.
+
+Desktop 新增默认关闭的“置顶显示”。默认仍在 wallpaper / Wallpaper Engine 上方、普通 App 下方；开启后浮在 App 上方，锁定时 click-through，编辑时接受鼠标操作。Exclusive fullscreen 游戏仍待实测。
 
 ## 0.6.6 — 2026-09-15
 
