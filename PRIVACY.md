@@ -28,3 +28,12 @@ PresentMon is bundled for optional local FPS capture. It reads Windows graphics 
 Settings live in `%LocalAppData%\HardwarePulse`; current collector snapshots live in `%ProgramData%\HardwarePulse\<UserSID>\runtime`. Uninstall retains settings and shared PawnIO. Delete retained settings only if you no longer need them.
 
 Maintainer: [Marck Wong](https://github.com/medking82). Questions can be raised through repository Issues; do not include private snapshots or credentials in public issues.
+
+Export Diagnostics in Settings → General saves a JSON report only to a location
+you select. It includes App/OS versions, manufacturer/model, motherboard name,
+non-network hardware sensor names/IDs/readings and fan mapping results. Missing or
+invalid collector data is recorded as a status. It does not export account
+credentials, quota data, settings, raw logs, user/computer names, user SIDs, network
+adapter identifiers, screenshots or device serial-number fields. Nothing is
+uploaded automatically. Review the report before choosing to share it; hardware
+models and readings describe your device.

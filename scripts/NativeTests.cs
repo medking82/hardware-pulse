@@ -19,6 +19,20 @@ internal static class NativeTests {
         public void Install(){throw new InvalidOperationException("UI regression must not install");} public void CancelDownload(){}
     }
     static void Assert(bool condition,string message){if(!condition)throw new Exception(message);}
+    static void DiagnosticChecks(){
+        var raw=Snapshot();raw.memoryName="PRIVATE_MEMORY_METADATA";
+        raw.networkLinks=new[]{new NetworkLink {hardwareId="PRIVATE_NETWORK_GUID"}};
+        raw.sensors=raw.sensors.Concat(new[]{
+            new Sensor {id="/ec/fan/0",hardwareType="EmbeddedController",hardware="EC",name="Unmapped fan",type="Fan",value=1234},
+            new Sensor {id="PRIVATE_ADAPTER_ID",hardwareType="Network",name="PRIVATE_ADAPTER_NAME",type="Load",value=1}
+        }).ToArray();
+        string report=DiagnosticReport.Create(raw,"available","Demo maker","Demo laptop");
+        Assert(report.Contains("Demo laptop")&&report.Contains("Unmapped fan")&&report.Contains("1234")&&report.Contains("fanMapping"),"Diagnostic report lost device model or unmapped fan evidence");
+        Assert(!report.Contains("PRIVATE_")&&!report.Contains("\"pid\"")&&!report.Contains("\"hardwareId\""),"Diagnostic report exported private metadata");
+        Assert(DiagnosticReport.Create(null,"missing_snapshot",null,null).Contains("missing_snapshot"),"Missing collector diagnostic was not exportable");
+        raw.schema=999;Assert(DiagnosticReport.Create(raw,"available",null,null).Contains("invalid_snapshot"),"Invalid snapshot diagnostic failed");
+        Console.WriteLine("PASS diagnostic report: device/fan evidence, missing/invalid snapshots and private metadata exclusion");
+    }
     static void Pump(){var frame=new DispatcherFrame();Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle,new Action(()=>frame.Continue=false));Dispatcher.PushFrame(frame);}
     static RawSnapshot Snapshot(){return new RawSnapshot {schema=2,pid=1,sequence=1,time=DateTimeOffset.Now.ToString("o"),boardName="Demo board",memoryName="32 GB DDR4-3200 configured",ramUsage=new RamUsage {usedGb=12,totalGb=32},sensors=new[]{
         new Sensor {id="/cpu/temperature/0",hardwareId="/cpu",hardwareType="Cpu",hardware="Demo CPU",name="CPU Package",type="Temperature",value=59},
@@ -99,6 +113,7 @@ internal static class NativeTests {
     }
     static void Capture(Shell shell,string path){shell.Window.UpdateLayout();var bitmap=new RenderTargetBitmap((int)shell.Window.ActualWidth,(int)shell.Window.ActualHeight,96,96,PixelFormats.Pbgra32);bitmap.Render(shell.Window);var encoder=new PngBitmapEncoder();encoder.Frames.Add(BitmapFrame.Create(bitmap));using(var file=File.Create(path))encoder.Save(file);}
     [STAThread] static int Main(string[] args){
+        DiagnosticChecks();
         try{
             if(args.Length==2&&args[0]=="--activation-test"){
                 using(var sender=new AppActivation(args[1]))sender.Notify(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"HardwarePulse.exe"));

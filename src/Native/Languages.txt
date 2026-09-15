@@ -269,3 +269,9 @@ Screenshot mode · 15 seconds|截图模式 · 15 秒|截圖模式 · 15 秒
 Freeze text colors and allow screenshots for 15 seconds. Use Win+Shift+S; local contrast resumes automatically.|冻结文字配色并允许截图 15 秒。按 Win+Shift+S 截图，随后自动恢复局部对比度。|凍結文字配色並允許截圖 15 秒。按 Win+Shift+S 截圖，隨後自動恢復局部對比度。
 Use Win+Shift+S now. Local contrast resumes in 15 seconds.|现在可按 Win+Shift+S 截图。15 秒后恢复局部对比度。|現在可按 Win+Shift+S 截圖。15 秒後恢復局部對比度。
 Current / Average / Minimum|当前 / 平均 / 最低|目前 / 平均 / 最低
+
+Export Diagnostics|导出诊断|匯出診斷
+Save device model and sensor readings for support. No account credentials, network identifiers or screenshots. Nothing is uploaded.|保存机型与传感器读数以便排查问题。不包含账号凭据、网络标识或截图，不会自动上传。|儲存機型與感測器讀數以便排查問題。不包含帳號憑證、網路識別資訊或截圖，不會自動上傳。
+Exporting diagnostics…|正在导出诊断…|正在匯出診斷…
+Diagnostics saved. You can share this file for support.|诊断已保存，可将文件发送给技术支持。|診斷已儲存，可將檔案傳送給技術支援。
+Could not save diagnostics. Choose another location and try again.|无法保存诊断，请选择其他位置后重试。|無法儲存診斷，請選擇其他位置後重試。

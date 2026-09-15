@@ -269,6 +269,9 @@
             <Button x:Name="InstallUpdate" Content="Install and Restart" Visibility="Collapsed" Margin="0,0,0,8" />
             <TextBlock x:Name="UpdateStatus" Text="" FontSize="11" />
             <TextBlock Text="Sensors by LibreHardwareMonitor. Shared driver by PawnIO." FontSize="10" Foreground="#ADC1D2" Margin="0,10,0,0" />
+            <Button x:Name="ExportDiagnostics" Content="Export Diagnostics" Margin="0,16,0,8" />
+            <TextBlock Text="Save device model and sensor readings for support. No account credentials, network identifiers or screenshots. Nothing is uploaded." TextWrapping="Wrap" FontSize="11" Foreground="#ADC1D2" />
+            <TextBlock x:Name="DiagnosticStatus" Text="" TextWrapping="Wrap" FontSize="11" Margin="0,8,0,0" />
           </StackPanel>
         </Expander>
         <Expander x:Name="AppearanceSection" Header="App Appearance" IsExpanded="False" Margin="0,0,0,10">
