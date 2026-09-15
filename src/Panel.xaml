@@ -55,6 +55,32 @@
     <Style TargetType="TextBlock">
       <Setter Property="TextWrapping" Value="Wrap" />
     </Style>
+    <Style TargetType="RadioButton">
+      <Setter Property="Foreground" Value="#F0F5FA"/><Setter Property="MinHeight" Value="36"/>
+      <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="RadioButton">
+        <Border x:Name="Focus" Background="Transparent" CornerRadius="8" Padding="6" BorderThickness="1" BorderBrush="Transparent">
+          <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="26"/><ColumnDefinition/></Grid.ColumnDefinitions>
+            <Border Width="18" Height="18" CornerRadius="9" BorderThickness="1.5" BorderBrush="{TemplateBinding Foreground}" VerticalAlignment="Center">
+              <Ellipse x:Name="Dot" Width="8" Height="8" Fill="{TemplateBinding Foreground}" Visibility="Collapsed"/>
+            </Border>
+            <TextBlock Grid.Column="1" Text="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}" VerticalAlignment="Center"/>
+          </Grid>
+        </Border>
+        <ControlTemplate.Triggers><Trigger Property="IsChecked" Value="True"><Setter TargetName="Dot" Property="Visibility" Value="Visible"/></Trigger><Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Focus" Property="BorderBrush" Value="{Binding Foreground,RelativeSource={RelativeSource TemplatedParent}}"/></Trigger><Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.5"/></Trigger></ControlTemplate.Triggers>
+      </ControlTemplate></Setter.Value></Setter>
+    </Style>
+    <Style x:Key="SliderPage" TargetType="RepeatButton"><Setter Property="Focusable" Value="False"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="RepeatButton"><Border Height="4" CornerRadius="2" Background="{TemplateBinding Background}"/></ControlTemplate></Setter.Value></Setter></Style>
+    <Style TargetType="Slider">
+      <Setter Property="Foreground" Value="#A5E7D5"/><Setter Property="MinHeight" Value="36"/>
+      <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Slider">
+        <Grid Margin="8,0"><Track x:Name="PART_Track" Minimum="{TemplateBinding Minimum}" Maximum="{TemplateBinding Maximum}" Value="{Binding Value,RelativeSource={RelativeSource TemplatedParent},Mode=TwoWay}">
+          <Track.DecreaseRepeatButton><RepeatButton Command="Slider.DecreaseLarge" Background="{TemplateBinding Foreground}" Style="{StaticResource SliderPage}"/></Track.DecreaseRepeatButton>
+          <Track.Thumb><Thumb Width="18" Height="18"><Thumb.Template><ControlTemplate TargetType="Thumb"><Border x:Name="Knob" Background="#F5F7FA" BorderBrush="#718596" BorderThickness="1" CornerRadius="9"/><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Knob" Property="BorderThickness" Value="2"/></Trigger><Trigger Property="IsDragging" Value="True"><Setter TargetName="Knob" Property="Background" Value="#A5E7D5"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Thumb.Template></Thumb></Track.Thumb>
+          <Track.IncreaseRepeatButton><RepeatButton Command="Slider.IncreaseLarge" Background="#718596" Style="{StaticResource SliderPage}"/></Track.IncreaseRepeatButton>
+        </Track></Grid>
+        <ControlTemplate.Triggers><Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.45"/></Trigger></ControlTemplate.Triggers>
+      </ControlTemplate></Setter.Value></Setter>
+    </Style>
     <Style TargetType="Button">
       <Setter Property="FocusVisualStyle">
         <Setter.Value>
@@ -213,12 +239,14 @@
       <StackPanel><StackPanel x:Name="Cards" /><StackPanel x:Name="QuotaCards" /></StackPanel>
     </ScrollViewer>
     <TextBlock x:Name="CardsEmpty" Grid.Row="1" Text="No cards shown. Choose cards in Settings." Visibility="Collapsed" Margin="20" HorizontalAlignment="Center" VerticalAlignment="Center" />
-    <ScrollViewer x:Name="SettingsPage" Grid.Row="1" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="14,10,14,0">
-      <StackPanel>
-        <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
+    <Border x:Name="SettingsToolbar" Grid.Row="1" Visibility="Collapsed" VerticalAlignment="Top" Padding="18,8" Height="56">
+        <StackPanel Orientation="Horizontal">
           <Button x:Name="Back" ToolTip="Back to Monitor" AutomationProperties.Name="Back to Monitor" Width="32" Padding="7" />
           <TextBlock Text="Settings" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center" Margin="4,0,0,0" />
         </StackPanel>
+    </Border>
+    <ScrollViewer x:Name="SettingsPage" Grid.Row="1" Margin="0,56,0,0" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="14,10,14,0" FontSize="14" FocusVisualStyle="{x:Null}">
+      <StackPanel MaxWidth="620" HorizontalAlignment="Stretch">
         <Expander Header="General" IsExpanded="True" Margin="0,0,0,10">
           <StackPanel>
             <TextBlock Text="Language" Margin="0,0,0,6" />
@@ -230,7 +258,7 @@
             </ComboBox>
             <CheckBox x:Name="StartWithWindows" Content="Start with Windows" Margin="0,0,0,10" />
             <TextBlock x:Name="StartupStatus" FontSize="11" Margin="0,0,0,10" />
-            <TextBlock Text="Version 0.6.1 · Marck Wong" FontSize="11" Foreground="#ADC1D2" Margin="0,0,0,8" />
+            <TextBlock Text="Version 0.6.2 · Marck Wong" FontSize="11" Foreground="#ADC1D2" Margin="0,0,0,8" />
             <Button x:Name="GitHub" Content="GitHub" HorizontalAlignment="Left" ToolTip="github.com/medking82/hardware-pulse" />
             <CheckBox x:Name="AutoUpdates" Content="Check for Updates Automatically" Margin="0,12,0,8" />
             <CheckBox x:Name="AutoDownload" Content="Download Updates Automatically" Margin="0,0,0,8" />
@@ -243,7 +271,7 @@
             <TextBlock Text="Sensors by LibreHardwareMonitor. Shared driver by PawnIO." FontSize="10" Foreground="#ADC1D2" Margin="0,10,0,0" />
           </StackPanel>
         </Expander>
-        <Expander x:Name="AppearanceSection" Header="Appearance" IsExpanded="False" Margin="0,0,0,10">
+        <Expander x:Name="AppearanceSection" Header="App Appearance" IsExpanded="False" Margin="0,0,0,10">
           <StackPanel>
             <Grid Margin="0,0,0,8">
               <Grid.ColumnDefinitions>
@@ -270,11 +298,13 @@
             <RadioButton x:Name="UnifiedReadingColors" GroupName="ReadingColors" Content="Unified Color" Margin="0,0,0,8" />
             <Button x:Name="ReadingColorPicker" Content="#DDE9F0" AutomationProperties.Name="Unified Color" Margin="0,0,0,8" />
             <TextBlock Text="Monitor icons and temperatures share this palette. Labels stay neutral. Desktop Auto Contrast is independent." FontSize="11" />
-            <TextBlock Text="Desktop Appearance" FontWeight="SemiBold" Margin="0,18,0,10" />
+          </StackPanel>
+        </Expander>
+        <Expander x:Name="DesktopAppearanceSection" Header="Desktop Appearance" Margin="0,0,0,10"><StackPanel>
             <Button x:Name="DesktopRecommended" Content="Use Recommended Style" Margin="0,0,0,10" />
             <CheckBox x:Name="DesktopAppIconColors" Content="Icons follow App colors" Margin="0,0,0,8" />
             <TextBlock Text="When off, icons match Desktop text color." FontSize="11" Margin="0,0,0,12" />
-            <Expander Header="Customize Desktop" IsExpanded="False"><StackPanel Margin="0,8,0,0">
+            <StackPanel Margin="0,8,0,0">
             <DockPanel><TextBlock x:Name="DesktopFontValue" DockPanel.Dock="Right" /><TextBlock Text="Font Size" /></DockPanel>
             <Slider x:Name="DesktopFontSize" Minimum="10" Maximum="32" TickFrequency="1" IsSnapToTickEnabled="True" AutomationProperties.Name="Desktop Font Size" Margin="0,8,0,12" />
             <DockPanel><TextBlock x:Name="DesktopSpacingValue" DockPanel.Dock="Right" /><TextBlock Text="Row Spacing" /></DockPanel>
@@ -286,7 +316,7 @@
             <TextBlock Text="Auto Contrast uses a readable panel. Turn it off for transparent text and custom colors." FontSize="11" Margin="0,0,0,12" />
             <TextBlock Text="Text Color" Margin="0,0,0,6" />
             <Button x:Name="DesktopColor" Content="#E4F3EF" AutomationProperties.Name="Desktop Text Color" Margin="0,0,0,12" />
-            </StackPanel></Expander>
+            </StackPanel>
 
           </StackPanel>
         </Expander>
@@ -313,6 +343,9 @@
             <CheckBox x:Name="QuotaCodex" Content="Codex" Margin="0,6" />
             <CheckBox x:Name="QuotaAntigravity" Content="Antigravity" Margin="0,6" />
             <CheckBox x:Name="QuotaClaude" Content="Claude" Margin="0,6" />
+            <TextBlock Text="App quota display" Margin="0,12,0,6" />
+            <ComboBox x:Name="QuotaDisplay" AutomationProperties.Name="App quota display"><ComboBoxItem Content="Essential quotas"/><ComboBoxItem Content="All available quotas"/></ComboBox>
+            <TextBlock Text="Desktop keeps its essential quotas. Drag the handles to reorder the three provider cards." FontSize="12" Opacity="0.8" Margin="0,8,0,0" />
             <Button x:Name="QuotaRefresh" Content="Refresh Quota" Margin="0,12,0,8" />
             <TextBlock Text="Login in Codex or Claude Code first. Keep Antigravity open. Pulse never changes your login." TextWrapping="Wrap" Opacity="0.8" />
           </StackPanel>
@@ -360,10 +393,10 @@
           <StackPanel>
             <TextBlock Text="Readings on your wallpaper, below other apps. Uses the same collector." FontSize="11" Margin="0,10,0,12" />
             <CheckBox x:Name="DesktopEnabled" Content="Desktop Mode" Margin="0,0,0,10" />
-            <TextBlock Text="Move the preview, then select Show Desktop View to lock it. Turn Desktop Mode off to return to the App." FontSize="11" Margin="0,0,0,12" />
+            <TextBlock Text="Select Edit Desktop, then move or resize the panel. Lock it directly on the desktop." FontSize="11" Margin="0,0,0,12" />
             <CheckBox x:Name="DesktopLocked" Visibility="Collapsed" Content="Lock Desktop" Margin="0,0,0,10" />
             <Button x:Name="DesktopMove" Content="Edit Desktop Position" Margin="0,0,0,8" />
-            <Button x:Name="DesktopDone" Content="Show Desktop View" Margin="0,0,0,8" />
+            <Button x:Name="DesktopDone" Visibility="Collapsed" Content="Show Desktop View" Margin="0,0,0,8" />
             <TextBlock Text="Edges snap while moving. Drag away to release; Alt temporarily bypasses snapping." FontSize="11" Margin="0,0,0,12" />
             <TextBlock Text="Columns" Margin="0,8,0,6" />
             <ComboBox x:Name="DesktopColumns" Margin="0,0,0,12" AutomationProperties.Name="Desktop Columns"><ComboBoxItem Content="Auto columns"/><ComboBoxItem Content="1 column"/><ComboBoxItem Content="2 columns"/><ComboBoxItem Content="3 columns"/></ComboBox>

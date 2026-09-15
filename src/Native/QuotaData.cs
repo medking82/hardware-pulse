@@ -15,6 +15,7 @@ namespace HardwarePulse {
         public string Provider,Status="Quota unavailable";
         public DateTimeOffset Observed;
         public List<QuotaWindow> Windows=new List<QuotaWindow>();
+        public List<QuotaWindow> AllWindows=new List<QuotaWindow>();
     }
     // Response-shape mapping adapted from Token Monitor (MIT); see licenses/TokenMonitor.txt.
     public static class QuotaData {
@@ -35,12 +36,18 @@ namespace HardwarePulse {
             Add(r,(label==""?"":label+" · ")+period,Get(w,"used_percent","usedPercent"),Get(w,"reset_at","resetAt","resets_at","resetsAt"),false);
         }}
         public static QuotaReading Decode(string provider,object body,DateTimeOffset now){
+            var compact=DecodeWindows(provider,body,now,false);
+            compact.AllWindows=DecodeWindows(provider,body,now,true).Windows;
+            return compact;
+        }
+        static QuotaReading DecodeWindows(string provider,object body,DateTimeOffset now,bool full){
             var r=new QuotaReading{Provider=provider,Observed=now};
             if(provider=="Codex"){
                 var byId=Get(body,"rateLimitsByLimitId","rate_limits_by_limit_id") as Dictionary<string,object>;
                 object main=null;if(byId!=null)byId.TryGetValue("codex",out main);
                 CodexPool(r,"",main??Get(body,"rate_limit","rateLimit","rateLimits","rate_limits"));
-                r.Windows.RemoveAll(window=>window.Label!="Weekly");
+                if(full&&byId!=null)foreach(var entry in byId.Where(p=>p.Key!="codex").OrderBy(p=>p.Key,StringComparer.Ordinal))CodexPool(r,entry.Key,entry.Value);
+                if(!full)r.Windows.RemoveAll(window=>window.Label!="Weekly");
             }else if(provider=="Claude"){
                 var map=body as Dictionary<string,object>;if(map!=null)foreach(var entry in map){
                     if(entry.Key!="five_hour"&&!entry.Key.StartsWith("seven_day",StringComparison.Ordinal))continue;
@@ -52,9 +59,10 @@ namespace HardwarePulse {
                 var summary=Get(body,"response","summary")??body;
                 foreach(var group in Items(Get(summary,"groups")))foreach(var bucket in Items(Get(group,"buckets"))){
                     string groupName=Text(Get(group,"displayName")).Trim();
-                    if(!groupName.Equals("Gemini",StringComparison.OrdinalIgnoreCase)&&!groupName.Equals("Gemini Models",StringComparison.OrdinalIgnoreCase))continue;
+                    if(!full&&!groupName.Equals("Gemini",StringComparison.OrdinalIgnoreCase)&&!groupName.Equals("Gemini Models",StringComparison.OrdinalIgnoreCase))continue;
                     string window=Text(Get(bucket,"window","bucketId","displayName")).Trim().ToLowerInvariant().Replace('_','-');
                     string label=window=="weekly"?"Weekly":new[]{"session","5h","5-hour","five-hour","five hour"}.Contains(window)?"5-hour":null;
+                    if(full)label=groupName+" · "+(label??window);
                     if(label==null||r.Windows.Any(w=>w.Label==label))continue;
                     var fraction=Get(bucket,"remainingFraction")??Get(Get(bucket,"remaining"),"remainingFraction");
                     if(fraction==null&&Text(Get(Get(bucket,"remaining"),"case"))=="remainingFraction")fraction=Get(Get(bucket,"remaining"),"value");

@@ -12,6 +12,12 @@ using System.Windows.Threading;
 using HardwarePulse;
 
 internal static class NativeTests {
+    sealed class CurrentReleaseClient : IUpdateClient {
+        public System.Threading.Tasks.Task<string> CheckAsync(){return System.Threading.Tasks.Task.FromResult("{\"tag_name\":\"v"+typeof(Shell).Assembly.GetName().Version.ToString(3)+"\"}");}
+        public System.Threading.Tasks.Task<string> DownloadAsync(string url,string tag,string digest,long size){throw new InvalidOperationException("UI regression must not download an installer");}
+        public bool Ready {get{return false;}} public bool Installing {get{return false;}} public int Progress {get{return 0;}}
+        public void Install(){throw new InvalidOperationException("UI regression must not install");} public void CancelDownload(){}
+    }
     static void Assert(bool condition,string message){if(!condition)throw new Exception(message);}
     static void Pump(){var frame=new DispatcherFrame();Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle,new Action(()=>frame.Continue=false));Dispatcher.PushFrame(frame);}
     static RawSnapshot Snapshot(){return new RawSnapshot {schema=2,pid=1,sequence=1,time=DateTimeOffset.Now.ToString("o"),boardName="Demo board",memoryName="32 GB DDR4-3200 configured",ramUsage=new RamUsage {usedGb=12,totalGb=32},sensors=new[]{
@@ -122,6 +128,28 @@ internal static class NativeTests {
                 }return 0;
             }
             SharedFeatures();
+            foreach(bool desktopMode in new[]{true,false}){
+                string startupState=Path.Combine(state,desktopMode?"desktop-start":"app-start");
+                Directory.CreateDirectory(startupState);
+                var startupPaths=new PulsePaths(root,startupState,Path.Combine(startupState,"runtime"));
+                Json.WriteAtomic(Path.Combine(startupState,"widget-settings.json"),new {desktopEnabled=desktopMode,desktopLocked=true,width=430,height=690});
+                using(var startupShell=new Shell(startupPaths,true)){
+                    bool shown=false,activated=false;
+                    startupShell.Window.IsVisibleChanged+=delegate{if(startupShell.Window.IsVisible)shown=true;};
+                    startupShell.Window.Activated+=delegate{activated=true;};
+                    startupShell.Start();Pump();startupShell.UpdatePanel();Pump();
+                    if(desktopMode){
+                        Assert(!shown&&!activated&&!startupShell.Window.IsVisible,"Desktop startup briefly showed or activated the App window");
+                        var startupDesktop=Field<DesktopView>(startupShell,"desktop");
+                        Assert(startupDesktop!=null&&startupDesktop.IsVisible&&startupDesktop.Locked,"Desktop startup must directly show the locked panel");
+                        Field<Settings>(startupShell,"settings").Data["startupSaveProbe"]=true;startupShell.Save();
+                        var savedStartup=new Settings(Path.Combine(startupState,"widget-settings.json"));
+                        Assert(savedStartup.Flag("startupSaveProbe")&&savedStartup.Number("width",0,0,5000)==430,"Never-shown App must save preferences without losing geometry");
+                        startupShell.Show();Pump();Assert(startupShell.Window.IsVisible,"Tray restore hid the App again after Desktop startup");
+                    }else Assert(shown&&startupShell.Window.IsVisible,"Normal App startup must remain visible");
+                    startupShell.Exit();
+                }
+            }
             Json.WriteAtomic(Path.Combine(state,"widget-settings.json"),new {width=310,height=690,left=90,top=70,fontSize=12,language="en",unknownMigrationField="keep",overlay=new {enabled=true,processName="PulseTestGameNotRunning",background="#223344",opacity=37},cardOrder=new[]{"GPU","CPU","Memory","NVMe","Airflow"}});
             using(var shell=new Shell(paths,true)){
                 shell.Window.ShowInTaskbar=false;shell.Window.ShowActivated=false;shell.Show();Pump();shell.UpdatePanel();Pump();
@@ -201,8 +229,8 @@ internal static class NativeTests {
                 double originalFont=shell.Window.FontSize,originalLeft=shell.Window.Left;
                 Toggle(shell,"DesktopEnabled",true);Pump();shell.UpdatePanel();
                 var desktop=Field<DesktopView>(shell,"desktop");
-                Assert(desktop!=null&&!desktop.Locked&&desktop.IsVisible&&shell.Window.IsVisible,"Desktop did not open an editable preview");
-                Assert(shell.Control<Expander>("DesktopSection").IsExpanded,"Desktop entry did not open its editor");
+                Assert(desktop!=null&&!desktop.Locked&&desktop.IsVisible&&!shell.Window.IsVisible,"Desktop did not open an editable preview");
+                Assert(Tree(desktop).OfType<Button>().Count(b=>b.IsVisible)==2,"Desktop editor actions missing");shell.Show();shell.ShowSettings(true);shell.Control<Expander>("DesktopSection").IsExpanded=true;
                 var desktopOrder=shell.Control<StackPanel>("DesktopOrderList");
                 double editorHeight=shell.Window.Height; shell.Window.Height=900;
                 shell.Control<Expander>("DesktopSection").BringIntoView();Pump();Capture(shell,Path.Combine(state,"desktop-editor.png"));shell.Window.Height=editorHeight;Pump();
@@ -214,11 +242,11 @@ internal static class NativeTests {
                 Assert(desktopOrder.Children[0]==vramRow,"Desktop drag failed");
                 Assert(shell.Control<StackPanel>("Cards").Children.Cast<Border>().Select(b=>(string)b.Tag).SequenceEqual(monitorOrder),"Desktop reorder changed monitor order");
                 shell.UpdatePanel();Pump();
-                Assert(Tree(desktop).OfType<TextBlock>().First().Text=="VRAM","Desktop reorder not applied to readings");
+                Assert(Tree(Tree(desktop).OfType<ResponsivePanel>().Single()).OfType<TextBlock>().First().Text=="VRAM","Desktop reorder not applied to readings");
                 reorderDesktop.Begin(10);reorderDesktop.Move(10000);reorderDesktop.Complete(true);
                 Assert(desktopOrder.Children[0]==vramRow,"Canceled desktop drag changed order");
                 Assert(Tree(desktop).OfType<TextBlock>().Any(t=>t.Text.Contains("49 °C")),"Desktop did not use existing GPU readings");
-                Assert(!Tree(desktop).OfType<Button>().Any(),"Desktop contains window buttons");
+                Assert(Tree(desktop).OfType<Button>().Count(b=>b.IsVisible)==2,"Desktop editor lost its actions");
                 Assert(Tree(desktop).OfType<TextBlock>().Any(t=>t.Text=="VRAM")&&Tree(desktop).OfType<TextBlock>().Any(t=>t.Text=="2 / 8 GB · 25%"),"Desktop VRAM usage missing");
                 var fanSnapshot=Snapshot();fanSnapshot.sequence=20;fanSnapshot.sensors=fanSnapshot.sensors.Concat(new[]{
                     new Sensor{id="/gpu/fan/0",hardwareId="/gpu",hardwareType="GpuNvidia",hardware="Demo GPU",name="GPU Fan 1",type="Fan",value=700},
@@ -231,7 +259,7 @@ internal static class NativeTests {
                 Json.WriteAtomic(paths.Snapshot,Snapshot());shell.UpdatePanel();Pump();
                 shell.Control<Slider>("DesktopFontSize").Value=24;shell.Control<Slider>("DesktopSpacing").Value=26;Pump();
                 Assert(shell.Window.FontSize==originalFont&&shell.Window.Left==originalLeft,"Desktop settings changed monitor layout");
-                Assert(Tree(desktop).OfType<TextBlock>().Where(t=>t.Visibility==Visibility.Visible).All(t=>t.FontSize==24),"Desktop font was not applied");
+                Assert(Tree(Tree(desktop).OfType<ResponsivePanel>().Single()).OfType<TextBlock>().All(t=>t.FontSize==24),"Desktop font was not applied");
                 var desktopBitmap=new RenderTargetBitmap((int)desktop.ActualWidth,(int)desktop.ActualHeight,96,96,PixelFormats.Pbgra32);desktopBitmap.Render(desktop);var desktopEncoder=new PngBitmapEncoder();desktopEncoder.Frames.Add(BitmapFrame.Create(desktopBitmap));using(var file=File.Create(Path.Combine(state,"desktop-mode.png")))desktopEncoder.Save(file);
                 Assert(DesktopContrast.Choose(0,"#152127")=="#F5F7FA"&&DesktopContrast.Choose(1,"#F5F7FA")=="#152127","Wallpaper contrast selection");
                 Assert(DesktopContrast.Choose(.19,"#152127")=="#152127"&&DesktopContrast.Choose(.19,"#F5F7FA")=="#F5F7FA","Animated wallpaper hysteresis");
@@ -261,6 +289,8 @@ internal static class NativeTests {
                 Assert(((System.Collections.IEnumerable)desktopSettings.Data["desktopOrder"]).Cast<object>().First().ToString()=="vram","Desktop order did not persist");
                 var stale=Snapshot();stale.time=DateTimeOffset.Now.AddSeconds(-30).ToString("o");Json.WriteAtomic(paths.Snapshot,stale);shell.UpdatePanel();Assert(!shell.Control<TextBlock>("Status").Text.Contains("Live")&&gpuHero.Text=="—"&&gpuCard.Visibility==Visibility.Visible,"Stale readings/capability retention");Assert((string)gpuCard.ToolTip=="Demo GPU","Stale card lost device label");Json.WriteAtomic(paths.Snapshot,Snapshot());shell.UpdatePanel();Click(shell,"Max");Assert(gpuHero.Text=="49.0 °C","Session peaks lost");Click(shell,"Live");
                 Click(shell,"Settings");var language=shell.Control<ComboBox>("LanguagePicker");foreach(ComboBoxItem item in language.Items)if((string)item.Tag=="zh-TW")language.SelectedItem=item;Pump();Assert(shell.Control<Button>("Live").Content.ToString()=="即時","Native language selection");
+                Field<UpdateCoordinator>(shell,"updater").Dispose();
+                typeof(Shell).GetField("updater",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(shell,new UpdateCoordinator(new CurrentReleaseClient(),typeof(Shell).Assembly.GetName().Version));
                 Click(shell,"CheckUpdates");var updateWait=Stopwatch.StartNew();while(!shell.Control<Button>("CheckUpdates").IsEnabled && updateWait.Elapsed.TotalSeconds<15){Pump();System.Threading.Thread.Sleep(30);}Assert(shell.Control<Button>("CheckUpdates").IsEnabled,"Update check did not complete");Assert(shell.Control<TextBlock>("UpdateStatus").Text=="You are up to date" || shell.Control<TextBlock>("UpdateStatus").Text=="已是最新版本" || shell.Control<TextBlock>("UpdateStatus").Text=="已是最新版本", "Native update check: "+shell.Control<TextBlock>("UpdateStatus").Text);foreach(ComboBoxItem choice in language.Items)if((string)choice.Tag=="en")language.SelectedItem=choice;Pump();Assert(shell.Control<TextBlock>("UpdateStatus").Text=="You are up to date","Update status did not follow language change");foreach(ComboBoxItem choice in language.Items)if((string)choice.Tag=="zh-TW")language.SelectedItem=choice;Pump();Capture(shell,Path.Combine(state,"localized-settings.png"));shell.Control<Slider>("FontSizeSlider").Value=14;shell.Save();Click(shell,"Back");shell.Window.Close();Assert(!shell.Window.IsVisible,"Close to tray");shell.Show();Pump();Assert(shell.Window.IsVisible,"Restore window");shell.Exit();
             }
             using(var restored=new Shell(paths,true)){restored.Window.ShowInTaskbar=false;restored.Show();Pump();Assert(restored.Control<Slider>("OverlayOpacity").Value==37&&restored.Control<Button>("OverlayBackground").Content.ToString()=="#223344","Overlay appearance persistence");Click(restored,"ResetOverlayAppearance");Assert(restored.Control<Slider>("OverlayOpacity").Value==80&&restored.Control<Button>("OverlayBackground").Content.ToString()=="#111923","Overlay appearance reset");Assert(restored.Window.FontSize==14,"Font restore");Assert(restored.Control<Button>("Live").Content.ToString()=="即時","Language restore");var picker=restored.Control<ComboBox>("LanguagePicker");foreach(ComboBoxItem item in picker.Items)if((string)item.Tag=="en")picker.SelectedItem=item;Assert(restored.Control<StackPanel>("CardOptions").Children.OfType<CheckBox>().Any(c=>c.Content.ToString()=="Memory"),"Restored card options cannot switch back to English");restored.Exit();}

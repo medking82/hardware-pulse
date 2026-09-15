@@ -98,7 +98,7 @@ Leave a name blank to use device information. Hover over a field to see its auto
 SPD numbers identify sensor addresses, not physical slots. Installed slots are reported separately; assign a slot name only after confirming its sensor.|SPD 编号代表传感器地址，并非实体插槽。已安装插槽单独显示；确认对应关系后再命名。|SPD 編號代表感測器位址，並非實體插槽。已安裝插槽單獨顯示；確認對應關係後再命名。
 Changes save automatically.|更改自动保存。|變更自動儲存。
 About Pulse|关于 Pulse|關於 Pulse
-Version 0.6.1 · Marck Wong|版本 0.6.1 · Marck Wong|版本 0.6.1 · Marck Wong
+Version 0.6.2 · Marck Wong|版本 0.6.2 · Marck Wong|版本 0.6.2 · Marck Wong
 Sensors by LibreHardwareMonitor. Shared driver by PawnIO.|传感器：LibreHardwareMonitor。共享驱动：PawnIO。|感測器：LibreHardwareMonitor。共用驅動程式：PawnIO。
 Language|语言 / Language|語言 / Language
 Minimize|最小化|最小化
@@ -226,3 +226,15 @@ Update to|更新至|更新至
 Install and restart|安装并重启|安裝並重新啟動
 Retry update|重试更新|重試更新
 Installing update…|正在安装更新…|正在安裝更新…
+
+App Appearance|App 外观|App 外觀
+Font Size|文字大小|文字大小
+App quota display|App 额度显示|App 額度顯示
+Essential quotas|精简额度|精簡額度
+All available quotas|完整额度|完整額度
+Desktop keeps its essential quotas. Drag the handles to reorder the three provider cards.|桌面保留精简额度。拖动把手可调整三个服务卡片的顺序。|桌面保留精簡額度。拖曳把手可調整三個服務卡片的順序。
+Drag the center to move. Drag any edge or corner to resize.|拖动中间移动，拖动任意边缘或角落调整大小。|拖曳中間移動，拖曳任意邊緣或角落調整大小。
+Done|完成|完成
+Return to App|返回 App|返回 App
+
+Select Edit Desktop, then move or resize the panel. Lock it directly on the desktop.|选择编辑桌面，再移动或调整面板大小。在桌面面板上直接锁定。|選擇編輯桌面，再移動或調整面板大小。在桌面面板上直接鎖定。

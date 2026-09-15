@@ -2,6 +2,17 @@
 
 English first; 简体中文 follows each version. Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
+## 0.6.2 — 2026-09-15
+
+- Add complete App quota display and draggable provider cards with persistent order; retain essential Desktop quotas.
+- Reorganize Settings into responsive columns with separate App/Desktop appearance, readable typography, consistent sliders/radio controls, centered selectors and a fixed Back action.
+- Edit Desktop directly, resize from every edge or corner, lock from its editor and re-enter editing from the tray.
+- Default Desktop icons to the App palette while retaining explicit user overrides.
+- Correct compact Network labels and light-theme navigation icon contrast.
+- Start directly in saved Desktop mode without showing or activating the App window; save preferences even before opening the App.
+
+Settings 支持 responsive columns、统一 controls 和独立 App/Desktop appearance；App quota 可显示完整额度并拖曳排序。Desktop 可直接从边缘 resize、在 panel 内锁定，并从 tray 重新编辑；保存的 Desktop mode 在 startup 时直接显示，避免主窗口闪现。
+
 ## 0.6.1 — 2026-09-15
 
 - Desktop names use available row width instead of a fixed cap; narrow rows wrap without overlapping readings.

@@ -17,12 +17,14 @@ namespace HardwarePulse {
         public int Columns {get;private set;}
         public double CellWidth {get;private set;}
         public bool Dragging;
+        public bool IndependentColumns;
         readonly Dictionary<UIElement,Rect> slots=new Dictionary<UIElement,Rect>();
         const double Gap=10;
         int Count(double width){int fit=Math.Max(1,(int)Math.Floor((width+Gap)/(MinimumColumnWidth+Gap)));return Math.Max(1,Math.Min(RequestedColumns>0?Math.Min(3,RequestedColumns):3,fit));}
         protected override Size MeasureOverride(Size available){
             double width=double.IsInfinity(available.Width)?MinimumColumnWidth*Math.Max(1,RequestedColumns)+Gap*Math.Max(0,RequestedColumns-1):available.Width;
             Columns=Count(width);CellWidth=Math.Max(1,(width-Gap*(Columns-1))/Columns);
+            if(IndependentColumns){var heights=new double[Columns];int at=0;foreach(UIElement child in Children){if(child.Visibility==Visibility.Collapsed)continue;child.Measure(new Size(CellWidth,double.PositiveInfinity));heights[at++%Columns]+=child.DesiredSize.Height+RowGap;}return new Size(width,Math.Max(0,heights.Max()-RowGap));}
             double height=0,row=0;int index=0;
             foreach(UIElement child in Children){if(child.Visibility==Visibility.Collapsed)continue;child.Measure(new Size(CellWidth,double.PositiveInfinity));row=Math.Max(row,child.DesiredSize.Height);if(++index%Columns==0){height+=row+RowGap;row=0;}}
             if(index%Columns!=0)height+=row+RowGap;
@@ -31,6 +33,7 @@ namespace HardwarePulse {
         protected override Size ArrangeOverride(Size size){
             foreach(var key in slots.Keys.Where(c=>!Children.Contains(c)).ToArray())slots.Remove(key);
             var active=Children.Cast<UIElement>().Where(c=>c.Visibility!=Visibility.Collapsed).ToArray();
+            if(IndependentColumns){var heights=new double[Columns];for(int i=0;i<active.Length;i++){var child=active[i];int col=i%Columns;var rect=new Rect(col*(CellWidth+Gap),heights[col],CellWidth,child.DesiredSize.Height);Rect old;bool moved=slots.TryGetValue(child,out old)&&old.Location!=rect.Location;child.Arrange(rect);slots[child]=rect;if(moved&&!Dragging&&IsLoaded)Offset(child,old.X-rect.X,old.Y-rect.Y);heights[col]+=child.DesiredSize.Height+RowGap;}return size;}
             double top=0;for(int start=0;start<active.Length;start+=Columns){double height=active.Skip(start).Take(Columns).Max(c=>c.DesiredSize.Height);
                 for(int col=0;col<Columns&&start+col<active.Length;col++){
                     var child=active[start+col];var rect=new Rect(col*(CellWidth+Gap),top,CellWidth,child.DesiredSize.Height);Rect old;

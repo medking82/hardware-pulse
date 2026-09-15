@@ -42,7 +42,7 @@ namespace HardwarePulse {
             readings=new ReadingSession(paths.Snapshot);
             settings=new Settings(Path.Combine(paths.State,"widget-settings.json"));language=new Languages(Path.Combine(paths.Root,"Languages.txt"));language.Preference=settings.Text("language","auto");
             using(var stream=File.OpenRead(Path.Combine(paths.Root,"Panel.xaml")))Window=(Window)XamlReader.Load(stream);
-            Catalog(Window);ReplaceCardPanel("Cards");ReplaceCardPanel("QuotaCards");cards=Control<StackPanel>("Cards");
+            Catalog(Window);BuildSettingsLayout();ReplaceCardPanel("Cards");ReplaceCardPanel("QuotaCards");cards=Control<StackPanel>("Cards");
             var area=SystemParameters.WorkArea;
             Window.Width=settings.Number("width",280,240,Math.Max(240,area.Width));Window.Height=settings.Number("height",Math.Max(340,Math.Min(650,Math.Floor(area.Height*.9))),340,Math.Max(340,area.Height));
             if(settings.Data.ContainsKey("left")){Window.WindowStartupLocation=WindowStartupLocation.Manual;Window.Left=settings.Number("left",area.Left,area.Left,Math.Max(area.Left,area.Right-Window.Width));Window.Top=settings.Number("top",area.Top,area.Top,Math.Max(area.Top,area.Bottom-Window.Height));}
@@ -51,7 +51,7 @@ namespace HardwarePulse {
             Control<ContentControl>("BrandIcon").Content=Icon("live",22,"#A5E7D5");Window.Icon=BitmapFrame.Create(new Uri(Path.Combine(paths.Root,"assets","pulse.ico")));
             BuildCards();WireSettings();WireReadingColors();WireNetwork();WireQuota();BuildTray();WireDesktop();WireOverlay();WireUpdater();ThemeCatalog();Localize();
             Window.SourceInitialized+=delegate{WindowSnap.Attach(Window);ApplyLock();ApplyMaterial();};
-            Window.Loaded+=delegate{loaded=true;if(!isolated)StartCollector();UpdatePanel();ApplyDensity();if(DesktopEnabled)Window.Hide();};
+            Window.Loaded+=delegate{Initialize();};
             Window.SizeChanged+=delegate{ApplyDensity();QueueSave();};Window.LocationChanged+=delegate{QueueSave();};
             Window.Closing+=delegate(object sender,System.ComponentModel.CancelEventArgs e){Save();if(!exit){e.Cancel=true;Window.Hide();}};
             Window.Closed+=delegate{Dispose();};
@@ -60,6 +60,8 @@ namespace HardwarePulse {
             saveTimer.Interval=TimeSpan.FromMilliseconds(750);saveTimer.Tick+=delegate{saveTimer.Stop();Save();};
             poll.Interval=TimeSpan.FromSeconds(2);poll.Tick+=delegate{UpdatePanel();};poll.Start();
         }
+        public void Start(){if(DesktopEnabled)Initialize();else Show();}
+        void Initialize(){if(loaded)return;loaded=true;if(!isolated)StartCollector();UpdatePanel();ApplyDensity();}
         void StartCollector(){try{if(File.Exists(paths.Stop)){try{File.Delete(paths.Stop);}catch{ignoredStop=File.GetLastWriteTimeUtc(paths.Stop).Ticks;throw;}}if(SensorProfile.Read(paths.Snapshot,DateTimeOffset.Now).state!="LIVE")using(var store=new SchedulerStore())new Startup(store,paths.Exe,WindowsIdentity.GetCurrent().User.Value).StartCollector();}catch{collectorFailed=true;}}
         public void UpdatePanel(){
             if(!isolated&&File.Exists(paths.Stop)&&File.GetLastWriteTimeUtc(paths.Stop).Ticks!=ignoredStop){Exit();return;}
@@ -78,8 +80,9 @@ namespace HardwarePulse {
             Control<Button>("Live").Background=Brush(maximum?"#00000000":"#607898A8");Control<Button>("Max").Background=Brush(maximum?"#607898A8":"#00000000");ApplyDensity();
         }
         void QueueSave(){if(!loaded||disposed)return;saveTimer.Stop();saveTimer.Start();}
-        public void Save(){if(!loaded)return;var bounds=Window.RestoreBounds;if(bounds.IsEmpty)return;
-            settings.Data["width"]=bounds.Width;settings.Data["height"]=bounds.Height;settings.Data["left"]=bounds.Left;settings.Data["top"]=bounds.Top;settings.Data["fontSize"]=Window.FontSize;settings.Data["pin"]=Window.Topmost;settings.Data["solid"]=Checked("Solid");settings.Data["opacity"]=Control<Slider>("OpacitySlider").Value;settings.Data["language"]=language.Preference;settings.Data["positionLocked"]=locked;settings.Data["cardOrder"]=cards.Children.Cast<Border>().Select(c=>(string)c.Tag).ToArray();
+        public void Save(){if(!loaded)return;var bounds=Window.RestoreBounds;
+            if(!bounds.IsEmpty){settings.Data["width"]=bounds.Width;settings.Data["height"]=bounds.Height;settings.Data["left"]=bounds.Left;settings.Data["top"]=bounds.Top;}
+            settings.Data["fontSize"]=Window.FontSize;settings.Data["pin"]=Window.Topmost;settings.Data["solid"]=Checked("Solid");settings.Data["opacity"]=Control<Slider>("OpacitySlider").Value;settings.Data["language"]=language.Preference;settings.Data["positionLocked"]=locked;settings.Data["cardOrder"]=cards.Children.Cast<Border>().Select(c=>(string)c.Tag).ToArray();
             try{settings.Save();}catch(Exception e){File.WriteAllText(Path.Combine(paths.State,"settings-error.txt"),e.Message);}
         }
         Viewbox Icon(string name,double size,string color="#C2D8E5"){

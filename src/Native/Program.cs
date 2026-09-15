@@ -9,7 +9,7 @@ using System.Windows;
 [assembly:AssemblyProduct("Hardware Pulse")]
 [assembly:AssemblyCompany("Marck Wong")]
 [assembly:AssemblyCopyright("Copyright 2026 Marck Wong")]
-[assembly:AssemblyVersion("0.6.1.0")]
+[assembly:AssemblyVersion("0.6.2.0")]
 namespace HardwarePulse {
     internal static class Program {
         [STAThread] static int Main(string[] args){
@@ -33,7 +33,7 @@ namespace HardwarePulse {
                 if(args.Length!=0)return 2;
                 using(var mutex=new Mutex(false,"Local\\HardwarePulseGlass")){
                     bool owned;try{owned=mutex.WaitOne(0);}catch(AbandonedMutexException){owned=true;}if(!owned)return 0;
-                    try{var app=new Application();using(var shell=new Shell(paths)){app.Run(shell.Window);}return 0;}finally{mutex.ReleaseMutex();}
+                    try{var app=new Application{ShutdownMode=ShutdownMode.OnExplicitShutdown};using(var shell=new Shell(paths)){app.MainWindow=shell.Window;shell.Window.Closed+=delegate{app.Shutdown();};shell.Start();app.Run();}return 0;}finally{mutex.ReleaseMutex();}
                 }
             }catch(Exception e){File.WriteAllText(Path.Combine(paths.State,"host-error.txt"),e.ToString());if(args.Length==0)MessageBox.Show("Hardware Pulse could not start. See %LocalAppData%\\HardwarePulse\\host-error.txt.","Hardware Pulse");return 1;}
         }

@@ -19,6 +19,11 @@ namespace HardwarePulse {
         readonly ResponsivePanel stack=new ResponsivePanel{RowGap=0};readonly Border surface;
         readonly Func<string,double,string,FrameworkElement> icon;
         readonly bool isolated;
+        readonly StackPanel editor=new StackPanel{Visibility=Visibility.Collapsed,Margin=new Thickness(0,0,0,12)};
+        readonly TextBlock editHint=new TextBlock{TextWrapping=TextWrapping.Wrap,FontSize=12,Foreground=Brushes.White,Margin=new Thickness(0,0,0,8)};
+        readonly Button done=new Button{MinHeight=32,Padding=new Thickness(12,4,12,4),Margin=new Thickness(0,0,8,0)};
+        readonly Button returnToApp=new Button{MinHeight=32,Padding=new Thickness(12,4,12,4)};
+        public event Action EditCompleted,ReturnRequested;
         DesktopLayer layer;bool locked=true;string lastColor;double lastSize;
         Brush foreground,line,protection;
         string automaticColor="#F5F7FA";long lastSample;
@@ -32,11 +37,28 @@ namespace HardwarePulse {
             Focusable=false;SizeToContent=SizeToContent.Height;Width=466;MinWidth=280;MinHeight=140;WindowStartupLocation=WindowStartupLocation.Manual;
             UseLayoutRounding=true;SnapsToDevicePixels=true;TextOptions.SetTextFormattingMode(this,TextFormattingMode.Display);
             var scroll=new ScrollViewer{Content=stack,VerticalScrollBarVisibility=ScrollBarVisibility.Auto,HorizontalScrollBarVisibility=ScrollBarVisibility.Disabled,Focusable=false};
-            surface=new Border{Padding=new Thickness(16),CornerRadius=new CornerRadius(16),BorderThickness=new Thickness(1),Child=scroll};Content=surface;
+            var actions=new WrapPanel();actions.Children.Add(done);actions.Children.Add(returnToApp);editor.Children.Add(editHint);editor.Children.Add(actions);
+            var content=new Grid();content.RowDefinitions.Add(new RowDefinition{Height=GridLength.Auto});content.RowDefinitions.Add(new RowDefinition());content.Children.Add(editor);Grid.SetRow(scroll,1);content.Children.Add(scroll);
+            surface=new Border{Padding=new Thickness(16),CornerRadius=new CornerRadius(16),BorderThickness=new Thickness(1),Child=content};Content=surface;
+            done.Click+=delegate{if(EditCompleted!=null)EditCompleted();};returnToApp.Click+=delegate{if(ReturnRequested!=null)ReturnRequested();};
+            SourceInitialized+=delegate{HwndSource.FromHwnd(new WindowInteropHelper(this).Handle).AddHook(ResizeHook);};
             SourceInitialized+=delegate{WindowSnap.Attach(this,false,EdgePadding);if(!isolated)layer=new DesktopLayer(this);};
             Closed+=delegate{if(layer!=null)layer.Dispose();};
             SizeChanged+=delegate{if(IsLoaded&&SizeToContent==SizeToContent.Manual&&PositionSaved!=null)PositionSaved();};
             MouseLeftButtonDown+=delegate(object sender,MouseButtonEventArgs e){if(locked||e.Handled||e.ButtonState!=MouseButtonState.Pressed)return;DragMove();KeepOnScreen();if(PositionSaved!=null)PositionSaved();};
+        }
+        public void SetEditorLabels(string hint,string complete,string back){editHint.Text=hint;done.Content=complete;returnToApp.Content=back;}
+        public static int ResizeEdge(Point point,Size size,double inset=8){
+            if(point.X<0||point.Y<0||point.X>size.Width||point.Y>size.Height)return 0;
+            bool left=point.X<=inset,right=point.X>=size.Width-inset,top=point.Y<=inset,bottom=point.Y>=size.Height-inset;
+            return top?(left?13:right?14:12):bottom?(left?16:right?17:15):left?10:right?11:0;
+        }
+        IntPtr ResizeHook(IntPtr hwnd,int message,IntPtr w,IntPtr l,ref bool handled){
+            if(!locked&&message==0x0214)SizeToContent=SizeToContent.Manual;
+            if(locked||message!=0x0084)return IntPtr.Zero;
+            long value=l.ToInt64();var point=PointFromScreen(new Point((short)(value&65535),(short)((value>>16)&65535)));
+            int edge=ResizeEdge(point,new Size(ActualWidth,ActualHeight));if(edge==0)return IntPtr.Zero;
+            handled=true;return new IntPtr(edge);
         }
         public static Point Clamp(Point position,Size size,IEnumerable<Rect> screens,double padding=0) {
             var areas=screens.ToArray();if(areas.Length==0)return position;
@@ -60,6 +82,7 @@ namespace HardwarePulse {
             stack.RequestedColumns=columns;stack.MinimumColumnWidth=Math.Max(280,24*size);stack.InvalidateMeasure();
             stack.Width=double.NaN;
             locked=isLocked;
+            editor.Visibility=isLocked?Visibility.Collapsed:Visibility.Visible;
             ResizeMode=isLocked?ResizeMode.NoResize:ResizeMode.CanResizeWithGrip;
             SetValue(WindowSnap.PositionLockedProperty,isLocked);
             bool styleChanged=lastColor!=color||lastSize!=size;
@@ -116,6 +139,7 @@ namespace HardwarePulse {
         public void SetTextOpacity(double percent,bool automatic=false){
             stack.Opacity=Math.Max(automatic?.9:.3,Math.Min(1,percent/100));
             var tint=(Color)ColorConverter.ConvertFromString(lastColor??"#F5F7FA");
+            editHint.Foreground=foreground;
             var previous=stack.Effect as System.Windows.Media.Effects.DropShadowEffect;
             Color outline=DesktopContrast.Outline(tint);
             Color backing=outline==Colors.Black?Color.FromArgb(220,20,29,38):Color.FromArgb(230,245,247,250);

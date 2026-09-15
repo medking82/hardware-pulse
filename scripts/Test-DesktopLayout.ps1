@@ -11,7 +11,7 @@ try {
     $items.Add([HardwarePulse.DesktopMetric]::new('fan','Bottom Intake · SYS1 — Chassis Fan','1046 RPM','airflow'))
     $view.Render($items,20,10,'#FFFFFF',$true,1,$null)
     $view.Show();$view.UpdateLayout()
-    $panel=$view.Content.Child.Content
+    $panel=$view.Content.Child.Children[1].Content
     $row=$panel.Children[0].Child;$name=$row.Children[1];$value=$row.Children[2]
     $natural=New-Object System.Windows.Controls.TextBlock
     $natural.Text=$name.Text;$natural.FontSize=$name.FontSize;$natural.FontFamily=$name.FontFamily

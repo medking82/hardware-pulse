@@ -36,7 +36,7 @@ namespace HardwarePulse {
             };
         }
         void RefreshStartup(){try{using(var store=new SchedulerStore())Control<CheckBox>("StartWithWindows").IsChecked=new Startup(store,paths.Exe,WindowsIdentity.GetCurrent().User.Value).IsEnabled();Text("StartupStatus","");}catch{Control<CheckBox>("StartWithWindows").IsChecked=false;Text("StartupStatus",language.T("Startup tasks are unavailable; reinstall to repair"));}}
-        public void ShowSettings(bool show){settingsVisible=show;Control<ScrollViewer>("SettingsPage").Visibility=show?Visibility.Visible:Visibility.Collapsed;foreach(string name in new[]{"CardScroll","MonitorControls","MonitorFooter","Status"})Control<FrameworkElement>(name).Visibility=show?Visibility.Collapsed:Visibility.Visible;Control<Button>(show?"Back":"Settings").Focus();ApplyDensity();ApplyMaterial();}
+        public void ShowSettings(bool show){settingsVisible=show;Control<ScrollViewer>("SettingsPage").Visibility=show?Visibility.Visible:Visibility.Collapsed;Control<Border>("SettingsToolbar").Visibility=show?Visibility.Visible:Visibility.Collapsed;foreach(string name in new[]{"CardScroll","MonitorControls","MonitorFooter","Status"})Control<FrameworkElement>(name).Visibility=show?Visibility.Collapsed:Visibility.Visible;Control<Button>(show?"Back":"Settings").Focus();ApplyDensity();ApplyMaterial();}
         void ApplyLock(){Window.SetValue(WindowSnap.PositionLockedProperty,locked);Window.ResizeMode=locked?ResizeMode.NoResize:ResizeMode.CanResizeWithGrip;Control<FrameworkElement>("DragHandle").Cursor=locked?Cursors.Arrow:Cursors.SizeAll;Control<CheckBox>("LockPosition").IsChecked=locked;foreach(var view in views.Values){view.Grip.IsEnabled=!locked;view.Grip.Opacity=locked?0:1;}ApplyMaterial();}
         string BackgroundHex(){string color=settings.Text("background","#35383B");return System.Text.RegularExpressions.Regex.IsMatch(color,"^#[0-9a-fA-F]{6}$")?color:"#35383B";}
         void ApplyMaterial(){
@@ -47,10 +47,24 @@ namespace HardwarePulse {
             var color=(Color)ColorConverter.ConvertFromString(BackgroundHex());light=(.2126*color.R+.7152*color.G+.0722*color.B)/255>.55;
             double opacity=material.EffectiveOpacity(supported);
             Window.Background=new SolidColorBrush(Color.FromArgb((byte)Math.Round(255*opacity),color.R,color.G,color.B));Control<Slider>("OpacitySlider").IsEnabled=material.CanAdjustOpacity(supported);Text("OpacityValue",Math.Round(opacity*100)+"%");
-            foreach(var entry in themed)entry.Item2.SetValue(entry.Item1,light?Brush("#17202B"):entry.Item3,null);
+            foreach(var entry in themed)entry.Item2.SetValue(entry.Item1,SystemParameters.HighContrast?SystemColors.WindowTextBrush:light?Brush("#17202B"):entry.Item3,null);
+            string chrome=SystemParameters.HighContrast?SystemColors.WindowTextColor.ToString():light?"#17202B":"#C2D8E5";
+            Control<Button>("Settings").Content=Icon("settings",20,chrome);Control<Button>("Back").Content=Icon("back",16,chrome);Control<Button>("Minimize").Content=Icon("minimize",14,chrome);Control<Button>("Close").Content=Icon("close",14,chrome);
+            Control<ContentControl>("BrandIcon").Content=Icon("live",22,SystemParameters.HighContrast?chrome:light?"#17634F":"#A5E7D5");
             ApplyReadingColors();
             var viewport=Control<Grid>("Viewport");if(viewport.Background!=null){var background=viewport.Background.Clone();background.Opacity=opacity;viewport.Background=background;}
             foreach(var view in views.Values){var background=Brush(light?"#DDEEF1F4":"#3031485B").Clone();background.Opacity=opacity;view.Border.Background=background;}
+            ApplySettingsPresentation();
+        }
+        void ApplySettingsPresentation(){
+            var page=Control<ScrollViewer>("SettingsPage");page.FontSize=Math.Max(14,Window.FontSize);Control<ResponsivePanel>("SettingsSections").MinimumColumnWidth=350*page.FontSize/14;
+            page.Background=SystemParameters.HighContrast?SystemColors.WindowBrush:Brush(light?"#F4F6F8":"#202831");
+            Control<Border>("SettingsToolbar").Background=page.Background;
+            foreach(var node in Tree(page)){
+                var text=node as TextBlock;if(text!=null&&text.FontSize<12)text.FontSize=12;
+                var button=node as Button;if(button!=null){button.MinHeight=36;button.MaxWidth=340;button.HorizontalAlignment=HorizontalAlignment.Left;}
+                var combo=node as ComboBox;if(combo!=null){combo.MinHeight=36;combo.Padding=new Thickness(8,4,8,4);combo.VerticalContentAlignment=VerticalAlignment.Center;combo.HorizontalContentAlignment=HorizontalAlignment.Left;}
+            }
         }
     }
 }
