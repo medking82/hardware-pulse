@@ -1,6 +1,15 @@
-﻿# Changelog
+# Changelog
 
 English first; 简体中文 follows each version. Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
+
+## 0.6.18 — 2026-09-15
+
+- Reduce Local Contrast overhead by reusing capture buffers, bounding analysis to 160,000 pixels, caching luminance conversion and avoiding per-label pixel copies and unchanged foreground brush replacement.
+- Extract the analysis into an independent AnyCPU Pulse.Core.dll without WPF or Win32 dependencies. Windows capture and rendering remain in the native adapter; ARM64, Linux and macOS application support is not yet implemented.
+- A controlled component benchmark measured about 87% less CPU time per frame and 93% less managed allocation. This does not establish lower resident memory or whole-app/game performance; see docs/PERFORMANCE.md for methodology and limits.
+- Validate headless Core behavior, large captures, resize, dispose/resume, Screenshot mode and stable brushes alongside the complete regression suite. Preserve saved settings and zero-opacity Desktop input behavior.
+
+降低 Local Contrast 的 capture、analysis 与 allocation 开销，拆出独立 Pulse.Core component。受控 component benchmark 中，每帧 CPU 时间约降低 87%，managed allocation 约降低 93%；RAM 与完整游戏场景尚未证明改善。ARM64、Linux、macOS App support 尚未实现。
 
 ## 0.6.17 — 2026-09-15
 
