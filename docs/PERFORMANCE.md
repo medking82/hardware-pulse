@@ -60,3 +60,26 @@ and DPI/monitor changes. Full-screen game latency, GPU usage and ARM64/platform
 performance remain unmeasured. A monitor cannot have zero host overhead; optional
 features should have explicit ownership and measured costs before adding cadence
 or caching complexity.
+
+## Core extraction FPS microbenchmark (2026-09-15)
+
+Baseline: release commit `29885172976a2c0820efd493fcadd8b967caab60` (0.6.22).
+Candidate: `1c9c93c`, after CORE-01 through CORE-04. Both use optimized Framework
+builds and the same FrameCapture API, without starting PresentMon. Each fresh
+process receives 14,400 frames at 240 FPS over 60 seconds, performs 20 warmup reads,
+then 200 reads at timestamp 60. Three interleaved baseline/candidate process pairs;
+no forced GC or working-set trimming. All reads check Ready, Count and Current.
+
+| Measurement | Baseline range | Candidate range |
+| --- | --- | --- |
+| CPU ms/read | 1.25–1.41 | 1.17–1.41 |
+| Elapsed ms/read | 1.27–1.37 | 1.31–1.43 |
+| Allocated bytes/read | 936,272 | 936,272 |
+| Final process private bytes | 24,047,616–24,080,384 | 24,109,056–24,129,536 |
+
+Ranges overlap and allocations are identical. This bounded statistics workload
+shows no clear CPU regression or improvement; the extra Core assembly is present
+in the candidate process. Absolute values are specific to this synthetic workload.
+It does not measure live capture, UI/collector RAM, local contrast, game frametime,
+long-duration leaks or another architecture/OS. PERF-01 remains incomplete until
+those matched scenes are measured. Raw local evidence: vendor/core-batch-bench.

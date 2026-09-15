@@ -2,6 +2,16 @@
 
 English first; 简体中文 follows each version. Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
+## 0.6.23 — 2026-09-15
+
+- Extract Windows memory and hardware inventory sampling into the Windows adapter, and move existing material policy into shared Core.
+- Share numeric formatting across Cards, Desktop and overlay: preserve fixed one-decimal temperatures/utilization and view-specific voltage precision; round overlay RPM to whole numbers consistently.
+- Move quota response decoding/reset formatting, bounded FPS history/statistics and settings value rules into Core. Retain Windows JSON storage, credentials, process capture and request policy.
+- Test the same quota fixtures, FPS bounds/statistics and settings semantics on Framework and .NET 10, alongside native UI/transport/startup/package regression checks.
+- FPS microbenchmark allocations remain unchanged; CPU ranges overlap. This is a modularization release, not a claim of reduced whole-app RAM/CPU or new ARM64/Linux/macOS support. Existing settings and process isolation are preserved.
+
+Windows hardware sampling 进入 adapter；numeric formatting、quota decoding、FPS statistics、Settings value rules 与 material policy 进入 shared Core。Framework/.NET 10 shared tests 和完整 native regression checks 通过。现有 settings 保持兼容；跨平台 runtime 与完整 App performance A/B test 尚未完成。
+
 ## 0.6.22 — 2026-09-15
 
 - Extract shared readings/session state, quota contracts/refresh lifecycle, network formatting and existing contrast analysis into Pulse.Core.dll.
