@@ -321,3 +321,39 @@ measurement, a long-duration leak test, or a guarantee about game frametime.
 Working-set growth can reflect retained runtime pages; allocation is not retained
 RAM. The Network sample uses `lo0` and records only interface count, not names,
 addresses or machine identity. No timing/memory threshold determines success.
+
+Baseline recorded on 2026-09-15 at
+`6e5ac6075e5484a4ae3000a7c0363ddfbe2ce935`,
+[CI run 34983064052](https://github.com/medking82/hardware-pulse/actions/runs/34983064052).
+All native fixtures, CLI checks and measurements passed, with zero invalid
+measurement readings. Local full Windows validation also passed. Both hosts used
+.NET 10.0.12; Intel exposed 4 processors / 9 interfaces, ARM64 3 / 11. Median of
+three tight-loop rounds:
+
+| Source | Intel bytes/poll | ARM64 bytes/poll | Intel elapsed ms/poll | ARM64 elapsed ms/poll |
+| --- | --- | --- | --- | --- |
+| CPU | 713.6 | 713.6 | 0.00538 | 0.00154 |
+| RAM | 817.6 | 817.6 | 0.00894 | 0.00301 |
+| Network | 177,392.1 | 215,729.5 | 5.137 | 2.110 |
+
+All tight-loop CPU readings omitted load because counters had not advanced;
+these CPU timings cover native reading and baseline handling, not publication
+of a usable load value. All paced CPU readings were valid.
+
+| Paced 60-second window | Intel x64 | Apple Silicon ARM64 |
+| --- | --- | --- |
+| Process CPU, percent of all exposed CPUs | 0.2174% | 0.1309% |
+| Working set, start / end MiB | 32.813 / 32.867 | 53.359 / 53.047 |
+| Adapter + session managed allocation, total bytes | 10,743,328 | 13,043,712 |
+| Managed heap after collection, start / end bytes | 391,360 / 376,672 | 398,224 / 375,312 |
+| Natural Gen0 / Gen1 / Gen2 collections | 1 / 0 / 0 | 2 / 0 / 0 |
+
+The dominant measured source is Network. Its current implementation enumerates
+all interfaces on every read before obtaining the selected interface statistics.
+That is a concrete optimization candidate, not proof that enumeration accounts
+for the entire cost. A follow-up should isolate enumeration, preserve fresh byte
+counters and missing/reappearing interface behavior, and use paired measurements
+before claiming improvement. No runtime optimization is included in this baseline.
+The observed heap rises between natural collections and then falls; this short
+window neither demonstrates a leak nor establishes long-term memory stability.
+Raw local evidence: `vendor/mac-polling-ci-34983064052.log`.
