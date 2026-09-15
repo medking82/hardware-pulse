@@ -1,5 +1,12 @@
 # Runtime ownership
 
+Current validation (2026-09-15): shared Core passed on Windows, Linux and macOS,
+each with native x64 and ARM64 test processes. See the [six-platform CI run](https://github.com/medking82/hardware-pulse/actions/runs/34972802044)
+for commit `ad5d303cd7c805adb41a8e2e5fdf402e6085d9b1`. Historical extraction notes
+below describe the evidence available at their baselines. This updates Core
+execution coverage only; Windows adapters and the complete App remain separate
+platform work, and the published installer is still Windows x64 v0.6.24.
+
 The native runtime has these existing boundaries:
 
 | Owner | Responsibility | Verification |
