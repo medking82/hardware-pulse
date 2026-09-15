@@ -8,6 +8,13 @@ using HardwarePulse;
 internal static class NativeFpsTests {
     static void Assert(bool condition,string message){if(!condition)throw new Exception(message);}
     public static void Run(){
+        using(var capture=new FrameCapture()){
+            capture.Reset(42);for(int i=0;i<100;i++)capture.Add("old",10,10);
+            capture.Add("active",20,11.5);
+            var active=capture.ReadAt(11.5);
+            Assert(active.Ready&&active.Current==50,"Fresh swapchain hidden by a larger stale stream");
+            Assert(!capture.ReadAt(13).Ready,"Ended stream must still become unavailable");
+        }
         var metrics=new FrameMetrics{Current=60,Average=58,Minimum=30,Low=double.NaN,Count=90,Ready=true,Status="Live"};
         byte[] response=FpsProtocol.Response(metrics);var decoded=FpsProtocol.Metrics(response);
         Assert(response.Length==FpsProtocol.ResponseSize&&decoded.Ready&&decoded.Current==60&&double.IsNaN(decoded.Low),"FPS fixed response and low sample count");

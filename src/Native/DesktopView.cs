@@ -52,6 +52,11 @@ namespace HardwarePulse {
             screenshotTimer.Interval=TimeSpan.FromSeconds(15);screenshotTimer.Tick+=delegate{screenshotTimer.Stop();ScreenshotActive=false;if(localContrast!=null)SetLocalContrast(true);};
             Closed+=delegate{screenshotTimer.Stop();contrastTimer.Stop();if(localContrast!=null)localContrast.Dispose();if(layer!=null)layer.Dispose();};
             SizeChanged+=delegate{if(IsLoaded&&SizeToContent==SizeToContent.Manual&&PositionSaved!=null)PositionSaved();};
+            PreviewMouseLeftButtonDown+=delegate(object sender,MouseButtonEventArgs e){
+                if(locked||e.ButtonState!=MouseButtonState.Pressed||DesktopHitTest(e.GetPosition(this))!=2)return;
+                e.Handled=true;
+                DragMove();KeepOnScreen();if(PositionSaved!=null)PositionSaved();
+            };
         }
         public void SetEditorLabels(string hint,string complete,string back){editHint.Text=hint;done.Content=complete;returnToApp.Content=back;}
         void RefreshFpsIcon(Row row){
@@ -79,7 +84,9 @@ namespace HardwarePulse {
             if(locked||message!=0x0084)return IntPtr.Zero;
             long value=l.ToInt64();var point=PointFromScreen(new Point((short)(value&65535),(short)((value>>16)&65535)));
             int hit=DesktopHitTest(point);if(hit==0)return IntPtr.Zero;
-            handled=true;return new IntPtr(hit);
+            // Keep content in the client input path: PreviewMouseLeftButtonDown starts
+            // WPF's explicit move command before ScrollViewer consumes the event.
+            handled=true;return new IntPtr(hit==2?1:hit);
         }
         public int DesktopHitTest(Point point){
             if(locked)return 0;
@@ -177,7 +184,11 @@ namespace HardwarePulse {
                     row.Border.Child=grid;rows.Add(metric.Key,row);
                 }
                 row.Name.Text=metric.Title;row.Value.Text=metric.Value;row.Name.FontSize=size;row.Value.FontSize=size;
-                if(metric.Icon=="fps"){SetFpsReading(row.Value,metric.Value,size);row.Value.MinWidth=fpsMinimumWidth;row.Value.TextAlignment=TextAlignment.Right;}
+                if(metric.Icon=="fps"){
+                    SetFpsReading(row.Value,metric.Value,size);row.Value.MinWidth=fpsMinimumWidth;row.Value.TextAlignment=TextAlignment.Right;
+                    row.Value.LineStackingStrategy=LineStackingStrategy.BlockLineHeight;row.Value.LineHeight=Math.Ceiling(size*1.5);
+                    row.Value.Height=row.Value.LineHeight;
+                }
                 row.Value.ToolTip=metric.ToolTip??metric.Value;
                 row.Name.ToolTip=metric.Title;if(localContrast==null||!LocalContrastAvailable){row.Name.Foreground=row.Value.Foreground=foreground;}row.Border.BorderBrush=line;
                 row.Border.Padding=new Thickness(0,spacing/2,0,spacing/2);row.Border.Visibility=Visibility.Visible;

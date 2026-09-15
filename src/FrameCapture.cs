@@ -61,7 +61,8 @@ public sealed class FrameCapture : IDisposable {
     public FrameMetrics ReadAt(double now) {
         lock(gate) {
             foreach(var queue in streams.Values) while(queue.Count > 0 && queue.Peek().Time < now-60) queue.Dequeue();
-            var best = streams.Values.Where(q => q.Count > 0 && q.Last().Time >= now-2).OrderByDescending(q => q.Count).FirstOrDefault();
+            var best = streams.Values.Select(q=>new{Frames=q,Recent=q.Count(f=>f.Time>=now-1)})
+                .Where(s=>s.Recent>0).OrderByDescending(s=>s.Recent).Select(s=>s.Frames).FirstOrDefault();
             if (best == null) return new FrameMetrics { Status = status == "Live" ? "Waiting for frames" : status };
             var frames = best.ToArray(); var latest = frames.Where(f => f.Time >= now-1).ToArray();
             var sorted = frames.Select(f => f.Ms).OrderByDescending(x => x).ToArray();

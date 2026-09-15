@@ -2,6 +2,15 @@
 
 English first; 简体中文 follows each version. Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
+## 0.6.15 — 2026-09-15
+
+- Route unlocked Desktop content through the client Preview mouse event and explicitly start WPF DragMove. Retain native edge resizing and interactive editor controls. An isolated test window recorded continuous position changes during dragging.
+- Select FPS swapchains by frames received in the latest one-second window, rather than total historical frames. A large expired stream no longer masks a fresh active stream with a dash. Truly stale data remains unavailable.
+- Reproduce the stale-swapchain failure and validate the correction alongside the complete regression suite.
+- Fix FPS row height across ready/waiting transitions. Superscript badges and the empty dash now share a fixed line box, preventing the rows below from jumping.
+
+再次修复 Desktop 拖动，测试窗口已记录连续位置变化。修复旧 swapchain 历史数据压过新 stream、导致 FPS 错误显示 — 的情况。
+
 ## 0.6.14 — 2026-09-15
 
 - Move unlocked Desktop panels through native caption hit-testing, so ScrollViewer content can initiate dragging without relying on a handled WPF mouse event.

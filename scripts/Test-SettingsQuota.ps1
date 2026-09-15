@@ -72,8 +72,10 @@ try {
  Toggle 'DesktopAppIconColors' $true;InvokeShell UpdateDesktop
  Assert ($fpsRows['fps'].Value.Text.Replace([string][char]0x2007,'') -eq '144 NOW  128 AVG  60 MIN' -and $fpsRows['fps'].Value.TextWrapping -eq 'NoWrap') 'FPS statistics are missing or wrap'
  $slotWidth=$fpsRows['fps'].Value.ActualWidth
+ $slotHeight=$fpsRows['fps'].Border.ActualHeight
  foreach($fps in @(99,9,100)){$sample.Current=$fps;$setFps.Invoke($shell,@($sample));InvokeShell UpdateDesktop;$desktop.UpdateLayout();Assert ([Math]::Abs($fpsRows['fps'].Value.ActualWidth-$slotWidth) -lt 1 -and $fpsRows['fps'].Value.TextAlignment -eq 'Right') 'FPS digit-count changes move the numeric slot'}
  $sample.Ready=$false;$sample.Status='Waiting for frames';$setFps.Invoke($shell,@($sample));InvokeShell UpdateDesktop
+ $desktop.UpdateLayout();Assert ([Math]::Abs($fpsRows['fps'].Border.ActualHeight-$slotHeight) -lt .1) 'FPS ready/waiting transition changes row height'
  foreach($key in @('fps')){Assert ($fpsRows[$key].Value.Text -eq '—') 'Waiting FPS leaks status into reading'}
  $settings.Map('desktopVisible')['fps']=$false;InvokeShell StartOverlay;InvokeShell UpdateDesktop
  $shell.Window.Hide();InvokeShell ToggleDesktopFromShortcut;Assert (-not $settings.Flag('desktopEnabled') -and -not $shell.Window.IsVisible) 'Shortcut hide opens App'
