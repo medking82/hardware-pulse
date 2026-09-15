@@ -734,6 +734,7 @@ On macOS with the .NET 10 SDK, from the repository root:
 ```sh
 dotnet build src/Hosts/MacProbe/Pulse.Mac.Probe.csproj -c Release
 dotnet src/Hosts/MacProbe/bin/Release/net10.0/Pulse.Mac.Probe.dll
+dotnet src/Hosts/MacProbe/bin/Release/net10.0/Pulse.Mac.Probe.dll --interface en0
 ```
 
 The probe emits one schema-1 diagnostic envelope (`platform: macos`) with `cpu`
@@ -741,8 +742,11 @@ and `memory` source readings, architecture, units and `complete`, then exits.
 RAM retains the adapter's explicit estimate label. Errors stay attached to their
 source; unavailable requested metrics yield exit 3 instead of fabricated values.
 Other exit codes match Linux: 0 complete, 2 invalid arguments, 4 unsupported OS.
-`--help` works without native reads. Network arguments are currently rejected;
-the macOS Network adapter is not yet composed into this host. Nothing is saved or installed.
+`--help` works without native reads. Optional `--interface NAME` selects exactly
+one interface and adds a `network` reading plus its `bytes/second` unit. Use an
+interface name present on that Mac; `en0` above is only an example. No-argument
+output retains its CPU/RAM-only fields. A missing interface produces partial
+JSON and exit 3 while preserving valid CPU/RAM readings. Nothing is saved or installed.
 
 Both platform workflows watch shared host changes and execute their actual CLI
 process tests. Windows locally verifies build/help/argument/OS guards; native
@@ -771,7 +775,7 @@ name, returning `netDown`/`netUp` in bytes per second through the existing Readi
 contract. Missing interfaces and failed reads reset the baseline. It does not
 aggregate Wi-Fi/LAN/VPN links or claim link speed and signal support. The native
 fixture sends UDP traffic over `lo0`; Linux retains its existing `lo` fixture.
-This adapter remains separate from the macOS CLI until host composition is added.
+The macOS CLI composes this adapter only when `--interface NAME` is requested.
 Network polling cost and long-running resource use have not yet been measured.
 
 Network validation (2026-09-15) passed at
