@@ -39,7 +39,7 @@ if($Installer){
         & "$PSScriptRoot/Run-Hidden.ps1" $setup @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/CURRENTUSER',"/DIR=$root/vendor/inno",'/NOICONS') $root
     }
     & "$PSScriptRoot/Run-Hidden.ps1" $iscc @("$root/installer/HardwarePulse.iss") $root
-    if($SigningCertificateThumbprint){& "$PSScriptRoot/Sign.ps1" -Path "$root/dist/HardwarePulse-0.6.8-Setup.exe" -Thumbprint $SigningCertificateThumbprint}
-    Copy-Item "$root/dist/HardwarePulse-0.6.8-Setup.exe" "$root/dist/HardwarePulse-Setup.exe" -Force
-    Get-FileHash "$root/dist/HardwarePulse-0.6.8-Setup.exe" -Algorithm SHA256 | Select-Object Hash,Path
+    if($SigningCertificateThumbprint){& "$PSScriptRoot/Sign.ps1" -Path "$root/dist/HardwarePulse-0.6.9-Setup.exe" -Thumbprint $SigningCertificateThumbprint}
+    Copy-Item "$root/dist/HardwarePulse-0.6.9-Setup.exe" "$root/dist/HardwarePulse-Setup.exe" -Force
+    Get-FileHash "$root/dist/HardwarePulse-0.6.9-Setup.exe" -Algorithm SHA256 | Select-Object Hash,Path
 }

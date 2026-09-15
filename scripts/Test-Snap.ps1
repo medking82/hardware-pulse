@@ -50,3 +50,8 @@ foreach($side in @('left','right')){
     }
 }
 'PASS: cursor-anchored continuous one-pixel steps escape both screen edges without Alt'
+$raw=Rect 24 24 224 124;$target=Rect 0 0 200 100
+$soft=[WindowSnap]::Attract($raw,$target,24)
+if($soft.Left -ne 24 -or $soft.Top -ne 24){throw 'Magnet entry jumps at threshold'}
+$raw=Rect 2 2 202 102;$soft=[WindowSnap]::Attract($raw,$target,24)
+if($soft.Left -ne 0 -or $soft.Top -ne 0 -or $soft.Right-$soft.Left -ne 200){throw 'Near-edge magnet precision or size changed'}

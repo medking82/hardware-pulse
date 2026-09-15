@@ -34,7 +34,7 @@ Unsupported readings disappear; stale readings show dashes and a collector statu
 
 Move on Desktop unlocks the readout and hides the editor. Drag the shaded area to
 position it, with snapping 16 logical px inside all four screen work-area edges. Pull away to release without
-Alt; holding Alt temporarily bypasses snapping. Other app windows are not snap targets.
+Alt; holding Alt temporarily bypasses snapping. Nearby visible app windows are also snap targets. Attraction ramps up as an edge approaches; Alt bypasses snapping.
 The system tray's Lock Desktop enables click-through and removes the
 editing background. Edit Desktop unlocks the readout and reopens Settings; Done locks the readout and hides
 the editor. Disable Desktop Mode to return to the ordinary monitor. Reset Desktop

@@ -60,10 +60,11 @@ public static class WindowSnap {
     public static void Attach(Window window, bool includeWindows=true, double edgePadding=0) {
         IntPtr own=new WindowInteropHelper(window).Handle;
         Rect dragOrigin=new Rect();CursorPoint dragStart=new CursorPoint();bool tracking=false;
+        var targets=new List<Rect>();bool targetsReady=false;
 
         HwndSource.FromHwnd(own).AddHook(delegate(IntPtr hwnd,int message,IntPtr w,IntPtr l,ref bool handled){
-            if(message==0x0231){tracking=GetWindowRect(own,out dragOrigin) && GetCursorPos(out dragStart);return IntPtr.Zero;}
-            if(message==0x0232){tracking=false;return IntPtr.Zero;}
+            if(message==0x0231){targetsReady=false;tracking=GetWindowRect(own,out dragOrigin) && GetCursorPos(out dragStart);return IntPtr.Zero;}
+            if(message==0x0232){tracking=false;}
             if((bool)window.GetValue(PositionLockedProperty)) {
                 long command=w.ToInt64() & 0xFFF0;
                 if(message==0x0112 && (command==0xF010 || command==0xF000)){handled=true;return IntPtr.Zero;}
@@ -83,25 +84,30 @@ public static class WindowSnap {
             else if(!GetWindowRect(own,out rect))return IntPtr.Zero;
             MonitorInfo monitor=new MonitorInfo();monitor.Size=Marshal.SizeOf(typeof(MonitorInfo));
             if(!GetMonitorInfo(MonitorFromRect(ref rect,2),ref monitor))return IntPtr.Zero;
-            var targets=new List<Rect>();
-            if(includeWindows)EnumWindows(delegate(IntPtr candidate,IntPtr state){
+            if(!targetsReady){targets.Clear();if(includeWindows)EnumWindows(delegate(IntPtr candidate,IntPtr state){
                 if(candidate==own || !IsWindowVisible(candidate) || IsIconic(candidate) || GetWindowTextLength(candidate)==0)return true;
                 int cloaked; if(DwmGetWindowAttribute(candidate,14,out cloaked,4)==0 && cloaked!=0)return true;
                 Rect other;bool found=DwmGetFrame(candidate,9,out other,Marshal.SizeOf(typeof(Rect)))==0;
                 if(!found)found=GetWindowRect(candidate,out other);
                 if(found && other.Right>other.Left && other.Bottom>other.Top)targets.Add(other);
                 return true;
-            },IntPtr.Zero);
+            },IntPtr.Zero);targetsReady=true;}
             double scale=Math.Max(96,GetDpiForWindow(own))/96.0;
-            int threshold=(int)Math.Round(24.0*scale);
+            int threshold=(int)Math.Round((moving?24.0:4.0)*scale);
             int padding=(int)Math.Round(Math.Max(0,edgePadding)*scale);
             int insetX=Math.Min(padding,Math.Max(0,(monitor.Work.Right-monitor.Work.Left-(rect.Right-rect.Left))/2));
             int insetY=Math.Min(padding,Math.Max(0,(monitor.Work.Bottom-monitor.Work.Top-(rect.Bottom-rect.Top))/2));
             monitor.Work.Left+=insetX;monitor.Work.Right-=insetX;monitor.Work.Top+=insetY;monitor.Work.Bottom-=insetY;
             Rect snapped=Snap(rect,monitor.Work,targets,threshold);
+            if(moving)snapped=Attract(rect,snapped,threshold);
             if(moving){Marshal.StructureToPtr(snapped,l,false);handled=true;return new IntPtr(1);}
             if(snapped.Left!=rect.Left || snapped.Top!=rect.Top)SetWindowPos(own,IntPtr.Zero,snapped.Left,snapped.Top,0,0,0x0015);
             return IntPtr.Zero;
         });
+    }
+    public static Rect Attract(Rect raw,Rect target,int threshold){
+        Func<int,int> ease=delta=>{double t=Math.Max(0,1-Math.Abs(delta)/(double)Math.Max(1,threshold));return (int)Math.Round(delta*t*t*(3-2*t));};
+        int dx=ease(target.Left-raw.Left),dy=ease(target.Top-raw.Top);
+        raw.Left+=dx;raw.Right+=dx;raw.Top+=dy;raw.Bottom+=dy;return raw;
     }
 }

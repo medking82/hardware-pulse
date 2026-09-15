@@ -70,12 +70,12 @@ try {
  Assert ([SettingsQuotaFixture]::Hit($handle,[int]$point.X,[int]$point.Y) -ne 10) 'Locked Desktop still permits edge resizing'
  foreach($edge in @(@(0,50,10),@(400,50,11),@(50,0,12),@(0,0,13),@(400,0,14),@(50,200,15),@(0,200,16),@(400,200,17),@(50,50,0))){Assert ([HardwarePulse.DesktopView]::ResizeEdge([Windows.Point]::new($edge[0],$edge[1]),[Windows.Size]::new(400,200),8) -eq $edge[2]) 'Desktop resize edge mapping wrong'}
  Assert (-not $settings.Flag('desktopAlwaysOnTop')) 'Topmost must be opt-in'
- $nativeLayer=[HardwarePulse.DesktopLayer]::new($desktop)
- $layerField=$desktop.GetType().GetField('layer',$flags);$layerField.SetValue($desktop,$nativeLayer)
+ $nativeWindow=[Windows.Window]::new();$nativeWindow.Width=200;$nativeWindow.Height=100;$nativeWindow.WindowStyle="None";$nativeWindow.AllowsTransparency=$true;$nativeWindow.ShowActivated=$false;$nativeWindow.ShowInTaskbar=$false;$nativeWindow.Show();$nativeLayer=[HardwarePulse.DesktopLayer]::new($nativeWindow)
+
  try {
-  Toggle 'DesktopAlwaysOnTop' $true;Toggle 'DesktopLocked' $true;Settle;$desktop.RefreshLayer();$shell.Save()
+  Toggle 'DesktopAlwaysOnTop' $true;Toggle 'DesktopLocked' $true;Settle;$nativeLayer.SetAlwaysOnTop($true);$nativeLayer.SetLocked($true);$shell.Save()
   $reloaded=[HardwarePulse.Settings]::new((Join-Path $state 'widget-settings.json'));Assert ($reloaded.Flag('desktopAlwaysOnTop')) 'Topmost preference not persisted'
-  $handle=[Windows.Interop.WindowInteropHelper]::new($desktop).Handle;$style=[SettingsQuotaFixture]::Style($handle,-20).ToInt64()
+  $handle=[Windows.Interop.WindowInteropHelper]::new($nativeWindow).Handle;$style=[SettingsQuotaFixture]::Style($handle,-20).ToInt64()
   Assert (($style -band 8) -ne 0 -and ($style -band 32) -ne 0 -and ($style -band 0x08000000) -ne 0 -and ($style -band 0x80000) -ne 0) ('Topmost style=0x{0:X}, layer={1}, current={2}, attached={3}, flag={4}' -f $style,$nativeLayer.GetType().GetField('hwnd',$flags).GetValue($nativeLayer),$handle,$nativeLayer.Attached,$settings.Flag('desktopAlwaysOnTop'))
   $surface=$desktop.Content;$stack=$desktop.GetType().GetField('stack',$flags).GetValue($desktop)
   Assert ($surface.Background.Color.R -eq 245 -and $surface.Background.Color.A -eq 140 -and $stack.Opacity -eq 1 -and $null -eq $stack.Effect) 'Topmost smoke background or sharp opaque text incorrect'
@@ -98,14 +98,14 @@ try {
    $bitmap=[Windows.Media.Imaging.RenderTargetBitmap]::new([int]$desktop.ActualWidth,[int]$desktop.ActualHeight,96,96,[Windows.Media.PixelFormats]::Pbgra32);$bitmap.Render($visual)
    $png=[Windows.Media.Imaging.PngBitmapEncoder]::new();$png.Frames.Add([Windows.Media.Imaging.BitmapFrame]::Create($bitmap));$stream=[IO.File]::Create((Join-Path $state ('topmost-'+$background+'.png')));try{$png.Save($stream)}finally{$stream.Dispose()}
   }
-  Toggle 'DesktopLocked' $false;$handle=[Windows.Interop.WindowInteropHelper]::new($desktop).Handle;$style=[SettingsQuotaFixture]::Style($handle,-20).ToInt64()
+  Toggle 'DesktopLocked' $false;$nativeLayer.SetLocked($false);$handle=[Windows.Interop.WindowInteropHelper]::new($nativeWindow).Handle;$style=[SettingsQuotaFixture]::Style($handle,-20).ToInt64()
   Assert (($style -band 8) -ne 0 -and ($style -band 32) -eq 0 -and ($style -band 0x08000000) -ne 0) 'Editing must retain topmost/no-activate but accept mouse input'
-  Toggle 'DesktopAlwaysOnTop' $false;Toggle 'DesktopLocked' $true
+  Toggle 'DesktopAlwaysOnTop' $false;Toggle 'DesktopLocked' $true;$nativeLayer.SetAlwaysOnTop($false);$nativeLayer.SetLocked($true)
   $shell.Window.FindName('DesktopTextOpacity').Value=15;Toggle 'DesktopAutoContrast' $false;Toggle 'DesktopAutoContrast' $true;Assert ([Math]::Abs($stack.Opacity-.15) -lt .001) 'Desktop Auto Contrast changes text opacity'
   Assert ($surface.VerticalAlignment -eq 'Stretch') 'Desktop geometry not restored'
   $shell.Window.FindName('DesktopBackgroundOpacity').Value=40;Assert ($surface.Background.Color.A -eq 102) 'Desktop background opacity did not apply'
   Assert (([SettingsQuotaFixture]::Style($handle,-20).ToInt64() -band 8) -eq 0) 'Returning to Desktop retained topmost'
- } finally {$layerField.SetValue($desktop,$null);$nativeLayer.Dispose()}
+ } finally {$nativeLayer.Dispose();$nativeWindow.Close()}
  Toggle 'DesktopAppIconColors' $false;$shell.Save();Assert (-not $settings.Flag('desktopAppIconColors',$true)) 'Explicit icon override not retained'
  $saved=[HardwarePulse.Settings]::new((Join-Path $state 'widget-settings.json'));Assert ($saved.Flag('quotaFull') -and -not $saved.Flag('desktopAppIconColors',$true) -and $saved.Data['quotaCardOrder'][1] -eq 'Codex') 'Quota mode/order or icon override did not persist'
  'PASS Settings/quota: full vs compact, handles/order, 1/2/3 columns, languages, contrast, sticky Back, editor Lock and eight resize edges'

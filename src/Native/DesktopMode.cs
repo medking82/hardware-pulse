@@ -58,7 +58,7 @@ namespace HardwarePulse {
             UpdateDesktop();Save();
             if(enabled)EditDesktop();else{Show();ShowSettings(false);}
         }
-        void SetDesktopLocked(bool value){settings.Data["desktopLocked"]=value;Control<CheckBox>("DesktopLocked").IsChecked=value;UpdateDesktop();Save();}
+        void SetDesktopLocked(bool value){bool wasLocked=settings.Flag("desktopLocked",true);settings.Data["desktopLocked"]=value;Control<CheckBox>("DesktopLocked").IsChecked=value;UpdateDesktop();Save();if(value&&!wasLocked&&!isolated&&tray!=null)tray.ShowBalloonTip(5000,"Pulse",language.T("Desktop locked. Right-click the Pulse tray icon and choose Edit Desktop to unlock."),Forms.ToolTipIcon.Info);}
         void SaveDesktopPosition(){if(desktop==null)return;settings.Data["desktopLeft"]=desktop.Left;settings.Data["desktopTop"]=desktop.Top;settings.Data["desktopWidth"]=desktop.Width;if(desktop.SizeToContent==SizeToContent.Manual)settings.Data["desktopHeight"]=desktop.Height;QueueSave();}
         void EditDesktop(){if(!DesktopEnabled)return;SetDesktopLocked(false);Window.Hide();desktop.Activate();}
         void BuildDesktopTray(Forms.ContextMenuStrip menu){

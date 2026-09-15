@@ -32,7 +32,7 @@ namespace HardwarePulse {
         public bool Locked {get{return locked;}}
         public DesktopView(Func<string,double,string,FrameworkElement> icon,bool isolated=false) {
             this.icon=icon;this.isolated=isolated;
-            Title="Pulse Desktop";WindowStyle=WindowStyle.None;ResizeMode=ResizeMode.NoResize;
+            Title="Pulse Desktop";FontFamily=new FontFamily("Segoe UI, Microsoft YaHei UI, Microsoft JhengHei UI");WindowStyle=WindowStyle.None;ResizeMode=ResizeMode.NoResize;
             AllowsTransparency=true;Background=Brushes.Transparent;ShowInTaskbar=false;ShowActivated=false;
             Focusable=false;SizeToContent=SizeToContent.Height;Width=466;MinWidth=280;MinHeight=140;WindowStartupLocation=WindowStartupLocation.Manual;
             UseLayoutRounding=true;SnapsToDevicePixels=true;TextOptions.SetTextFormattingMode(this,TextFormattingMode.Display);
@@ -42,7 +42,7 @@ namespace HardwarePulse {
             surface=new Border{Padding=new Thickness(16),CornerRadius=new CornerRadius(16),BorderThickness=new Thickness(1),Child=content};Content=surface;
             done.Click+=delegate{if(EditCompleted!=null)EditCompleted();};returnToApp.Click+=delegate{if(ReturnRequested!=null)ReturnRequested();};
             SourceInitialized+=delegate{HwndSource.FromHwnd(new WindowInteropHelper(this).Handle).AddHook(ResizeHook);};
-            SourceInitialized+=delegate{WindowSnap.Attach(this,false,EdgePadding);if(!isolated)layer=new DesktopLayer(this);};
+            SourceInitialized+=delegate{WindowSnap.Attach(this,true,EdgePadding);if(!isolated)layer=new DesktopLayer(this);};
             Closed+=delegate{if(layer!=null)layer.Dispose();};
             SizeChanged+=delegate{if(IsLoaded&&SizeToContent==SizeToContent.Manual&&PositionSaved!=null)PositionSaved();};
             MouseLeftButtonDown+=delegate(object sender,MouseButtonEventArgs e){if(locked||e.Handled||e.ButtonState!=MouseButtonState.Pressed)return;DragMove();KeepOnScreen();if(PositionSaved!=null)PositionSaved();};

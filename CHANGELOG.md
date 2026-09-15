@@ -2,9 +2,15 @@
 
 English first; 简体中文 follows each version. Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
-## Unreleased
+## 0.6.9 — 2026-09-15
+
+- Make resize follow the pointer without repeatedly restarting card motion, add a column threshold buffer and reuse the dragged card transform. Text remains directly rendered during size adjustments.
+- Enable nearby-app snapping for Desktop, soften magnetic attraction and cache snap targets per drag. A small final capture range avoids a large jump on release.
+- Notify after manually locking Desktop how to unlock through the tray; explicitly use Segoe UI with Microsoft YaHei UI / JhengHei UI fallback in App and Desktop.
 
 - Allow 0–100% Desktop text and topmost background opacity. Auto Contrast and topmost rendering no longer override text opacity; saved values and slider labels match the rendered result. Keep 55% as the topmost background default.
+
+改进拖曳换列与渐进吸附，Desktop 支持附近 App 吸附，锁定后提示从 tray 解锁。明确中英文字体 fallback，并开放背景和文字 opacity 0%–100%。
 
 ## 0.6.8 — 2026-09-15
 
