@@ -296,3 +296,28 @@ measurement interval. The first full-file timing in both pairs was slower than
 later runs; medians are descriptive evidence, not a guaranteed timing benefit.
 The Windows full validation passed; no installer or running App was changed.
 Raw local evidence: vendor/linux-polling-ci-34976904596.log.
+
+## macOS adapter baseline harness
+
+Run `Pulse.Mac.Tests.dll --measure` on macOS after building the Release test
+project, with `DOTNET_TieredCompilation=0`. The CI runs it on native Intel and
+Apple Silicon. Three rounds measure CPU, RAM and loopback Network separately:
+100 warm-up calls followed by 1,000 polls, logging managed allocation, elapsed
+and process CPU time per poll, GC counts and reading availability. Tight-loop
+CPU samples can omit load when Mach counters have not advanced; source errors
+and invalid RAM/Network readings fail the run.
+
+A separate 60-second window polls all three through Core ReadingSessions once
+per second, sampling process working set and managed heap every ten seconds.
+It records process CPU normalized by logical CPU count and allocation scoped to
+adapter/session polling. Console serialization is outside the timed window.
+Explicit collections occur before and after, never during the paced window;
+post-collection managed size is reported separately. Process CPU includes harness
+sampling and runtime background work. Buffered observations remain live at the
+final collection, so the retained delta is not exclusively adapter state.
+
+This is a short diagnostic-host baseline, not the Windows App or a macOS UI
+measurement, a long-duration leak test, or a guarantee about game frametime.
+Working-set growth can reflect retained runtime pages; allocation is not retained
+RAM. The Network sample uses `lo0` and records only interface count, not names,
+addresses or machine identity. No timing/memory threshold determines success.

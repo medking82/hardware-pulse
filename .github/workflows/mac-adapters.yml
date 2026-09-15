@@ -63,5 +63,9 @@ jobs:
         run: dotnet run --project scripts/MacAdapterTests/Pulse.Mac.Tests.csproj --configuration Release --disable-build-servers -p:UseSharedCompilation=false -- --live
       - name: Build headless probe
         run: dotnet build src/Hosts/MacProbe/Pulse.Mac.Probe.csproj --configuration Release --disable-build-servers -p:UseSharedCompilation=false
+      - name: Measure adapter polling and paced memory trend
+        env:
+          DOTNET_TieredCompilation: '0'
+        run: dotnet scripts/MacAdapterTests/bin/Release/net10.0/Pulse.Mac.Tests.dll --measure
       - name: Test headless probe process contracts
         run: python3 scripts/test_mac_probe.py dotnet src/Hosts/MacProbe/bin/Release/net10.0/Pulse.Mac.Probe.dll
