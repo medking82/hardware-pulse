@@ -800,3 +800,31 @@ Core on all six OS/architecture targets in
 and Windows adapter regression in
 [run 34981727948](https://github.com/medking82/hardware-pulse/actions/runs/34981727948).
 Local platform fixtures and full Windows native validation also passed.
+
+## Shared Codex quota flow
+
+`Adapters/Common/CodexQuota.Read(login, request, cancellation)` composes a
+bounded decoded login graph, an injected authenticated request and the existing
+Core QuotaDecoder. It returns the existing QuotaReading and preserves known
+QuotaFailure status keys; unexpected exception details are not returned. It
+owns no file paths, credential store, HTTP stack, endpoint, timer or persistence.
+Cancellation propagates, including before login access and after a completed
+request, so a cancelled response is never decoded as a fresh result.
+
+Windows QuotaProviders supplies its existing bounded auth.json reader and fixed
+Codex endpoint/header composition. Its HTTP allowlist, redirect rejection, TLS,
+timeouts, response bounds and cancellation/abort code remain unchanged. Claude
+and Antigravity retain their existing IO paths. Common source is compiled into
+the existing Windows adapter DLL, preserving the installed payload structure;
+modern hosts can reference Pulse.Adapters.Common instead. Core remains free of
+credentials and transport dependencies.
+
+The same synthetic Codex flow fixtures run against the actual Windows adapter
+assembly under Framework 4.8 and the modern Common adapter under .NET 10. They
+cover optional account, absent/invalid token, safe failure statuses, response
+decoding and cancellation before/during/after IO. No real credential or external
+quota request is used. Native quota integration retains HTTP allowlist/redirect
+and WPF/session checks. The six-platform workflow runs Common adapter fixtures
+alongside Core, and the Windows adapter workflow watches Common source changes.
+Linux/macOS credential and HTTP implementations remain subsequent work; this
+extraction alone does not enable live quota on those platforms.

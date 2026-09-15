@@ -24,15 +24,11 @@ namespace HardwarePulse {
         static string LoginFile(string variable,string directory,string file){string root=Environment.GetEnvironmentVariable(variable);if(string.IsNullOrWhiteSpace(root))root=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),directory);return Path.Combine(root,file);}
         static object ReadLogin(string path){var info=new FileInfo(path);if(!info.Exists)throw new QuotaFailure("Login required");if(info.Length>1048576)throw new QuotaFailure("Login unavailable");return QuotaData.Parse(File.ReadAllText(path));}
         public static QuotaReading Read(string provider,CancellationToken cancel){
+            if(provider=="Codex")return CodexQuota.Read(()=>ReadLogin(LoginFile("CODEX_HOME",".codex","auth.json")),RequestCodex,cancel);
             try{
                 object body;
                 if(provider=="Antigravity")body=AntigravityQuota.Read(cancel);
-                else if(provider=="Codex"){
-                    var login=ReadLogin(LoginFile("CODEX_HOME",".codex","auth.json"));var tokens=QuotaDecoder.Get(login,"tokens");string token=QuotaDecoder.Text(QuotaDecoder.Get(tokens,"access_token"));
-                    if(token=="")throw new QuotaFailure("Login required");
-                    var headers=new Dictionary<string,string>{{"Authorization","Bearer "+token}};string account=QuotaDecoder.Text(QuotaDecoder.Get(tokens,"account_id"));if(account!="")headers["ChatGPT-Account-Id"]=account;
-                    body=Request("https://chatgpt.com/backend-api/wham/usage",headers,null,cancel,false);
-                }else if(provider=="Claude"){
+                else if(provider=="Claude"){
                     string token=Environment.GetEnvironmentVariable("CLAUDE_CODE_OAUTH_TOKEN");
                     if(string.IsNullOrEmpty(token)){var login=ClaudeLogin();token=QuotaDecoder.Text(QuotaDecoder.Get(QuotaDecoder.Get(login,"claudeAiOauth")??login,"accessToken"));}
                     if(string.IsNullOrEmpty(token))throw new QuotaFailure("Login required");
@@ -42,6 +38,11 @@ namespace HardwarePulse {
             }catch(OperationCanceledException){throw;}
             catch(QuotaFailure e){return new QuotaReading{Provider=provider,Status=e.Status,Observed=DateTimeOffset.UtcNow};}
             catch{cancel.ThrowIfCancellationRequested();return new QuotaReading{Provider=provider,Status="Quota unavailable",Observed=DateTimeOffset.UtcNow};}
+        }
+        static object RequestCodex(string token,string account,CancellationToken cancel){
+            var headers=new Dictionary<string,string>{{"Authorization","Bearer "+token}};
+            if(account!="")headers["ChatGPT-Account-Id"]=account;
+            return Request("https://chatgpt.com/backend-api/wham/usage",headers,null,cancel,false);
         }
         // All callers supply fixed endpoints or a verified local process endpoint. Never follow redirects with login headers.
         internal static object Request(string url,Dictionary<string,string> headers,string body,CancellationToken cancel,bool local){
@@ -67,5 +68,4 @@ namespace HardwarePulse {
             }
         }
     }
-    internal sealed class QuotaFailure:Exception {internal readonly string Status;internal QuotaFailure(string status){Status=status;}}
 }

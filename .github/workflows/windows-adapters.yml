@@ -6,6 +6,8 @@ on:
     paths:
       - 'src/Core/**'
       - 'src/Adapters/Windows/**'
+      - 'src/Adapters/Common/**'
+      - 'scripts/CodexQuotaTests.cs'
       - 'scripts/Build-Core.ps1'
       - 'scripts/Build-WindowsAdapters.ps1'
       - 'scripts/Test-WindowsAdapters.ps1'
@@ -16,6 +18,8 @@ on:
     paths:
       - 'src/Core/**'
       - 'src/Adapters/Windows/**'
+      - 'src/Adapters/Common/**'
+      - 'scripts/CodexQuotaTests.cs'
       - 'scripts/Build-Core.ps1'
       - 'scripts/Build-WindowsAdapters.ps1'
       - 'scripts/Test-WindowsAdapters.ps1'

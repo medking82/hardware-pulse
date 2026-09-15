@@ -5,12 +5,18 @@ on:
     branches: [main]
     paths:
       - 'src/Core/**'
+      - 'src/Adapters/Common/**'
+      - 'scripts/CommonAdapterTests/**'
+      - 'scripts/CodexQuotaTests.cs'
       - 'scripts/Core*.cs'
       - 'scripts/CoreTests/**'
       - '.github/workflows/core.yml'
   pull_request:
     paths:
       - 'src/Core/**'
+      - 'src/Adapters/Common/**'
+      - 'scripts/CommonAdapterTests/**'
+      - 'scripts/CodexQuotaTests.cs'
       - 'scripts/Core*.cs'
       - 'scripts/CoreTests/**'
       - '.github/workflows/core.yml'
@@ -59,3 +65,5 @@ jobs:
         run: dotnet --info
       - name: Run shared Core assertions
         run: dotnet run --project scripts/CoreTests/Pulse.Core.Tests.csproj --configuration Release --disable-build-servers -p:UseSharedCompilation=false
+      - name: Run shared adapter flow assertions
+        run: dotnet run --project scripts/CommonAdapterTests/Pulse.Common.Tests.csproj --configuration Release --disable-build-servers -p:UseSharedCompilation=false

@@ -5,6 +5,7 @@ using HardwarePulse;
 class WindowsAdapterTests {
     static void Check(bool value,string message){if(!value)throw new Exception(message);}
     static void Main(){
+        CodexQuotaTests.Run();
         string architecture=System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture.ToString();
         string expected=Environment.GetEnvironmentVariable("PULSE_TEST_ARCH");
         Check(string.IsNullOrEmpty(expected)||expected==architecture,"Expected adapter process architecture "+expected+", got "+architecture);
