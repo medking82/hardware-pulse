@@ -39,7 +39,7 @@ namespace HardwarePulse {
             if(settings.Flag("unifiedReadingColors"))return ReadingColor();
             switch(icon){case "cpu":case "codex":return "#A5E7D5";case "gpu":case "antigravity":return "#A7CBFF";
                 case "memory":return "#E7C5A4";case "claude":return "#E7B497";case "nvme":return "#B9B7ED";
-                case "airflow":return "#A8D4D0";case "network":return "#A9D8E8";default:return textColor;}
+                case "airflow":return "#A8D4D0";case "network":case "ethernet":case "wifi":case "signal":return "#A9D8E8";default:return textColor;}
         }
     }
 }

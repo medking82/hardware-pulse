@@ -1,8 +1,8 @@
 # Hardware Pulse
 
-![Hardware Pulse preview with fictional demo data](docs/showcase/pulse-demo.png)
+![Hardware Pulse actual App and Desktop UI with fictional demo data](docs/showcase/pulse-hero.png)
 
-*Illustrative preview with fictional hardware and readings, not a screenshot of the author's PC. / 展示图使用虚构硬件与数据。*
+*Actual WPF UI and shipped SVG icons, rendered with fictional demo data on a composed background. / 真实 WPF UI 与实际 SVG icons，使用 demo 数据及合成背景。[Render source](scripts/Render-Hero.ps1).*
 
 [Changelog / 更新记录](CHANGELOG.md)
 
