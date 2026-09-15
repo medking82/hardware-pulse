@@ -436,3 +436,36 @@ regressions. Scope is this calculation, its ResponsivePanel consumer and tests;
 rollback is one atomic source commit without a settings migration. Native ARM64,
 Linux and macOS views remain unimplemented. No standalone installer is needed for
 this behavior-preserving boundary change.
+
+## Windows FPS capture adapter
+
+From baseline `6d758dd`, FrameCapture is compiled into Pulse.Adapters.Windows
+instead of the App EXE. Its implementation and global type name are unchanged.
+It owns PresentMon process startup/stop, CSV decoding, target PID filtering,
+clock and serialized access to the existing Core FrameHistory. FpsTransport,
+process identity/privilege checks, protected-tool selection, timers and UI remain
+in the Windows host. No process, permissions, command arguments or polling
+cadence is added or changed.
+
+Build-Native consumes the adapter type through its existing reference. Package
+validation rejects an App-owned duplicate and requires adapter ownership. The
+legacy Overlay differential source path and isolated Settings fixture copy are
+updated; no PowerShell script is added to the shipped payload. WindowsAdapterTests
+reference Core explicitly for FrameMetrics and exercise quoted CSV, malformed/PID
+filtering, header/reset behavior, Core freshness and stopped state without launching
+PresentMon. Existing full native checks retain FPS IPC/peer/cancellation coverage.
+Actual full-screen game capture remains a separate device/integration check.
+
+This extraction makes the Windows capture boundary explicit; it does not provide
+ARM64 PresentMon binaries or Linux/macOS capture and does not claim a performance
+improvement. Rollback is the atomic source/build change; any delivered build must
+include the matching App/Core/adapter payload. No settings or wire-format migration
+is required. A standalone installer is not needed for this behavior-preserving step.
+
+Legacy validation limitation: Test-Settings' tray/FPS math/CSV filtering/anchor
+checks passed, then its old PowerShell Overview failed at 1080p/150% with
+22.6667 logical units of overflow. Repeating the same isolated fixture with the
+pre-move FrameCapture/Overlay source location reproduced that exact failure.
+The capture file's Git blob hash matches the pre-move source. This is retained as
+an unrelated legacy UI limitation; the full native Validate suite passed. No
+claim is made that the complete legacy Settings suite passed.

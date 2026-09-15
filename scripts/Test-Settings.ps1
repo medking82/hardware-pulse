@@ -6,6 +6,8 @@ $null=New-Item -ItemType Directory -Path $testRoot
 Copy-Item "$root/src/*" $testRoot
 Copy-Item "$root/assets" $testRoot -Recurse
 Copy-Item "$root/src/Core" $testRoot -Recurse -Force
+[void][IO.Directory]::CreateDirectory("$testRoot/Adapters/Windows")
+Copy-Item "$root/src/Adapters/Windows/FrameCapture.cs" "$testRoot/Adapters/Windows/FrameCapture.cs"
 @'
 $script:stateRoot=$PSScriptRoot
 $script:runtime=Join-Path $PSScriptRoot 'runtime'
