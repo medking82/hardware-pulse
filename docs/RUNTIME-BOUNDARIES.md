@@ -71,8 +71,8 @@ selection remain platform responsibilities. Preserve the existing process and
 privilege boundaries while adding platform implementations; unsupported sensors
 must be reported as unavailable rather than fabricated as zero.
 
-Before adding a modern .NET target, validate its compatibility with the existing
-Windows host. ARM64 requires separate validation of the collector/driver and FPS
+The modern .NET target is validated alongside the existing Windows host as described
+below. ARM64 requires separate validation of the collector/driver and FPS
 payloads; shared UI support alone does not establish telemetry parity. Linux and
 macOS require native collectors and desktop integration. These ports are not yet
 implemented. See [Local Contrast measurements](PERFORMANCE.md) for this phase.
@@ -120,8 +120,9 @@ Validation: Core-only source tests; Windows snapshot offline/live/stale, malform
 input, duplicate identity, recovery and independent-session tests; native/legacy
 sensor parity; complete Validate.ps1 including WPF/Desktop, FPS, quota, startup,
 diagnostic export and installer payload checks. Core remains AnyCPU built with the
-Framework compiler; modern .NET and ARM64/Linux/macOS runtime validation is still
-outstanding. No new cross-platform support or memory reduction is claimed.
+Framework compiler; ARM64/Linux/macOS runtime validation is still outstanding.
+The subsequent modern Core target does not port the host. No new cross-platform
+app support or memory reduction is claimed.
 
 ## Quota contracts and network formatting
 
@@ -174,3 +175,38 @@ integration coverage. The 30-second cancellation interval is preserved in source
 not shortened for tests. This extraction retains existing tasks and cancellation
 timers, adding none. It is source-reversible and does not migrate settings or claim
 CPU/RAM reduction or completed ARM64/Linux/macOS support.
+
+## Modern Core build
+
+From baseline `66a4cfa`, `src/Core/Pulse.Core.csproj` builds the same source as a
+`net10.0` library with no package dependencies. The existing Framework compiler
+path still builds the DLL consumed by the WPF app and installer. The two outputs
+are separate; the modern DLL must not replace the Framework DLL in the installed app.
+
+`scripts/CoreTests/Pulse.Core.Tests.csproj` references the modern library and links
+the existing CoreTests and CoreQuotaSessionTests sources. Only the allocation
+counter differs by runtime: Framework uses AppDomain monitoring, modern .NET uses
+the current-thread GC allocation counter. Both run the same 10,000-query allocation
+assertion and readings, formatting, contrast and quota lifecycle assertions. Each
+target enforces its own BCL-only assembly reference allowlist.
+
+Run `scripts/Test-CoreModern.ps1` using PowerShell 7 on Windows, optionally supplying
+`-DotNetPath` to an SDK host. It defaults to an ignored repo-local SDK when present,
+then PATH, and fails on a missing/incompatible SDK. `scripts/Validate.ps1 -ModernCore`
+adds this check to the complete Windows suite. Normal Validate remains available
+to the existing Framework-only toolchain. Compiler servers are disabled for the
+modern check; no SDK is included in the app payload.
+
+On other hosts with .NET 10 SDK, the portable check can be run directly:
+
+```sh
+dotnet run --project scripts/CoreTests/Pulse.Core.Tests.csproj --configuration Release
+```
+
+Local evidence: Windows x64, Microsoft SDK 10.0.401, downloaded from official
+[.NET 10 release](https://dotnet.microsoft.com/en-us/download/dotnet/10.0) metadata
+and verified against its SHA-512. Modern build produced zero warnings/errors and
+all shared tests passed. SDK/archive and build outputs are ignored. This is a
+Windows execution of portable Core tests; ARM64, Linux and macOS execution, native
+collectors, UI, desktop layering and FPS capture remain unverified. No runtime
+performance or memory comparison between the two targets is claimed.

@@ -63,12 +63,26 @@ class CoreTests {
         pixels=Frame(64,32,(x,y)=>(byte)0);analysis.Analyze(pixels,64,32,6,0,0,0,0,false);
         Check(analysis.RegionColor(0,0,64,32,20,out minority)==245,"Strong change must switch on next frame");
         Check(ContrastAnalysis.Select(.19,20)==20&&ContrastAnalysis.Select(.19,245)==245,"Hysteresis lost");
+#if !NET10_0
         AppDomain.MonitoringIsEnabled=true;
+#endif
         for(int i=0;i<10;i++)analysis.RegionColor(0,0,64,32,20,out minority);
-        long before=AppDomain.CurrentDomain.MonitoringTotalAllocatedMemorySize;
+        long before=AllocatedBytes();
         for(int i=0;i<10000;i++)analysis.RegionColor(0,0,64,32,20,out minority);
-        Check(AppDomain.CurrentDomain.MonitoringTotalAllocatedMemorySize-before<1024,"Region queries allocate per reading");
-        foreach(var reference in typeof(ContrastAnalysis).Assembly.GetReferencedAssemblies())Check(reference.Name=="mscorlib"||reference.Name=="System"||reference.Name=="System.Core","Core depends on platform assembly: "+reference.Name);
+        Check(AllocatedBytes()-before<1024,"Region queries allocate per reading");
+#if NET10_0
+        var allowedReferences=new[]{"System.Runtime","System.Collections","System.Linq","System.Threading","System.Threading.Tasks"};
+#else
+        var allowedReferences=new[]{"mscorlib","System","System.Core"};
+#endif
+        foreach(var reference in typeof(ContrastAnalysis).Assembly.GetReferencedAssemblies())Check(Array.IndexOf(allowedReferences,reference.Name)>=0,"Core depends on unexpected assembly: "+reference.Name);
         Console.WriteLine("PASS Core: bounded analysis, local palette/edges, backing, hysteresis, clipped regions and allocation-free queries; no UI/OS assembly dependencies");
+    }
+    static long AllocatedBytes(){
+#if NET10_0
+        return GC.GetAllocatedBytesForCurrentThread();
+#else
+        return AppDomain.CurrentDomain.MonitoringTotalAllocatedMemorySize;
+#endif
     }
 }

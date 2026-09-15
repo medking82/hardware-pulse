@@ -1,4 +1,4 @@
-﻿param([string]$NativeTestAppPath)
+﻿param([string]$NativeTestAppPath,[switch]$ModernCore)
 $ErrorActionPreference='Stop'
 $root=Split-Path $PSScriptRoot
 $hostSource=[IO.File]::ReadAllText("$root/src/Native/Program.cs")
@@ -23,6 +23,7 @@ $null=[xml](Get-Content "$root/src/Panel.xaml" -Raw)
 & "$PSScriptRoot/Run-Hidden.ps1" "$env:WINDIR/System32/WindowsPowerShell/v1.0/powershell.exe" @('-NoProfile','-File',"$PSScriptRoot/Test-Package.ps1") $root
 & "$PSScriptRoot/Build-Native.ps1"
 & "$PSScriptRoot/Test-Core.ps1"
+if($ModernCore){& "$PSScriptRoot/Test-CoreModern.ps1"}
 & "$PSScriptRoot/Test-NativeSensors.ps1"
 & "$PSScriptRoot/Run-Hidden.ps1" "$env:WINDIR/System32/WindowsPowerShell/v1.0/powershell.exe" @('-NoProfile','-STA','-File',"$PSScriptRoot/Test-DesktopShortcut.ps1",'-AppPath',"$root/build/native/app") $root
 & "$PSScriptRoot/Run-Hidden.ps1" "$env:WINDIR/System32/WindowsPowerShell/v1.0/powershell.exe" @('-NoProfile','-STA','-File',"$PSScriptRoot/Test-LocalContrast.ps1",'-AppPath',"$root/build/native/app") $root
