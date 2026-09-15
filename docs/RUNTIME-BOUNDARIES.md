@@ -828,3 +828,13 @@ and WPF/session checks. The six-platform workflow runs Common adapter fixtures
 alongside Core, and the Windows adapter workflow watches Common source changes.
 Linux/macOS credential and HTTP implementations remain subsequent work; this
 extraction alone does not enable live quota on those platforms.
+
+Validation at `d12700c4f16d193132513057441c0fcbb9e4a954` (2026-09-15):
+Core and shared Codex flow passed on Windows/Linux/macOS x64 and ARM64 in
+[run 34985433053](https://github.com/medking82/hardware-pulse/actions/runs/34985433053).
+The Framework Windows adapter build and the same flow fixtures passed on x64
+and native ARM64 in
+[run 34985432904](https://github.com/medking82/hardware-pulse/actions/runs/34985432904).
+Local full validation passed, including existing native quota/session, HTTP
+allowlist and redirect checks. These are synthetic credential/transport tests,
+not verification of a live account or Linux/macOS credential discovery.
