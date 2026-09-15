@@ -863,3 +863,10 @@ unknown-length oversized response, redirect status rejection, actual production
 handler flags, timeout, caller cancellation and disposal. They make no external
 HTTP request and never use a real account. Live endpoint/account and keyring-only
 login support are not established by these fixtures. Windows IO remains unchanged.
+
+Validation (2026-09-15) at `7c89212ff9743c524be8b4cd7fff35b67f68a228`:
+Linux x64 and native ARM64 passed synthetic Codex IO fixtures, existing live
+CPU/RAM/Network assertions and unchanged Probe CLI contracts in
+[run 34986654557](https://github.com/medking82/hardware-pulse/actions/runs/34986654557).
+Local fixtures and full Windows native validation also passed. No actual login
+or external quota endpoint was accessed during validation.
