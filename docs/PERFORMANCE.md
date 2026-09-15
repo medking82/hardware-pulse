@@ -348,7 +348,7 @@ of a usable load value. All paced CPU readings were valid.
 | Managed heap after collection, start / end bytes | 391,360 / 376,672 | 398,224 / 375,312 |
 | Natural Gen0 / Gen1 / Gen2 collections | 1 / 0 / 0 | 2 / 0 / 0 |
 
-The dominant measured source is Network. Its current implementation enumerates
+The dominant measured source is Network. The baseline implementation enumerates
 all interfaces on every read before obtaining the selected interface statistics.
 That is a concrete optimization candidate, not proof that enumeration accounts
 for the entire cost. A follow-up should isolate enumeration, preserve fresh byte
@@ -357,3 +357,14 @@ before claiming improvement. No runtime optimization is included in this baselin
 The observed heap rises between natural collections and then falls; this short
 window neither demonstrates a leak nor establishes long-term memory stability.
 Raw local evidence: `vendor/mac-polling-ci-34983064052.log`.
+
+### Selected interface comparison
+
+The follow-up harness retains that enumeration-per-poll strategy in an injected
+counter source. Each round now measures `network-enumerated` and
+`network-selected` with alternating order, identical warm-up/poll counts and
+the same interval logic. The selected path retains the interface reader but
+requests a new statistics object each poll. Read failure invalidates selection;
+fixtures verify re-resolution, fresh counters and reset recovery. The paced
+window uses the selected path. This comparison isolates source lookup without
+changing the host polling cadence or introducing a background subscription.

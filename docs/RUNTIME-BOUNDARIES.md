@@ -776,7 +776,18 @@ contract. Missing interfaces and failed reads reset the baseline. It does not
 aggregate Wi-Fi/LAN/VPN links or claim link speed and signal support. The native
 fixture sends UDP traffic over `lo0`; Linux retains its existing `lo` fixture.
 The macOS CLI composes this adapter only when `--interface NAME` is requested.
-Network polling cost and long-running resource use have not yet been measured.
+Short polling/resource baselines are recorded in [PERFORMANCE.md](PERFORMANCE.md);
+long-duration resource stability is not yet established.
+
+macOS now retains only the selected interface reader. Its BSD `GetIPStatistics`
+call obtains fresh counters by name on every poll; cached interface speed/status
+metadata is not consumed. Expected read failures discard the selection, and the
+next poll resolves it again. Source errors reset the Core interval as before;
+decreasing counters from a same-name replacement also establish a new baseline.
+Fixtures cover fresh counters without repeated resolution, failed selection,
+missing/reappearing sources and counter reset. No new timer or event subscription
+is needed. The old enumeration-per-poll path remains in the benchmark only for
+paired comparison against the selected-reader path.
 
 Network validation (2026-09-15) passed at
 `a27f97a13cbe46d785ec75ad745863e02d6f9100`: macOS Intel/Apple Silicon native

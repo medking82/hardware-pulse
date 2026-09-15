@@ -18,8 +18,23 @@ namespace HardwarePulse {
         readonly NetworkInterval interval=new NetworkInterval();
         long sequence;
         public MacNetworkReadings(string interfaceName)
-            :this(interfaceName,()=>ReadNative(interfaceName),()=>Stopwatch.GetTimestamp()/(double)Stopwatch.Frequency){
+            :this(interfaceName,()=>ResolveNative(interfaceName),()=>Stopwatch.GetTimestamp()/(double)Stopwatch.Frequency){
             if(!OperatingSystem.IsMacOS())throw new PlatformNotSupportedException("macOS network statistics are required");
+        }
+        // Resolve once; the returned reader must acquire fresh counters on every call.
+        public MacNetworkReadings(string interfaceName,Func<Func<MacNetworkCounters>> resolve,Func<double> monotonicSeconds)
+            :this(interfaceName,CachedReader(resolve),monotonicSeconds){}
+        static Func<MacNetworkCounters> CachedReader(Func<Func<MacNetworkCounters>> resolve){
+            if(resolve==null)throw new ArgumentNullException("resolve");
+            Func<MacNetworkCounters> selected=null;
+            return ()=>{
+                try{
+                    if(selected==null)selected=resolve()??throw new IOException("Network interface unavailable");
+                    return selected();
+                }catch(Exception e) when(e is IOException||e is NetworkInformationException||e is UnauthorizedAccessException||e is FormatException){
+                    selected=null;throw;
+                }
+            };
         }
         public MacNetworkReadings(string interfaceName,Func<MacNetworkCounters> read,Func<double> monotonicSeconds){
             if(string.IsNullOrWhiteSpace(interfaceName)||interfaceName.IndexOfAny(new[]{':','\r','\n',' ','\t'})>=0)
@@ -44,11 +59,15 @@ namespace HardwarePulse {
             }
             return result;
         }
-        static MacNetworkCounters ReadNative(string name){
+        static Func<MacNetworkCounters> ResolveNative(string name){
             foreach(var network in NetworkInterface.GetAllNetworkInterfaces()){
                 if(network.Name!=name)continue;
-                var stats=network.GetIPStatistics();
-                return new MacNetworkCounters {Received=stats.BytesReceived,Sent=stats.BytesSent};
+                // BSD GetIPStatistics reads by Name each time. Do not reuse the stats
+                // object or cached interface metadata (speed/status/address properties).
+                return ()=>{
+                    var stats=network.GetIPStatistics();
+                    return new MacNetworkCounters {Received=stats.BytesReceived,Sent=stats.BytesSent};
+                };
             }
             throw new IOException("Network interface unavailable");
         }

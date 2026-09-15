@@ -9,6 +9,7 @@ using HardwarePulse;
 static class NetworkTests {
     static void Check(bool condition,string message){if(!condition)throw new Exception(message);}
     public static void Run(bool live){
+        CheckResolution();
         double clock=10;int failure=0;
         var counters=new MacNetworkCounters {Received=1000,Sent=2000};
         var reader=new MacNetworkReadings("en0",()=>failure==1?throw new IOException("Missing interface"):
@@ -48,5 +49,28 @@ static class NetworkTests {
             Check(rejected,"Reject native network calls on unsupported OS");
         }
         Console.WriteLine("PASS macOS network fixtures");
+    }
+    static void CheckResolution(){
+        int resolutions=0,reads=0;double clock=1;bool missing=false,broken=false;
+        var counters=new MacNetworkCounters {Received=100,Sent=200};
+        Func<Func<MacNetworkCounters>> resolve=()=>{
+            resolutions++;
+            if(missing)throw new IOException("Removed interface");
+            return ()=>{reads++;if(broken)throw new NetworkInformationException();return counters;};
+        };
+        var reader=new MacNetworkReadings("en0",resolve,()=>clock);var now=DateTimeOffset.UtcNow;
+        reader.Read(now);clock++;counters.Received+=10;counters.Sent+=20;
+        Check(reader.Read(now).values["netDown"]==10&&resolutions==1&&reads==2,"Reuse selection, always read fresh counters");
+        broken=true;Check(reader.Read(now).error!=null,"Failed cached statistics unavailable");broken=false;missing=true;
+        Check(reader.Read(now).error!=null&&resolutions==2,"Failed reader discarded before resolving again");
+        missing=false;clock++;counters=new MacNetworkCounters {Received=1,Sent=2};
+        Check(reader.Read(now).values.Count==0&&resolutions==3,"Reappearing interface warms a new baseline");
+        clock++;counters.Received+=4;counters.Sent+=8;
+        Check(reader.Read(now).values["netUp"]==8&&resolutions==3,"Recovered selection reused with fresh counters");
+        counters=new MacNetworkCounters();clock++;
+        Check(reader.Read(now).values.Count==0,"Same-name counter reset cannot spike");
+        clock++;counters.Sent=5;
+        Check(reader.Read(now).values["netUp"]==5,"Same-name counter reset recovers");
+        Console.WriteLine("PASS macOS network selection reuse, invalidation and recovery");
     }
 }

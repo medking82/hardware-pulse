@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.IO;
 using System.Net.NetworkInformation;
 using System.Runtime.InteropServices;
 using System.Text.Json;
@@ -18,9 +19,21 @@ static class PollingBenchmark {
         for(int round=0;round<3;round++){
             Measure(round,"cpu",new MacCpuReadings().Read);
             Measure(round,"ram",new MacMemoryReadings().Read);
-            Measure(round,"network",new MacNetworkReadings("lo0").Read);
+            // Paired sources use the same counters and interval logic; alternate order.
+            var legacy=new MacNetworkReadings("lo0",ReadEnumerated,()=>Stopwatch.GetTimestamp()/(double)Stopwatch.Frequency);
+            var cached=new MacNetworkReadings("lo0");
+            if(round%2==0){Measure(round,"network-enumerated",legacy.Read);Measure(round,"network-selected",cached.Read);}
+            else{Measure(round,"network-selected",cached.Read);Measure(round,"network-enumerated",legacy.Read);}
         }
         Paced();
+    }
+    static MacNetworkCounters ReadEnumerated(){
+        foreach(var network in NetworkInterface.GetAllNetworkInterfaces()){
+            if(network.Name!="lo0")continue;
+            var stats=network.GetIPStatistics();
+            return new MacNetworkCounters {Received=stats.BytesReceived,Sent=stats.BytesSent};
+        }
+        throw new IOException("Loopback interface unavailable");
     }
     static void Measure(int round,string source,Func<DateTimeOffset,Reading> read){
         for(int i=0;i<100;i++)read(DateTimeOffset.UtcNow);
