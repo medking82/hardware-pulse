@@ -1034,3 +1034,20 @@ removes the installed .NET requirement, not native OS graphics/font dependencies
 Gatekeeper/quarantine behavior, Developer ID signing/notarization, native Skia
 and HarfBuzz transitive notice audit, installation/update UX and broader device
 testing remain release work. Packages do not register startup or install files.
+
+Validation at `1f771479f86f6268cd7c2eb5a6287dd7ee1325e5` (2026-09-16 local):
+[run 34993429993](https://github.com/medking82/hardware-pulse/actions/runs/34993429993)
+passed all six jobs. The four Linux/macOS runners each launched the extracted
+self-contained AppHost and obtained live CPU/RAM; Windows kept its demo/native
+UI regression. All four uploaded artifacts were downloaded again and passed
+local inventory/hash/runtime checks, with the same source commit and dirty=false.
+
+| RID | Archive bytes | SHA-256 |
+| --- | ---: | --- |
+| linux-x64 | 44302848 | `2fef0887b4ecc8303a106f2e1bdbffd4ec69c1de6d4ba33417bc4b2f6e803948` |
+| linux-arm64 | 41894920 | `655aeeb07a2bccc4bb12f6dc20d38687c9dadad459daadf89b5124e3953c007e` |
+| osx-x64 | 46231867 | `890722404b10402591e4213533883da0c73832c5abffc12be3dcc5ffec07566b` |
+| osx-arm64 | 44034795 | `7ef7ae59c5cb3ab14e6d37cc4ba8675832a17ba174f499b4343872e445ae58c3` |
+
+These are compressed download sizes, not memory usage. Local full Windows
+validation, UI contracts and package negative tests also passed.
