@@ -643,3 +643,9 @@ actual executable on both Linux architectures, covering JSON shape, live CPU/RAM
 loopback selection, missing-interface partial success, help and argument errors.
 This is a framework-dependent CLI prototype, not a Linux desktop App/installer;
 Windows remains the published product. No raw host snapshots are committed.
+Probe validation (2026-09-15): native Linux x64 and ARM64 end-to-end CLI tests
+passed at `b82d35f5b9763d47202c95164cfecd26826fda4e` in
+[CI run 34977552722](https://github.com/medking82/hardware-pulse/actions/runs/34977552722),
+alongside adapter fixtures/live tests. Local Windows CLI rejection/help tests and
+full `Validate.ps1 -ModernCore` also passed. Physical network selection and UI
+integration remain outside this prototype's verification.
