@@ -11,6 +11,16 @@ namespace HardwarePulse {
         bool DesktopEnabled {get{return settings.Flag("desktopEnabled");}}
         string DesktopColor(){string hex=settings.Text("desktopColor","#E4F3EF");return System.Text.RegularExpressions.Regex.IsMatch(hex,"^#[0-9a-fA-F]{6}$")?hex:"#E4F3EF";}
         void WireDesktop(){
+            Click("DesktopRecommended",delegate{
+                settings.Data["desktopAutoContrast"]=true;Control<CheckBox>("DesktopAutoContrast").IsChecked=true;
+                Control<Slider>("DesktopFontSize").Value=16;Control<Slider>("DesktopSpacing").Value=10;Control<Slider>("DesktopTextOpacity").Value=100;
+                UpdateDesktop();QueueSave();
+            });
+            Control<CheckBox>("DesktopAppIconColors").IsChecked=settings.Flag("desktopAppIconColors");
+            Control<CheckBox>("DesktopAppIconColors").Click+=delegate{settings.Data["desktopAppIconColors"]=Checked("DesktopAppIconColors");UpdateDesktop();QueueSave();};
+            Click("DesktopQuick",delegate{EnterDesktop();});
+            Control<ComboBox>("DesktopColumns").SelectedIndex=(int)settings.Number("desktopColumns",0,0,3);
+            Control<ComboBox>("DesktopColumns").SelectionChanged+=delegate{int count=Control<ComboBox>("DesktopColumns").SelectedIndex;settings.Data["desktopColumns"]=count;if(desktop!=null&&count>0)desktop.Width=Math.Min(SystemParameters.WorkArea.Width-32,Math.Max(280,24*Control<Slider>("DesktopFontSize").Value)*count+10*(count-1)+34);UpdateDesktop();SaveDesktopPosition();QueueSave();};
             Control<CheckBox>("DesktopEnabled").IsChecked=DesktopEnabled;
             Control<CheckBox>("DesktopLocked").IsChecked=settings.Flag("desktopLocked",true);
             Control<Slider>("DesktopFontSize").Value=settings.Number("desktopFontSize",16,10,32);
@@ -30,7 +40,7 @@ namespace HardwarePulse {
                 settings.Data["desktopAutoContrast"]=false;Control<CheckBox>("DesktopAutoContrast").IsChecked=false;UpdateDesktop();QueueSave();
             }});
             Click("DesktopDone",delegate{SetDesktopLocked(true);Save();if(DesktopEnabled)Window.Hide();});
-            Click("DesktopMove",delegate{if(!DesktopEnabled)SetDesktopEnabled(true);SetDesktopLocked(false);Window.Hide();});
+            Click("DesktopMove",delegate{if(!DesktopEnabled)SetDesktopEnabled(true);SetDesktopLocked(false);});
             Click("DesktopResetPosition",delegate{if(desktop!=null){desktop.Left=SystemParameters.WorkArea.Left+40;desktop.Top=SystemParameters.WorkArea.Top+100;desktop.KeepOnScreen();SaveDesktopPosition();}});
             BuildDesktopOrder();
             UpdateDesktopLabels();
@@ -43,7 +53,7 @@ namespace HardwarePulse {
             if(enabled)EditDesktop();else{Show();ShowSettings(false);}
         }
         void SetDesktopLocked(bool value){settings.Data["desktopLocked"]=value;Control<CheckBox>("DesktopLocked").IsChecked=value;UpdateDesktop();Save();}
-        void SaveDesktopPosition(){if(desktop==null)return;settings.Data["desktopLeft"]=desktop.Left;settings.Data["desktopTop"]=desktop.Top;QueueSave();}
+        void SaveDesktopPosition(){if(desktop==null)return;settings.Data["desktopLeft"]=desktop.Left;settings.Data["desktopTop"]=desktop.Top;settings.Data["desktopWidth"]=desktop.Width;if(desktop.SizeToContent==SizeToContent.Manual)settings.Data["desktopHeight"]=desktop.Height;QueueSave();}
         void EditDesktop(){if(DesktopEnabled)SetDesktopLocked(false);Show();ShowSettings(true);Control<Expander>("DesktopSection").IsExpanded=true;Control<Expander>("DesktopSection").BringIntoView();}
         void BuildDesktopTray(Forms.ContextMenuStrip menu){
             trayDesktop=(Forms.ToolStripMenuItem)menu.Items.Add("Desktop Mode",null,delegate{SetDesktopEnabled(!DesktopEnabled);});
@@ -71,7 +81,13 @@ namespace HardwarePulse {
         List<DesktopMetric> DesktopMetrics(){
             var result=new List<DesktopMetric>();
             foreach(var card in cards.Children.Cast<Border>()){
-                string key=(string)card.Tag;if(!CardEnabled(key))continue;
+                string key=(string)card.Tag;
+                if(key=="Network"&&(Available("netDown")||Available("netUp"))){
+                    string kind;readings.Latest.names.TryGetValue("netConnection",out kind);double link,signal;
+                    string value=readings.Latest.state=="LIVE"&&readings.Latest.values.TryGetValue("netLink",out link)?language.T(NetworkRate.Link(link)):"—";
+                    result.Add(new DesktopMetric("netConnection",kind??language.T("Connection"),value,"network"));
+                    if(readings.Latest.state=="LIVE"&&readings.Latest.values.TryGetValue("netSignal",out signal))result.Add(new DesktopMetric("netSignal",language.T("Wi-Fi Signal"),signal.ToString("0")+"%","network"));
+                }
                 if(key=="CPU"&&(Available("cpu")||Available("cpuLoad")))result.Add(new DesktopMetric(key,language.T(key),DesktopProcessor("cpu","cpuLoad"),"cpu"));
                 if(key=="GPU"&&(Available("gpu")||Available("gpuLoad")))result.Add(new DesktopMetric(key,language.T(key),DesktopProcessor("gpu","gpuLoad"),"gpu"));
                 if(key=="GPU"&&readings.HasUsage("vram")){
@@ -88,6 +104,7 @@ namespace HardwarePulse {
             }
             if(readings.Latest.state!="LIVE")result.Add(new DesktopMetric("status",language.T(readings.Latest.state),language.T("Waiting for collector"),"live"));
             AddDesktopQuotas(result);
+            result.RemoveAll(metric=>!DesktopMetricEnabled(metric.Key));
             if(result.Count==0)result.Add(new DesktopMetric("empty","Pulse",language.T("No cards shown. Choose cards in Settings."),"live"));
             var order=DesktopOrderKeys();return result.OrderBy(metric=>{int index=Array.IndexOf(order,metric.Key);return index<0?int.MaxValue:index;}).ToList();
         }
@@ -95,12 +112,14 @@ namespace HardwarePulse {
             UpdateDesktopLabels();if(!loaded||!DesktopEnabled)return;
             if(desktop==null){
                 desktop=new DesktopView((name,size,color)=>Icon(name,size,color),isolated);
+                desktop.Width=settings.Number("desktopWidth",466,280,Math.Max(280,SystemParameters.WorkArea.Width-32));
+                if(settings.Data.ContainsKey("desktopHeight")){desktop.SizeToContent=SizeToContent.Manual;desktop.Height=settings.Number("desktopHeight",400,140,Math.Max(140,SystemParameters.WorkArea.Height-32));}
                 desktop.Left=settings.Number("desktopLeft",SystemParameters.WorkArea.Left+40,-100000,100000);desktop.Top=settings.Number("desktopTop",SystemParameters.WorkArea.Top+100,-100000,100000);
                 desktop.PositionSaved+=SaveDesktopPosition;
                 desktop.Show();
             }
             string effectiveColor=desktop.ResolveColor(Checked("DesktopAutoContrast"),DesktopColor());
-            desktop.Render(DesktopMetrics(),Control<Slider>("DesktopFontSize").Value,Control<Slider>("DesktopSpacing").Value,effectiveColor,settings.Flag("desktopLocked",true));
+            desktop.Render(DesktopMetrics(),Control<Slider>("DesktopFontSize").Value,Control<Slider>("DesktopSpacing").Value,effectiveColor,settings.Flag("desktopLocked",true),(int)settings.Number("desktopColumns",0,0,3),name=>DesktopIconColor(name,effectiveColor));
             desktop.SetTextOpacity(Control<Slider>("DesktopTextOpacity").Value,Checked("DesktopAutoContrast"));
             desktop.RefreshLayer();
             Text("DesktopStatus",language.T(desktop.LayerAvailable?"Use the system tray to edit or exit Desktop Mode.":"Waiting for Windows desktop"));

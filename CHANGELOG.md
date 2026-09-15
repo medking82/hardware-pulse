@@ -2,6 +2,16 @@
 
 English first; 简体中文 follows each version. Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
+## 0.6.0 — 2026-09-15
+
+- App cards adapt to one, two, or three columns with animated reordering and keyboard controls.
+- Enter Desktop View directly from the monitor; customize visibility and ordering independently of App cards.
+- Resize Desktop View while editing, choose automatic or capped columns, and preserve its geometry.
+- Consolidate Desktop appearance controls, add a recommended style, and replace per-text contrast blocks with a rounded shared backdrop.
+- Optionally follow the App palette for Desktop SVG icons.
+- Synchronize FPS toggles on the monitor, Settings, and system tray, with an SVG icon.
+- Show connection type and negotiated link speed on Desktop; show Wi-Fi signal percentage only when Windows supplies it. No Wi-Fi scanning or connectivity changes.
+
 ## 0.5.12 — 2026-09-15
 
 - Show only Gemini 5-hour and Weekly quota windows for Antigravity; omit its Claude/GPT pools and duplicate or unrelated windows.

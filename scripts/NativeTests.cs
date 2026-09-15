@@ -29,6 +29,37 @@ internal static class NativeTests {
     static void Click(Shell shell,string name){shell.Control<Button>(name).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Pump();}
     static void Toggle(Shell shell,string name,bool value){var control=shell.Control<CheckBox>(name);control.IsChecked=value;control.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Pump();}
     static T Field<T>(Shell shell,string name){return (T)typeof(Shell).GetField(name,BindingFlags.Instance|BindingFlags.NonPublic).GetValue(shell);}
+    static void Settle(){var until=DateTime.UtcNow.AddMilliseconds(250);while(DateTime.UtcNow<until){Pump();System.Threading.Thread.Sleep(10);}}
+    static void LayoutChecks(Shell shell,string state){
+        var panel=shell.Control<ResponsivePanel>("Cards");double width=shell.Window.Width,height=shell.Window.Height;
+        foreach(int columns in new[]{1,2,3}){
+            shell.Window.Width=columns==1?310:columns==2?660:1000;shell.Window.Height=820;Pump();shell.UpdatePanel();Settle();
+            Assert(panel.Columns==columns,"Responsive columns do not follow window width");
+            var visible=panel.Children.Cast<Border>().Where(c=>c.Visibility==Visibility.Visible).ToArray();
+            Assert(visible.All(c=>c.ActualWidth<=panel.CellWidth+.1),"Card exceeds its column");
+            if(columns>1)Assert(Math.Abs(visible[0].TranslatePoint(new Point(),panel).Y-visible[1].TranslatePoint(new Point(),panel).Y)<1,"Cards are not side by side");
+            Capture(shell,Path.Combine(state,"layout-"+columns+"-columns.png"));
+        }
+        Toggle(shell,"FpsQuick",true);Assert(shell.Control<CheckBox>("OverlayEnabled").IsChecked==true&&shell.Control<CheckBox>("OverlayFps").IsChecked==true,"Home FPS did not enable existing controller");
+        var trayFps=Field<System.Windows.Forms.ToolStripMenuItem>(shell,"trayFps");Assert(trayFps.Checked&&trayFps.Image!=null,"Tray FPS state or SVG image missing");trayFps.PerformClick();Pump();Assert(shell.Control<CheckBox>("FpsQuick").IsChecked==false&&shell.Control<CheckBox>("OverlayEnabled").IsChecked==false,"Tray FPS did not synchronize");
+        Toggle(shell,"OverlayEnabled",true);Assert(shell.Control<CheckBox>("FpsQuick").IsChecked==true,"Settings FPS did not synchronize");Toggle(shell,"OverlayEnabled",false);
+        Click(shell,"DesktopQuick");var desktop=Field<DesktopView>(shell,"desktop");Assert(desktop!=null&&desktop.Locked&&!shell.Window.IsVisible,"One-click Desktop did not lock and hide monitor");
+        shell.Control<ComboBox>("DesktopColumns").SelectedIndex=2;Pump();Settle();Assert(Tree(desktop).OfType<ResponsivePanel>().Single().Columns==2,"Desktop columns setting ignored");
+        var settings=Field<Settings>(shell,"settings");var order=shell.Control<StackPanel>("DesktopOrderList");var cpu=order.Children.Cast<Border>().Single(c=>(string)c.Tag=="CPU");var toggle=(CheckBox)((Grid)cpu.Child).Children[2];
+        toggle.IsChecked=false;toggle.RaiseEvent(new RoutedEventArgs(CheckBox.ClickEvent));Pump();Assert(!Tree(desktop).OfType<TextBlock>().Any(t=>t.Text=="CPU"),"Hidden Desktop reading is still rendered");
+        toggle.IsChecked=true;toggle.RaiseEvent(new RoutedEventArgs(CheckBox.ClickEvent));Pump();
+        settings.Map("cardsVisible")["CPU"]=false;shell.UpdatePanel();Pump();Assert(Tree(desktop).OfType<TextBlock>().Any(t=>t.Text=="CPU"),"Desktop visibility still depends on monitor cards");settings.Map("cardsVisible")["CPU"]=true;shell.UpdatePanel();
+        Toggle(shell,"DesktopAppIconColors",true);var color=(string)typeof(Shell).GetMethod("DesktopIconColor",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(shell,new object[]{"gpu","#FFFFFF"});Assert(color!="#FFFFFF","App icon palette ignored");
+        Settle();var bitmap=new RenderTargetBitmap((int)Math.Ceiling(desktop.ActualWidth),(int)Math.Ceiling(desktop.ActualHeight),96,96,PixelFormats.Pbgra32);bitmap.Render(desktop);var encoder=new PngBitmapEncoder();encoder.Frames.Add(BitmapFrame.Create(bitmap));using(var file=File.Create(Path.Combine(state,"desktop-two-columns.png")))encoder.Save(file);
+        Toggle(shell,"DesktopLocked",false);Assert(desktop.ResizeMode==ResizeMode.CanResizeWithGrip,"Desktop editor is not resizable");
+        shell.Control<ComboBox>("DesktopColumns").SelectedIndex=0;desktop.SizeToContent=SizeToContent.Manual;desktop.Width=1240;desktop.Height=300;Pump();Settle();
+        Assert(Tree(desktop).OfType<ResponsivePanel>().Single().Columns==3,"Desktop auto columns ignore resize");desktop.Width=430;desktop.Height=150;Pump();Settle();
+        Assert(Tree(desktop).OfType<ResponsivePanel>().Single().Columns==1&&Tree(desktop).OfType<ScrollViewer>().Single().ScrollableHeight>0,"Small Desktop must reflow and keep remaining readings reachable");
+        Assert(settings.Number("desktopWidth",0,0,5000)==430&&settings.Number("desktopHeight",0,0,5000)==150,"Desktop resize was not persisted");
+        desktop.SizeToContent=SizeToContent.Height;settings.Data.Remove("desktopHeight");
+        Toggle(shell,"DesktopAppIconColors",false);shell.Control<ComboBox>("DesktopColumns").SelectedIndex=0;Toggle(shell,"DesktopEnabled",false);
+        shell.Window.Width=width;shell.Window.Height=height;Pump();
+    }
     static void CaptureContrast(DesktopView view,string path){
         view.Render(new[]{new DesktopMetric("cpu","CPU","60.6 °C   15.4%","cpu"),new DesktopMetric("gpu","GPU","46.3 °C   4%","gpu"),new DesktopMetric("vram","VRAM","3 / 15.9 GB · 19%","gpu")},20,20,"#152127",true);
         view.SetTextOpacity(30,true);view.UpdateLayout();Pump();
@@ -119,6 +150,13 @@ internal static class NativeTests {
                 var networkCard=cards.Children.Cast<Border>().Single(b=>(string)b.Tag=="Network");
                 Assert(networkCard.Visibility==Visibility.Visible&&Tree(networkCard).OfType<TextBlock>().Any(t=>t.Text=="1 MB/s"),"Network reading missing or overlapping adapters added");
                 Assert(Tree(networkCard).OfType<TextBlock>().Any(t=>t.Text=="2.5 Gbit/s"),"Link must belong to selected adapter");
+                networkSnapshot.networkLinks[0].connectionType="Wi-Fi";networkSnapshot.networkLinks[0].signalPercent=72;networkSnapshot.sequence++;Json.WriteAtomic(paths.Snapshot,networkSnapshot);shell.UpdatePanel();Pump();
+                var netReading=Field<ReadingSession>(shell,"readings").Latest;
+                Assert(netReading.names["netConnection"]=="Wi-Fi"&&netReading.values["netSignal"]==72,"Wi-Fi signal must belong to the selected adapter");
+                var desktopMetrics=(List<DesktopMetric>)typeof(Shell).GetMethod("DesktopMetrics",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(shell,null);
+                Assert(desktopMetrics.Any(m=>m.Key=="netConnection"&&m.Title=="Wi-Fi"&&m.Value=="2.5 Gbit/s")&&desktopMetrics.Any(m=>m.Key=="netSignal"&&m.Value=="72%"),"Desktop connection or signal missing");
+                networkSnapshot.networkLinks[0].signalPercent=101;networkSnapshot.sequence++;Json.WriteAtomic(paths.Snapshot,networkSnapshot);shell.UpdatePanel();Assert(!Field<ReadingSession>(shell,"readings").Latest.values.ContainsKey("netSignal"),"Invalid signal must not become a reading");
+                networkSnapshot.networkLinks[0].connectionType="Ethernet";networkSnapshot.networkLinks[0].signalPercent=72;networkSnapshot.sequence++;Json.WriteAtomic(paths.Snapshot,networkSnapshot);shell.UpdatePanel();Assert(!Field<ReadingSession>(shell,"readings").Latest.values.ContainsKey("netSignal"),"Ethernet must not retain Wi-Fi signal");
                 networkSnapshot.sequence++;networkSnapshot.networkLinks[0].connected=false;Json.WriteAtomic(paths.Snapshot,networkSnapshot);shell.UpdatePanel();Pump();Assert(Tree(networkCard).OfType<TextBlock>().Any(t=>t.Text=="Disconnected"),"Disconnected link must not retain negotiated speed");
                 networkSnapshot.sequence++;networkSnapshot.networkLinks=null;Json.WriteAtomic(paths.Snapshot,networkSnapshot);shell.UpdatePanel();Pump();Assert(!Tree(networkCard).OfType<TextBlock>().Any(t=>t.Text=="2.5 Gbit/s"),"Legacy snapshot cannot retain link speed");
                 shell.Control<ComboBox>("NetworkUnit").SelectedIndex=3;Pump();
@@ -158,6 +196,7 @@ internal static class NativeTests {
                     }
                 }
                 shell.Control<Slider>("FontSizeSlider").Value=12;shell.Window.Width=310;Pump();Click(shell,"Details");Capture(shell,Path.Combine(state,"native-details.png"));Click(shell,"Details");Capture(shell,Path.Combine(state,"native-compact.png"));
+                LayoutChecks(shell,state);
                 // Desktop mode owns separate layout preferences and reuses this ReadingSession.
                 double originalFont=shell.Window.FontSize,originalLeft=shell.Window.Left;
                 Toggle(shell,"DesktopEnabled",true);Pump();shell.UpdatePanel();
@@ -198,12 +237,12 @@ internal static class NativeTests {
                 Assert(DesktopContrast.Choose(.19,"#152127")=="#152127"&&DesktopContrast.Choose(.19,"#F5F7FA")=="#F5F7FA","Animated wallpaper hysteresis");
                 Assert(DesktopContrast.Outline(Colors.White)==Colors.Black&&DesktopContrast.Outline(Colors.Black)==Colors.White,"Custom text contrast outline");
                 Toggle(shell,"DesktopAutoContrast",false);shell.Control<Slider>("DesktopTextOpacity").Value=65;Pump();
-                Assert(((Border)desktop.Content).Child.Opacity==.65,"Desktop text opacity not applied");
+                Assert(Tree(desktop).OfType<ResponsivePanel>().Single().Opacity==.65,"Desktop text opacity not applied");
                 Assert(desktop.ResolveColor(false,"#4488CC")=="#4488CC","Auto Contrast overrode custom color");
                 Toggle(shell,"DesktopAutoContrast",true);shell.Control<Slider>("DesktopTextOpacity").Value=30;Pump();
-                Assert(((Border)desktop.Content).Child.Opacity>=.9,"Auto Contrast allowed unreadable text opacity");
-                Assert(Tree(desktop).OfType<TextBlock>().All(t=>t.Background is SolidColorBrush),"Auto Contrast lacks local contrast protection on mixed wallpaper");
-                Assert(((Border)desktop.Content).Child.Effect==null,"Auto Contrast still blurs the text layer");
+                Assert(Tree(desktop).OfType<ResponsivePanel>().Single().Opacity>=.9,"Auto Contrast allowed unreadable text opacity");
+                Assert(Tree(desktop).OfType<TextBlock>().All(t=>t.Background==null)&&((Border)desktop.Content).Background is SolidColorBrush,"Auto Contrast must protect the whole panel without per-text rectangles");
+                Assert(Tree(desktop).OfType<ResponsivePanel>().Single().Effect==null,"Auto Contrast still blurs the text layer");
                 Assert(desktop.ResolveColor(true,"#152127")=="#F5F7FA","Unavailable sampling retained a dark choice");
                 CaptureContrast(desktop,Path.Combine(state,"desktop-contrast.png"));shell.UpdatePanel();
                 Toggle(shell,"DesktopAutoContrast",false);shell.Control<Slider>("DesktopTextOpacity").Value=65;Pump();

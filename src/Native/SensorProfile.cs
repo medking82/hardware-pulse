@@ -122,6 +122,8 @@ namespace HardwarePulse {
                 result.names["Network"]=network.First().hardware;
                 var link=(raw.networkLinks??new NetworkLink[0]).FirstOrDefault(n=>n!=null&&n.hardwareId==network.Key);
                 if(link!=null){if(!link.connected)result.values["netLink"]=0;else if(link.bitsPerSecond>0)result.values["netLink"]=link.bitsPerSecond.Value;}
+                if(link!=null){if(link.connectionType=="Wi-Fi"||link.connectionType=="Ethernet")result.names["netConnection"]=link.connectionType;
+                    if(link.connected&&link.connectionType=="Wi-Fi"&&link.signalPercent>=0&&link.signalPercent<=100)result.values["netSignal"]=link.signalPercent.Value;}
                 foreach(var direction in new[]{new[]{"netDown","Download Speed"},new[]{"netUp","Upload Speed"}}){
                     var sensor=network.FirstOrDefault(s=>s.name==direction[1]);
                     if(result.available!=null)result.available[direction[0]]=sensor!=null;

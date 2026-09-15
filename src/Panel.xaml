@@ -184,11 +184,16 @@
           <Button x:Name="Close" Content="×" ToolTip="Close widget" Padding="10,3" Margin="0" />
         </StackPanel>
       </Grid>
-      <StackPanel x:Name="MonitorControls" Orientation="Horizontal" Margin="0,10,0,8">
+      <WrapPanel x:Name="MonitorControls" Orientation="Horizontal" Margin="0,10,0,8">
         <Button x:Name="Live" Content="Live" />
         <Button x:Name="Max" Content="Session Max" />
         <Button x:Name="Details" Content="Details" ToolTip="Show full hardware details" Padding="7,5" Margin="0" />
-      </StackPanel>
+        <Button x:Name="DesktopQuick" Content="Desktop" ToolTip="Show Desktop View" Padding="7,5" Margin="6,0,0,0" />
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,0,0">
+          <ContentControl x:Name="FpsQuickIcon" Width="16" Height="16" Margin="0,0,5,0" VerticalAlignment="Center" IsHitTestVisible="False" />
+          <CheckBox x:Name="FpsQuick" Content="FPS" ToolTip="Enable Game Overlay" VerticalAlignment="Center" />
+        </StackPanel>
+      </WrapPanel>
       <TextBlock x:Name="Status" Text="Connecting to sensors…" Foreground="#ACDFD2" FontSize="10" />
     </StackPanel>
     <ScrollViewer x:Name="CardScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="12,0,12,0" FocusVisualStyle="{x:Null}">
@@ -225,7 +230,7 @@
             </ComboBox>
             <CheckBox x:Name="StartWithWindows" Content="Start with Windows" Margin="0,0,0,10" />
             <TextBlock x:Name="StartupStatus" FontSize="11" Margin="0,0,0,10" />
-            <TextBlock Text="Version 0.5.12 · Marck Wong" FontSize="11" Foreground="#ADC1D2" Margin="0,0,0,8" />
+            <TextBlock Text="Version 0.6.0 · Marck Wong" FontSize="11" Foreground="#ADC1D2" Margin="0,0,0,8" />
             <Button x:Name="GitHub" Content="GitHub" HorizontalAlignment="Left" ToolTip="github.com/medking82/hardware-pulse" />
             <CheckBox x:Name="AutoUpdates" Content="Check for Updates Automatically" Margin="0,12,0,8" />
             <CheckBox x:Name="AutoDownload" Content="Download Updates Automatically" Margin="0,0,0,8" />
@@ -238,7 +243,7 @@
             <TextBlock Text="Sensors by LibreHardwareMonitor. Shared driver by PawnIO." FontSize="10" Foreground="#ADC1D2" Margin="0,10,0,0" />
           </StackPanel>
         </Expander>
-        <Expander Header="Appearance" IsExpanded="False" Margin="0,0,0,10">
+        <Expander x:Name="AppearanceSection" Header="Appearance" IsExpanded="False" Margin="0,0,0,10">
           <StackPanel>
             <Grid Margin="0,0,0,8">
               <Grid.ColumnDefinitions>
@@ -265,6 +270,24 @@
             <RadioButton x:Name="UnifiedReadingColors" GroupName="ReadingColors" Content="Unified Color" Margin="0,0,0,8" />
             <Button x:Name="ReadingColorPicker" Content="#DDE9F0" AutomationProperties.Name="Unified Color" Margin="0,0,0,8" />
             <TextBlock Text="Monitor icons and temperatures share this palette. Labels stay neutral. Desktop Auto Contrast is independent." FontSize="11" />
+            <TextBlock Text="Desktop Appearance" FontWeight="SemiBold" Margin="0,18,0,10" />
+            <Button x:Name="DesktopRecommended" Content="Use Recommended Style" Margin="0,0,0,10" />
+            <Expander Header="Customize Desktop" IsExpanded="False"><StackPanel Margin="0,8,0,0">
+            <CheckBox x:Name="DesktopAppIconColors" Content="Icons follow App colors" Margin="0,0,0,8" />
+            <TextBlock Text="When off, icons match Desktop text color." FontSize="11" Margin="0,0,0,12" />
+            <DockPanel><TextBlock x:Name="DesktopFontValue" DockPanel.Dock="Right" /><TextBlock Text="Font Size" /></DockPanel>
+            <Slider x:Name="DesktopFontSize" Minimum="10" Maximum="32" TickFrequency="1" IsSnapToTickEnabled="True" AutomationProperties.Name="Desktop Font Size" Margin="0,8,0,12" />
+            <DockPanel><TextBlock x:Name="DesktopSpacingValue" DockPanel.Dock="Right" /><TextBlock Text="Row Spacing" /></DockPanel>
+            <Slider x:Name="DesktopSpacing" Minimum="4" Maximum="40" TickFrequency="1" IsSnapToTickEnabled="True" AutomationProperties.Name="Row Spacing" Margin="0,8,0,12" />
+            <CheckBox x:Name="DesktopAutoContrast" Content="Auto Contrast" Margin="0,0,0,8" />
+            <TextBlock Text="Adapts text and a single rounded backdrop to keep readings clear." FontSize="11" Margin="0,0,0,12" />
+            <DockPanel><TextBlock x:Name="DesktopTextOpacityValue" DockPanel.Dock="Right" /><TextBlock Text="Text Opacity" /></DockPanel>
+            <Slider x:Name="DesktopTextOpacity" Minimum="30" Maximum="100" TickFrequency="1" IsSnapToTickEnabled="True" AutomationProperties.Name="Text Opacity" Margin="0,8,0,8" />
+            <TextBlock Text="Auto Contrast uses a readable panel. Turn it off for transparent text and custom colors." FontSize="11" Margin="0,0,0,12" />
+            <TextBlock Text="Text Color" Margin="0,0,0,6" />
+            <Button x:Name="DesktopColor" Content="#E4F3EF" AutomationProperties.Name="Desktop Text Color" Margin="0,0,0,12" />
+            </StackPanel></Expander>
+
           </StackPanel>
         </Expander>
         <Expander Header="Window" IsExpanded="False" Margin="0,0,0,10">
@@ -274,7 +297,7 @@
             <TextBlock Text="Position and size are remembered automatically." FontSize="11" Foreground="#ADC1D2" />
           </StackPanel>
         </Expander>
-        <Expander Header="Cards" Foreground="#F0F5FA" Margin="0,16,0,0">
+        <Expander Header="App Cards" Foreground="#F0F5FA" Margin="0,16,0,0">
             <StackPanel>
             <StackPanel x:Name="CardOptions" Margin="0,10,0,0" />
             <TextBlock Text="Network Speed Unit" Margin="0,14,0,6" />
@@ -333,34 +356,25 @@
             <TextBlock x:Name="OverlayStatus" Text="FPS capture stopped" FontSize="11" />
           </StackPanel>
         </Expander>
-        <Expander x:Name="DesktopSection" Header="Desktop Mode" Foreground="#F0F5FA" Margin="0,16,0,0">
+        <Expander x:Name="DesktopSection" Header="Desktop Layout" Foreground="#F0F5FA" Margin="0,16,0,0">
           <StackPanel>
             <TextBlock Text="Readings on your wallpaper, below other apps. Uses the same collector." FontSize="11" Margin="0,10,0,12" />
             <CheckBox x:Name="DesktopEnabled" Content="Desktop Mode" Margin="0,0,0,10" />
-            <TextBlock Text="Enable to preview and edit. Move the readings, then choose Done to lock. Disable to return to the monitor." FontSize="11" Margin="0,0,0,12" />
-            <CheckBox x:Name="DesktopLocked" Content="Lock Desktop" Margin="0,0,0,10" />
-            <TextBlock Text="Locked: clicks pass through. Unlock to drag the readings." FontSize="11" Margin="0,0,0,12" />
-            <Button x:Name="DesktopMove" Content="Move on Desktop" Margin="0,0,0,8" />
-            <Button x:Name="DesktopDone" Content="Done — Lock and Show Desktop View" Margin="0,0,0,8" />
+            <TextBlock Text="Move the preview, then select Show Desktop View to lock it. Turn Desktop Mode off to return to the App." FontSize="11" Margin="0,0,0,12" />
+            <CheckBox x:Name="DesktopLocked" Visibility="Collapsed" Content="Lock Desktop" Margin="0,0,0,10" />
+            <Button x:Name="DesktopMove" Content="Edit Desktop Position" Margin="0,0,0,8" />
+            <Button x:Name="DesktopDone" Content="Show Desktop View" Margin="0,0,0,8" />
             <TextBlock Text="Edges snap while moving. Drag away to release; Alt temporarily bypasses snapping." FontSize="11" Margin="0,0,0,12" />
-            <TextBlock Text="Reading Order" FontWeight="SemiBold" Margin="0,8,0,8" />
-            <TextBlock Text="Drag the handle or use Up / Down keys. Esc cancels a drag. Unavailable readings retain their position." FontSize="11" Margin="0,0,0,8" />
-            <StackPanel x:Name="DesktopOrderList" Margin="0,0,0,12" />
-            <DockPanel><TextBlock x:Name="DesktopFontValue" DockPanel.Dock="Right" /><TextBlock Text="Font Size" /></DockPanel>
-            <Slider x:Name="DesktopFontSize" Minimum="10" Maximum="32" TickFrequency="1" IsSnapToTickEnabled="True" AutomationProperties.Name="Desktop Font Size" Margin="0,8,0,12" />
-            <DockPanel><TextBlock x:Name="DesktopSpacingValue" DockPanel.Dock="Right" /><TextBlock Text="Row Spacing" /></DockPanel>
-            <Slider x:Name="DesktopSpacing" Minimum="4" Maximum="40" TickFrequency="1" IsSnapToTickEnabled="True" AutomationProperties.Name="Row Spacing" Margin="0,8,0,12" />
-            <CheckBox x:Name="DesktopAutoContrast" Content="Auto Contrast" Margin="0,0,0,8" />
-            <TextBlock Text="Adapts light/dark text to nearby wallpaper. Local backing keeps readings clear on mixed backgrounds." FontSize="11" Margin="0,0,0,12" />
-            <DockPanel><TextBlock x:Name="DesktopTextOpacityValue" DockPanel.Dock="Right" /><TextBlock Text="Text Opacity" /></DockPanel>
-            <Slider x:Name="DesktopTextOpacity" Minimum="30" Maximum="100" TickFrequency="1" IsSnapToTickEnabled="True" AutomationProperties.Name="Text Opacity" Margin="0,8,0,8" />
-            <TextBlock Text="Auto Contrast protects text with a local backing and at least 90% opacity. Custom color allows the full opacity range." FontSize="11" Margin="0,0,0,12" />
-            <TextBlock Text="Text Color" Margin="0,0,0,6" />
-            <Button x:Name="DesktopColor" Content="#E4F3EF" AutomationProperties.Name="Desktop Text Color" Margin="0,0,0,12" />
+            <TextBlock Text="Columns" Margin="0,8,0,6" />
+            <ComboBox x:Name="DesktopColumns" Margin="0,0,0,12" AutomationProperties.Name="Desktop Columns"><ComboBoxItem Content="Auto columns"/><ComboBoxItem Content="1 column"/><ComboBoxItem Content="2 columns"/><ComboBoxItem Content="3 columns"/></ComboBox>
             <Button x:Name="DesktopResetPosition" Content="Reset Desktop Position" Margin="0,0,0,8" />
             <TextBlock x:Name="DesktopStatus" Text="Use the system tray to edit or exit Desktop Mode." FontSize="11" />
           </StackPanel>
         </Expander>
+        <Expander Header="Desktop Readings" Margin="0,16,0,0"><StackPanel>            <TextBlock Text="Reading Order" FontWeight="SemiBold" Margin="0,8,0,8" />
+            <TextBlock Text="Drag the handle or use Up / Down keys. Esc cancels a drag. Unavailable readings retain their position." FontSize="11" Margin="0,0,0,8" />
+            <StackPanel x:Name="DesktopOrderList" Margin="0,0,0,12" />
+</StackPanel></Expander>
         <Expander Header="Hardware Names" Foreground="#F0F5FA" Margin="0,16,0,0">
           <StackPanel>
             <TextBlock Text="Leave a name blank to use device information. Hover over a field to see its automatic name." FontSize="11" Foreground="#ADC1D2" Margin="0,10,0,8" />

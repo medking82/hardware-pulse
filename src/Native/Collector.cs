@@ -25,7 +25,9 @@ namespace HardwarePulse {
         public static NetworkLink[] ReadNetworkLinks(){
             var links=new List<NetworkLink>();try{foreach(var adapter in NetworkInterface.GetAllNetworkInterfaces())try{
                 bool connected=adapter.OperationalStatus==OperationalStatus.Up;long speed=connected?adapter.Speed:0;
-                links.Add(new NetworkLink{hardwareId=new Identifier("nic",adapter.Id).ToString(),connected=connected,bitsPerSecond=speed>0?(long?)speed:null});
+                bool wifi=adapter.NetworkInterfaceType==NetworkInterfaceType.Wireless80211;
+                string kind=wifi?"Wi-Fi":adapter.NetworkInterfaceType==NetworkInterfaceType.Ethernet||adapter.NetworkInterfaceType==NetworkInterfaceType.GigabitEthernet||adapter.NetworkInterfaceType==NetworkInterfaceType.FastEthernetFx||adapter.NetworkInterfaceType==NetworkInterfaceType.FastEthernetT?"Ethernet":"Network";
+                links.Add(new NetworkLink{hardwareId=new Identifier("nic",adapter.Id).ToString(),connected=connected,bitsPerSecond=speed>0?(long?)speed:null,connectionType=kind,signalPercent=wifi&&connected?WifiSignal.Read(adapter.Id):null});
             }catch(NetworkInformationException){}catch(NotImplementedException){}}catch(NetworkInformationException){}
             return links.ToArray();
         }

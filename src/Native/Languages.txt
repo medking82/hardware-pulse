@@ -98,7 +98,7 @@ Leave a name blank to use device information. Hover over a field to see its auto
 SPD numbers identify sensor addresses, not physical slots. Installed slots are reported separately; assign a slot name only after confirming its sensor.|SPD 编号代表传感器地址，并非实体插槽。已安装插槽单独显示；确认对应关系后再命名。|SPD 編號代表感測器位址，並非實體插槽。已安裝插槽單獨顯示；確認對應關係後再命名。
 Changes save automatically.|更改自动保存。|變更自動儲存。
 About Pulse|关于 Pulse|關於 Pulse
-Version 0.5.12 · Marck Wong|版本 0.5.12 · Marck Wong|版本 0.5.12 · Marck Wong
+Version 0.6.0 · Marck Wong|版本 0.6.0 · Marck Wong|版本 0.6.0 · Marck Wong
 Sensors by LibreHardwareMonitor. Shared driver by PawnIO.|传感器：LibreHardwareMonitor。共享驱动：PawnIO。|感測器：LibreHardwareMonitor。共用驅動程式：PawnIO。
 Language|语言 / Language|語言 / Language
 Minimize|最小化|最小化
@@ -197,3 +197,27 @@ Upload|上行|上傳
 Network Speed Unit|网速单位|網速單位
 Shows the busiest adapter, not a sum of overlapping adapters. 1 MB/s = 8 Mbit/s; KB and MB use decimal units.|显示流量最高的网卡，避免重复累计网卡流量。1 MB/s = 8 Mbit/s；KB 和 MB 使用十进制单位。|顯示流量最高的網卡，避免重複累計網卡流量。1 MB/s = 8 Mbit/s；KB 和 MB 使用十進位單位。
 Adapts light/dark text to nearby wallpaper. Local backing keeps readings clear on mixed backgrounds.|根据附近壁纸切换深浅文字，局部衬底保护复杂背景上的可读性。|依附近桌布切換深淺文字，局部襯底保護複雜背景上的可讀性。
+
+Desktop|桌面|桌面
+Show Desktop View|显示桌面视图|顯示桌面視圖
+Desktop Layout|桌面布局|桌面佈局
+Desktop Readings|桌面数据|桌面資料
+Desktop Appearance|桌面外观|桌面外觀
+Columns|列数|欄數
+1 column|单列|單欄
+2 columns|双列|雙欄
+3 columns|三列|三欄
+Icons follow App colors|图标跟随 App 颜色|圖示跟隨 App 顏色
+When off, icons match Desktop text color.|关闭时，图标跟随桌面文字颜色。|關閉時，圖示跟隨桌面文字顏色。
+Show on Desktop|在桌面显示|在桌面顯示
+App Cards|App 卡片|App 卡片
+Edit Desktop Position|编辑桌面位置|編輯桌面位置
+Move the preview, then select Show Desktop View to lock it. Turn Desktop Mode off to return to the App.|移动预览后，选择显示桌面视图以锁定。关闭桌面模式可返回 App。|移動預覽後，選擇顯示桌面視圖以鎖定。關閉桌面模式可返回 App。
+Connection|连接|連線
+Wi-Fi Signal|Wi-Fi 信号|Wi-Fi 訊號
+Use Recommended Style|使用推荐外观|使用建議外觀
+Customize Desktop|自定义桌面外观|自訂桌面外觀
+Desktop is ready. Right-click the Pulse tray icon to edit or return to the App.|桌面视图已开启。右键点击系统托盘中的 Pulse 图标，可编辑或返回 App。|桌面視圖已開啟。右鍵點擊系統匣中的 Pulse 圖示，可編輯或返回 App。
+Adapts text and a single rounded backdrop to keep readings clear.|自动调整文字与统一圆角背景，让数据清晰可读。|自動調整文字與統一圓角背景，讓資料清晰可讀。
+Auto Contrast uses a readable panel. Turn it off for transparent text and custom colors.|自动对比度使用易读背景。关闭后可使用透明背景与自定义文字颜色。|自動對比度使用易讀背景。關閉後可使用透明背景與自訂文字顏色。
+Auto columns|自动列数|自動欄數

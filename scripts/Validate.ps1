@@ -1,4 +1,5 @@
-﻿$ErrorActionPreference='Stop'
+﻿param([string]$NativeTestAppPath)
+$ErrorActionPreference='Stop'
 $root=Split-Path $PSScriptRoot
 $hostSource=[IO.File]::ReadAllText("$root/src/Native/Program.cs")
 $version=[regex]::Match($hostSource,'AssemblyVersion\("(\d+\.\d+\.\d+)\.0"\)').Groups[1].Value
@@ -25,7 +26,8 @@ $null=[xml](Get-Content "$root/src/Panel.xaml" -Raw)
 & "$PSScriptRoot/Test-ReadingSession.ps1"
 & "$PSScriptRoot/Test-UpdateCoordinator.ps1"
 & "$PSScriptRoot/Test-MaterialPolicy.ps1"
-& "$PSScriptRoot/Test-Native.ps1"
+if($NativeTestAppPath){& "$PSScriptRoot/Build-Native.ps1" -AppPath $NativeTestAppPath}
+& "$PSScriptRoot/Test-Native.ps1" -AppPath $NativeTestAppPath
 & "$PSScriptRoot/Run-Hidden.ps1" "$env:WINDIR/System32/WindowsPowerShell/v1.0/powershell.exe" @('-NoProfile','-File',"$PSScriptRoot/Test-Updater.ps1") $root
 foreach($file in Get-ChildItem "$root/src" -File){
     if((Get-Content $file.FullName -Raw) -match 'C:\\github\\|C:\\Users\\Marck|HWiNFO') {throw "Personal/deprecated dependency in $($file.Name)"}

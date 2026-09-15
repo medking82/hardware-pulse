@@ -14,9 +14,9 @@ namespace HardwarePulse {
     }
     public sealed class DesktopView : Window {
         public const double EdgePadding=16;
-        sealed class Row {public Border Border,IconHost;public TextBlock Name,Value;public FrameworkElement Icon;}
+        sealed class Row {public Border Border,IconHost;public TextBlock Name,Value;public FrameworkElement Icon;public string IconColor;}
         readonly Dictionary<string,Row> rows=new Dictionary<string,Row>();
-        readonly StackPanel stack=new StackPanel();readonly Border surface;
+        readonly ResponsivePanel stack=new ResponsivePanel{RowGap=0};readonly Border surface;
         readonly Func<string,double,string,FrameworkElement> icon;
         readonly bool isolated;
         DesktopLayer layer;bool locked=true;string lastColor;double lastSize;
@@ -29,12 +29,14 @@ namespace HardwarePulse {
             this.icon=icon;this.isolated=isolated;
             Title="Pulse Desktop";WindowStyle=WindowStyle.None;ResizeMode=ResizeMode.NoResize;
             AllowsTransparency=true;Background=Brushes.Transparent;ShowInTaskbar=false;ShowActivated=false;
-            Focusable=false;SizeToContent=SizeToContent.WidthAndHeight;WindowStartupLocation=WindowStartupLocation.Manual;
+            Focusable=false;SizeToContent=SizeToContent.Height;Width=466;MinWidth=280;MinHeight=140;WindowStartupLocation=WindowStartupLocation.Manual;
             UseLayoutRounding=true;SnapsToDevicePixels=true;TextOptions.SetTextFormattingMode(this,TextFormattingMode.Display);
-            surface=new Border{Padding=new Thickness(12),Child=stack};Content=surface;
+            var scroll=new ScrollViewer{Content=stack,VerticalScrollBarVisibility=ScrollBarVisibility.Auto,HorizontalScrollBarVisibility=ScrollBarVisibility.Disabled,Focusable=false};
+            surface=new Border{Padding=new Thickness(16),CornerRadius=new CornerRadius(16),BorderThickness=new Thickness(1),Child=scroll};Content=surface;
             SourceInitialized+=delegate{WindowSnap.Attach(this,false,EdgePadding);if(!isolated)layer=new DesktopLayer(this);};
             Closed+=delegate{if(layer!=null)layer.Dispose();};
-            MouseLeftButtonDown+=delegate(object sender,MouseButtonEventArgs e){if(locked||e.ButtonState!=MouseButtonState.Pressed)return;DragMove();KeepOnScreen();if(PositionSaved!=null)PositionSaved();};
+            SizeChanged+=delegate{if(IsLoaded&&SizeToContent==SizeToContent.Manual&&PositionSaved!=null)PositionSaved();};
+            MouseLeftButtonDown+=delegate(object sender,MouseButtonEventArgs e){if(locked||e.Handled||e.ButtonState!=MouseButtonState.Pressed)return;DragMove();KeepOnScreen();if(PositionSaved!=null)PositionSaved();};
         }
         public static Point Clamp(Point position,Size size,IEnumerable<Rect> screens,double padding=0) {
             var areas=screens.ToArray();if(areas.Length==0)return position;
@@ -54,8 +56,11 @@ namespace HardwarePulse {
             var location=Clamp(new Point(Left,Top),new Size(ActualWidth,ActualHeight),areas,EdgePadding);
             Left=location.X;Top=location.Y;
         }
-        public void Render(IList<DesktopMetric> metrics,double size,double spacing,string color,bool isLocked) {
+        public void Render(IList<DesktopMetric> metrics,double size,double spacing,string color,bool isLocked,int columns=1,Func<string,string> iconColor=null) {
+            stack.RequestedColumns=columns;stack.MinimumColumnWidth=Math.Max(280,24*size);stack.InvalidateMeasure();
+            stack.Width=double.NaN;
             locked=isLocked;
+            ResizeMode=isLocked?ResizeMode.NoResize:ResizeMode.CanResizeWithGrip;
             SetValue(WindowSnap.PositionLockedProperty,isLocked);
             bool styleChanged=lastColor!=color||lastSize!=size;
             if(styleChanged){var tint=(Color)ColorConverter.ConvertFromString(color);foreground=new SolidColorBrush(tint);foreground.Freeze();line=new SolidColorBrush(Color.FromArgb(50,tint.R,tint.G,tint.B));line.Freeze();lastColor=color;lastSize=size;}
@@ -67,7 +72,8 @@ namespace HardwarePulse {
             foreach(var metric in metrics){
                 Row row;if(!rows.TryGetValue(metric.Key,out row)){
                     row=new Row{Border=new Border{BorderThickness=new Thickness(0,0,0,1)},Name=new TextBlock(),Value=new TextBlock()};
-                    var grid=new Grid();grid.ColumnDefinitions.Add(new ColumnDefinition{Width=GridLength.Auto});grid.ColumnDefinitions.Add(new ColumnDefinition{Width=new GridLength(1,GridUnitType.Star)});grid.ColumnDefinitions.Add(new ColumnDefinition{Width=GridLength.Auto});
+                    var grid=new Grid();grid.ColumnDefinitions.Add(new ColumnDefinition{Width=GridLength.Auto});grid.ColumnDefinitions.Add(new ColumnDefinition{Width=new GridLength(1,GridUnitType.Star)});grid.ColumnDefinitions.Add(new ColumnDefinition{Width=new GridLength(2,GridUnitType.Star)});
+                    row.Value.TextWrapping=TextWrapping.Wrap;
                     row.Icon=icon(metric.Icon,size,color);row.IconHost=new Border{Child=row.Icon,Padding=new Thickness(2),Margin=new Thickness(0,0,8,0),VerticalAlignment=VerticalAlignment.Center};grid.Children.Add(row.IconHost);
                     row.Name.VerticalAlignment=row.Value.VerticalAlignment=VerticalAlignment.Center;
                     row.Name.HorizontalAlignment=HorizontalAlignment.Left;row.Value.HorizontalAlignment=HorizontalAlignment.Right;
@@ -78,7 +84,8 @@ namespace HardwarePulse {
                 row.Name.Text=metric.Title;row.Value.Text=metric.Value;row.Name.FontSize=size;row.Value.FontSize=size;
                 row.Name.ToolTip=metric.Title;row.Name.Foreground=row.Value.Foreground=foreground;row.Border.BorderBrush=line;
                 row.Border.Padding=new Thickness(0,spacing/2,0,spacing/2);row.Border.Visibility=Visibility.Visible;
-                if(styleChanged){row.Icon=icon(metric.Icon,size,color);row.IconHost.Child=row.Icon;}
+                string tint=iconColor==null?color:iconColor(metric.Icon);
+                if(styleChanged||row.IconColor!=tint){row.Icon=icon(metric.Icon,size,tint);row.IconHost.Child=row.Icon;row.IconColor=tint;}
             }
             // Desktop order is independent of the monitor cards.
             var ordered=metrics.Select(m=>rows[m.Key].Border).ToArray();
@@ -104,12 +111,13 @@ namespace HardwarePulse {
             var tint=(Color)ColorConverter.ConvertFromString(lastColor??"#F5F7FA");
             var previous=stack.Effect as System.Windows.Media.Effects.DropShadowEffect;
             Color outline=DesktopContrast.Outline(tint);
-            Color backing=Color.FromArgb(235,outline.R,outline.G,outline.B);
+            Color backing=outline==Colors.Black?Color.FromArgb(220,20,29,38):Color.FromArgb(230,245,247,250);
             if(protection==null||((SolidColorBrush)protection).Color!=backing){protection=new SolidColorBrush(backing);protection.Freeze();}
+            surface.Background=automatic?protection:locked?Brushes.Transparent:new SolidColorBrush(Color.FromArgb(100,18,24,30));
+            surface.BorderBrush=automatic?line:Brushes.Transparent;
             foreach(var row in rows.Values){
-                row.Name.Background=row.Value.Background=automatic?protection:null;
-                row.IconHost.Background=automatic?protection:null;
-                row.Name.Padding=row.Value.Padding=automatic?new Thickness(3,1,3,1):new Thickness(0);
+                row.Name.Background=row.Value.Background=row.IconHost.Background=null;
+                row.Name.Padding=row.Value.Padding=new Thickness(0);
             }
             // Keep WPF glyph rendering sharp instead of blurring the whole readout.
             if(automatic){stack.Effect=null;return;}

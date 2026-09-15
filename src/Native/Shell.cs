@@ -42,7 +42,7 @@ namespace HardwarePulse {
             readings=new ReadingSession(paths.Snapshot);
             settings=new Settings(Path.Combine(paths.State,"widget-settings.json"));language=new Languages(Path.Combine(paths.Root,"Languages.txt"));language.Preference=settings.Text("language","auto");
             using(var stream=File.OpenRead(Path.Combine(paths.Root,"Panel.xaml")))Window=(Window)XamlReader.Load(stream);
-            Catalog(Window);cards=Control<StackPanel>("Cards");
+            Catalog(Window);ReplaceCardPanel("Cards");ReplaceCardPanel("QuotaCards");cards=Control<StackPanel>("Cards");
             var area=SystemParameters.WorkArea;
             Window.Width=settings.Number("width",280,240,Math.Max(240,area.Width));Window.Height=settings.Number("height",Math.Max(340,Math.Min(650,Math.Floor(area.Height*.9))),340,Math.Max(340,area.Height));
             if(settings.Data.ContainsKey("left")){Window.WindowStartupLocation=WindowStartupLocation.Manual;Window.Left=settings.Number("left",area.Left,area.Left,Math.Max(area.Left,area.Right-Window.Width));Window.Top=settings.Number("top",area.Top,area.Top,Math.Max(area.Top,area.Bottom-Window.Height));}
