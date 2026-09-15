@@ -2,6 +2,15 @@
 
 English first; 简体中文 follows each version. Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
+## 0.6.20 — 2026-09-15
+
+- Add Settings → General → Export Diagnostics with English, Simplified Chinese and Traditional Chinese labels. Choose where to save the local JSON report.
+- Include App/OS versions, manufacturer/model, motherboard, non-network sensor readings and fan mapping. Preserve unmapped fan readings so support can distinguish mapping gaps from unavailable RPM data.
+- Report missing or invalid collector snapshots without exporting arbitrary error logs. Exclude credentials, quota data, settings, network identifiers, screenshots and serial-number fields; nothing is uploaded automatically.
+- Validate report contents, private metadata exclusion and Settings rendering alongside the complete regression suite.
+
+新增 Settings → General → 导出诊断，保存包含机型、version、sensor 读数与 fan mapping 的 JSON，方便排查风扇漏识别。不包含账号凭据、network identifiers 或截图，也不会自动上传。
+
 ## 0.6.19 — 2026-09-15
 
 - Keep Desktop temperatures and processor utilization at one decimal place, including whole readings such as 54.0 °C and 4.0%.
