@@ -232,3 +232,27 @@ Local partial evidence: vendor/desktop-dynamic-paired-0.6.24.json;
 diagnostic attempt: vendor/dynamic-diagnostic.log. Complete the matched dynamic
 comparison only after resolving the unavailable-state observation. Game frametime,
 wallpaper-layer integration and long-duration memory remain separate checks.
+
+### Follow-up diagnostics and partial-sample retention
+
+A subsequent 90-second dynamic on probe (10-second warmup, 45 samples) completed
+without reproducing unavailable: CPU 0.516%, mean private memory 121.87 MiB,
+working set 145.05 MiB, 2164 background updates. App SHA-256:
+`4d82edd7bcd2f7fc42ed8e941f73bcbf9f6b1dd3bfbd8b47a2836d6cfd5aa553`.
+This is an unpaired observation, not evidence of a fix or reduced memory usage.
+Local evidence: vendor/dynamic-diagnostic-90s.log.
+
+Measure-NativeUi now retains samples.json on success and failure. Each measured
+sample includes elapsed seconds, cumulative process CPU seconds, working-set
+bytes and private bytes. The envelope records binary/harness hashes, processor
+count, completion and failure state. It is written after sampling, avoiding disk
+writes for telemetry in the measured loop. stderr.log remains the exception
+record. Abrupt termination of the measuring PowerShell process itself cannot
+ensure this finally-based persistence.
+
+Verification: a two-second monitor smoke retained one successful sample; a
+controlled early exit through the isolated harness's BENCH-STOP marker failed
+measurement as expected, preserved 12 partial samples and emitted no result.json.
+This tests evidence retention, not reproduction of the contrast defect. Installed
+settings and runtime behavior are unchanged. The intermittent capture/render
+failure still requires a specific exception or null-image cause before a fix.
