@@ -1031,8 +1031,8 @@ missing executable permissions and incorrect archive digests.
 
 CI retains successful native packages for seven days. Self-contained packaging
 removes the installed .NET requirement, not native OS graphics/font dependencies.
-Gatekeeper/quarantine behavior, Developer ID signing/notarization, native Skia
-and HarfBuzz transitive notice audit, installation/update UX and broader device
+Gatekeeper/quarantine behavior, Developer ID signing/notarization,
+installation/update UX and broader device
 testing remain release work. Packages do not register startup or install files.
 
 Validation at `1f771479f86f6268cd7c2eb5a6287dd7ee1325e5` (2026-09-16 local):
@@ -1086,3 +1086,23 @@ passed all six settings/UI jobs and all four extracted Linux/macOS package
 launch checks. Local full Windows validation and package negative fixtures also
 passed. Tests used temporary profiles and synthetic quota; no existing Pulse
 settings or real credentials were used by the new settings tests.
+
+## Native graphics distribution notices
+
+The shared package now includes the original combined THIRD-PARTY-NOTICES.txt
+from the pinned SkiaSharp/HarfBuzzSharp native packages, alongside wrapper MIT
+licenses. Linux and macOS package copies have identical notice bytes. The exact
+upstream notice digest and version provenance are recorded in licenses/SOURCES.md;
+Git preserves this file's bytes across platforms.
+
+Package verification requires nonempty Pulse, runtime, UI, graphics, icon and
+quota-mapping license/notice files independently of the generated manifest.
+Negative fixtures prove that removing or emptying the native notice fails even
+after regenerating a matching manifest. The check protects distribution content;
+it does not claim complete product readiness or replace dependency-update review.
+
+At `13c638b34c2ad2d7a21287ed004f39ead8ce6247`,
+[run 35027143802](https://github.com/medking82/hardware-pulse/actions/runs/35027143802)
+passed all six jobs and all four native Linux/macOS package checks. Local full
+Windows validation, package negative tests and a cross-published Linux ARM64
+archive inspection also passed. No installed App or personal settings changed.
