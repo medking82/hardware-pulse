@@ -2,11 +2,13 @@
 
 English first; 简体中文 follows each version. Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
-## Unreleased
+## 0.6.8 — 2026-09-15
 
 - Group settings by General, App Appearance, Desktop, App Cards, FPS and AI Quota, with wrapping navigation and responsive columns. Desktop layout, appearance and readings now share one page.
 - Give topmost panels a lighter smoke background (55% default), opaque dark text and independent background opacity; trim the locked backdrop to content without changing saved geometry.
 - Add separate ordinary Desktop background opacity. Keep regular Desktop preferences and click-through behavior; actual Desktop blur remains unavailable.
+
+设置按功能分组，Desktop 布局、外观和显示项目集中到同一页，宽窗口支持多列。置顶使用浅烟灰背景，默认不透明度 55%；普通 Desktop 和置顶背景可分别调整，文字保持清晰，click-through 不变。Desktop blur 强度尚未实现。
 
 ## 0.6.7 — 2026-09-15
 
