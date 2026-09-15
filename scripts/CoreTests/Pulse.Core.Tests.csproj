@@ -13,5 +13,6 @@
     <Compile Include="../CoreQuotaSessionTests.cs" Link="CoreQuotaSessionTests.cs" />
     <Compile Include="../CoreQuotaDecoderTests.cs" Link="CoreQuotaDecoderTests.cs" />
     <Compile Include="../CoreFrameHistoryTests.cs" Link="CoreFrameHistoryTests.cs" />
+    <Compile Include="../CoreSettingsTests.cs" Link="CoreSettingsTests.cs" />
   </ItemGroup>
 </Project>

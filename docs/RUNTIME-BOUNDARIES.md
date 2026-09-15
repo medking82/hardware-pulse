@@ -354,3 +354,17 @@ stale large streams, history/stream bounds, invalid frames, reset and Minimum vs
 Low. Native validation retains CSV filtering and FPS transport coverage. This adds
 no worker/timer, does not claim lower allocations or actual ARM64/non-Windows FPS
 capture, and can be reverted as one atomic commit.
+
+## CORE-04: portable settings values
+
+From baseline `de500fd`, SettingsValues in Core owns typed access, invariant number
+coercion/clamping, nested map creation and card-order filtering. The Windows Settings
+class extends it with the existing JSON load/fallback and atomic save. Consumers
+retain their Settings API and shared Data map; unknown fields are not copied away.
+Languages, settings defaults/migrations, UI bindings and storage paths are unchanged.
+
+Core tests on Framework/.NET 10 cover strict string/bool typing, numeric-string
+coercion, non-finite fallback, clamp boundaries, shared-map mutation, order filtering
+and unknown-field retention. Native/material tests retain JSON roundtrip, saved
+preferences and migration assertions. No new timer, settings schema or platform
+storage implementation is introduced; rollback is the atomic source commit.

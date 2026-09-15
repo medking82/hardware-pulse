@@ -3,5 +3,5 @@ $root=Split-Path $PSScriptRoot
 $output=Join-Path $root 'build/core'
 & "$PSScriptRoot/Build-Core.ps1" -OutputPath "$output/Pulse.Core.dll"
 $compiler=Join-Path $env:WINDIR 'Microsoft.NET/Framework64/v4.0.30319/csc.exe'
-& "$PSScriptRoot/Run-Hidden.ps1" $compiler @('/nologo','/target:exe','/reference:System.Web.Extensions.dll',"/out:$output/CoreTests.exe","/reference:$output/Pulse.Core.dll",(Join-Path $root 'scripts\CoreTests.cs'),(Join-Path $root 'scripts\CoreQuotaSessionTests.cs'),(Join-Path $root 'scripts\CoreQuotaDecoderTests.cs'),(Join-Path $root 'scripts\CoreFrameHistoryTests.cs')) $root
+& "$PSScriptRoot/Run-Hidden.ps1" $compiler @('/nologo','/target:exe','/reference:System.Web.Extensions.dll',"/out:$output/CoreTests.exe","/reference:$output/Pulse.Core.dll",(Join-Path $root 'scripts\CoreTests.cs'),(Join-Path $root 'scripts\CoreQuotaSessionTests.cs'),(Join-Path $root 'scripts\CoreQuotaDecoderTests.cs'),(Join-Path $root 'scripts\CoreFrameHistoryTests.cs'),(Join-Path $root 'scripts\CoreSettingsTests.cs')) $root
 & "$PSScriptRoot/Run-Hidden.ps1" "$output/CoreTests.exe" @() $root
