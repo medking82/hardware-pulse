@@ -242,3 +242,23 @@ Rollback is a source/build rollback of this commit, with no user data migration.
 The additional DLL is part of an atomic app payload; do not deploy a new app EXE
 alone. This is the shared-Core/Windows-data-adapter foundation, not complete
 Windows host decomposition or an ARM64/Linux/macOS release.
+
+## Windows network sampling
+
+From baseline `aeb5900`, WindowsNetwork and WifiSignal reside in the Windows
+adapter assembly. Collector retains one WindowsNetwork instance and passes the
+existing LibreHardwareMonitor Identifier mapping as a delegate. This preserves
+snapshot/network-sensor joins while keeping the adapter independent of LHM.
+The adapter owns interface enumeration, link classification/speed, WLAN signal
+queries and the existing 30-second physical-adapter discovery cache. Calls remain
+serialized by Collector's existing sampling loop; no timer or process is added.
+
+Unavailable speed/signal stays null, and no second connection is assumed. The WLAN
+query reads the connected interface only; it does not scan or change connections.
+WindowsAdapterTests compile against the real adapter DLL without the app or WPF,
+then perform read-only live checks of host identifier mapping, optional links,
+speed/signal semantics and invalid Wi-Fi input. These are smoke checks on this
+Windows machine, not simulated disconnect/reconnect or hardware coverage for every
+NIC. Existing differential fixtures still verify the downstream sensor mapping.
+Test-WindowsAdapters is included in Validate. Source rollback requires no settings
+migration; no CPU/RAM improvement is claimed for this extraction.

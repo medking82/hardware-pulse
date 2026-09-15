@@ -25,6 +25,7 @@ $null=[xml](Get-Content "$root/src/Panel.xaml" -Raw)
 & "$PSScriptRoot/Test-Core.ps1"
 if($ModernCore){& "$PSScriptRoot/Test-CoreModern.ps1"}
 & "$PSScriptRoot/Test-NativeSensors.ps1"
+& "$PSScriptRoot/Test-WindowsAdapters.ps1"
 & "$PSScriptRoot/Run-Hidden.ps1" "$env:WINDIR/System32/WindowsPowerShell/v1.0/powershell.exe" @('-NoProfile','-STA','-File',"$PSScriptRoot/Test-DesktopShortcut.ps1",'-AppPath',"$root/build/native/app") $root
 & "$PSScriptRoot/Run-Hidden.ps1" "$env:WINDIR/System32/WindowsPowerShell/v1.0/powershell.exe" @('-NoProfile','-STA','-File',"$PSScriptRoot/Test-LocalContrast.ps1",'-AppPath',"$root/build/native/app") $root
 & "$PSScriptRoot/Run-Hidden.ps1" "$env:WINDIR/System32/WindowsPowerShell/v1.0/powershell.exe" @('-NoProfile','-STA','-File',"$PSScriptRoot/Test-DesktopLayout.ps1",'-AppPath',"$root/build/native/app") $root
