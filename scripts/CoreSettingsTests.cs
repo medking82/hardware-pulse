@@ -26,6 +26,21 @@ internal static class CoreSettingsTests {
         data["cardOrder"]=new object[]{"gpu",3,"cpu",null,"gpu"};var order=settings.Order();
         Check(order.Length==3&&order[0]=="gpu"&&order[1]=="cpu"&&order[2]=="gpu","Order filters types without deduplication");
         data["cardOrder"]="cpu";Check(settings.Order().Length==0,"string is not a list of card names");
+        var defaults=new[]{"CPU","GPU","Memory"};
+        foreach(string key in new[]{"cardOrder","desktopOrder","quotaCardOrder"}){
+            data.Remove(key);Check(string.Join(",",settings.Order(key,defaults))=="CPU,GPU,Memory","missing order uses host defaults");
+            var saved=new object[]{"GPU","retired",3,null,"GPU","cpu","CPU"};data[key]=saved;
+            Check(string.Join(",",settings.Order(key,defaults))=="GPU,CPU,Memory","saved order filters invalid/duplicate keys and appends new keys");
+            Check(ReferenceEquals(data[key],saved)&&saved.Length==7,"normalization must not rewrite saved preferences");
+            var resolved=settings.Order(key,defaults);resolved[0]="changed";
+            Check(settings.Order(key,defaults)[0]=="GPU"&&defaults[0]=="CPU","returned order does not mutate input or future reads");
+            foreach(object invalid in new object[]{null,7,"GPU",new object[0]}){
+                data[key]=invalid;Check(string.Join(",",settings.Order(key,defaults))=="CPU,GPU,Memory","invalid or empty order uses defaults");
+            }
+        }
+        data["order"]=new object[]{"GPU","CPU"};
+        Check(settings.Order("order",new string[0]).Length==0,"no supported keys yields no rows");
+        Check(string.Join(",",settings.Order("order",new[]{"CPU","GPU","CPU"}))=="GPU,CPU","default duplicates do not duplicate rows");
         Check(ReferenceEquals(data["unknown"],unknown),"unknown data preserved");
         Check(new SettingsValues(null).Data.Count==0,"empty input");
         Console.WriteLine("PASS Core settings: type/fallback/clamp rules, invariant numeric coercion, shared maps, order and unknown fields");

@@ -11,7 +11,7 @@ namespace HardwarePulse {
     public sealed partial class Shell {
         readonly QuotaSession quotas=new QuotaSession(QuotaProviders.Read);
         string quotaSignature;
-        string[] QuotaOrder(){object saved;var order=settings.Data.TryGetValue("quotaCardOrder",out saved)?saved as System.Collections.IEnumerable:null;return (order==null?Enumerable.Empty<string>():order.Cast<object>().OfType<string>()).Concat(QuotaSession.Providers).Where(p=>QuotaSession.Providers.Contains(p)).Distinct().ToArray();}
+        string[] QuotaOrder(){return settings.Order("quotaCardOrder",QuotaSession.Providers);}
         void WireQuota(){
             var mode=Control<ComboBox>("QuotaDisplay");mode.SelectedIndex=settings.Flag("quotaFull")?1:0;
             mode.SelectionChanged+=delegate{settings.Data["quotaFull"]=mode.SelectedIndex==1;RenderQuota();QueueSave();};

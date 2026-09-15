@@ -12,10 +12,7 @@ namespace HardwarePulse {
     public sealed partial class Shell {
         static readonly string[] desktopDefaultOrder={"CPU","GPU","vram","Memory","diskC","diskD","cpuFan","gpuFan","gpuFan2","bottom","top","netConnection","lanLink","wifiLink","wifiSignal","netSignal","netDown","netUp","fps","quotaCodex0","quotaAntigravity0","quotaAntigravity1","quotaClaude0","quotaClaude1"};
         string[] DesktopOrderKeys(){
-            object saved;var result=new List<string>();
-            if(settings.Data.TryGetValue("desktopOrder",out saved)&&saved is IEnumerable&&!(saved is string))
-                foreach(object item in (IEnumerable)saved){var key=item as string;if(desktopDefaultOrder.Contains(key)&&!result.Contains(key))result.Add(key);}
-            result.AddRange(desktopDefaultOrder.Where(key=>!result.Contains(key)));return result.ToArray();
+            return settings.Order("desktopOrder",desktopDefaultOrder);
         }
         void SaveDesktopOrder(){
             settings.Data["desktopOrder"]=Control<StackPanel>("DesktopOrderList").Children.Cast<Border>().Select(row=>(string)row.Tag).ToArray();

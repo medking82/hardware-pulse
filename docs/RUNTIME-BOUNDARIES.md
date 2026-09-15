@@ -387,3 +387,25 @@ check fails before the change and passes on Framework/.NET 10 afterwards.
 Measure-FpsHistory.ps1 compares optimized x64 builds of the frozen baseline source
 and current source with identical observations; see PERFORMANCE.md. Whole-app and
 game performance remain separate measurements. Rollback is this source change.
+
+## Shared display-order normalization
+
+From baseline `b653792`, SettingsValues.Order(key, defaults) owns normalization
+for hardware Cards, Desktop metrics and quota Cards. The host supplies supported
+keys in default order; Core preserves the first saved occurrence of supported
+case-sensitive string keys, ignores other entries, then appends missing keys.
+The method returns an independent array without rewriting the saved settings map.
+The existing parameterless Order API retains its raw type-filtering behavior.
+
+Cards, DesktopOrder and QuotaView consume this same Core method. Their supported
+keys/defaults, visibility, drag handlers, persistence and localization remain in
+the Windows host. No settings migration, timer, process, platform API or new
+configuration is introduced. This removes three copies of the normalization rule;
+it does not implement a cross-platform view or establish a performance gain.
+
+Shared tests run on Framework and .NET 10, covering missing/malformed input,
+retired keys, duplicates, case sensitivity, added defaults, empty supported sets
+and input/result independence. Full native validation retains Cards/Desktop/quota
+ordering and drag regression checks. Allowed scope is this Core overload, its
+three consumers, tests and this document; rollback is the atomic source commit,
+with no user-data migration. The extraction alone does not require a new installer.
