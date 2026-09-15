@@ -1,5 +1,13 @@
-﻿param([string]$AppPath='build/native/app',[int]$Frames=120)
+﻿param([string]$AppPath='build/native/app',[ValidateRange(1,36000)][int]$Frames=120)
 $ErrorActionPreference='Stop'
+$AppPath=[IO.Path]::GetFullPath($AppPath)
+function FileHash([string]$Path){
+ $algorithm=[Security.Cryptography.SHA256]::Create();$stream=$null
+ try{$stream=[IO.File]::OpenRead($Path);return [BitConverter]::ToString($algorithm.ComputeHash($stream)).Replace('-','')}
+ finally{if($stream){$stream.Dispose()};$algorithm.Dispose()}
+}
+$appHash=FileHash (Join-Path $AppPath 'HardwarePulse.exe')
+$coreHash=FileHash (Join-Path $AppPath 'Pulse.Core.dll')
 Add-Type -AssemblyName PresentationFramework,PresentationCore,WindowsBase,System.Xaml
 [void][Reflection.Assembly]::LoadFrom((Join-Path ([IO.Path]::GetFullPath($AppPath)) 'HardwarePulse.exe'))
 [AppDomain]::MonitoringIsEnabled=$true
@@ -24,6 +32,8 @@ try {
  }
  $elapsed=$watch.Elapsed.TotalSeconds;$process.Refresh();$used=$process.TotalProcessorTime.TotalSeconds-$cpu
  [pscustomobject]@{
+  Scope='Capture/analysis harness; includes PowerShell/WPF host, not complete Desktop'
+  AppSha256=$appHash;CoreSha256=$coreHash;LogicalProcessors=[Environment]::ProcessorCount;WarmupFrames=8;TargetIntervalMs=100
   Version=[HardwarePulse.LocalContrast].Assembly.GetName().Version.ToString();Frames=$Frames;Seconds=[Math]::Round($elapsed,3)
   SourceWidth=$bounds.Width;SourceHeight=$bounds.Height;MaskWidth=$mask.PixelWidth;MaskHeight=$mask.PixelHeight
   CaptureMeanMs=[Math]::Round($active/$Frames,3);CpuMsPerFrame=[Math]::Round($used*1000/$Frames,3)

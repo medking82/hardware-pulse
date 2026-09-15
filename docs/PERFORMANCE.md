@@ -107,3 +107,49 @@ The buffer retains up to 720,000 payload bytes per FrameHistory and is released 
 Clear. No refresh interval changed. Whole-app UI/collector RAM, Local Contrast,
 long-duration leaks and game frametime are not established by this microbenchmark;
 the remaining PERF-01 matched scenes still need measurement.
+
+## UI and Local Contrast baseline (0.6.24)
+
+Frozen runtime: `d58919f9f41215fae7f065727144c0b654e8af73`, version 0.6.24.0.
+App SHA-256: `b9ab53d19b1d6d6964ea574b1e57463f763e90f0c24ded66abbc30c2a69f745a`.
+These are current-version baselines, not a before/after optimization comparison.
+CPU percentages below use all 16 logical processors as 100%.
+
+Monitor: three sequential fresh NativeTests bench processes, isolated state,
+310×690 DIP window, 10-second warmup and requested 30-second measurement
+(actual 30.27–30.36 s), 15 memory samples per run. A synthetic snapshot changes
+every two seconds. This scene excludes live collector, FPS and Local Contrast.
+
+| Monitor harness measurement | Three-run range |
+| --- | --- |
+| Whole-machine CPU | 0.103–0.116% |
+| Mean working set | 123.22–123.33 MiB |
+| Mean private bytes | 94.69–94.82 MiB |
+
+Local Contrast: three subsequent fresh PowerShell 5.1 STA processes, fixed
+black/white/gray gradient, transparent front window, 320×850 DIP at 150% scaling
+(480×1275 captured pixels; 240×638 analysis mask). Eight warmup captures followed
+by 120 captures, target interval 100 ms; actual elapsed 13.35–13.49 s.
+
+| Capture/analysis harness measurement | Three-run range |
+| --- | --- |
+| Whole-machine CPU | 0.688–0.779% |
+| Mean capture elapsed | 12.21–12.56 ms/frame |
+| CPU time | 12.37–13.93 ms/frame |
+| Reported allocation | 181,111–181,316 bytes/frame |
+| Mean working set | 173.41–174.00 MiB |
+| Mean private bytes | 180.72–184.38 MiB |
+
+The capture harness includes PowerShell/WPF host overhead, excludes complete
+Desktop rendering, and runs a synthetic gradient. Its process RAM is not the
+incremental cost of enabling Local Contrast. Do not add these two harness rows
+or treat them as the installed App's current usage. Short runs cannot establish
+absence of leaks. Live collector, matched Desktop contrast-on/off scenes,
+resizing, monitor/DPI changes and game frametime remain unmeasured by this batch.
+
+Reproduce using Measure-NativeUi.ps1 (PowerShell 7) and Measure-LocalContrast.ps1
+(PowerShell 5.1 STA), run sequentially. They now emit runtime hashes, scope and
+warmup/interval metadata and reject invalid sample durations/counts. UI sampling
+fails if its test process exits early. Measurement-only metadata changes have no
+installed runtime effect. Raw baseline evidence is kept locally under vendor as
+ui-baseline-0.6.24.json and contrast-baseline-0.6.24.json.
