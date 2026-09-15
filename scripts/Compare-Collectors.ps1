@@ -9,6 +9,7 @@ $null=New-Item -ItemType Directory $output
 trap { $_ | Out-String | Set-Content "$output/benchmark-error.txt" -Encoding utf8; break }
 Add-Type -AssemblyName System.Web.Extensions
 $null=[Reflection.Assembly]::LoadFrom("$root/build/native/app/HardwarePulse.exe")
+$null=[Reflection.Assembly]::LoadFrom("$root/build/native/app/Pulse.Adapters.Windows.dll")
 $store=[HardwarePulse.SchedulerStore]::new()
 $installed=Join-Path ([Environment]::GetFolderPath('ProgramFiles')) 'Hardware Pulse/HardwarePulse.exe'
 $startup=[HardwarePulse.Startup]::new($store,$installed,$identity.User.Value)

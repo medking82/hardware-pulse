@@ -5,6 +5,15 @@ $payload=@(Get-ChildItem $app -Recurse -File)
 if($payload | Where-Object {$_.Extension -in @('.ps1','.cs') -or $_.Name -match '^(Native.*Tests|NativeCollectorBench|System.Management.Automation)\.'}){throw 'Legacy/development files in release package'}
 $assembly=[Reflection.Assembly]::LoadFrom("$app/HardwarePulse.exe")
 if($assembly.GetReferencedAssemblies().Name -notcontains 'Pulse.Core'){throw 'Native runtime is missing its Core reference'}
+if($assembly.GetReferencedAssemblies().Name -notcontains 'Pulse.Adapters.Windows'){throw 'Native runtime is missing its Windows adapter reference'}
+$adapters=[Reflection.Assembly]::LoadFrom((Join-Path $app 'Pulse.Adapters.Windows.dll'))
+if($adapters.GetReferencedAssemblies().Name -notcontains 'Pulse.Core'){throw 'Windows adapters are missing the shared Core reference'}
+foreach($reference in $adapters.GetReferencedAssemblies()){
+    if($reference.Name -notin @('mscorlib','System','System.Core','System.Web.Extensions','System.Management','Pulse.Core')){throw "Unexpected adapter dependency: $($reference.Name)"}
+}
+foreach($type in @('SensorProfile','RawSnapshot','Json','QuotaData','QuotaProviders')){
+    if(-not $adapters.GetType("HardwarePulse.$type") -or $assembly.GetType("HardwarePulse.$type")){throw "Adapter ownership mismatch: $type"}
+}
 $core=[Reflection.Assembly]::LoadFrom((Join-Path $app 'Pulse.Core.dll'))
 foreach($reference in $core.GetReferencedAssemblies()){
     if($reference.Name -notin @('mscorlib','System','System.Core')){throw "Platform dependency in Core payload: $($reference.Name)"}

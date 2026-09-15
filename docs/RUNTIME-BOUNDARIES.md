@@ -5,7 +5,7 @@ The native runtime has these existing boundaries:
 | Owner | Responsibility | Verification |
 | --- | --- | --- |
 | Collector | Read-only hardware sampling and snapshot publication | Sensor fixtures and installed live snapshots |
-| SensorProfile | Map a snapshot to readings and reject stale/invalid input | Native/legacy differential tests |
+| Pulse.Adapters.Windows / SensorProfile | Map a snapshot to readings and reject stale/invalid input | Native/legacy differential tests |
 | Pulse.Core / ReadingSession | Consume a supplied reading source and retain per-session peaks and known capabilities | Pure CoreTests plus Windows snapshot ReadingSessionTests |
 | Pulse.Core / QuotaSession | Per-provider refresh schedule, pending work, cancellation and late-result rejection | Core-only quota lifecycle tests and native quota integration |
 | Shell and its UI partials | WPF timer, controls, rendering, visibility and user interaction | NativeTests WPF integration |
@@ -22,9 +22,9 @@ Latest as read-only. Cards and overlay consume the same session. Closing to tray
 continues polling; shutdown/STOP handling and the two-second timer remain owned
 by Shell. These lifecycle semantics were preserved during extraction.
 
-`scripts/Test-ReadingSession.ps1` references the actual Pulse.Core DLL and compiles
-the Windows snapshot DTOs, JSON helper and SensorProfile adapter into its headless
-integration fixture. CoreTests separately exercise the same session with synthetic
+`scripts/Test-ReadingSession.ps1` references the actual Pulse.Core and
+Pulse.Adapters.Windows DLLs for its headless integration fixture, including the
+Windows snapshot DTOs, JSON helper and SensorProfile. CoreTests separately exercise the same session with synthetic
 readings and no files, WPF, WinForms, System.Web or app EXE. Both are part of Validate.ps1.
 
 UpdateCoordinator receives an IUpdateClient; the production adapter delegates to
@@ -106,8 +106,8 @@ read-only after publication. This change does not make the session thread-safe.
 
 Demonstrated consumers are Cards, Desktop, the separate overlay, diagnostic fan
 mapping and the session/native/sensor fixtures. Diagnostics and SensorProfile use
-Core reading types; raw snapshot serialization remains in Native. The differential
-fixture is named Pulse.SensorFixture.dll to avoid colliding with the real Core DLL.
+Core reading types; raw snapshot serialization lives in Pulse.Adapters.Windows.
+The differential fixture loads that real adapter DLL alongside Core.
 The installer includes that real Core DLL through the existing app payload.
 
 The four intended boundaries remain Core, platform adapters, presentation and
@@ -128,7 +128,7 @@ app support or memory reduction is claimed.
 
 The next extraction uses baseline `547e2c8`. `QuotaReading` and `QuotaWindow`
 previously shared QuotaData.cs with System.Web response parsing. They now live in
-Core; QuotaData and provider credentials/requests remain in Native. QuotaSession
+Core; QuotaData and provider credentials/requests now live in the Windows adapter. QuotaSession
 was extracted in the subsequent phase below. Consumers are QuotaSession, QuotaView, Desktop, provider adapters and
 the quota/hero fixtures. Unknown Remaining is null, distinct from zero remaining;
 Windows and AllWindows retain their separate compact/full collections. Status,
@@ -156,7 +156,7 @@ From baseline `4b2feb2`, QuotaSession now resides in the real Core assembly besi
 its contracts. Its existing `Func<string, CancellationToken, QuotaReading>` boundary
 already isolates provider work. QuotaView supplies QuotaProviders.Read; Windows
 credentials, HTTP policy, response decoding and process ownership checks stay in
-Native. No new interface or forwarding layer is needed.
+Pulse.Adapters.Windows. No new interface or forwarding layer is needed.
 
 The host serializes Enable, Tick, Refresh and Dispose calls and supplies Tick's
 clock. Each enabled provider has at most one pending worker task. The next scheduled
@@ -210,3 +210,35 @@ all shared tests passed. SDK/archive and build outputs are ignored. This is a
 Windows execution of portable Core tests; ARM64, Linux and macOS execution, native
 collectors, UI, desktop layering and FPS capture remain unverified. No runtime
 performance or memory comparison between the two targets is claimed.
+
+## Windows adapter assembly
+
+From baseline `f2c1dfc`, `src/Adapters/Windows` builds as
+`Pulse.Adapters.Windows.dll`. It contains the unchanged snapshot wire DTOs/JSON IO,
+SensorProfile mapping, QuotaData response decoding, QuotaProviders and Antigravity
+discovery. The assembly references Core and Framework BCL/System.Web/System.Management,
+but not WPF, WinForms, the app EXE or LibreHardwareMonitor. The existing Collector
+still writes its snapshot; the adapter converts it into Core Reading/Usage values.
+QuotaSession still receives QuotaProviders.Read through its existing delegate.
+
+`Build-WindowsAdapters.ps1` builds the Framework Core dependency and adapter DLL.
+Build-Native references both; the installer includes both through the app payload.
+ReadingSession and sensor parity fixtures consume this same adapter DLL instead
+of recompiling private copies of its implementation. Native, Settings quota and
+Hero fixture compilation also references the adapter explicitly. Package checks
+verify ownership of the moved types and an allowlist of assembly dependencies.
+
+No data format, freshness window, credential lookup, process-owner verification,
+HTTP allowlist/redirect policy, cancellation, polling, driver or privilege behavior
+changes. No extra process, worker or timer is introduced. Existing parser, redirect,
+process ownership, WPF/Desktop, startup, FPS and package checks remain required.
+The framework adapter is Windows-specific and is not a net10.0 adapter; future OS
+adapters must produce Core contracts without depending on this DLL or its snapshot
+schema. The Windows host retains Collector, FPS capture, tray/startup, backdrop,
+Local Contrast capture and installation/update operations. Those boundaries still
+need platform implementations before a cross-platform app can be claimed.
+
+Rollback is a source/build rollback of this commit, with no user data migration.
+The additional DLL is part of an atomic app payload; do not deploy a new app EXE
+alone. This is the shared-Core/Windows-data-adapter foundation, not complete
+Windows host decomposition or an ARM64/Linux/macOS release.

@@ -5,6 +5,7 @@ if(-not $AppPath){$AppPath=Join-Path $root 'build/native/app'}
 if(-not $OutputPath){$OutputPath=Join-Path $root 'docs/showcase/pulse-hero.png'}
 Add-Type -AssemblyName PresentationFramework,PresentationCore,WindowsBase,System.Xaml,System.Windows.Forms
 [void][Reflection.Assembly]::LoadFrom((Join-Path $AppPath 'HardwarePulse.exe'))
+[void][Reflection.Assembly]::LoadFrom((Join-Path $AppPath 'Pulse.Adapters.Windows.dll'))
 $state=Join-Path $root ('vendor/hero-'+[Guid]::NewGuid().ToString('N'))
 $paths=[HardwarePulse.PulsePaths]::new($AppPath,$state,(Join-Path $state 'runtime'))
 $demo=[HardwarePulse.RawSnapshot]::new();$demo.schema=2;$demo.pid=1;$demo.sequence=1;$demo.time=[DateTimeOffset]::Now.ToString('o');$demo.memoryName='32 GB DDR5 · Demo memory';$demo.boardName='Demo motherboard'
@@ -25,7 +26,7 @@ foreach($row in @(@('Download Speed',12400000),@('Upload Speed',820000))){$s=[Ha
 $demo.sensors=$sensors.ToArray();$links=@();foreach($row in @(@('Ethernet',2500000000),@('Wi-Fi',1201000000))){$l=[HardwarePulse.NetworkLink]::new();$l.hardwareId='/nic/'+$row[0];$l.connectionType=$row[0];$l.connected=$true;$l.physical=$true;$l.bitsPerSecond=$row[1];if($row[0] -eq 'Wi-Fi'){$l.signalPercent=88};$links+=$l};$demo.networkLinks=$links
 [HardwarePulse.Json]::WriteAtomic($paths.Snapshot,$demo)
 [HardwarePulse.Json]::WriteAtomic((Join-Path $state 'widget-settings.json'),@{width=1120;height=890;left=40;top=40;fontSize=14;language='en';details=$true;solid=$false;opacity=76;background='#15212B';quotaCodex=$true;quotaAntigravity=$true;quotaClaude=$true;desktopAppIconColors=$true;desktopWidth=510;desktopFontSize=16;desktopSpacing=10;desktopAutoContrast=$false;desktopTextOpacity=100;desktopColor='#EAF2F5';cardOrder=@('CPU','GPU','Memory','Airflow','NVMe','Network');names=@{CPU='Demo processor · 12 cores';GPU='Demo graphics';Memory='32 GB DDR5 · Demo memory';NVMe='Demo NVMe storage';Airflow='Demo chassis';cpuFan='CPU fan';bottom='Intake';top='Exhaust';diskC='C: System';diskD='D: Projects'};desktopVisible=@{gpuFan=$false;gpuFan2=$false;bottom=$false;top=$false;cpuFan=$false;ramA=$false;ramB=$false}})
-$compiler=[CodeDom.Compiler.CompilerParameters]::new();[void]$compiler.ReferencedAssemblies.Add((Join-Path $AppPath 'HardwarePulse.exe'));[void]$compiler.ReferencedAssemblies.Add((Join-Path $AppPath 'Pulse.Core.dll'))
+$compiler=[CodeDom.Compiler.CompilerParameters]::new();[void]$compiler.ReferencedAssemblies.Add((Join-Path $AppPath 'HardwarePulse.exe'));[void]$compiler.ReferencedAssemblies.Add((Join-Path $AppPath 'Pulse.Core.dll'));[void]$compiler.ReferencedAssemblies.Add((Join-Path $AppPath 'Pulse.Adapters.Windows.dll'))
 Add-Type -CompilerParameters $compiler -TypeDefinition @'
 using System;using System.Threading;using HardwarePulse;
 public static class HeroQuota {

@@ -1,16 +1,15 @@
 ﻿$ErrorActionPreference='Stop'
 $root=Split-Path $PSScriptRoot
 $null=New-Item -ItemType Directory "$root/build/native" -Force
-& "$PSScriptRoot/Build-Core.ps1" -OutputPath "$root/build/native/Pulse.Core.dll"
-& "$PSScriptRoot/Run-Hidden.ps1" "$env:WINDIR/Microsoft.NET/Framework64/v4.0.30319/csc.exe" @('/nologo','/target:library',"/out:$root\build\native\Pulse.SensorFixture.dll",'/reference:System.Web.Extensions.dll',"/reference:$root\build\native\Pulse.Core.dll","$root\src\Native\Models.cs","$root\src\Native\SensorProfile.cs") $root
+& "$PSScriptRoot/Build-WindowsAdapters.ps1" -OutputDirectory "$root/build/native"
 $testRoot=Join-Path $root ('vendor/native-sensors-'+[Guid]::NewGuid().ToString('N'))
 $null=New-Item -ItemType Directory -Path $testRoot
 Copy-Item "$root/src/Sensors.ps1","$root/src/DeviceProfile.ps1" $testRoot
-Copy-Item "$root/build/native/Pulse.SensorFixture.dll","$root/build/native/Pulse.Core.dll" $testRoot
+Copy-Item "$root/build/native/Pulse.Adapters.Windows.dll","$root/build/native/Pulse.Core.dll" $testRoot
 $harness=@'
 . "$PSScriptRoot/Sensors.ps1"
 Add-Type -AssemblyName System.Web.Extensions
-Add-Type -Path "$PSScriptRoot/Pulse.SensorFixture.dll"
+Add-Type -Path "$PSScriptRoot/Pulse.Adapters.Windows.dll"
 $script:legacySnapshot=${function:Get-PulseSnapshot}
 function Assert-MapEqual($a,$b,$context){
     if(@($a.Keys).Count -ne @($b.Keys).Count){throw "$context key count differs"}
