@@ -449,5 +449,25 @@ including warm-up, and emits `DIAG_GC` on exit. It records no stacks or object
 contents. Event delivery can lag the final snapshot; these counts need not equal
 the narrower benchmark interval. Diagnostic overhead is included, so compare
 demo/live diagnostic runs to each other rather than treating them as unchanged
-baseline measurements. Normal launches create no listener. Linux CI runs both
-scenarios on the same runner, with identical one-second polling and Xvfb backend.
+baseline measurements. Normal launches create no listener.
+
+At `212ca94`, [run 35025216071](https://github.com/medking82/hardware-pulse/actions/runs/35025216071)
+passed all six jobs. Linux x64 and ARM64 static demo recorded zero collections;
+live diagnostics recorded 18 Gen2 collections in the measurement interval and
+21 across startup/warm-up/measurement, all runtime reason 7 (`induced_noforce`).
+This rules out ordinary allocation-triggered GC for those events, but does not
+alone identify the inducing caller. The pinned Avalonia X11 implementation
+defaults UseRetainedFramebuffer to false, disposing its native surface after
+each software blit; its UnmanagedBlob reports GC.AddMemoryPressure on allocation.
+
+The next paired experiment keeps live telemetry in both runs and compares that
+transient surface with retained framebuffer reuse, on the same Linux runner.
+`--transient-framebuffer` is a Linux-only diagnostic control requiring
+`--measure-session --diagnose-gc`; normal launches use retention. Hardware
+rendering selection is unchanged. Retention trades a persistent window-sized
+buffer for avoiding repeated native allocation; resize replaces the buffer.
+Sources: Avalonia 12.1.2
+[X11Window.cs](https://github.com/AvaloniaUI/Avalonia/blob/12.1.2/src/Avalonia.X11/X11Window.cs),
+[X11FramebufferSurface.cs](https://github.com/AvaloniaUI/Avalonia/blob/12.1.2/src/Avalonia.X11/X11FramebufferSurface.cs),
+[UnmanagedBlob.cs](https://github.com/AvaloniaUI/Avalonia/blob/12.1.2/src/Avalonia.Base/Platform/Internal/UnmanagedBlob.cs),
+and .NET [GC reason enum](https://github.com/dotnet/runtime/blob/v10.0.0/src/coreclr/gc/gc.h).
