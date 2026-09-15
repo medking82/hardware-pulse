@@ -123,7 +123,8 @@ namespace HardwarePulse {
             if(layer!=null)layer.SetLocked(locked);
             UpdateLayout();KeepOnScreen();
         }
-        public void RefreshLayer(){if(layer!=null)layer.Refresh();}
+        public void SetAlwaysOnTop(bool value){if(layer!=null)layer.SetAlwaysOnTop(value);}
+        public void RefreshLayer(){if(layer!=null){layer.SetLocked(locked);layer.Refresh();}}
         public string ResolveColor(bool automatic,string custom){
             if(!automatic)return custom;
             // Sampling can pause when another app owns focus. Do not keep an old dark

@@ -22,6 +22,8 @@ namespace HardwarePulse {
             Control<ComboBox>("DesktopColumns").SelectedIndex=(int)settings.Number("desktopColumns",0,0,3);
             Control<ComboBox>("DesktopColumns").SelectionChanged+=delegate{int count=Control<ComboBox>("DesktopColumns").SelectedIndex;settings.Data["desktopColumns"]=count;if(desktop!=null&&count>0)desktop.Width=Math.Min(SystemParameters.WorkArea.Width-32,Math.Max(280,24*Control<Slider>("DesktopFontSize").Value)*count+10*(count-1)+34);UpdateDesktop();SaveDesktopPosition();QueueSave();};
             Control<CheckBox>("DesktopEnabled").IsChecked=DesktopEnabled;
+            Control<CheckBox>("DesktopAlwaysOnTop").IsChecked=settings.Flag("desktopAlwaysOnTop");
+            Control<CheckBox>("DesktopAlwaysOnTop").Click+=delegate{settings.Data["desktopAlwaysOnTop"]=Checked("DesktopAlwaysOnTop");UpdateDesktop();QueueSave();};
             Control<CheckBox>("DesktopLocked").IsChecked=settings.Flag("desktopLocked",true);
             Control<Slider>("DesktopFontSize").Value=settings.Number("desktopFontSize",16,10,32);
             Control<Slider>("DesktopSpacing").Value=settings.Number("desktopSpacing",14,4,40);
@@ -130,6 +132,7 @@ namespace HardwarePulse {
             desktop.Render(DesktopMetrics(),Control<Slider>("DesktopFontSize").Value,Control<Slider>("DesktopSpacing").Value,effectiveColor,settings.Flag("desktopLocked",true),(int)settings.Number("desktopColumns",0,0,3),name=>DesktopIconColor(name,effectiveColor));
             desktop.SetTextOpacity(Control<Slider>("DesktopTextOpacity").Value,Checked("DesktopAutoContrast"));
             if(!desktop.IsVisible)desktop.Show();
+            desktop.SetAlwaysOnTop(settings.Flag("desktopAlwaysOnTop"));
             desktop.RefreshLayer();
             Text("DesktopStatus",language.T(desktop.LayerAvailable?"Use the system tray to edit or exit Desktop Mode.":"Waiting for Windows desktop"));
         }

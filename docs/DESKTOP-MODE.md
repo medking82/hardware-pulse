@@ -7,6 +7,14 @@ or install a Wallpaper Engine plugin.
 
 ## Use
 
+`Always on top` is optional and off by default. The normal layer remains above
+the wallpaper / Wallpaper Engine and below ordinary apps. Enabling the option
+places the same panel above apps without creating another Collector. Locked
+panels pass mouse input through and do not activate; enter Edit Desktop from the
+tray to move or resize, then use the panel's Lock action to restore passthrough.
+The saved preference is `desktopAlwaysOnTop`. Exclusive fullscreen games may
+hide this ordinary Windows overlay; game-level interaction has not been verified.
+
 Settings → Desktop Mode enables an editable preview and opens its settings. The tray entry uses the same flow. Font Size (10–32 logical px), Text Color,
 Text Opacity (30–100%), Auto Contrast and Row Spacing are independent of the ordinary monitor. Windows display scaling
 applies to logical px. Card visibility and hardware names use the existing settings.

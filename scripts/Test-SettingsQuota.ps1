@@ -8,6 +8,7 @@ Add-Type -CompilerParameters $compiler -TypeDefinition @'
 using System;using System.Threading;using HardwarePulse;
 public static class SettingsQuotaFixture {
  [System.Runtime.InteropServices.DllImport("user32.dll")]static extern IntPtr SendMessage(IntPtr hwnd,int message,IntPtr w,IntPtr l);
+ [System.Runtime.InteropServices.DllImport("user32.dll",EntryPoint="GetWindowLongPtrW")] public static extern IntPtr Style(IntPtr hwnd,int index);
  public static int Hit(IntPtr hwnd,int x,int y){return SendMessage(hwnd,0x84,IntPtr.Zero,new IntPtr((y<<16)|(x&65535))).ToInt32();}
  public static QuotaReading Read(string provider,CancellationToken cancel){
   string json=provider=="Codex"?"{\"rateLimitsByLimitId\":{\"codex\":{\"primary\":{\"windowDurationMins\":300,\"usedPercent\":10},\"secondary\":{\"windowDurationMins\":10080,\"usedPercent\":40}},\"A very long extra model quota name\":{\"primary\":{\"windowDurationMins\":300,\"usedPercent\":0},\"secondary\":{\"windowDurationMins\":10080,\"usedPercent\":3}}}}":provider=="Antigravity"?"{\"groups\":[{\"displayName\":\"Gemini Models\",\"buckets\":[{\"window\":\"session\",\"remainingFraction\":0.9},{\"window\":\"weekly\",\"remainingFraction\":0.8}]},{\"displayName\":\"Claude and GPT Models\",\"buckets\":[{\"window\":\"session\",\"remainingFraction\":0.7},{\"window\":\"weekly\",\"remainingFraction\":0.6}]}]}":"{\"five_hour\":{\"utilization\":12},\"seven_day\":{\"utilization\":20},\"seven_day_sonnet\":{\"utilization\":30}}";
@@ -64,6 +65,19 @@ try {
  $controls[0].RaiseEvent([Windows.RoutedEventArgs]::new([Windows.Controls.Button]::ClickEvent));Pump
  Assert ([SettingsQuotaFixture]::Hit($handle,[int]$point.X,[int]$point.Y) -ne 10) 'Locked Desktop still permits edge resizing'
  foreach($edge in @(@(0,50,10),@(400,50,11),@(50,0,12),@(0,0,13),@(400,0,14),@(50,200,15),@(0,200,16),@(400,200,17),@(50,50,0))){Assert ([HardwarePulse.DesktopView]::ResizeEdge([Windows.Point]::new($edge[0],$edge[1]),[Windows.Size]::new(400,200),8) -eq $edge[2]) 'Desktop resize edge mapping wrong'}
+ Assert (-not $settings.Flag('desktopAlwaysOnTop')) 'Topmost must be opt-in'
+ $nativeLayer=[HardwarePulse.DesktopLayer]::new($desktop)
+ $layerField=$desktop.GetType().GetField('layer',$flags);$layerField.SetValue($desktop,$nativeLayer)
+ try {
+  Toggle 'DesktopAlwaysOnTop' $true;Toggle 'DesktopLocked' $true;$shell.Save()
+  $reloaded=[HardwarePulse.Settings]::new((Join-Path $state 'widget-settings.json'));Assert ($reloaded.Flag('desktopAlwaysOnTop')) 'Topmost preference not persisted'
+  $style=[SettingsQuotaFixture]::Style($handle,-20).ToInt64()
+  Assert (($style -band 8) -ne 0 -and ($style -band 32) -ne 0 -and ($style -band 0x08000000) -ne 0 -and ($style -band 0x80000) -ne 0) ('Topmost locked style: 0x{0:X}' -f $style)
+  Toggle 'DesktopLocked' $false;$style=[SettingsQuotaFixture]::Style($handle,-20).ToInt64()
+  Assert (($style -band 8) -ne 0 -and ($style -band 32) -eq 0 -and ($style -band 0x08000000) -ne 0) 'Editing must retain topmost/no-activate but accept mouse input'
+  Toggle 'DesktopAlwaysOnTop' $false;Toggle 'DesktopLocked' $true
+  Assert (([SettingsQuotaFixture]::Style($handle,-20).ToInt64() -band 8) -eq 0) 'Returning to Desktop retained topmost'
+ } finally {$layerField.SetValue($desktop,$null);$nativeLayer.Dispose()}
  Toggle 'DesktopAppIconColors' $false;$shell.Save();Assert (-not $settings.Flag('desktopAppIconColors',$true)) 'Explicit icon override not retained'
  $saved=[HardwarePulse.Settings]::new((Join-Path $state 'widget-settings.json'));Assert ($saved.Flag('quotaFull') -and -not $saved.Flag('desktopAppIconColors',$true) -and $saved.Data['quotaCardOrder'][1] -eq 'Codex') 'Quota mode/order or icon override did not persist'
  'PASS Settings/quota: full vs compact, handles/order, 1/2/3 columns, languages, contrast, sticky Back, editor Lock and eight resize edges'

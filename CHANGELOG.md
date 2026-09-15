@@ -2,6 +2,11 @@
 
 English first; 简体中文 follows each version. Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
+## Unreleased
+
+- Optional Desktop Always on top: default wallpaper-level behavior is preserved; locked panels pass mouse input through, editing retains no-activate behavior, and disabling the option returns to the desktop layer.
+- Apply the saved lock state immediately after the native Desktop window is created.
+
 ## 0.6.6 — 2026-09-15
 
 - Distinguish Desktop LAN, Wi-Fi link speed and signal readings with original Ethernet, wireless and signal-bar SVG icons; preserve App palette preferences.

@@ -393,6 +393,8 @@
           <StackPanel>
             <TextBlock Text="Readings on your wallpaper, below other apps. Uses the same collector." FontSize="11" Margin="0,10,0,12" />
             <CheckBox x:Name="DesktopEnabled" Content="Desktop Mode" Margin="0,0,0,10" />
+            <CheckBox x:Name="DesktopAlwaysOnTop" Content="Always on top" Margin="0,0,0,10" />
+            <TextBlock Text="Show above apps. Locked panels let mouse input pass through. Exclusive fullscreen may hide the panel." TextWrapping="Wrap" Margin="0,0,0,12" />
             <TextBlock Text="Select Edit Desktop, then move or resize the panel. Lock it directly on the desktop." FontSize="11" Margin="0,0,0,12" />
             <CheckBox x:Name="DesktopLocked" Visibility="Collapsed" Content="Lock Desktop" Margin="0,0,0,10" />
             <Button x:Name="DesktopMove" Content="Edit Desktop Position" Margin="0,0,0,8" />

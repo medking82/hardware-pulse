@@ -24,7 +24,7 @@ namespace HardwarePulse {
         [DllImport("user32.dll")] static extern IntPtr SetWinEventHook(uint min,uint max,IntPtr module,WinEvent callback,uint process,uint thread,uint flags);
         [DllImport("user32.dll")] static extern bool UnhookWinEvent(IntPtr hook);
         readonly Window window;readonly IntPtr hwnd;readonly WinEvent callback;
-        IntPtr hook;bool closed,queued,locked,styleApplied;
+        IntPtr hook;bool closed,queued,locked,styleApplied,alwaysOnTop;
         public bool Attached {get;private set;}
         public DesktopLayer(Window window) {
             this.window=window;hwnd=new WindowInteropHelper(window).Handle;
@@ -41,6 +41,13 @@ namespace HardwarePulse {
             SetWindowLongPtr(hwnd,-20,new IntPtr(style));
             styleApplied=true;
         }
+        public void SetAlwaysOnTop(bool value){
+            if(alwaysOnTop==value)return;
+            alwaysOnTop=value;
+            window.Topmost=value;
+            SetWindowPos(hwnd,value?new IntPtr(-1):new IntPtr(-2),0,0,0,0,0x1|0x2|0x10);
+            Refresh();
+        }
         static IntPtr DesktopHost() {
             IntPtr found=IntPtr.Zero;
             EnumWindows(delegate(IntPtr candidate,IntPtr unused){
@@ -52,6 +59,11 @@ namespace HardwarePulse {
         }
         public void Refresh() {
             if(closed||!IsWindow(hwnd))return;
+            if(alwaysOnTop){
+                if(!window.IsVisible)window.Show();
+                Attached=SetWindowPos(hwnd,new IntPtr(-1),0,0,0,0,0x1|0x2|0x10|0x40);
+                return;
+            }
             IntPtr host=DesktopHost();Attached=host!=IntPtr.Zero;
             if(!Attached){window.Hide();return;} // retry via the existing UI poll after Explorer returns
             if(!window.IsVisible)window.Show();

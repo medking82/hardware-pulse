@@ -243,3 +243,5 @@ LAN Link Speed|LAN 连接速率|LAN 連線速率
 Wi-Fi Link Speed|Wi-Fi 连接速率|Wi-Fi 連線速率
 Traffic adapter|流量网卡|流量網卡
 LAN and Wi-Fi link speeds update independently. Download and upload refer to the traffic adapter. Link speed is not Internet speed.|LAN 和 Wi-Fi 连接速率独立更新。上下行属于流量网卡；连接速率不是互联网速度。|LAN 和 Wi-Fi 連線速率獨立更新。上下行屬於流量網卡；連線速率不是網際網路速度。
+Always on top|置顶显示|置頂顯示
+Show above apps. Locked panels let mouse input pass through. Exclusive fullscreen may hide the panel.|显示在 App 上方；锁定时鼠标可穿透。独占全屏可能遮住面板。|顯示在 App 上方；鎖定時滑鼠可穿透。獨佔全螢幕可能遮住面板。
