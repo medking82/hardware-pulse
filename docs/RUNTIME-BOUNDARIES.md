@@ -1079,3 +1079,10 @@ access and the UI reports session-only changes. Save failures likewise stay visi
 Synthetic profile tests cover normalization, unknown fields, error preservation,
 failed writes, Unix permissions, live theme changes, missing network selection,
 quota preference and close/reopen behavior. No personal profile is used in tests.
+
+Validation at `3dacf830fdba9128a96d2299f86854e0b633a6a9` (2026-09-16 local):
+[run 35022150629](https://github.com/medking82/hardware-pulse/actions/runs/35022150629)
+passed all six settings/UI jobs and all four extracted Linux/macOS package
+launch checks. Local full Windows validation and package negative fixtures also
+passed. Tests used temporary profiles and synthetic quota; no existing Pulse
+settings or real credentials were used by the new settings tests.
