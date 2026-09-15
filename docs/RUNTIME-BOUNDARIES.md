@@ -7,6 +7,7 @@ The native runtime has these existing boundaries:
 | Collector | Read-only hardware sampling and snapshot publication | Sensor fixtures and installed live snapshots |
 | SensorProfile | Map a snapshot to readings and reject stale/invalid input | Native/legacy differential tests |
 | Pulse.Core / ReadingSession | Consume a supplied reading source and retain per-session peaks and known capabilities | Pure CoreTests plus Windows snapshot ReadingSessionTests |
+| Pulse.Core / QuotaSession | Per-provider refresh schedule, pending work, cancellation and late-result rejection | Core-only quota lifecycle tests and native quota integration |
 | Shell and its UI partials | WPF timer, controls, rendering, visibility and user interaction | NativeTests WPF integration |
 | Startup / SchedulerStore | Validate ownership and operate the app's scheduled tasks | Startup tests and isolated scheduler integration |
 | UpdateCheck | Validate/download installer assets and start installation | Updater verification tests |
@@ -126,8 +127,8 @@ outstanding. No new cross-platform support or memory reduction is claimed.
 
 The next extraction uses baseline `547e2c8`. `QuotaReading` and `QuotaWindow`
 previously shared QuotaData.cs with System.Web response parsing. They now live in
-Core; QuotaData, provider credentials/requests and QuotaSession orchestration remain
-in Native. Consumers are QuotaSession, QuotaView, Desktop, provider adapters and
+Core; QuotaData and provider credentials/requests remain in Native. QuotaSession
+was extracted in the subsequent phase below. Consumers are QuotaSession, QuotaView, Desktop, provider adapters and
 the quota/hero fixtures. Unknown Remaining is null, distinct from zero remaining;
 Windows and AllWindows retain their separate compact/full collections. Status,
 timestamps, field names and mutable DTO compatibility are unchanged. This boundary
@@ -147,3 +148,29 @@ WPF and package compatibility. No process, timer, polling interval or privilege
 boundary changes; no measurable performance improvement is implied by extraction.
 Both this extraction and the preceding reading extraction can be reverted as
 source-only commits without migrating user settings or stored data.
+
+## Quota refresh lifecycle
+
+From baseline `4b2feb2`, QuotaSession now resides in the real Core assembly beside
+its contracts. Its existing `Func<string, CancellationToken, QuotaReading>` boundary
+already isolates provider work. QuotaView supplies QuotaProviders.Read; Windows
+credentials, HTTP policy, response decoding and process ownership checks stay in
+Native. No new interface or forwarding layer is needed.
+
+The host serializes Enable, Tick, Refresh and Dispose calls and supplies Tick's
+clock. Each enabled provider has at most one pending worker task. The next scheduled
+attempt remains five minutes after its start; manual refresh makes idle providers
+due on the next Tick. A request receives cancellation after 30 seconds. Cancellation
+is cooperative: an adapter that ignores it remains pending, preventing overlapping
+requests. Disable/re-enable changes the slot version and rejects the old result.
+Dispose cancels pending work, observes its eventual exception and prevents publication.
+Providers must return a non-null semantic reading or throw; generic worker faults
+become Quota unavailable without exposing exception text.
+
+CoreQuotaSessionTests run with synthetic readers and host times, no app EXE, network,
+credentials or WPF. They exercise scheduling, refresh, no-overlap, disable/re-enable,
+late results, fault handling and disposal; existing native tests retain parser and UI
+integration coverage. The 30-second cancellation interval is preserved in source,
+not shortened for tests. This extraction retains existing tasks and cancellation
+timers, adding none. It is source-reversible and does not migrate settings or claim
+CPU/RAM reduction or completed ARM64/Linux/macOS support.

@@ -5,6 +5,7 @@ class CoreTests {
     static void Check(bool ok,string message){if(!ok)throw new Exception(message);}
     static byte[] Frame(int width,int height,Func<int,int,byte> shade){var data=new byte[width*height*4];for(int y=0;y<height;y++)for(int x=0;x<width;x++){int i=(y*width+x)*4;data[i]=data[i+1]=data[i+2]=shade(x,y);data[i+3]=255;}return data;}
     static void Main(){
+        CoreQuotaSessionTests.Run();
         Check(typeof(QuotaReading).Assembly==typeof(ContrastAnalysis).Assembly&&typeof(NetworkRate).Assembly==typeof(ContrastAnalysis).Assembly,"Quota/network boundary depends on the app");
         var quota=new QuotaReading();
         quota.AllWindows.Add(new QuotaWindow {Label="5-hour",Remaining=0});
