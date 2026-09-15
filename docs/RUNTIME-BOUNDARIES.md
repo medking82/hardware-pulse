@@ -749,3 +749,10 @@ process tests. Windows locally verifies build/help/argument/OS guards; native
 Linux and macOS runners verify real output and architecture. This remains a
 framework-dependent diagnostic prototype; desktop UI, signing and installer
 release are separate work.
+Shared-host validation (2026-09-15): macOS Intel/Apple Silicon CLI tests passed in
+[run 34980241663](https://github.com/medking82/hardware-pulse/actions/runs/34980241663),
+and unchanged Linux x64/ARM64 CLI contracts passed in
+[run 34980241703](https://github.com/medking82/hardware-pulse/actions/runs/34980241703),
+both at `6372b01904fe13b4988d77ac63114989867cb2d2`. Local Windows builds, CLI guard
+tests and full native validation passed. No desktop UI or distribution-signing
+coverage is implied by this end-to-end headless result.
