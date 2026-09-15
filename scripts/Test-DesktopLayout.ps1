@@ -43,6 +43,20 @@ try {
     $grid=$panel.Children[0].Child;$reading=$grid.Children[2]
     Assert ($reading.Inlines.Count -eq 8 -and $reading.TextWrapping -eq 'NoWrap') 'FPS badges must stay in one reading'
     Assert ($reading.TranslatePoint([Windows.Point]::new($reading.ActualWidth,0),$grid).X -le $grid.ActualWidth+1) 'FPS badges exceed a narrow panel'
+    $view.SetEditorLabels('Drag to move','Lock Desktop','Return to App')
+    $view.Width=430;$view.Height=260;$items.Clear()
+    foreach($i in 1..24){$items.Add([HardwarePulse.DesktopMetric]::new("drag$i",'Reading','100','airflow'))}
+    $view.Render($items,16,10,'#FFFFFF',$false,1,$null);$view.UpdateLayout()
+    $label=$panel.Children[0].Child.Children[1]
+    $point=$label.TranslatePoint([Windows.Point]::new(5,5),$view)
+    Assert ($view.DesktopHitTest($point) -eq 2) 'Unlocked ScrollViewer content cannot move the Desktop'
+    $editor=$view.Content.Child.Children[0];$button=$editor.Children[1].Children[0]
+    Assert ($view.DesktopHitTest($button.TranslatePoint([Windows.Point]::new(5,5),$view)) -eq 0) 'Editor button starts a window drag'
+    $bar=$scroll.Template.FindName('PART_VerticalScrollBar',$scroll)
+    Assert ($bar.IsVisible -and $view.DesktopHitTest($bar.TranslatePoint([Windows.Point]::new(5,15),$view)) -eq 0) 'Scrollbar starts a window drag'
+    Assert ($view.DesktopHitTest([Windows.Point]::new(1,100)) -eq 10) 'Left edge no longer resizes'
+    $view.Render($items,16,10,'#FFFFFF',$true,1,$null)
+    Assert ($view.DesktopHitTest($point) -eq 0) 'Locked Desktop accepts a window drag'
     if($ScreenshotDirectory){
         [void][IO.Directory]::CreateDirectory([IO.Path]::GetFullPath($ScreenshotDirectory))
         $view.Width=700;$view.Render($items,20,10,'#FFFFFF',$true,1,$null);$view.SetTextOpacity(100,$true);$view.UpdateLayout()

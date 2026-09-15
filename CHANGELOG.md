@@ -2,6 +2,14 @@
 
 English first; 简体中文 follows each version. Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
+## 0.6.14 — 2026-09-15
+
+- Move unlocked Desktop panels through native caption hit-testing, so ScrollViewer content can initiate dragging without relying on a handled WPF mouse event.
+- Preserve editor button clicks, scrollbar interaction, eight-edge resizing and locked click-through. Save and clamp position when native move/resize finishes.
+- Validate content/button/scrollbar/edge hit targets and locked behavior in a real WPF window.
+
+修复 unlocked Desktop 内容区域无法拖动。按钮和 scrollbar 保留操作，边缘继续 resize，结束移动后保存位置。
+
 ## 0.6.13 — 2026-09-15
 
 - Give FPS its own Pulse mint SVG color (#9EDFD3) in the App shortcut and Desktop App-color mode. Local contrast darkens mint over bright backgrounds; text-color mode follows the adaptive text instead.

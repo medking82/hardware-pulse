@@ -52,7 +52,6 @@ namespace HardwarePulse {
             screenshotTimer.Interval=TimeSpan.FromSeconds(15);screenshotTimer.Tick+=delegate{screenshotTimer.Stop();ScreenshotActive=false;if(localContrast!=null)SetLocalContrast(true);};
             Closed+=delegate{screenshotTimer.Stop();contrastTimer.Stop();if(localContrast!=null)localContrast.Dispose();if(layer!=null)layer.Dispose();};
             SizeChanged+=delegate{if(IsLoaded&&SizeToContent==SizeToContent.Manual&&PositionSaved!=null)PositionSaved();};
-            MouseLeftButtonDown+=delegate(object sender,MouseButtonEventArgs e){if(locked||e.Handled||e.ButtonState!=MouseButtonState.Pressed)return;DragMove();KeepOnScreen();if(PositionSaved!=null)PositionSaved();};
         }
         public void SetEditorLabels(string hint,string complete,string back){editHint.Text=hint;done.Content=complete;returnToApp.Content=back;}
         void RefreshFpsIcon(Row row){
@@ -75,11 +74,23 @@ namespace HardwarePulse {
             return top?(left?13:right?14:12):bottom?(left?16:right?17:15):left?10:right?11:0;
         }
         IntPtr ResizeHook(IntPtr hwnd,int message,IntPtr w,IntPtr l,ref bool handled){
+            if(!locked&&message==0x0232){KeepOnScreen();if(PositionSaved!=null)PositionSaved();}
             if(!locked&&message==0x0214)SizeToContent=SizeToContent.Manual;
             if(locked||message!=0x0084)return IntPtr.Zero;
             long value=l.ToInt64();var point=PointFromScreen(new Point((short)(value&65535),(short)((value>>16)&65535)));
-            int edge=ResizeEdge(point,new Size(ActualWidth,ActualHeight));if(edge==0)return IntPtr.Zero;
-            handled=true;return new IntPtr(edge);
+            int hit=DesktopHitTest(point);if(hit==0)return IntPtr.Zero;
+            handled=true;return new IntPtr(hit);
+        }
+        public int DesktopHitTest(Point point){
+            if(locked)return 0;
+            int edge=ResizeEdge(point,new Size(ActualWidth,ActualHeight));if(edge!=0)return edge;
+            if(point.X<0||point.Y<0||point.X>ActualWidth||point.Y>ActualHeight)return 0;
+            var target=InputHitTest(point) as DependencyObject;
+            for(var node=target;node!=null;node=VisualTreeHelper.GetParent(node)){
+                if(node is System.Windows.Controls.Primitives.ButtonBase||node is System.Windows.Controls.Primitives.ScrollBar||node is System.Windows.Controls.Primitives.Thumb)return 0;
+                if(!(node is Visual))break;
+            }
+            return 2; // HTCAPTION: Windows moves the panel before ScrollViewer handles mouse input.
         }
         public static Point Clamp(Point position,Size size,IEnumerable<Rect> screens,double padding=0) {
             var areas=screens.ToArray();if(areas.Length==0)return position;
