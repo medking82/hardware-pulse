@@ -310,7 +310,7 @@ internal static class NativeTests {
                 Assert(Tree(desktop).OfType<ResponsivePanel>().Single().Opacity==.65,"Desktop text opacity not applied");
                 Assert(desktop.ResolveColor(false,"#4488CC")=="#4488CC","Auto Contrast overrode custom color");
                 Toggle(shell,"DesktopAutoContrast",true);shell.Control<Slider>("DesktopTextOpacity").Value=30;Pump();
-                Assert(Tree(desktop).OfType<ResponsivePanel>().Single().Opacity>=.9,"Auto Contrast allowed unreadable text opacity");
+                Assert(Tree(desktop).OfType<ResponsivePanel>().Single().Opacity==.3,"Auto Contrast overrode requested text opacity");
                 Assert(Tree(desktop).OfType<TextBlock>().All(t=>t.Background==null)&&((Border)desktop.Content).Background is SolidColorBrush,"Auto Contrast must protect the whole panel without per-text rectangles");
                 Assert(Tree(desktop).OfType<ResponsivePanel>().Single().Effect==null,"Auto Contrast still blurs the text layer");
                 Assert(desktop.ResolveColor(true,"#152127")=="#F5F7FA","Unavailable sampling retained a dark choice");

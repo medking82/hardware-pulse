@@ -24,7 +24,7 @@ namespace HardwarePulse {
             Control<CheckBox>("DesktopEnabled").IsChecked=DesktopEnabled;
             Control<CheckBox>("DesktopAlwaysOnTop").IsChecked=settings.Flag("desktopAlwaysOnTop");
             Control<CheckBox>("DesktopAlwaysOnTop").Click+=delegate{settings.Data["desktopAlwaysOnTop"]=Checked("DesktopAlwaysOnTop");UpdateDesktop();QueueSave();};
-            Control<Slider>("DesktopOverlayOpacity").Value=settings.Number("desktopOverlayOpacity",55,30,90);
+            Control<Slider>("DesktopOverlayOpacity").Value=settings.Number("desktopOverlayOpacity",55,0,100);
             Control<Slider>("DesktopOverlayOpacity").ValueChanged+=delegate{settings.Data["desktopOverlayOpacity"]=Control<Slider>("DesktopOverlayOpacity").Value;UpdateDesktop();QueueSave();};
             Control<CheckBox>("DesktopLocked").IsChecked=settings.Flag("desktopLocked",true);
             Control<Slider>("DesktopFontSize").Value=settings.Number("desktopFontSize",16,10,32);
@@ -32,7 +32,7 @@ namespace HardwarePulse {
             Control<CheckBox>("DesktopAutoContrast").IsChecked=settings.Flag("desktopAutoContrast",!settings.Data.ContainsKey("desktopColor"));
             Control<Slider>("DesktopBackgroundOpacity").Value=settings.Number("desktopBackgroundOpacity",Checked("DesktopAutoContrast")?86:0,0,100);
             Control<Slider>("DesktopBackgroundOpacity").ValueChanged+=delegate{if(syncingDesktopOpacity)return;settings.Data["desktopBackgroundOpacity"]=Control<Slider>("DesktopBackgroundOpacity").Value;UpdateDesktop();QueueSave();};
-            Control<Slider>("DesktopTextOpacity").Value=settings.Number("desktopTextOpacity",100,30,100);
+            Control<Slider>("DesktopTextOpacity").Value=settings.Number("desktopTextOpacity",100,0,100);
             Control<CheckBox>("DesktopAutoContrast").Click+=delegate{settings.Data["desktopAutoContrast"]=Checked("DesktopAutoContrast");UpdateDesktop();QueueSave();};
             Control<Slider>("DesktopTextOpacity").ValueChanged+=delegate{if(syncingDesktopOpacity)return;settings.Data["desktopTextOpacity"]=Control<Slider>("DesktopTextOpacity").Value;UpdateDesktop();QueueSave();};
             Control<CheckBox>("DesktopEnabled").Click+=delegate{SetDesktopEnabled(Checked("DesktopEnabled"));};
@@ -73,11 +73,11 @@ namespace HardwarePulse {
             desktopBackground.IsEnabled=!settings.Flag("desktopAlwaysOnTop");Text("DesktopBackgroundOpacityValue",Math.Round(desktopBackground.Value)+"%");
             var overlaySlider=Control<Slider>("DesktopOverlayOpacity");overlaySlider.IsEnabled=settings.Flag("desktopAlwaysOnTop");
             Text("DesktopOverlayOpacityValue",Math.Round(overlaySlider.Value)+"%");
-            syncingDesktopOpacity=true;try{var slider=Control<Slider>("DesktopTextOpacity");slider.Minimum=Checked("DesktopAutoContrast")?90:30;slider.Value=settings.Number("desktopTextOpacity",100,30,100);}finally{syncingDesktopOpacity=false;}
+            syncingDesktopOpacity=true;try{var slider=Control<Slider>("DesktopTextOpacity");slider.Minimum=0;slider.Value=settings.Number("desktopTextOpacity",100,0,100);}finally{syncingDesktopOpacity=false;}
             Control<Button>("DesktopColor").Content=DesktopColor();
             Control<Button>("DesktopColor").IsEnabled=!Checked("DesktopAutoContrast");
             Text("DesktopFontValue",Control<Slider>("DesktopFontSize").Value+" px");Text("DesktopSpacingValue",Control<Slider>("DesktopSpacing").Value+" px");
-            Text("DesktopTextOpacityValue",Math.Max(Checked("DesktopAutoContrast")?90:30,Control<Slider>("DesktopTextOpacity").Value)+"%");
+            Text("DesktopTextOpacityValue",Control<Slider>("DesktopTextOpacity").Value+"%");
             Control<Button>("DesktopDone").IsEnabled=DesktopEnabled;
             Control<CheckBox>("DesktopLocked").IsEnabled=DesktopEnabled;
             UpdateDesktopOrderLabels();

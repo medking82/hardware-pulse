@@ -25,7 +25,7 @@ The saved preference is `desktopAlwaysOnTop`. Exclusive fullscreen games may
 hide this ordinary Windows overlay; game-level interaction has not been verified.
 
 Settings → Desktop Mode enables an editable preview and opens its settings. The tray entry uses the same flow. Font Size (10–32 logical px), Text Color,
-Text Opacity (30–100%), Auto Contrast and Row Spacing are independent of the ordinary monitor. Windows display scaling
+Text Opacity (0–100%), Auto Contrast and Row Spacing are independent of the ordinary monitor. Windows display scaling
 applies to logical px. Card visibility and hardware names use the existing settings.
 Reading Order independently arranges individual desktop rows: drag a handle with animated
 reordering, press Esc to cancel, or focus the handle and use Up/Down. Missing channels retain
@@ -45,7 +45,7 @@ The persistent keys `desktopEnabled`, `desktopLocked`, `desktopFontSize`,
 the monitor's layout keys. Entering starts unlocked; Done locks it. Desktop Mode itself is off
 for existing and new installations unless explicitly enabled.
 
-Auto Contrast samples six pixels in transparent padding on both sides at most once per two seconds while the desktop is foreground and the readout is locked. Samples are processed locally and never stored or transmitted. Light/dark selection has hysteresis; when sampling is unavailable, protected light text replaces a potentially stale dark choice. Local backing behind labels, values and icons preserves readability on mixed backgrounds without blurring the text layer. Auto mode clamps effective opacity to at least 90%; the stored preference is preserved. Custom color mode allows the full 30–100% range and disables sampling. Nearby samples do not represent every glyph's background.
+Auto Contrast samples six pixels in transparent padding on both sides at most once per two seconds while the desktop is foreground and the readout is locked. Samples are processed locally and never stored or transmitted. Light/dark selection has hysteresis; when sampling is unavailable, protected light text replaces a potentially stale dark choice. Local backing behind labels, values and icons preserves readability on mixed backgrounds without blurring the text layer. Auto Contrast and topmost mode respect the full 0–100% text and background opacity ranges. Custom color mode disables sampling. Nearby samples do not represent every glyph's background.
 
 Download and Upload participate in Reading Order. Their units follow Cards → Network Speed Unit. Network uses the same Collector, shows one busiest adapter, and does not add counters from overlapping adapters. Monitor icon/temperature color settings are separate from Desktop Auto Contrast.
 

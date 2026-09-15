@@ -2,6 +2,10 @@
 
 English first; 简体中文 follows each version. Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
+## Unreleased
+
+- Allow 0–100% Desktop text and topmost background opacity. Auto Contrast and topmost rendering no longer override text opacity; saved values and slider labels match the rendered result. Keep 55% as the topmost background default.
+
 ## 0.6.8 — 2026-09-15
 
 - Group settings by General, App Appearance, Desktop, App Cards, FPS and AI Quota, with wrapping navigation and responsive columns. Desktop layout, appearance and readings now share one page.

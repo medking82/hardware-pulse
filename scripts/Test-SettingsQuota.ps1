@@ -73,13 +73,22 @@ try {
  $nativeLayer=[HardwarePulse.DesktopLayer]::new($desktop)
  $layerField=$desktop.GetType().GetField('layer',$flags);$layerField.SetValue($desktop,$nativeLayer)
  try {
-  Toggle 'DesktopAlwaysOnTop' $true;Toggle 'DesktopLocked' $true;$shell.Save()
+  Toggle 'DesktopAlwaysOnTop' $true;Toggle 'DesktopLocked' $true;Settle;$desktop.RefreshLayer();$shell.Save()
   $reloaded=[HardwarePulse.Settings]::new((Join-Path $state 'widget-settings.json'));Assert ($reloaded.Flag('desktopAlwaysOnTop')) 'Topmost preference not persisted'
-  $style=[SettingsQuotaFixture]::Style($handle,-20).ToInt64()
-  Assert (($style -band 8) -ne 0 -and ($style -band 32) -ne 0 -and ($style -band 0x08000000) -ne 0 -and ($style -band 0x80000) -ne 0) ('Topmost locked style: 0x{0:X}' -f $style)
+  $handle=[Windows.Interop.WindowInteropHelper]::new($desktop).Handle;$style=[SettingsQuotaFixture]::Style($handle,-20).ToInt64()
+  Assert (($style -band 8) -ne 0 -and ($style -band 32) -ne 0 -and ($style -band 0x08000000) -ne 0 -and ($style -band 0x80000) -ne 0) ('Topmost style=0x{0:X}, layer={1}, current={2}, attached={3}, flag={4}' -f $style,$nativeLayer.GetType().GetField('hwnd',$flags).GetValue($nativeLayer),$handle,$nativeLayer.Attached,$settings.Flag('desktopAlwaysOnTop'))
   $surface=$desktop.Content;$stack=$desktop.GetType().GetField('stack',$flags).GetValue($desktop)
   Assert ($surface.Background.Color.R -eq 245 -and $surface.Background.Color.A -eq 140 -and $stack.Opacity -eq 1 -and $null -eq $stack.Effect) 'Topmost smoke background or sharp opaque text incorrect'
   Assert ($surface.VerticalAlignment -eq 'Top') 'Locked topmost background stretches into empty space'
+  foreach($alpha in @(0,15,55,100)){
+   $shell.Window.FindName('DesktopOverlayOpacity').Value=$alpha
+   $shell.Window.FindName('DesktopTextOpacity').Value=$alpha
+   Assert ($surface.Background.Color.A -eq [Math]::Round(255*$alpha/100) -and [Math]::Abs($stack.Opacity-$alpha/100) -lt .001) 'Topmost opacity does not match slider'
+   foreach($auto in @($false,$true)){Toggle 'DesktopAutoContrast' $auto;Assert ($shell.Window.FindName('DesktopTextOpacity').Value -eq $alpha -and [Math]::Abs($stack.Opacity-$alpha/100) -lt .001) 'Auto Contrast overrides user opacity'}
+  }
+  $shell.Window.FindName('DesktopTextOpacity').Value=15;$shell.Window.FindName('DesktopOverlayOpacity').Value=0;$shell.Save()
+  $opacitySaved=[HardwarePulse.Settings]::new((Join-Path $state 'widget-settings.json'));Assert ($opacitySaved.Number('desktopTextOpacity',100,0,100) -eq 15 -and $opacitySaved.Number('desktopOverlayOpacity',55,0,100) -eq 0) 'Low opacity does not survive reload'
+  $shell.Window.FindName('DesktopTextOpacity').Value=100
   $shell.Window.FindName('DesktopOverlayOpacity').Value=65
   Assert ($surface.Background.Color.A -eq 166) 'Topmost opacity slider not applied'
   Settle
@@ -89,9 +98,10 @@ try {
    $bitmap=[Windows.Media.Imaging.RenderTargetBitmap]::new([int]$desktop.ActualWidth,[int]$desktop.ActualHeight,96,96,[Windows.Media.PixelFormats]::Pbgra32);$bitmap.Render($visual)
    $png=[Windows.Media.Imaging.PngBitmapEncoder]::new();$png.Frames.Add([Windows.Media.Imaging.BitmapFrame]::Create($bitmap));$stream=[IO.File]::Create((Join-Path $state ('topmost-'+$background+'.png')));try{$png.Save($stream)}finally{$stream.Dispose()}
   }
-  Toggle 'DesktopLocked' $false;$style=[SettingsQuotaFixture]::Style($handle,-20).ToInt64()
+  Toggle 'DesktopLocked' $false;$handle=[Windows.Interop.WindowInteropHelper]::new($desktop).Handle;$style=[SettingsQuotaFixture]::Style($handle,-20).ToInt64()
   Assert (($style -band 8) -ne 0 -and ($style -band 32) -eq 0 -and ($style -band 0x08000000) -ne 0) 'Editing must retain topmost/no-activate but accept mouse input'
   Toggle 'DesktopAlwaysOnTop' $false;Toggle 'DesktopLocked' $true
+  $shell.Window.FindName('DesktopTextOpacity').Value=15;Toggle 'DesktopAutoContrast' $false;Toggle 'DesktopAutoContrast' $true;Assert ([Math]::Abs($stack.Opacity-.15) -lt .001) 'Desktop Auto Contrast changes text opacity'
   Assert ($surface.VerticalAlignment -eq 'Stretch') 'Desktop geometry not restored'
   $shell.Window.FindName('DesktopBackgroundOpacity').Value=40;Assert ($surface.Background.Color.A -eq 102) 'Desktop background opacity did not apply'
   Assert (([SettingsQuotaFixture]::Style($handle,-20).ToInt64() -band 8) -eq 0) 'Returning to Desktop retained topmost'

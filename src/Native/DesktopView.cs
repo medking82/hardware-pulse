@@ -138,7 +138,7 @@ namespace HardwarePulse {
             return automaticColor;
         }
         public void SetTextOpacity(double percent,bool automatic=false,bool overlay=false,double backgroundOpacity=55,double desktopBackgroundOpacity=-1){
-            stack.Opacity=overlay?1:Math.Max(automatic?.9:.3,Math.Min(1,percent/100));
+            stack.Opacity=Math.Max(0,Math.Min(1,percent/100));
             surface.VerticalAlignment=overlay&&locked?VerticalAlignment.Top:VerticalAlignment.Stretch;
             var tint=(Color)ColorConverter.ConvertFromString(lastColor??"#F5F7FA");
             editHint.Foreground=foreground;
@@ -146,7 +146,7 @@ namespace HardwarePulse {
             Color outline=DesktopContrast.Outline(tint);
             Color backing=outline==Colors.Black?Color.FromArgb(220,20,29,38):Color.FromArgb(230,245,247,250);
             if(!overlay&&desktopBackgroundOpacity>=0)backing.A=(byte)Math.Round(255*Math.Max(0,Math.Min(100,desktopBackgroundOpacity))/100);
-            if(overlay)backing=Color.FromArgb((byte)Math.Round(255*Math.Max(30,Math.Min(90,backgroundOpacity))/100),245,247,250);
+            if(overlay)backing=Color.FromArgb((byte)Math.Round(255*Math.Max(0,Math.Min(100,backgroundOpacity))/100),245,247,250);
             if(protection==null||((SolidColorBrush)protection).Color!=backing){protection=new SolidColorBrush(backing);protection.Freeze();}
             surface.Background=automatic||overlay||desktopBackgroundOpacity>0?protection:locked?Brushes.Transparent:new SolidColorBrush(Color.FromArgb(100,18,24,30));
             surface.BorderBrush=automatic||overlay?line:Brushes.Transparent;

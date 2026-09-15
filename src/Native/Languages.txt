@@ -249,3 +249,4 @@ Topmost background opacity|置顶背景不透明度|置頂背景不透明度
 Desktop background opacity|桌面背景不透明度|桌面背景不透明度
 Background opacity is separate from text. Topmost uses its own background setting. Desktop blur is not available.|背景与文字不透明度独立。置顶背景单独设置。桌面暂不支持模糊。|背景與文字不透明度獨立。置頂背景單獨設定。桌面暫不支援模糊。
 Selected|已选择|已選擇
+Auto Contrast adjusts colors. Background and text opacity always follow your sliders.|自动对比度调整配色。背景与文字不透明度始终按滑块设置生效。|自動對比度調整配色。背景與文字不透明度始終按滑桿設定生效。
