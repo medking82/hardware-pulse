@@ -83,3 +83,27 @@ in the candidate process. Absolute values are specific to this synthetic workloa
 It does not measure live capture, UI/collector RAM, local contrast, game frametime,
 long-duration leaks or another architecture/OS. PERF-01 remains incomplete until
 those matched scenes are measured. Raw local evidence: vendor/core-batch-bench.
+
+## FPS reusable statistics buffer (0.6.24)
+
+Run `scripts/Measure-FpsHistory.ps1` in PowerShell 7. Its default baseline is
+`51ef6d8dc61534c5896ccc18a869bb945202eebc` (0.6.23). Both sides compile optimized
+Framework x64 executables with the same harness. Each fresh process receives
+14,400 frames at 240 FPS over 60 seconds, warms up with 20 reads, then measures
+200 reads at timestamp 60. Three interleaved pairs, no forced GC/working-set trim.
+Native frame capture is not started. Raw results stay in the printed vendor path.
+
+| Measurement | Baseline range | Reusable-buffer range |
+| --- | --- | --- |
+| CPU ms/read | 1.25–1.41 | 0.2344 |
+| Elapsed ms/read | 1.27–1.47 | 0.23–0.26 |
+| Reported allocated bytes/read | 936,232 | 40 |
+| Final process private bytes | 24,059,904–24,096,768 | 17,174,528–17,231,872 |
+
+Allocation uses Framework AppDomain monitoring; the small remaining value should
+be treated as a reported average, not an exact object-size inventory. This shows
+substantially lower statistics-path allocation and CPU in the measured workload.
+The buffer retains up to 720,000 payload bytes per FrameHistory and is released on
+Clear. No refresh interval changed. Whole-app UI/collector RAM, Local Contrast,
+long-duration leaks and game frametime are not established by this microbenchmark;
+the remaining PERF-01 matched scenes still need measurement.

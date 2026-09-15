@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 public sealed class FrameMetrics {
     public double Current, Average, Minimum, Low;
@@ -13,7 +12,9 @@ namespace HardwarePulse {
 public sealed class FrameHistory {
     sealed class Frame { public double Ms; public double Time; }
     readonly Dictionary<string, Queue<Frame>> streams = new Dictionary<string, Queue<Frame>>();
-    public void Clear() { streams.Clear(); }
+    static readonly double[] Empty = new double[0];
+    double[] sorted = Empty;
+    public void Clear() { streams.Clear(); sorted = Empty; }
     public bool Add(string stream, double ms, double time) {
 
         if (Double.IsNaN(ms) || Double.IsInfinity(ms) || ms <= 0 || Double.IsNaN(time) || Double.IsInfinity(time)) return false;
@@ -27,17 +28,31 @@ public sealed class FrameHistory {
         return true;
     }
     public FrameMetrics ReadAt(double now) {
-
-        foreach(var queue in streams.Values) while(queue.Count > 0 && queue.Peek().Time < now-60) queue.Dequeue();
-        var best = streams.Values.Select(q=>new{Frames=q,Recent=q.Count(f=>f.Time>=now-1)})
-            .Where(s=>s.Recent>0).OrderByDescending(s=>s.Recent).Select(s=>s.Frames).FirstOrDefault();
-        if (best == null) return new FrameMetrics { Status = "Waiting for frames" };
-        var frames = best.ToArray(); var latest = frames.Where(f => f.Time >= now-1).ToArray();
-        var sorted = frames.Select(f => f.Ms).OrderByDescending(x => x).ToArray();
-        int count = Math.Max(1,(int)Math.Ceiling(frames.Length*.01));
-        return new FrameMetrics { Ready = latest.Length > 0, Status = latest.Length > 0 ? "Live" : "Waiting for frames", Count = frames.Length,
-            Current = latest.Length == 0 ? 0 : 1000/latest.Average(f=>f.Ms), Average = 1000/frames.Average(f=>f.Ms),
-            Minimum = 1000/sorted[0], Low = frames.Length < 100 ? Double.NaN : 1000/sorted.Take(count).Average() };
+        Queue<Frame> best=null;int bestRecent=0;
+        foreach(var queue in streams.Values) {
+            while(queue.Count>0 && queue.Peek().Time<now-60)queue.Dequeue();
+            int recent=0;foreach(var frame in queue)if(frame.Time>=now-1)recent++;
+            if(recent>bestRecent){best=queue;bestRecent=recent;}
+        }
+        if(best==null)return new FrameMetrics{Status="Waiting for frames"};
+        int length=best.Count;
+        if(length>=100 && sorted.Length<length)sorted=new double[Math.Min(90000,Math.Max(length,sorted.Length*2))];
+        double total=0,recentTotal=0,maximum=0;int index=0;
+        foreach(var frame in best){
+            total+=frame.Ms;if(frame.Time>=now-1)recentTotal+=frame.Ms;
+            if(frame.Ms>maximum)maximum=frame.Ms;
+            if(length>=100)sorted[index++]=frame.Ms;
+        }
+        double low=Double.NaN;
+        if(length>=100){
+            Array.Sort(sorted,0,length);
+            int count=Math.Max(1,(int)Math.Ceiling(length*.01));double slowTotal=0;
+            // Sum slowest frames in descending order, preserving previous Low semantics.
+            for(int i=length-1;i>=length-count;i--)slowTotal+=sorted[i];
+            low=1000/(slowTotal/count);
+        }
+        return new FrameMetrics{Ready=true,Status="Live",Count=length,
+            Current=1000/(recentTotal/bestRecent),Average=1000/(total/length),Minimum=1000/maximum,Low=low};
     }
 }
 }

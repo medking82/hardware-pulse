@@ -368,3 +368,22 @@ coercion, non-finite fallback, clamp boundaries, shared-map mutation, order filt
 and unknown-field retention. Native/material tests retain JSON roundtrip, saved
 preferences and migration assertions. No new timer, settings schema or platform
 storage implementation is introduced; rollback is the atomic source commit.
+
+## FPS statistics allocation optimization
+
+After `51ef6d8`, FrameHistory uses direct queue traversal and one reusable double
+buffer for Low sorting. The buffer grows only as required, never above 90,000
+entries (720,000 payload bytes), and Clear releases it. The host retains its
+existing synchronization and clock; no capture cadence, IPC, settings or UI
+policy changes. Frame objects and the existing bounded queues are unchanged.
+
+Recent-count stream selection retains first-enumerated ties. Current/Average use
+the same observation order; Minimum uses maximum duration and Low sums the slowest
+one percent in descending order. A smaller selected stream sorts only its populated
+buffer prefix. Tests cover randomized reference values, stream ties/tail reuse,
+existing bounds/stale/reset semantics and steady-read allocations. The allocation
+check fails before the change and passes on Framework/.NET 10 afterwards.
+
+Measure-FpsHistory.ps1 compares optimized x64 builds of the frozen baseline source
+and current source with identical observations; see PERFORMANCE.md. Whole-app and
+game performance remain separate measurements. Rollback is this source change.

@@ -2,6 +2,15 @@
 
 English first; 简体中文 follows each version. Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
+## 0.6.24 — 2026-09-15
+
+- Reduce FPS statistics allocation by reusing a bounded sorting buffer and replacing temporary LINQ arrays with direct history traversal. Clear releases the buffer.
+- Preserve Current, Average, Minimum, 1% Low, active stream selection, history limits and refresh intervals.
+- Add randomized/reference, tie selection, smaller-stream reuse and steady-allocation regression tests on Framework and .NET 10.
+- Add a reproducible x64 FPS microbenchmark: CPU 1.25–1.41 to about 0.23 ms/read; reported allocation 936,232 to 40 bytes/read in the fixed 14,400-frame workload. This does not establish whole-app or game performance gains.
+
+FPS statistics 改为复用 bounded buffer，减少每次 read 的 temporary allocation。数值语义、history bounds 和 refresh interval 保持不变；Framework/.NET 10 与 native regression checks 通过。Benchmark 仅代表固定 FPS workload。
+
 ## 0.6.23 — 2026-09-15
 
 - Extract Windows memory and hardware inventory sampling into the Windows adapter, and move existing material policy into shared Core.
