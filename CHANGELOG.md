@@ -2,6 +2,14 @@
 
 English first; 简体中文 follows each version. Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
+## 0.6.6 — 2026-09-15
+
+- Distinguish Desktop LAN, Wi-Fi link speed and signal readings with original Ethernet, wireless and signal-bar SVG icons; preserve App palette preferences.
+- New installs start with 30% background opacity, #35383B tint and system glass enabled. Saved preferences are preserved.
+- Refresh the GitHub hero using actual WPF UI and SVG artwork with fictional demo readings.
+
+Desktop 的 LAN、Wi-Fi link speed 和 signal 使用独立 SVG。新安装默认背景不透明度 30%、#35383B、开启系统毛玻璃；已有设置保持不变。GitHub hero 使用实际 WPF render 和 demo 数据。
+
 ## 0.6.5 — 2026-09-15
 
 - Show independent LAN and Wi-Fi negotiated link speeds in App and Desktop; Wi-Fi rate and signal update even when LAN carries most traffic.

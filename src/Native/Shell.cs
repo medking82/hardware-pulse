@@ -47,7 +47,7 @@ namespace HardwarePulse {
             Window.Width=settings.Number("width",280,240,Math.Max(240,area.Width));Window.Height=settings.Number("height",Math.Max(340,Math.Min(650,Math.Floor(area.Height*.9))),340,Math.Max(340,area.Height));
             if(settings.Data.ContainsKey("left")){Window.WindowStartupLocation=WindowStartupLocation.Manual;Window.Left=settings.Number("left",area.Left,area.Left,Math.Max(area.Left,area.Right-Window.Width));Window.Top=settings.Number("top",area.Top,area.Top,Math.Max(area.Top,area.Bottom-Window.Height));}
             Window.FontSize=settings.Number("fontSize",settings.Flag("large")?14:12,10,16);Window.Topmost=settings.Flag("pin");locked=settings.Flag("positionLocked");
-            Control<CheckBox>("Pin").IsChecked=Window.Topmost;Control<CheckBox>("Solid").IsChecked=settings.Flag("solid");Control<Slider>("OpacitySlider").Value=settings.Number("opacity",70,0,100);Control<Slider>("FontSizeSlider").Value=Window.FontSize;
+            Control<CheckBox>("Pin").IsChecked=Window.Topmost;Control<CheckBox>("Solid").IsChecked=settings.Flag("solid");Control<Slider>("OpacitySlider").Value=settings.Number("opacity",30,0,100);Control<Slider>("FontSizeSlider").Value=Window.FontSize;
             Control<ContentControl>("BrandIcon").Content=Icon("live",22,"#A5E7D5");Window.Icon=BitmapFrame.Create(new Uri(Path.Combine(paths.Root,"assets","pulse.ico")));
             BuildCards();WireSettings();WireReadingColors();WireNetwork();WireQuota();BuildTray();WireDesktop();WireOverlay();WireUpdater();ThemeCatalog();Localize();
             Window.SourceInitialized+=delegate{WindowSnap.Attach(Window);ApplyLock();ApplyMaterial();};
