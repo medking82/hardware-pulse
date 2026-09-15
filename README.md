@@ -6,6 +6,8 @@
 
 [Changelog / 更新记录](CHANGELOG.md)
 
+[Visual quick guides / 操作示意图](docs/QUICKSTART.md) — Desktop move/resize/lock · Screenshot mode · App controls and FPS
+
 [MIT License](LICENSE) · [Privacy policy](PRIVACY.md) · [Code signing policy](SIGNING.md)
 
 [Dependency maintenance and Linux/macOS roadmap](docs/DEPENDENCIES.md)

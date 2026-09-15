@@ -5,7 +5,6 @@ if(-not $AppPath){$AppPath=Join-Path $root 'build/native/app'}
 if(-not $OutputPath){$OutputPath=Join-Path $root 'docs/showcase/pulse-hero.png'}
 Add-Type -AssemblyName PresentationFramework,PresentationCore,WindowsBase,System.Xaml,System.Windows.Forms
 [void][Reflection.Assembly]::LoadFrom((Join-Path $AppPath 'HardwarePulse.exe'))
-$version=[HardwarePulse.Shell].Assembly.GetName().Version.ToString(3)
 $state=Join-Path $root ('vendor/hero-'+[Guid]::NewGuid().ToString('N'))
 $paths=[HardwarePulse.PulsePaths]::new($AppPath,$state,(Join-Path $state 'runtime'))
 $demo=[HardwarePulse.RawSnapshot]::new();$demo.schema=2;$demo.pid=1;$demo.sequence=1;$demo.time=[DateTimeOffset]::Now.ToString('o');$demo.memoryName='32 GB DDR5 · Demo memory';$demo.boardName='Demo motherboard'
@@ -53,7 +52,12 @@ try {
  $appImage=Snapshot $shell.Window
  $toggle=$shell.Window.FindName('DesktopEnabled');$toggle.IsChecked=$true;$toggle.RaiseEvent([Windows.RoutedEventArgs]::new([Windows.Controls.Primitives.ButtonBase]::ClickEvent))
  $lock=$shell.Window.FindName('DesktopLocked');$lock.IsChecked=$true;$lock.RaiseEvent([Windows.RoutedEventArgs]::new([Windows.Controls.Primitives.ButtonBase]::ClickEvent));Settle
- $desktop=$shell.GetType().GetField('desktop',$flags).GetValue($shell);$desktopImage=Snapshot $desktop
+ $desktop=$shell.GetType().GetField('desktop',$flags).GetValue($shell)
+ $shell.GetType().GetField('overlayTimer',$flags).GetValue($shell).Stop()
+ $shell.GetType().GetField('settings',$flags).GetValue($shell).Map('desktopVisible')['fps']=$true
+ $fps=[FrameMetrics]::new();$fps.Ready=$true;$fps.Current=144;$fps.Average=128;$fps.Minimum=60;$fps.Status='Live'
+ $shell.GetType().GetMethod('SetDesktopFps',$flags).Invoke($shell,@($fps))
+ $shell.GetType().GetMethod('UpdateDesktop',$flags).Invoke($shell,@());Settle;$desktopImage=Snapshot $desktop
  $drawing=[Windows.Media.DrawingVisual]::new();$dc=$drawing.RenderOpen()
  $background=[Windows.Media.LinearGradientBrush]::new((Brush '#101A26').Color,(Brush '#172E36').Color,25);$dc.DrawRectangle($background,$null,[Windows.Rect]::new(0,0,1920,1280))
  foreach($spot in @(@(300,400,900,750,'#605C9BA0'),@(1350,300,850,900,'#60717CBD'),@(850,1000,1000,800,'#5035676D'))){
@@ -61,8 +65,8 @@ try {
  }
  Text $dc 'HARDWARE PULSE' 72 46 18 '#98C7C6' $true
  Text $dc 'Your desktop. In focus.' 68 83  60 '#F0F6FA' $true
- Text $dc 'Hardware, connections and AI quota — one quiet view.' 72 169 25 '#AEC1CE'
- Text $dc ('WINDOWS  ·  '+$version) 1592 61 18 '#C1D1DD'
+ Text $dc 'Hardware, FPS, connections and AI quota — one quiet view.' 72 169 25 '#AEC1CE'
+ Text $dc 'WINDOWS DESKTOP' 1592 61 18 '#C1D1DD'
  Text $dc 'APP / ADAPTIVE CARDS' 74 234 17 '#8EDBCC' $true
  Text $dc 'DESKTOP / AT A GLANCE' 1280 234 17 '#8EDBCC' $true
  $dc.DrawRoundedRectangle((Brush '#70030B11'),$null,[Windows.Rect]::new(66,283,1140,914),22,22)
@@ -74,4 +78,26 @@ try {
  Text $dc 'Actual WPF UI + shipped SVG icons  /  Fictional demo data' 76 1216 18 '#93AAB9'
  $dc.Close();$result=[Windows.Media.Imaging.RenderTargetBitmap]::new(1920,1280,96,96,[Windows.Media.PixelFormats]::Pbgra32);$result.Render($drawing);$png=[Windows.Media.Imaging.PngBitmapEncoder]::new();$png.Frames.Add([Windows.Media.Imaging.BitmapFrame]::Create($result));$stream=[IO.File]::Create($OutputPath);try{$png.Save($stream)}finally{$stream.Dispose()}
  Write-Output $OutputPath
+ function Guide($file,$title,$subtitle,$steps,$visualImage){
+  $canvas=[Windows.Media.DrawingVisual]::new();$ctx=$canvas.RenderOpen()
+  $ctx.DrawRectangle([Windows.Media.LinearGradientBrush]::new((Brush '#142430').Color,(Brush '#284342').Color,30),$null,[Windows.Rect]::new(0,0,1600,1100))
+  Text $ctx 'HARDWARE PULSE / QUICK GUIDE' 64 40 17 '#9EDFD3' $true
+  Text $ctx $title 60 85 40 '#F0F6FA' $true
+  Text $ctx $subtitle 64 148 20 '#BACDD5'
+  $y=240
+  foreach($step in $steps){Text $ctx $step[0] 64 $y 24 '#9EDFD3' $true;Text $ctx ($step[1].Replace('\n',"`n")) 64 ($y+46) 20 '#E0EBEF';$y+=180}
+  $scale=[Math]::Min(940/$visualImage.Width,820/$visualImage.Height);$w=$visualImage.Width*$scale;$h=$visualImage.Height*$scale
+  $rect=[Windows.Rect]::new((580+(940-$w)/2),210,$w,$h)
+  $ctx.DrawRoundedRectangle((Brush '#8024323D'),[Windows.Media.Pen]::new((Brush '#6088BDB1'),1),$rect,18,18);$ctx.DrawImage($visualImage,$rect)
+  Text $ctx 'Actual WPF UI + shipped SVG icons / Fictional demo data' 64 1050 17 '#A4BBC3'
+  $ctx.Close();$bitmap=[Windows.Media.Imaging.RenderTargetBitmap]::new(1600,1100,96,96,[Windows.Media.PixelFormats]::Pbgra32);$bitmap.Render($canvas)
+  $encoder=[Windows.Media.Imaging.PngBitmapEncoder]::new();$encoder.Frames.Add([Windows.Media.Imaging.BitmapFrame]::Create($bitmap));$path=Join-Path (Split-Path $OutputPath) $file;$stream=[IO.File]::Create($path);try{$encoder.Save($stream)}finally{$stream.Dispose()};Write-Output $path
+ }
+ $shell.GetType().GetMethod('SetDesktopLocked',$flags).Invoke($shell,@($false));Settle
+ Guide 'desktop-edit-guide.png' 'Move it. Size it. Lock it.' 'Arrange your Desktop panel without opening a separate layout editor.' @(@('01 / UNLOCK','Tray > Edit Desktop'),@('02 / POSITION','Drag text to move.\nDrag an edge to resize.'),@('03 / FINISH','Click Lock Desktop.\nUnlock again from the tray.')) (Snapshot $desktop)
+ $shell.GetType().GetMethod('SetDesktopLocked',$flags).Invoke($shell,@($true));$shell.Show();$shell.ShowSettings($true)
+ $shell.GetType().GetMethod('SelectSettingsCategory',$flags).Invoke($shell,@('Desktop'));$shell.Window.FindName('DesktopScreenshot').BringIntoView();Settle
+ Guide 'screenshot-guide.png' 'Capture the whole picture.' 'Include Pulse when Local Contrast would normally exclude it from captures.' @(@('01 / START','Tray or Desktop settings:\nScreenshot mode'),@('02 / CAPTURE','Press Win + Shift + S\nwithin 15 seconds.'),@('03 / RESUME','Local Contrast resumes\nautomatically.')) (Snapshot $shell.Window)
+ $shell.ShowSettings($false);$shell.Window.FindName('Status').Text='● Live · Demo readings';Settle
+ Guide 'app-controls-guide.png' 'One home for live readings.' 'Hardware cards, Desktop controls and FPS capture stay within reach.' @(@('01 / LIVE DETAILS','Use Details for additional\nsensor readings.'),@('02 / DESKTOP','Desktop opens the panel\non your wallpaper.'),@('03 / FPS','Use the FPS switch.\nChoose a target in Settings.')) (Snapshot $shell.Window)
 }finally{$shell.Exit()}
