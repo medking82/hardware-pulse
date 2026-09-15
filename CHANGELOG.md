@@ -2,6 +2,13 @@
 
 English first; 简体中文 follows each version. Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
+## 0.6.4 — 2026-09-15
+
+- Launching the App shortcut again signals the existing instance to show its home instead of silently exiting. Hidden, minimized and Desktop-mode windows are restored without creating a second UI or Collector.
+- Queue activation during initial startup and transfer foreground permission to the matching running executable.
+
+再次点击 App shortcut 会唤回现有首页，支持 hidden、minimized 和 Desktop mode；复用现有 App 与 Collector。
+
 ## 0.6.3 — 2026-09-15
 
 - Include Codex HTTP additional quota pools in All available display; preserve the essential Weekly-only Desktop display.

@@ -100,6 +100,10 @@ internal static class NativeTests {
     static void Capture(Shell shell,string path){shell.Window.UpdateLayout();var bitmap=new RenderTargetBitmap((int)shell.Window.ActualWidth,(int)shell.Window.ActualHeight,96,96,PixelFormats.Pbgra32);bitmap.Render(shell.Window);var encoder=new PngBitmapEncoder();encoder.Frames.Add(BitmapFrame.Create(bitmap));using(var file=File.Create(path))encoder.Save(file);}
     [STAThread] static int Main(string[] args){
         try{
+            if(args.Length==2&&args[0]=="--activation-test"){
+                using(var sender=new AppActivation(args[1]))sender.Notify(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"HardwarePulse.exe"));
+                return 0;
+            }
             if(args.Length<2||(args[1]!="bench"&&args[1]!="perf"))NativeStartupTests.Run();
             string root=AppDomain.CurrentDomain.BaseDirectory,state=Path.GetFullPath(args[0]);Directory.CreateDirectory(state);
             var paths=new PulsePaths(root,state,Path.Combine(state,"runtime"));Json.WriteAtomic(paths.Snapshot,Snapshot());
@@ -153,6 +157,23 @@ internal static class NativeTests {
                     startupShell.Window.WindowState=WindowState.Minimized;
                     Field<System.Windows.Forms.ToolStripMenuItem>(startupShell,"trayShow").PerformClick();Pump();
                     Assert(startupShell.Window.WindowState==WindowState.Normal,"Tray Show must restore a minimized App");
+                    string activationName="Local\\PulseActivationTest."+Guid.NewGuid().ToString("N");
+                    using(var receiver=new AppActivation(activationName)){
+                        startupShell.ShowSettings(true);startupShell.Window.Hide();
+                        var desktopBefore=Field<DesktopView>(startupShell,"desktop");
+                        // Signal from a second process before listening, covering slow initial startup.
+                        using(var child=Process.Start(new ProcessStartInfo(Assembly.GetExecutingAssembly().Location,"--activation-test "+activationName){UseShellExecute=false,CreateNoWindow=true,RedirectStandardOutput=true,RedirectStandardError=true})){
+                            Assert(child.WaitForExit(5000)&&child.ExitCode==0,"Second launch notification failed");
+                        }
+                        receiver.Listen(startupShell.Window.Dispatcher,startupShell.ShowHome);
+                        var wait=Stopwatch.StartNew();while(!startupShell.Window.IsVisible&&wait.ElapsedMilliseconds<3000){Pump();System.Threading.Thread.Sleep(10);}
+                        Assert(startupShell.Window.IsVisible&&startupShell.Control<ScrollViewer>("SettingsPage").Visibility==Visibility.Collapsed,"Second process must restore the existing App home");
+                        Assert(object.ReferenceEquals(desktopBefore,Field<DesktopView>(startupShell,"desktop")),"Activation replaced the Desktop panel");
+                        startupShell.Window.WindowState=WindowState.Minimized;
+                        using(var sender=new AppActivation(activationName))sender.Notify(Path.Combine(root,"HardwarePulse.exe"));
+                        wait.Restart();while(startupShell.Window.WindowState==WindowState.Minimized&&wait.ElapsedMilliseconds<3000){Pump();System.Threading.Thread.Sleep(10);}
+                        Assert(startupShell.Window.WindowState==WindowState.Normal,"Repeated launch did not restore minimized App");
+                    }
                     startupShell.Exit();
                 }
             }
