@@ -6,17 +6,6 @@ using System.Linq;
 using System.Web.Script.Serialization;
 
 namespace HardwarePulse {
-    public sealed class QuotaWindow {
-        public string Label;
-        public double? Remaining;
-        public DateTimeOffset? Reset;
-    }
-    public sealed class QuotaReading {
-        public string Provider,Status="Quota unavailable";
-        public DateTimeOffset Observed;
-        public List<QuotaWindow> Windows=new List<QuotaWindow>();
-        public List<QuotaWindow> AllWindows=new List<QuotaWindow>();
-    }
     // Response-shape mapping adapted from Token Monitor (MIT); see licenses/TokenMonitor.txt.
     public static class QuotaData {
         public static Dictionary<string,object> Parse(string text){return new JavaScriptSerializer{MaxJsonLength=1048576,RecursionLimit=32}.Deserialize<Dictionary<string,object>>(text);}

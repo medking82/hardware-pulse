@@ -3,7 +3,7 @@ $ErrorActionPreference='Stop'
 Add-Type -AssemblyName PresentationFramework,PresentationCore,WindowsBase,System.Xaml,System.Windows.Forms
 $app=[IO.Path]::GetFullPath($AppPath)
 [void][Reflection.Assembly]::LoadFrom((Join-Path $app 'HardwarePulse.exe'))
-$compiler=[CodeDom.Compiler.CompilerParameters]::new();[void]$compiler.ReferencedAssemblies.Add((Join-Path $app 'HardwarePulse.exe'));[void]$compiler.ReferencedAssemblies.Add('System.Web.Extensions.dll')
+$compiler=[CodeDom.Compiler.CompilerParameters]::new();[void]$compiler.ReferencedAssemblies.Add((Join-Path $app 'HardwarePulse.exe'));[void]$compiler.ReferencedAssemblies.Add((Join-Path $app 'Pulse.Core.dll'));[void]$compiler.ReferencedAssemblies.Add('System.Web.Extensions.dll')
 Add-Type -CompilerParameters $compiler -TypeDefinition @'
 using System;using System.Threading;using HardwarePulse;
 public static class SettingsQuotaFixture {

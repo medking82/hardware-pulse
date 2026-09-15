@@ -5,6 +5,21 @@ class CoreTests {
     static void Check(bool ok,string message){if(!ok)throw new Exception(message);}
     static byte[] Frame(int width,int height,Func<int,int,byte> shade){var data=new byte[width*height*4];for(int y=0;y<height;y++)for(int x=0;x<width;x++){int i=(y*width+x)*4;data[i]=data[i+1]=data[i+2]=shade(x,y);data[i+3]=255;}return data;}
     static void Main(){
+        Check(typeof(QuotaReading).Assembly==typeof(ContrastAnalysis).Assembly&&typeof(NetworkRate).Assembly==typeof(ContrastAnalysis).Assembly,"Quota/network boundary depends on the app");
+        var quota=new QuotaReading();
+        quota.AllWindows.Add(new QuotaWindow {Label="5-hour",Remaining=0});
+        Check(quota.Status=="Quota unavailable"&&quota.Windows.Count==0&&quota.AllWindows[0].Remaining==0&&!new QuotaWindow().Remaining.HasValue,"Quota defaults, separate window lists or unknown/zero semantics changed");
+        var culture=System.Threading.Thread.CurrentThread.CurrentCulture;
+        try {
+            System.Threading.Thread.CurrentThread.CurrentCulture=System.Globalization.CultureInfo.InvariantCulture;
+            Check(NetworkRate.Link(0)=="Disconnected"&&NetworkRate.Link(5760000000)=="5.76 Gbit/s"&&NetworkRate.Link(65000000)=="65 Mbit/s","Link units or disconnected state changed");
+            Check(NetworkRate.Format(1000000,"auto")=="1 MB/s"&&NetworkRate.Format(999000,"auto")=="999 KB/s"&&NetworkRate.Format(125000,"Mbit/s")=="1 Mbit/s","Network decimal units or auto threshold changed");
+            Check(NetworkRate.Format(1250,"invalid")=="1.25 KB/s"&&NetworkRate.Format(1000000,"KB/s")=="1000 KB/s","Explicit unit or fallback changed");
+            foreach(double invalid in new[]{double.NaN,double.PositiveInfinity,double.NegativeInfinity,-1d})Check(NetworkRate.Link(invalid)=="—"&&NetworkRate.Format(invalid,"auto")=="—","Unavailable network value became a reading");
+            System.Threading.Thread.CurrentThread.CurrentCulture=System.Globalization.CultureInfo.GetCultureInfo("de-DE");
+            Check(NetworkRate.Format(1250,"KB/s")=="1,25 KB/s"&&NetworkRate.Link(5760000000)=="5,76 Gbit/s","Host culture formatting changed");
+        } finally {System.Threading.Thread.CurrentThread.CurrentCulture=culture;}
+        Console.WriteLine("PASS portable quota contracts and network formatting: unknown vs zero, full/compact windows, units, invalid values and host culture");
         // Exercise the exact session assembly consumed by the app with no files or Windows adapter.
         Check(typeof(Reading).Assembly==typeof(ContrastAnalysis).Assembly&&typeof(ReadingSession).Assembly==typeof(ContrastAnalysis).Assembly,"Readings/session were not extracted into Core");
         var now=new DateTimeOffset(2026,9,15,0,0,0,TimeSpan.Zero);int calls=0;

@@ -110,9 +110,9 @@ fixture is named Pulse.SensorFixture.dll to avoid colliding with the real Core D
 The installer includes that real Core DLL through the existing app payload.
 
 The four intended boundaries remain Core, platform adapters, presentation and
-platform host. Only the evidenced reading boundary is extracted here. Quota
-contracts, shared formatting and platform-specific tray/startup/capture remain
-follow-up work. Existing elevated Collector isolation, FPS protocol, settings,
+platform host. Reading contracts/session, quota contracts and network formatting
+are extracted into Core. Other formatting and platform-specific tray/startup/capture
+remain follow-up work. Existing elevated Collector isolation, FPS protocol, settings,
 installation/update trust checks and all refresh intervals are unchanged.
 
 Validation: Core-only source tests; Windows snapshot offline/live/stale, malformed
@@ -121,3 +121,29 @@ sensor parity; complete Validate.ps1 including WPF/Desktop, FPS, quota, startup,
 diagnostic export and installer payload checks. Core remains AnyCPU built with the
 Framework compiler; modern .NET and ARM64/Linux/macOS runtime validation is still
 outstanding. No new cross-platform support or memory reduction is claimed.
+
+## Quota contracts and network formatting
+
+The next extraction uses baseline `547e2c8`. `QuotaReading` and `QuotaWindow`
+previously shared QuotaData.cs with System.Web response parsing. They now live in
+Core; QuotaData, provider credentials/requests and QuotaSession orchestration remain
+in Native. Consumers are QuotaSession, QuotaView, Desktop, provider adapters and
+the quota/hero fixtures. Unknown Remaining is null, distinct from zero remaining;
+Windows and AllWindows retain their separate compact/full collections. Status,
+timestamps, field names and mutable DTO compatibility are unchanged. This boundary
+contains semantic results only, never credentials or provider JSON.
+
+`NetworkRate.Link` and `NetworkRate.Format` now live in Core instead of sharing a
+file with Shell.WireNetwork. Cards and Desktop reuse the same decimal unit,
+precision, invalid-value and disconnected-state rules. CurrentCulture remains
+host-owned; localization of Disconnected remains in presentation. WPF unit selection
+and settings persistence remain in Native. Hardware/FPS formatting is not changed.
+
+CoreTests cover unknown versus zero quota, separate window collections, network
+unit thresholds and overrides, invalid values and a non-dot decimal culture.
+Settings quota and hero CodeDom fixtures explicitly reference Pulse.Core.dll.
+The existing full Validate suite remains the integration check for parser, lifecycle,
+WPF and package compatibility. No process, timer, polling interval or privilege
+boundary changes; no measurable performance improvement is implied by extraction.
+Both this extraction and the preceding reading extraction can be reverted as
+source-only commits without migrating user settings or stored data.
