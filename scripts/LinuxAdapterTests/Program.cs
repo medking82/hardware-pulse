@@ -59,5 +59,6 @@ static class Program {
             Check(rejected,"Reject live procfs on non-Linux host");
         }
         Console.WriteLine("PASS Linux adapter fixtures");
+        NetworkTests.Run(Array.IndexOf(args,"--live")>=0);
     }
 }

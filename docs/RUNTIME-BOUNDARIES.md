@@ -582,3 +582,25 @@ ReadingSession integration both passed at commit
 [Linux adapter CI](https://github.com/medking82/hardware-pulse/actions/runs/34975685365).
 Windows fixture execution and the full `Validate.ps1 -ModernCore` regression also
 passed. This does not yet establish polling overhead or container-aware metrics.
+## Linux Network reader prototype
+
+`LinuxNetworkReadings(interfaceName)` supplies the same `ReadingSession` delegate
+boundary for one explicitly selected interface. It reads `/proc/net/dev` once
+per poll, reports `netDown` / `netUp` in bytes per second, and retains the selected
+name in `names["Network"]`. The host owns interface selection and serial polling;
+no worker, shell command, privilege change or automatic aggregation is added.
+The monotonic clock is independent of the Reading's wall-clock timestamp.
+
+Warmup, nonpositive intervals, reset counters, missing interfaces and read errors
+produce unavailable readings rather than fake zero traffic. Recovery establishes
+a new baseline. Unchanged counters over a valid interval represent actual zero.
+The source reflects the process's network namespace. Link speed, physical-link
+classification, Wi-Fi signal and automatic routing/interface selection are not
+implemented by this throughput reader. See the
+[kernel statistics interface](https://docs.kernel.org/networking/statistics.html).
+
+LinuxAdapterTests includes deterministic reset/recovery, exact interface matching,
+64-bit counter precision and clock tests. Its existing `--live` path also sends a
+single local UDP packet over loopback and verifies positive RX/TX via Core
+ReadingSession; it makes no external network request. The Ubuntu x64/ARM64 workflow
+runs these assertions. Windows App behavior and packaging remain unchanged.
