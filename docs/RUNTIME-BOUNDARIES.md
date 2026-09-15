@@ -409,3 +409,30 @@ and input/result independence. Full native validation retains Cards/Desktop/quot
 ordering and drag regression checks. Allowed scope is this Core overload, its
 three consumers, tests and this document; rollback is the atomic source commit,
 with no user-data migration. The extraction alone does not require a new installer.
+
+## Portable column layout
+
+From baseline `fac8a12`, ColumnLayout in Core owns the width/column calculation
+used by ResponsivePanel for Cards, quota Cards, Settings sections and Desktop.
+It returns logical width, column count and cell width as a value type. The host
+supplies minimum column width, requested columns and the previous measured count.
+The existing maximum of three columns, 10-unit gap and 16-unit auto-growth
+hysteresis are unchanged. Initial measurement has no previous-count hysteresis;
+manual selection still falls back to what fits, and shrinking remains immediate.
+
+ResponsivePanel retains child measurement, row/independent-column placement,
+visibility filtering, animation, hit testing and drag state. Font/DPI conversion,
+Desktop fit-to-screen behavior and settings persistence remain host-owned. The
+Core calculation accepts the same host-constrained inputs as the former private
+method; this is not a new input-validation boundary. It creates no worker, timer
+or reference-type result. No smoother animation or reduced CPU/memory is claimed
+from extraction alone.
+
+Framework and .NET 10 tests cover an explicit grow/shrink width sequence around
+both thresholds, initial/manual modes, maximum columns, unbounded measurement,
+positive cell width at a zero-width viewport and font-dependent Desktop minimums.
+Full Validate retains actual WPF width/column, Desktop overflow, settings and drag
+regressions. Scope is this calculation, its ResponsivePanel consumer and tests;
+rollback is one atomic source commit without a settings migration. Native ARM64,
+Linux and macOS views remain unimplemented. No standalone installer is needed for
+this behavior-preserving boundary change.

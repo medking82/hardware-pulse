@@ -4,7 +4,30 @@ using HardwarePulse;
 class CoreTests {
     static void Check(bool ok,string message){if(!ok)throw new Exception(message);}
     static byte[] Frame(int width,int height,Func<int,int,byte> shade){var data=new byte[width*height*4];for(int y=0;y<height;y++)for(int x=0;x<width;x++){int i=(y*width+x)*4;data[i]=data[i+1]=data[i+2]=shade(x,y);data[i+3]=255;}return data;}
+    static void CheckColumnLayout(){
+        Check(typeof(ColumnLayout).Assembly==typeof(Reading).Assembly,"Column layout is not portable Core");
+        var first=new ColumnLayout(550,270,0,0);
+        Check(first.Columns==2&&first.CellWidth==270,"First measure must use available columns without hysteresis");
+        int previous=1;double[] widths={549,550,565.99,566,560,549,550,566,845.99,846,830,829.99};
+        int[] expected={1,1,1,2,2,1,1,2,2,3,3,2};
+        for(int i=0;i<widths.Length;i++){
+            var layout=new ColumnLayout(widths[i],270,0,previous);
+            Check(layout.Columns==expected[i],"Auto column threshold or shrink behavior changed at "+widths[i]);
+            Check(Math.Abs(layout.CellWidth*layout.Columns+ColumnLayout.Gap*(layout.Columns-1)-layout.Width)<.000001,"Cells and gaps must fill available width");
+            previous=layout.Columns;
+        }
+        Check(new ColumnLayout(550,270,2,1).Columns==2,"Manual columns must not wait for auto hysteresis");
+        Check(new ColumnLayout(549,270,3,3).Columns==1,"Manual request cannot exceed fit");
+        Check(new ColumnLayout(2000,270,1,3).Columns==1&&new ColumnLayout(2000,270,9,1).Columns==3,"Requested count or three-column limit changed");
+        var unbounded=new ColumnLayout(double.PositiveInfinity,270,3,0);
+        Check(unbounded.Width==830&&unbounded.CellWidth==270&&unbounded.Columns==3,"Unbounded measure uses requested natural width");
+        Check(new ColumnLayout(double.PositiveInfinity,270,0,0).Width==270,"Unbounded auto measure uses one natural column");
+        var narrow=new ColumnLayout(0,270,0,0);Check(narrow.Columns==1&&narrow.CellWidth==1,"Narrow viewport retains positive cell width");
+        Check(new ColumnLayout(793.99,384,0,1).Columns==1&&new ColumnLayout(794,384,0,1).Columns==2,"Font-dependent minimum must control desktop columns");
+        Console.WriteLine("PASS portable column layout: initial/manual/auto fit, hysteresis, shrink, unbounded measure and font-dependent widths");
+    }
     static void Main(){
+        CheckColumnLayout();
         Check(typeof(MaterialPolicy).Assembly==typeof(Reading).Assembly,"Material policy still depends on platform assembly");
         var lockedMaterial=new MaterialPolicy(20,true,false,false,false);
         Check(lockedMaterial.Clear&&lockedMaterial.EffectiveOpacity(true)==.05,"Locked monitor opacity changed");

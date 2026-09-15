@@ -19,14 +19,13 @@ namespace HardwarePulse {
         public bool Dragging;
         public bool IndependentColumns;
         readonly Dictionary<UIElement,Rect> slots=new Dictionary<UIElement,Rect>();
-        const double Gap=10;
+        const double Gap=ColumnLayout.Gap;
         double arrangedWidth;
         int arrangedColumns;
         bool animateLayout;
-        int Count(double width){int fit=Math.Max(1,(int)Math.Floor((width+Gap)/(MinimumColumnWidth+Gap)));int count=Math.Max(1,Math.Min(RequestedColumns>0?Math.Min(3,RequestedColumns):3,fit));if(RequestedColumns==0&&Columns>0&&count>Columns&&width<count*MinimumColumnWidth+(count-1)*Gap+16)return Columns;return count;}
         protected override Size MeasureOverride(Size available){
-            double width=double.IsInfinity(available.Width)?MinimumColumnWidth*Math.Max(1,RequestedColumns)+Gap*Math.Max(0,RequestedColumns-1):available.Width;
-            Columns=Count(width);CellWidth=Math.Max(1,(width-Gap*(Columns-1))/Columns);
+            var layout=new ColumnLayout(available.Width,MinimumColumnWidth,RequestedColumns,Columns);
+            double width=layout.Width;Columns=layout.Columns;CellWidth=layout.CellWidth;
             if(IndependentColumns){var heights=new double[Columns];int at=0;foreach(UIElement child in Children){if(child.Visibility==Visibility.Collapsed)continue;child.Measure(new Size(CellWidth,double.PositiveInfinity));heights[at++%Columns]+=child.DesiredSize.Height+RowGap;}return new Size(width,Math.Max(0,heights.Max()-RowGap));}
             double height=0,row=0;int index=0;
             foreach(UIElement child in Children){if(child.Visibility==Visibility.Collapsed)continue;child.Measure(new Size(CellWidth,double.PositiveInfinity));row=Math.Max(row,child.DesiredSize.Height);if(++index%Columns==0){height+=row+RowGap;row=0;}}
