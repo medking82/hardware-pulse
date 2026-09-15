@@ -14,9 +14,9 @@ namespace HardwarePulse {
         string desktopFpsAverage="—",desktopFpsMinimum="—";
         string desktopFpsStatus="Waiting for target app";
         void SetDesktopFps(FrameMetrics sample){
-            desktopFpsValue=sample.Ready?sample.Current.ToString("0"):"—";
-            desktopFpsAverage=sample.Ready?sample.Average.ToString("0"):"—";
-            desktopFpsMinimum=sample.Ready?sample.Minimum.ToString("0"):"—";
+            desktopFpsValue=sample.Ready?ReadingFormat.SensorNumber(sample.Current,"FPS"):"—";
+            desktopFpsAverage=sample.Ready?ReadingFormat.SensorNumber(sample.Average,"FPS"):"—";
+            desktopFpsMinimum=sample.Ready?ReadingFormat.SensorNumber(sample.Minimum,"FPS"):"—";
             desktopFpsStatus=sample.Status;
         }
         string DesktopColor(){string hex=settings.Text("desktopColor","#E4F3EF");return System.Text.RegularExpressions.Regex.IsMatch(hex,"^#[0-9a-fA-F]{6}$")?hex:"#E4F3EF";}
@@ -106,9 +106,9 @@ namespace HardwarePulse {
             desktop.BeginScreenshot();
             if(!isolated)tray.ShowBalloonTip(4000,"Pulse",language.T("Use Win+Shift+S now. Local contrast resumes in 15 seconds."),Forms.ToolTipIcon.Info);
         }
-        string DesktopReading(string key,string unit){double value;return readings.Latest.state=="LIVE"&&readings.Latest.values.TryGetValue(key,out value)?value.ToString(unit==" RPM"?"0":"0.0")+unit:"—";}
+        string DesktopReading(string key,string unit){double value;return readings.Latest.state=="LIVE"&&readings.Latest.values.TryGetValue(key,out value)?ReadingFormat.SensorNumber(value,unit)+unit:"—";}
         string DesktopProcessor(string temperature,string load){return string.Join("   ",new[]{Available(temperature)?DesktopReading(temperature," °C"):null,Available(load)?DesktopReading(load,"%"):null}.Where(value=>value!=null));}
-        string DesktopUsage(string key){Usage value;return readings.Latest.state=="LIVE"&&readings.Latest.usage.TryGetValue(key,out value)?string.Format("{0:0.0} / {1:0.0} GB · {2:0.0}%",value.used,value.total,value.percent):"—";}
+        string DesktopUsage(string key){Usage value;return readings.Latest.state=="LIVE"&&readings.Latest.usage.TryGetValue(key,out value)?ReadingFormat.UsageText(value):"—";}
         string DesktopFanTitle(string key){
             string fallback=key=="cpuFan"?"CPU Fan":key=="gpuFan"?(readings.Latest.gpuFanCount>1?"GPU Fan 1":"GPU Fan"):key=="gpuFan2"?"GPU Fan 2":key=="bottom"?"System Fan 1":"System Fan 2";
             return Device(key,fallback);

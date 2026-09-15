@@ -25,11 +25,16 @@ class CoreTests {
         var culture=System.Threading.Thread.CurrentThread.CurrentCulture;
         try {
             System.Threading.Thread.CurrentThread.CurrentCulture=System.Globalization.CultureInfo.InvariantCulture;
+            Check(ReadingFormat.SensorNumber(54,"°C")=="54.0"&&ReadingFormat.SensorNumber(42,"%")=="42.0","Whole temperatures/utilization lost fixed decimal");
+            Check(ReadingFormat.SensorNumber(45.96,"°C")=="46.0"&&ReadingFormat.SensorNumber(750.4," RPM")=="750"&&ReadingFormat.SensorNumber(99,"FPS")=="99","Sensor rounding or integer precision changed");
+            Check(ReadingFormat.SensorNumber(1.234,"V")=="1.234"&&ReadingFormat.SensorNumber(1.234," V",true)=="1.2","View-specific voltage precision changed");
+            Check(ReadingFormat.UsageText(new Usage{used=8,total=16,percent=50})=="8.0 / 16.0 GB · 50.0%","Usage precision changed");
             Check(NetworkRate.Link(0)=="Disconnected"&&NetworkRate.Link(5760000000)=="5.76 Gbit/s"&&NetworkRate.Link(65000000)=="65 Mbit/s","Link units or disconnected state changed");
             Check(NetworkRate.Format(1000000,"auto")=="1 MB/s"&&NetworkRate.Format(999000,"auto")=="999 KB/s"&&NetworkRate.Format(125000,"Mbit/s")=="1 Mbit/s","Network decimal units or auto threshold changed");
             Check(NetworkRate.Format(1250,"invalid")=="1.25 KB/s"&&NetworkRate.Format(1000000,"KB/s")=="1000 KB/s","Explicit unit or fallback changed");
             foreach(double invalid in new[]{double.NaN,double.PositiveInfinity,double.NegativeInfinity,-1d})Check(NetworkRate.Link(invalid)=="—"&&NetworkRate.Format(invalid,"auto")=="—","Unavailable network value became a reading");
             System.Threading.Thread.CurrentThread.CurrentCulture=System.Globalization.CultureInfo.GetCultureInfo("de-DE");
+            Check(ReadingFormat.SensorNumber(54,"°C")=="54,0"&&ReadingFormat.UsageText(new Usage{used=8,total=16,percent=50})=="8,0 / 16,0 GB · 50,0%","Reading formatting ignored host culture");
             Check(NetworkRate.Format(1250,"KB/s")=="1,25 KB/s"&&NetworkRate.Link(5760000000)=="5,76 Gbit/s","Host culture formatting changed");
         } finally {System.Threading.Thread.CurrentThread.CurrentCulture=culture;}
         Console.WriteLine("PASS portable quota contracts and network formatting: unknown vs zero, full/compact windows, units, invalid values and host culture");

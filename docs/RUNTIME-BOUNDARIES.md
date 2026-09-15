@@ -294,3 +294,24 @@ rules on Framework and .NET 10. Test-MaterialPolicy now references the real Core
 while retaining the existing settings/unknown-field roundtrip assertions. This is
 a source-only relocation with no new allocations beyond existing policy objects,
 no settings migration and no changed visual behavior. Rollback is one source commit.
+
+## CORE-01: shared numeric formatting
+
+From baseline `1169afc`, ReadingFormat owns temperature/utilization fixed one-decimal
+precision, whole RPM/FPS, normal three-decimal voltage, explicit compact voltage,
+and RAM/VRAM usage text. Cards, Desktop and the separate overlay reuse it. Views
+retain units/spacing, labels, live/peak selection and unavailable-state checks;
+network units stay in NetworkRate, and quota precision is unchanged.
+
+The only intentional output change is fractional RPM in the separate overlay:
+it now renders as an integer, as required by CORE-01. Cards voltage remains three
+decimals and overlay voltage remains compact. Desktop FPS layout and digit widths
+are unchanged. Inputs remain validated by their existing adapters/consumers;
+ReadingFormat is not a new validation or capability boundary.
+
+Shared Core tests cover whole/fractional readings, rounding, voltage variants and
+host culture on Framework/.NET 10. Native tests exercise overlay formatting and
+missing values; existing Cards/Desktop, stale/peak and usage checks remain.
+Allowed changes are this formatter, its consumers and related tests/docs; no
+settings, credentials, capture or sampling changes. One source commit reverts the
+ticket with no data migration. Complete with Validate.ps1 -ModernCore evidence.

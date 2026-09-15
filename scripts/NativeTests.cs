@@ -273,6 +273,12 @@ internal static class NativeTests {
                 }
                 Toggle(shell,"LockPosition",false);shell.Control<Slider>("OpacitySlider").Value=70;
                 var gpuCard=cards.Children.Cast<Border>().Single(c=>(string)c.Tag=="GPU");var gpuHeader=(Grid)((StackPanel)gpuCard.Child).Children[0];var gpuHero=(TextBlock)gpuHeader.Children[1];Assert(gpuHero.Text=="49.0 °C"&&gpuHero.Visibility==Visibility.Visible,"GPU temperature visibility: "+gpuHero.Text+" "+gpuHero.Visibility);
+                var numeric=new Reading();numeric.values["temperature"]=54;numeric.values["fan"]=750.4;numeric.values["voltage"]=1.234;
+                var overlayFormat=typeof(Shell).GetMethod("OverlayValue",BindingFlags.NonPublic|BindingFlags.Static);
+                Assert((string)overlayFormat.Invoke(null,new object[]{numeric,"temperature","°C"})=="54.0°C","Overlay temperature decimal");
+                Assert((string)overlayFormat.Invoke(null,new object[]{numeric,"fan"," RPM"})=="750 RPM","Overlay RPM must be integer");
+                Assert((string)overlayFormat.Invoke(null,new object[]{numeric,"voltage"," V"})=="1.2 V","Overlay compact voltage changed");
+                Assert((string)overlayFormat.Invoke(null,new object[]{numeric,"absent","%"})=="—","Overlay missing value changed");
                 foreach(double size in new[]{10d,12d,16d})foreach(double width in new[]{240d,310d}){
                     shell.Control<Slider>("FontSizeSlider").Value=size;shell.Window.Width=width;shell.Window.Height=690;Pump();shell.UpdatePanel();Pump();
                     foreach(var card in cards.Children.Cast<Border>()){
