@@ -92,7 +92,8 @@ def build(rid, dotnet, allow_dirty=False):
             "macOS: Pulse Preview.app is a development bundle, not Developer ID signed or notarized.\n"
             "The .NET runtime is included; native OS graphics/font dependencies are still required.\n"
             "Live CPU/RAM, selected network and opt-in Codex file-login quota are available.\n"
-            "Tray, persistence, Desktop overlay, FPS and other quota providers are not connected.\n"
+            "Settings remember window size, theme, network choice and explicit Codex opt-in.\n"
+            "Tray, Desktop overlay, FPS and other quota providers are not connected.\n"
             "No installation, startup registration or automatic updates are performed.\n"
             "This CI artifact is for validation; public release and third-party notice audit remain pending.\n", encoding="utf-8")
         files = {p.relative_to(package).as_posix(): digest(p) for p in sorted(package.rglob("*")) if p.is_file()}

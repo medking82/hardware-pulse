@@ -18,7 +18,10 @@ public sealed class CodexQuotaPanel : UserControl,IDisposable {
     readonly bool demo;
     QuotaReading? shown;
     bool disposed;
-    public CodexQuotaPanel(bool demo,Func<CancellationToken,QuotaReading>? read=null) {
+    public Control SettingsContent {get;}
+    public event Action<bool>? EnabledChanged;
+    public bool QuotaEnabled {get=>enabled.IsChecked==true;set=>enabled.IsChecked=value;}
+    public CodexQuotaPanel(bool demo,Func<CancellationToken,QuotaReading>? read=null,bool inlineSettings=true) {
         this.demo=demo;
         session=new QuotaSession((_,cancel)=>read!=null?read(cancel):Read(demo,cancel));
         var body=new StackPanel{Spacing=12};
@@ -26,8 +29,10 @@ public sealed class CodexQuotaPanel : UserControl,IDisposable {
         header.Children.Add(AppIcon.Create("codex"));
         header.Children.Add(new TextBlock{Text="Codex",FontSize=21,FontWeight=FontWeight.SemiBold});
         body.Children.Add(header);
-        body.Children.Add(enabled);
-        body.Children.Add(new TextBlock{Text=demo?"Demo · Sample quota only. No account is accessed.":"Uses your existing Codex file login. Refreshes every five minutes while enabled. Login and token refresh stay in Codex.",TextWrapping=TextWrapping.Wrap,Opacity=.75});
+        var settings=new StackPanel{Spacing=12};settings.Children.Add(enabled);
+        settings.Children.Add(new TextBlock{Text=demo?"Demo · Sample quota only. No account is accessed.":"Uses your existing Codex file login. Refreshes every five minutes while enabled. This choice is remembered. Login and token refresh stay in Codex.",TextWrapping=TextWrapping.Wrap,Opacity=.75});
+        SettingsContent=settings;if(inlineSettings)body.Children.Add(settings);
+        if(!inlineSettings)status.Text="Off · Enable in Settings → Codex";
         body.Children.Add(refresh);body.Children.Add(status);body.Children.Add(windows);
         Content=new Border{Child=body,Padding=new Thickness(20),CornerRadius=new CornerRadius(14),BorderBrush=Brushes.Gray,BorderThickness=new Thickness(1)};
         enabled.PropertyChanged+=(_,e)=>{if(e.Property==ToggleButton.IsCheckedProperty)SetEnabled();};
@@ -48,6 +53,7 @@ public sealed class CodexQuotaPanel : UserControl,IDisposable {
         bool on=enabled.IsChecked==true;
         session.Enable("Codex",on);refresh.IsEnabled=on;shown=null;windows.Children.Clear();
         if(on){timer.Start();Tick();}else{timer.Stop();status.Text="Off";}
+        EnabledChanged?.Invoke(on);
     }
     void Tick() {
         if(disposed||enabled.IsChecked!=true)return;

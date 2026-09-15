@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
+using Avalonia.Styling;
 
 namespace HardwarePulse.Desktop;
 
@@ -17,23 +18,57 @@ public sealed class MonitorWindow : Window {
     readonly ComboBox interfaces=new(){HorizontalAlignment=HorizontalAlignment.Stretch,PlaceholderText="Select network interface"};
     readonly CheckBox pause=new(){Name="PauseHardware",Content="Pause hardware monitoring"};
     readonly CodexQuotaPanel quota;
+    readonly PreviewSettingsStore? store;
+    readonly PreviewSettings settings;
+    readonly DispatcherTimer saveTimer=new(){Interval=TimeSpan.FromMilliseconds(500)};
+    readonly TextBlock saveStatus=new(){TextWrapping=TextWrapping.Wrap};
+    bool loadingNetwork;
     public Task Sampling {get;private set;}=Task.CompletedTask;
-    public MonitorWindow(MonitorSource source,bool smoke=false,bool start=true) {
+    public MonitorWindow(MonitorSource source,bool smoke=false,bool start=true,PreviewSettingsStore? store=null) {
         this.source=source;this.smoke=smoke;
-        Title="Pulse · Desktop preview";Width=800;Height=560;MinWidth=360;MinHeight=400;
+        this.store=store;settings=store?.Load()??new PreviewSettings();
+        Title="Pulse · Desktop preview";Width=settings.Width;Height=settings.Height;MinWidth=360;MinHeight=400;
         FontSize=15;
         var heading=new TextBlock{Text="Pulse",FontSize=32,FontWeight=FontWeight.SemiBold};
         panels=[Card("CPU",cpu,"System load","cpu"),Card("Memory",ram,OperatingSystem.IsMacOS()?"Used memory estimate":"Host memory","memory"),Card("Download",down,"Selected interface","down"),Card("Upload",up,"Selected interface","up")];
         foreach(var panel in panels)cards.Children.Add(panel);
         var body=new StackPanel{Spacing=16,Margin=new Thickness(24)};
-        body.Children.Add(heading);body.Children.Add(status);body.Children.Add(interfaces);body.Children.Add(cards);body.Children.Add(pause);
-        quota=new CodexQuotaPanel(source.IsDemo);body.Children.Add(quota);
+        body.Children.Add(status);body.Children.Add(cards);body.Children.Add(pause);
+        quota=new CodexQuotaPanel(source.IsDemo,inlineSettings:false);body.Children.Add(quota);
         body.Children.Add(new TextBlock{Text="Preview · Temperature, fans, FPS and Desktop overlay are not connected yet.",TextWrapping=TextWrapping.Wrap,Opacity=.75});
-        Content=new ScrollViewer{Content=body,HorizontalScrollBarVisibility=Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled};
-        SizeChanged+=(_,_)=>LayoutCards();LayoutCards();
+        var network=new StackPanel{Spacing=12,Margin=new Thickness(20)};
+        network.Children.Add(new TextBlock{Text="Network interface",FontSize=21,FontWeight=FontWeight.SemiBold});network.Children.Add(interfaces);
+        network.Children.Add(new TextBlock{Text="Download and upload show the selected interface. A missing saved interface stays unselected until you choose another.",TextWrapping=TextWrapping.Wrap});
+        var appearance=new StackPanel{Spacing=12,Margin=new Thickness(20)};
+        appearance.Children.Add(new TextBlock{Text="Appearance",FontSize=21,FontWeight=FontWeight.SemiBold});
+        var theme=new ComboBox{Name="PreviewTheme",ItemsSource=new[]{"System","Light","Dark"},SelectedItem=settings.Theme,HorizontalAlignment=HorizontalAlignment.Stretch};
+        appearance.Children.Add(new TextBlock{Text="Theme"});appearance.Children.Add(theme);
+        appearance.Children.Add(new TextBlock{Text="System follows your desktop theme. Window size is remembered automatically.",TextWrapping=TextWrapping.Wrap});
+        var settingsTabs=new TabControl{Name="SettingsTabs",ItemsSource=new[]{
+            new TabItem{Header="Network",Content=network},new TabItem{Header="Appearance",Content=appearance},
+            new TabItem{Header="Codex",Content=new Border{Padding=new Thickness(20),Child=quota.SettingsContent}}}};
+        var settingsBody=new StackPanel{Spacing=12,Margin=new Thickness(12)};
+        settingsBody.Children.Add(settingsTabs);settingsBody.Children.Add(saveStatus);
+        var tabs=new TabControl{Name="MainTabs",ItemsSource=new[]{new TabItem{Header="Monitor",Content=Scroll(body)},new TabItem{Header="Settings",Content=Scroll(settingsBody)}}};
+        var root=new DockPanel();DockPanel.SetDock(heading,Dock.Top);heading.Margin=new Thickness(24,20,24,12);root.Children.Add(heading);root.Children.Add(tabs);Content=root;
+        saveStatus.Text=store?.Error??(store==null?"Session only · Changes will not be saved.":"Changes save automatically.");
+        theme.SelectionChanged+=(_,_)=>{settings.Theme=theme.SelectedItem as string??"System";ApplyTheme();SaveLater();};ApplyTheme();
+        interfaces.SelectionChanged+=(_,_)=>{if(!loadingNetwork){settings.Network=interfaces.SelectedItem as string;SaveLater();}};
+        quota.EnabledChanged+=on=>{settings.Codex=on;SaveLater();};
+        quota.QuotaEnabled=settings.Codex;
+        saveTimer.Tick+=(_,_)=>SaveNow();
+        SizeChanged+=(_,_)=>{LayoutCards();if(WindowState==WindowState.Normal){settings.Width=Width;settings.Height=Height;SaveLater();}};LayoutCards();
+        Opened+=(_,_)=>{
+            var screen=Screens.ScreenFromWindow(this);
+            if(screen!=null){Width=Math.Max(MinWidth,Math.Min(Width,screen.WorkingArea.Width/screen.Scaling));Height=Math.Max(MinHeight,Math.Min(Height,screen.WorkingArea.Height/screen.Scaling));}
+        };
         if(start)Opened+=(_,_)=>Sampling=SampleAsync();
-        Closed+=(_,_)=>{stop.Cancel();quota.Dispose();};
+        Closed+=(_,_)=>{stop.Cancel();quota.Dispose();SaveNow();};
     }
+    static ScrollViewer Scroll(Control content)=>new(){Content=content,HorizontalScrollBarVisibility=Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled};
+    void ApplyTheme()=>RequestedThemeVariant=settings.Theme=="Dark"?ThemeVariant.Dark:settings.Theme=="Light"?ThemeVariant.Light:ThemeVariant.Default;
+    void SaveLater(){if(store==null)return;saveTimer.Stop();saveTimer.Start();}
+    void SaveNow(){saveTimer.Stop();if(store!=null)saveStatus.Text=store.Save(settings)?"Changes saved.":store.Error;}
     static TextBlock Value()=>new(){Text="—",FontSize=23,FontWeight=FontWeight.SemiBold,TextWrapping=TextWrapping.Wrap};
     static Border Card(string title,TextBlock value,string detail,string icon) {
         var stack=new StackPanel{Spacing=10};
@@ -58,7 +93,10 @@ public sealed class MonitorWindow : Window {
         try {
             var names=await Task.Run(source.Interfaces,stop.Token);
             if(stop.IsCancellationRequested)return;
-            interfaces.ItemsSource=names;if(names.Length>0)interfaces.SelectedIndex=0;
+            loadingNetwork=true;interfaces.ItemsSource=names;
+            if(settings.Network!=null)interfaces.SelectedItem=names.FirstOrDefault(name=>name==settings.Network);
+            else if(names.Length>0)interfaces.SelectedIndex=0;
+            loadingNetwork=false;
             int samples=0;
             using var timer=new PeriodicTimer(TimeSpan.FromSeconds(1));
             do {

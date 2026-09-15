@@ -958,7 +958,7 @@ background, existing vector assets and responsive one/two-column cards. Headless
 Skia tests render the actual controls and exercise width changes, unavailable
 values, keyboard pause and worker shutdown. CI separately starts real Windows
 demo windows and Linux/macOS live windows; headless results do not prove native
-window behavior. Desktop layer, tray, persistence, other quota providers, temperatures, fans,
+window behavior. Desktop layer, tray, other quota providers, temperatures, fans,
 FPS, blur and public platform distribution remain unimplemented in this host.
 
 Validation at `52a5b411f69b854e02cfdaac67b1cacb4d36028c` (2026-09-15):
@@ -972,8 +972,8 @@ Local full Windows regression and locked dependency restore also passed.
 
 ## Desktop Codex quota composition
 
-The shared UI now contains an opt-in Codex card. It is off at startup and creates
-no credential reader or HTTP client until enabled. The host composes
+The shared UI now contains an opt-in Codex card. It is off for a new profile and creates
+no credential reader or HTTP client until enabled or a saved opt-in is restored. The host composes
 LinuxCodexQuota or MacCodexQuota for each read, disposing the adapter afterward;
 demo mode always uses labeled synthetic quota, including on Windows.
 Existing file-login, fixed-endpoint, bounded-response and cancellation policies
@@ -985,7 +985,7 @@ Core QuotaSession owns its five-minute refresh cadence, one pending request,
 cancellation and result generation. Manual refresh uses the same session;
 hardware pause is separate. Disable clears the visible readings and cancels the
 request; closing the window disposes the session. Canceled results cannot replace
-a newly enabled generation. No quota preference is persisted yet.
+a newly enabled generation. Its opt-in is persisted by the preview host settings.
 
 The card displays AllWindows, falling back to Windows only when the full list is
 empty. Unknown remaining values render as an em dash without a progress bar.
@@ -1051,3 +1051,31 @@ local inventory/hash/runtime checks, with the same source commit and dirty=false
 
 These are compressed download sizes, not memory usage. Local full Windows
 validation, UI contracts and package negative tests also passed.
+
+## Preview settings and grouped UI
+
+The shared host separates Monitor from Settings, with Network, Appearance and
+Codex tabs inside Settings. System/light/dark theme changes apply immediately;
+Codex controls live in Settings while its reading card stays on Monitor. Native
+tab layout wraps at narrow widths, and the existing scroll content remains usable.
+
+PreviewSettingsStore owns a separate `HardwarePulse.Preview/settings.json` below
+the OS ApplicationData directory. It does not read or migrate installed WPF
+settings. Demo and smoke mode do not create a default store; tests explicitly
+inject a temporary profile and demo readers. No credentials are written.
+
+Known settings are normal window width/height, theme, selected network interface
+and Codex opt-in. Core SettingsValues supplies value normalization; unknown JSON
+fields survive a save. Bounds are clamped and opening also fits the working
+screen. A missing saved interface remains unselected instead of switching to a
+different adapter. Pause and currently selected tabs are session-only.
+
+Changes debounce for 500 ms and flush on close. Writes use a unique sibling file,
+flush and atomic replace, with user-only file permissions on Unix. Load input and
+serialized output are limited to 64 KiB. Invalid/unreadable files and unsupported
+schema versions keep their original contents; safe defaults apply without quota
+access and the UI reports session-only changes. Save failures likewise stay visible.
+
+Synthetic profile tests cover normalization, unknown fields, error preservation,
+failed writes, Unix permissions, live theme changes, missing network selection,
+quota preference and close/reopen behavior. No personal profile is used in tests.

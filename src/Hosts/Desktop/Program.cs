@@ -25,7 +25,8 @@ public sealed class PulseApplication : Application {
     public override void Initialize()=>Styles.Add(new FluentTheme());
     public override void OnFrameworkInitializationCompleted() {
         if(ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
-            desktop.MainWindow=new MonitorWindow(new MonitorSource(Program.Demo),Program.Smoke);
+            desktop.MainWindow=new MonitorWindow(new MonitorSource(Program.Demo),Program.Smoke,
+                store:Program.Demo||Program.Smoke?null:PreviewSettingsStore.Default());
         base.OnFrameworkInitializationCompleted();
     }
 }
