@@ -925,3 +925,11 @@ desktop integration are explicitly `not-tested` by this probe. A native ARM64
 App build, dependency selection and real hardware/game verification remain
 necessary before offering an ARM64 installer. This developer probe does not
 change the installed Windows application or its sampling workload.
+
+Validation at `4daf35a8bab5bbf4918c80b9f41389abd4a12cc1` (2026-09-15):
+Windows x64 and native ARM64 adapter/probe checks passed in
+[run 34989034498](https://github.com/medking82/hardware-pulse/actions/runs/34989034498).
+Both reported a successful RAM read and three network interfaces; ARM64 reported
+both OS and process architecture as Arm64. Neither runner had PawnIO installed,
+so this provides no driver, temperature or fan support evidence. Local full
+Windows validation, including Modern Core, also passed.
