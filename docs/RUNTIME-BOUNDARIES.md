@@ -535,3 +535,10 @@ runner. It preserves the test exit code, without registry edits, elevation or an
 App launch change. The test still requires RuntimeInformation to report Arm64.
 The AnyCPU adapter/Core DLL build remains unchanged. Local x64 validation covers
 the existing launch; a wrong-host preflight rejects native ARM64 before building.
+
+The native-launch follow-up [34974094478](https://github.com/medking82/hardware-pulse/actions/runs/34974094478)
+failed before adapter execution: cmd.exe rejected mixed-separator launch paths.
+A minimal local .cmd probe reproduced the filename-syntax error; canonical Windows
+paths for cmd.exe and its launcher passed. The test launcher now normalizes these
+paths. This correction changes no adapter/runtime implementation; both failed CI
+attempts remain available and are not counted as platform passes.

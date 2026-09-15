@@ -8,9 +8,9 @@ $compiler=Join-Path $env:WINDIR 'Microsoft.NET/Framework64/v4.0.30319/csc.exe'
 & "$PSScriptRoot/Run-Hidden.ps1" $compiler @('/nologo','/target:exe','/reference:System.Runtime.InteropServices.RuntimeInformation.dll',"/out:$output\WindowsAdapterTests.exe","/reference:$output\Pulse.Adapters.Windows.dll","/reference:$output\Pulse.Core.dll",(Join-Path $root 'scripts\WindowsAdapterTests.cs')) $root
 if($NativeArm64){
     # Framework AnyCPU defaults to x64 emulation on Windows ARM64. Opt in for this test process only.
-    $launcher=Join-Path $output 'RunArm64Tests.cmd'
+    $launcher=[IO.Path]::GetFullPath((Join-Path $output 'RunArm64Tests.cmd'))
     [IO.File]::WriteAllText($launcher,"@echo off`r`nstart `"`" /machine arm64 /b /wait `"%~dp0WindowsAdapterTests.exe`"`r`nexit /b %errorlevel%`r`n",[Text.Encoding]::ASCII)
-    & "$PSScriptRoot/Run-Hidden.ps1" "$env:WINDIR/System32/cmd.exe" @('/d','/c',$launcher) $root
+    & "$PSScriptRoot/Run-Hidden.ps1" "$env:WINDIR\System32\cmd.exe" @('/d','/c',$launcher) $root
 }else{
     & "$PSScriptRoot/Run-Hidden.ps1" "$output/WindowsAdapterTests.exe" @() $root
 }
