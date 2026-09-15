@@ -2,6 +2,15 @@
 
 English first; 简体中文 follows each version. Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
+## 0.6.12 — 2026-09-15
+
+- Keep Desktop FPS in one row with small NOW / AVG / MIN badges, three reserved tabular digit positions per reading, and a single dash when frames are unavailable. Minimum remains the rolling 60-second minimum, not 1% Low.
+- Choose one consistent local contrast color per label and reading, with hysteresis, to avoid splitting glyphs into black and white fragments.
+- Add Screenshot mode in Desktop settings and the tray: freeze text colors and allow capture for 15 seconds, then restore local contrast automatically.
+- Fit locked Desktop content by growing a saved short panel and, in Auto columns, widening within the monitor work area before falling back to scrolling. Keep FPS badges inside narrow panels.
+
+Desktop FPS 合并为一行，加入 NOW / AVG / MIN 小号角标。Local Contrast 按完整 label 和 reading 调色；新增 15 秒 Screenshot mode，支持 Win+Shift+S。锁定的 Desktop 自动容纳内容，减少不必要的 scroll。
+
 ## 0.6.11 — 2026-09-15
 
 - Show Desktop FPS as Current, Average and Minimum readings. Current uses the latest one-second frame window; Average and Minimum use the existing rolling 60-second window.

@@ -38,7 +38,6 @@ namespace HardwarePulse {
             if(!isolated&&!settings.Flag("desktopHintShown")){tray.ShowBalloonTip(7000,"Pulse",language.T("Desktop is ready. Right-click the Pulse tray icon to edit or return to the App."),System.Windows.Forms.ToolTipIcon.Info);settings.Data["desktopHintShown"]=true;QueueSave();}
         }
         bool DesktopMetricEnabled(string key){
-            if(key=="fpsAverage"||key=="fpsMinimum")return DesktopMetricEnabled("fps");
             if(key=="fps"){object fps;return settings.Map("desktopVisible").TryGetValue(key,out fps)&&fps is bool&&(bool)fps;}
             if(key=="quotaCodex")return DesktopMetricEnabled("quotaCodex0");
             if(key=="quotaAntigravity")return DesktopMetricEnabled("quotaAntigravity0")||DesktopMetricEnabled("quotaAntigravity1");

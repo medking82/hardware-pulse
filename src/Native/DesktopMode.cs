@@ -21,6 +21,7 @@ namespace HardwarePulse {
         }
         string DesktopColor(){string hex=settings.Text("desktopColor","#E4F3EF");return System.Text.RegularExpressions.Regex.IsMatch(hex,"^#[0-9a-fA-F]{6}$")?hex:"#E4F3EF";}
         void WireDesktop(){
+            Click("DesktopScreenshot",BeginDesktopScreenshot);
             WireDesktopShortcut();
             Control<CheckBox>("DesktopLocalContrast").IsChecked=settings.Flag("desktopLocalContrast");
             Control<CheckBox>("DesktopLocalContrast").Click+=delegate{settings.Data["desktopLocalContrast"]=Checked("DesktopLocalContrast");UpdateDesktop();QueueSave();};
@@ -76,12 +77,15 @@ namespace HardwarePulse {
         void SaveDesktopPosition(){if(desktop==null)return;settings.Data["desktopLeft"]=desktop.Left;settings.Data["desktopTop"]=desktop.Top;settings.Data["desktopWidth"]=desktop.Width;if(desktop.SizeToContent==SizeToContent.Manual)settings.Data["desktopHeight"]=desktop.Height;QueueSave();}
         void EditDesktop(){if(!DesktopEnabled)return;SetDesktopLocked(false);Window.Hide();desktop.Activate();}
         void BuildDesktopTray(Forms.ContextMenuStrip menu){
+            var screenshot=menu.Items.Add("Screenshot mode · 15 seconds",null,delegate{BeginDesktopScreenshot();});
+            menu.Opening+=delegate{screenshot.Text=language.T("Screenshot mode · 15 seconds");screenshot.Enabled=DesktopEnabled;};
             trayDesktop=(Forms.ToolStripMenuItem)menu.Items.Add("Desktop Mode",null,delegate{SetDesktopEnabled(!DesktopEnabled);});
             trayDesktopEdit=(Forms.ToolStripMenuItem)menu.Items.Add("Edit Desktop",null,delegate{EditDesktop();});
             trayDesktopLock=(Forms.ToolStripMenuItem)menu.Items.Add("Done",null,delegate{SetDesktopLocked(true);});
             menu.Opening+=delegate{trayDesktop.Checked=DesktopEnabled;trayDesktopLock.Visible=DesktopEnabled&&!settings.Flag("desktopLocked",true);trayDesktopEdit.Enabled=DesktopEnabled;};
         }
         void UpdateDesktopLabels(){
+            Control<Button>("DesktopScreenshot").IsEnabled=DesktopEnabled;
             var desktopBackground=Control<Slider>("DesktopBackgroundOpacity");
             syncingDesktopOpacity=true;try{desktopBackground.Value=settings.Number("desktopBackgroundOpacity",Checked("DesktopAutoContrast")?86:0,0,100);}finally{syncingDesktopOpacity=false;}
             desktopBackground.IsEnabled=!settings.Flag("desktopAlwaysOnTop");Text("DesktopBackgroundOpacityValue",Math.Round(desktopBackground.Value)+"%");
@@ -97,6 +101,11 @@ namespace HardwarePulse {
             UpdateDesktopOrderLabels();
             if(trayDesktop!=null){trayDesktop.Text=language.T("Desktop Mode");trayDesktopEdit.Text=language.T("Edit Desktop");trayDesktopLock.Text=language.T("Done");}
         }
+        void BeginDesktopScreenshot(){
+            if(desktop==null||!DesktopEnabled)return;
+            desktop.BeginScreenshot();
+            if(!isolated)tray.ShowBalloonTip(4000,"Pulse",language.T("Use Win+Shift+S now. Local contrast resumes in 15 seconds."),Forms.ToolTipIcon.Info);
+        }
         string DesktopReading(string key,string unit){double value;return readings.Latest.state=="LIVE"&&readings.Latest.values.TryGetValue(key,out value)?value.ToString(unit==" RPM"?"0":"0.#")+unit:"—";}
         string DesktopProcessor(string temperature,string load){return string.Join("   ",new[]{Available(temperature)?DesktopReading(temperature," °C"):null,Available(load)?DesktopReading(load,"%"):null}.Where(value=>value!=null));}
         string DesktopUsage(string key){Usage value;return readings.Latest.state=="LIVE"&&readings.Latest.usage.TryGetValue(key,out value)?string.Format("{0:0.#} / {1:0.#} GB · {2:0}%",value.used,value.total,value.percent):"—";}
@@ -107,9 +116,8 @@ namespace HardwarePulse {
         List<DesktopMetric> DesktopMetrics(){
             var result=new List<DesktopMetric>();
             if(DesktopMetricEnabled("fps")){
-                result.Add(new DesktopMetric("fps",language.T("FPS · Current"),desktopFpsValue,"fps"){ToolTip=language.T(desktopFpsStatus)});
-                result.Add(new DesktopMetric("fpsAverage",language.T("FPS · Average"),desktopFpsAverage,"fps"){ToolTip=language.T("Rolling 60 s")});
-                result.Add(new DesktopMetric("fpsMinimum",language.T("FPS · Minimum"),desktopFpsMinimum,"fps"){ToolTip=language.T("Rolling 60 s")});
+                string value=desktopFpsValue=="—"?"—":string.Join(" / ",new[]{desktopFpsValue,desktopFpsAverage,desktopFpsMinimum}.Select(part=>part.PadLeft(3,'\u2007')));
+                result.Add(new DesktopMetric("fps","FPS",value,"fps"){ToolTip=language.T("Current / Average / Minimum")+" · "+language.T("Rolling 60 s")+" · "+language.T(desktopFpsStatus)});
             }
             foreach(var card in cards.Children.Cast<Border>()){
                 string key=(string)card.Tag;

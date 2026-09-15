@@ -17,6 +17,7 @@ namespace HardwarePulse {
         sealed class Row {public Border Border,IconHost;public TextBlock Name,Value;public FrameworkElement Icon;public string IconColor;}
         readonly Dictionary<string,Row> rows=new Dictionary<string,Row>();
         readonly ResponsivePanel stack=new ResponsivePanel{RowGap=0};readonly Border surface;
+        readonly ScrollViewer scroll;
         readonly Func<string,double,string,FrameworkElement> icon;
         readonly bool isolated;
         readonly StackPanel editor=new StackPanel{Visibility=Visibility.Collapsed,Margin=new Thickness(0,0,0,12)};
@@ -28,6 +29,8 @@ namespace HardwarePulse {
         Brush foreground,line,protection;
         string automaticColor="#F5F7FA";long lastSample;
         LocalContrast localContrast;bool contrastBusy;readonly System.Windows.Threading.DispatcherTimer contrastTimer=new System.Windows.Threading.DispatcherTimer();
+        readonly System.Windows.Threading.DispatcherTimer screenshotTimer=new System.Windows.Threading.DispatcherTimer();
+        public bool ScreenshotActive {get;private set;}
         public bool LocalContrastAvailable {get;private set;}
         public event Action PositionSaved;
         public bool LayerAvailable {get{return isolated||layer!=null&&layer.Attached;}}
@@ -38,7 +41,7 @@ namespace HardwarePulse {
             AllowsTransparency=true;Background=Brushes.Transparent;ShowInTaskbar=false;ShowActivated=false;
             Focusable=false;SizeToContent=SizeToContent.Height;Width=466;MinWidth=280;MinHeight=140;WindowStartupLocation=WindowStartupLocation.Manual;
             UseLayoutRounding=true;SnapsToDevicePixels=true;TextOptions.SetTextFormattingMode(this,TextFormattingMode.Display);
-            var scroll=new ScrollViewer{Content=stack,VerticalScrollBarVisibility=ScrollBarVisibility.Auto,HorizontalScrollBarVisibility=ScrollBarVisibility.Disabled,Focusable=false};
+            scroll=new ScrollViewer{Content=stack,VerticalScrollBarVisibility=ScrollBarVisibility.Auto,HorizontalScrollBarVisibility=ScrollBarVisibility.Disabled,Focusable=false};
             var actions=new WrapPanel();actions.Children.Add(done);actions.Children.Add(returnToApp);editor.Children.Add(editHint);editor.Children.Add(actions);
             var content=new Grid();content.RowDefinitions.Add(new RowDefinition{Height=GridLength.Auto});content.RowDefinitions.Add(new RowDefinition());content.Children.Add(editor);Grid.SetRow(scroll,1);content.Children.Add(scroll);
             surface=new Border{Padding=new Thickness(16),CornerRadius=new CornerRadius(16),BorderThickness=new Thickness(1),Child=content};Content=surface;
@@ -46,7 +49,8 @@ namespace HardwarePulse {
             SourceInitialized+=delegate{HwndSource.FromHwnd(new WindowInteropHelper(this).Handle).AddHook(ResizeHook);};
             SourceInitialized+=delegate{WindowSnap.Attach(this,true,EdgePadding);if(!isolated)layer=new DesktopLayer(this);};
             contrastTimer.Interval=TimeSpan.FromMilliseconds(100);contrastTimer.Tick+=delegate{RefreshLocalContrast();};
-            Closed+=delegate{contrastTimer.Stop();if(localContrast!=null)localContrast.Dispose();if(layer!=null)layer.Dispose();};
+            screenshotTimer.Interval=TimeSpan.FromSeconds(15);screenshotTimer.Tick+=delegate{screenshotTimer.Stop();ScreenshotActive=false;if(localContrast!=null)SetLocalContrast(true);};
+            Closed+=delegate{screenshotTimer.Stop();contrastTimer.Stop();if(localContrast!=null)localContrast.Dispose();if(layer!=null)layer.Dispose();};
             SizeChanged+=delegate{if(IsLoaded&&SizeToContent==SizeToContent.Manual&&PositionSaved!=null)PositionSaved();};
             MouseLeftButtonDown+=delegate(object sender,MouseButtonEventArgs e){if(locked||e.Handled||e.ButtonState!=MouseButtonState.Pressed)return;DragMove();KeepOnScreen();if(PositionSaved!=null)PositionSaved();};
         }
@@ -81,6 +85,38 @@ namespace HardwarePulse {
             var location=Clamp(new Point(Left,Top),new Size(ActualWidth,ActualHeight),areas,EdgePadding);
             Left=location.X;Top=location.Y;
         }
+        void FitLockedContent(){
+            if(!locked)return;
+            var source=PresentationSource.FromVisual(this);if(source==null||source.CompositionTarget==null)return;
+            var area=System.Windows.Forms.Screen.FromHandle(new WindowInteropHelper(this).Handle).WorkingArea;
+            var available=source.CompositionTarget.TransformFromDevice.Transform(new Vector(area.Width,area.Height));
+            double maxHeight=Math.Max(MinHeight,available.Y-2*EdgePadding),maxWidth=Math.Max(MinWidth,available.X-2*EdgePadding);
+            double width=ActualWidth,needed;
+            foreach(var row in rows.Values)if(row.Border.Visibility==Visibility.Visible&&row.Value.MinWidth==fpsMinimumWidth&&fpsMinimumWidth>0){
+                row.Name.Measure(new Size(double.PositiveInfinity,double.PositiveInfinity));
+                width=Math.Max(width,Math.Min(maxWidth,fpsMinimumWidth+row.Name.DesiredSize.Width+lastSize+60));
+            }
+            for(int attempt=0;;attempt++){
+                stack.Measure(new Size(Math.Max(1,width-34),double.PositiveInfinity));needed=stack.DesiredSize.Height+34;
+                if(needed<=maxHeight||stack.RequestedColumns!=0||stack.Columns>=3||attempt>=2)break;
+                double next=Math.Min(maxWidth,(stack.Columns+1)*stack.MinimumColumnWidth+stack.Columns*10+50);
+                if(next<=width+.5)break;width=next;
+            }
+            bool resizeWidth=width>ActualWidth+.5;
+            double height=Math.Min(maxHeight,Math.Max(ActualHeight,needed));
+            if(resizeWidth||Math.Abs(height-ActualHeight)>.5){SizeToContent=SizeToContent.Manual;if(resizeWidth)Width=width;Height=height;UpdateLayout();}
+        }
+        static void SetFpsReading(TextBlock text,string value,double size){
+            text.Inlines.Clear();
+            var values=value.Split(new[]{" / "},StringSplitOptions.None);
+            if(values.Length!=3){text.Text=value;return;}
+            var labels=new[]{"NOW","AVG","MIN"};
+            for(int i=0;i<3;i++){
+                if(i>0)text.Inlines.Add(new System.Windows.Documents.Run("  "));
+                text.Inlines.Add(new System.Windows.Documents.Run(values[i]));
+                text.Inlines.Add(new System.Windows.Documents.Run(" "+labels[i]){FontSize=Math.Max(8,size*.55),BaselineAlignment=BaselineAlignment.Superscript});
+            }
+        }
         public void Render(IList<DesktopMetric> metrics,double size,double spacing,string color,bool isLocked,int columns=1,Func<string,string> iconColor=null) {
             stack.RequestedColumns=columns;stack.MinimumColumnWidth=Math.Max(280,24*size);stack.InvalidateMeasure();
             stack.Width=double.NaN;
@@ -89,7 +125,7 @@ namespace HardwarePulse {
             ResizeMode=isLocked?ResizeMode.NoResize:ResizeMode.CanResizeWithGrip;
             SetValue(WindowSnap.PositionLockedProperty,isLocked);
             bool styleChanged=lastColor!=color||lastSize!=size;
-            if(lastSize!=size){var digits=new TextBlock{Text="000",FontFamily=FontFamily,FontSize=size};System.Windows.Documents.Typography.SetNumeralAlignment(digits,FontNumeralAlignment.Tabular);digits.Measure(new Size(double.PositiveInfinity,double.PositiveInfinity));fpsMinimumWidth=Math.Ceiling(digits.DesiredSize.Width);}
+            if(lastSize!=size){var digits=new TextBlock{FontFamily=FontFamily,FontSize=size};SetFpsReading(digits,"000 / 000 / 000",size);System.Windows.Documents.Typography.SetNumeralAlignment(digits,FontNumeralAlignment.Tabular);digits.Measure(new Size(double.PositiveInfinity,double.PositiveInfinity));fpsMinimumWidth=Math.Ceiling(digits.DesiredSize.Width);}
             if(styleChanged){var tint=(Color)ColorConverter.ConvertFromString(color);foreground=new SolidColorBrush(tint);foreground.Freeze();line=new SolidColorBrush(Color.FromArgb(50,tint.R,tint.G,tint.B));line.Freeze();lastColor=color;lastSize=size;}
             if(isLocked)surface.Background=Brushes.Transparent;
             else if(surface.Background==Brushes.Transparent||surface.Background==null)surface.Background=new SolidColorBrush(Color.FromArgb(100,18,24,30));
@@ -116,7 +152,7 @@ namespace HardwarePulse {
                     row.Border.Child=grid;rows.Add(metric.Key,row);
                 }
                 row.Name.Text=metric.Title;row.Value.Text=metric.Value;row.Name.FontSize=size;row.Value.FontSize=size;
-                if(metric.Icon=="fps"){row.Value.MinWidth=fpsMinimumWidth;row.Value.TextAlignment=TextAlignment.Right;}
+                if(metric.Icon=="fps"){SetFpsReading(row.Value,metric.Value,size);row.Value.MinWidth=fpsMinimumWidth;row.Value.TextAlignment=TextAlignment.Right;}
                 row.Value.ToolTip=metric.ToolTip??metric.Value;
                 row.Name.ToolTip=metric.Title;if(localContrast==null||!LocalContrastAvailable){row.Name.Foreground=row.Value.Foreground=foreground;}row.Border.BorderBrush=line;
                 row.Border.Padding=new Thickness(0,spacing/2,0,spacing/2);row.Border.Visibility=Visibility.Visible;
@@ -127,18 +163,23 @@ namespace HardwarePulse {
             var ordered=metrics.Select(m=>rows[m.Key].Border).ToArray();
             if(!stack.Children.Cast<UIElement>().SequenceEqual(ordered)){stack.Children.Clear();foreach(var child in ordered)stack.Children.Add(child);}
             if(layer!=null)layer.SetLocked(locked);
-            UpdateLayout();KeepOnScreen();
+            UpdateLayout();FitLockedContent();KeepOnScreen();
         }
         public void SetAlwaysOnTop(bool value){if(layer!=null)layer.SetAlwaysOnTop(value);}
         public void SetLocalContrast(bool enabled){
+            if(ScreenshotActive&&enabled)return;
             if(!enabled||SystemParameters.HighContrast){contrastTimer.Stop();if(localContrast!=null){localContrast.Dispose();localContrast=null;}LocalContrastAvailable=false;foreach(var row in rows.Values)row.Name.Foreground=row.Value.Foreground=foreground;return;}
             if(localContrast==null)localContrast=new LocalContrast(this);
             LocalContrastAvailable=localContrast.Enable();
             if(LocalContrastAvailable&&!contrastTimer.IsEnabled)contrastTimer.Start();
             if(LocalContrastAvailable)RefreshLocalContrast();
         }
+        public void BeginScreenshot(){
+            ScreenshotActive=true;contrastTimer.Stop();if(localContrast!=null)localContrast.Dispose();
+            screenshotTimer.Stop();screenshotTimer.Start();
+        }
         void RefreshLocalContrast(){
-            if(localContrast==null||!IsVisible||contrastBusy)return;
+            if(localContrast==null||!IsVisible||contrastBusy||ScreenshotActive)return;
             contrastBusy=true;var capture=localContrast;
             var background=surface.Background as SolidColorBrush;
             var color=background==null?Colors.Transparent:background.Color;var bounds=capture.Bounds();
@@ -147,14 +188,17 @@ namespace HardwarePulse {
                 var error=task.Exception; // Observe capture failure even if the window has closed.
                 if(Dispatcher.HasShutdownStarted)return;
                 Dispatcher.BeginInvoke(new Action(delegate{try{
-                if(localContrast!=capture||!IsVisible||capture.Bounds()!=bounds)return;
+                if(localContrast!=capture||!IsVisible||ScreenshotActive||capture.Bounds()!=bounds)return;
                 var image=error==null?task.Result:null;
                 if(image==null){LocalContrastAvailable=false;return;}
                 LocalContrastAvailable=true;
                 foreach(var row in rows.Values)if(row.Border.Visibility==Visibility.Visible)foreach(var text in new[]{row.Name,row.Value}){
                     if(text.ActualWidth<=0||text.ActualHeight<=0)continue;
                     var point=text.TranslatePoint(new Point(),this);
-                    var brush=new ImageBrush(image){ViewportUnits=BrushMappingMode.Absolute,Viewport=new Rect(-point.X,-point.Y,ActualWidth,ActualHeight),Stretch=Stretch.Fill};
+                    var old=text.Foreground as SolidColorBrush;byte prior=old!=null&&DesktopContrast.Luminance(old.Color)<.4?(byte)20:(byte)245;
+                    var region=new Int32Rect((int)(point.X*image.PixelWidth/ActualWidth),(int)(point.Y*image.PixelHeight/ActualHeight),Math.Max(1,(int)Math.Ceiling(text.ActualWidth*image.PixelWidth/ActualWidth)),Math.Max(1,(int)Math.Ceiling(text.ActualHeight*image.PixelHeight/ActualHeight)));
+                    byte shade=LocalContrast.RegionColor(image,region,prior);
+                    var brush=new SolidColorBrush(Color.FromRgb(shade,shade,shade));
                     brush.Freeze();text.Foreground=brush;
                 }
             }catch(ArgumentException){LocalContrastAvailable=false;}

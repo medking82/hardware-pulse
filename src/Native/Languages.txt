@@ -1,4 +1,4 @@
-Live|实时|即時
+﻿Live|实时|即時
 Link Speed|连接速率|連線速率
 Disconnected|未连接|未連線
 AI Quota|AI 额度|AI 額度
@@ -98,7 +98,7 @@ Leave a name blank to use device information. Hover over a field to see its auto
 SPD numbers identify sensor addresses, not physical slots. Installed slots are reported separately; assign a slot name only after confirming its sensor.|SPD 编号代表传感器地址，并非实体插槽。已安装插槽单独显示；确认对应关系后再命名。|SPD 編號代表感測器位址，並非實體插槽。已安裝插槽單獨顯示；確認對應關係後再命名。
 Changes save automatically.|更改自动保存。|變更自動儲存。
 About Pulse|关于 Pulse|關於 Pulse
-Version 0.6.11 · Marck Wong|版本 0.6.11 · Marck Wong|版本 0.6.11 · Marck Wong
+Version 0.6.12 · Marck Wong|版本 0.6.12 · Marck Wong|版本 0.6.12 · Marck Wong
 Sensors by LibreHardwareMonitor. Shared driver by PawnIO.|传感器：LibreHardwareMonitor。共享驱动：PawnIO。|感測器：LibreHardwareMonitor。共用驅動程式：PawnIO。
 Language|语言 / Language|語言 / Language
 Minimize|最小化|最小化
@@ -252,7 +252,7 @@ Selected|已选择|已選擇
 Auto Contrast adjusts colors. Background and text opacity always follow your sliders.|自动对比度调整配色。背景与文字不透明度始终按滑块设置生效。|自動對比度調整配色。背景與文字不透明度始終按滑桿設定生效。
 Desktop locked. Right-click the Pulse tray icon and choose Edit Desktop to unlock.|桌面已锁定。右键点击系统托盘中的 Pulse 图标，选择“编辑桌面”即可解锁。|桌面已鎖定。右鍵點擊系統匣中的 Pulse 圖示，選擇「編輯桌面」即可解鎖。
 Local adaptive text contrast|局部自适应文字对比度|局部自適應文字對比度
-Adapts text to the background beneath each pixel. Pulse may disappear from screenshots and recordings while enabled.|按文字背后的画面局部调整黑白对比度。开启时，截图及录屏可能不包含 Pulse。|按文字背後的畫面局部調整黑白對比度。開啟時，截圖及錄影可能不包含 Pulse。
+Adapts each label and reading to its local background. Use Screenshot mode to include Pulse in captures.|按文字背后的画面局部调整黑白对比度。开启时，截图及录屏可能不包含 Pulse。|按文字背後的畫面局部調整黑白對比度。開啟時，截圖及錄影可能不包含 Pulse。
 Local contrast active|局部对比度已启用|局部對比度已啟用
 Local contrast unavailable; using standard text color|局部对比度不可用；使用标准文字颜色|局部對比度不可用；使用標準文字顏色
 Enable FPS here to monitor the target app without opening the separate FPS overlay.|在这里开启 FPS，无需打开独立 FPS 浮层；监控对象沿用 FPS 设置。|在這裡開啟 FPS，無需開啟獨立 FPS 浮層；監控對象沿用 FPS 設定。
@@ -265,3 +265,7 @@ Show or hide Desktop without opening App. Enable Always on top to see it over ga
 FPS · Current|FPS · 当前|FPS · 目前
 FPS · Average|FPS · 平均|FPS · 平均
 FPS · Minimum|FPS · 最低|FPS · 最低
+Screenshot mode · 15 seconds|截图模式 · 15 秒|截圖模式 · 15 秒
+Freeze text colors and allow screenshots for 15 seconds. Use Win+Shift+S; local contrast resumes automatically.|冻结文字配色并允许截图 15 秒。按 Win+Shift+S 截图，随后自动恢复局部对比度。|凍結文字配色並允許截圖 15 秒。按 Win+Shift+S 截圖，隨後自動恢復局部對比度。
+Use Win+Shift+S now. Local contrast resumes in 15 seconds.|现在可按 Win+Shift+S 截图。15 秒后恢复局部对比度。|現在可按 Win+Shift+S 截圖。15 秒後恢復局部對比度。
+Current / Average / Minimum|当前 / 平均 / 最低|目前 / 平均 / 最低

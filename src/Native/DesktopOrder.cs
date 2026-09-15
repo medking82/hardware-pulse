@@ -44,7 +44,7 @@ namespace HardwarePulse {
         void UpdateDesktopOrderLabels(){
             foreach(Border row in Control<StackPanel>("DesktopOrderList").Children){
                 string key=(string)row.Tag;
-                string title=key=="fps"?"FPS":key=="lanLink"?language.T("LAN Link Speed"):key=="wifiLink"?language.T("Wi-Fi Link Speed"):key=="wifiSignal"?language.T("Wi-Fi Signal"):key=="netConnection"?language.T("Connection"):key=="netSignal"?language.T("Wi-Fi Signal"):key.StartsWith("quota")?QuotaDesktopTitle(key):key=="netDown"?language.T("Download"):key=="netUp"?language.T("Upload"):key=="vram"?language.T("VRAM"):key=="diskC"||key=="diskD"?Device(key,key=="diskC"?"Drive 1":"Drive 2"):key=="CPU"||key=="GPU"||key=="Memory"?language.T(key):DesktopFanTitle(key);
+                string title=key=="fps"?"FPS · "+language.T("Current / Average / Minimum"):key=="lanLink"?language.T("LAN Link Speed"):key=="wifiLink"?language.T("Wi-Fi Link Speed"):key=="wifiSignal"?language.T("Wi-Fi Signal"):key=="netConnection"?language.T("Connection"):key=="netSignal"?language.T("Wi-Fi Signal"):key.StartsWith("quota")?QuotaDesktopTitle(key):key=="netDown"?language.T("Download"):key=="netUp"?language.T("Upload"):key=="vram"?language.T("VRAM"):key=="diskC"||key=="diskD"?Device(key,key=="diskC"?"Drive 1":"Drive 2"):key=="CPU"||key=="GPU"||key=="Memory"?language.T(key):DesktopFanTitle(key);
                 var grid=(Grid)row.Child;((TextBlock)grid.Children[1]).Text=title;
                 System.Windows.Automation.AutomationProperties.SetName(grid.Children[0],title);System.Windows.Automation.AutomationProperties.SetName(grid.Children[2],language.T("Show on Desktop")+" · "+title);
             }

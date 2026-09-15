@@ -32,9 +32,11 @@ try {
  $view=[HardwarePulse.DesktopView]::new($factory,$true)
  try{
   $view.Left=150;$view.Top=150;$view.Width=300;$view.Height=150;$view.SizeToContent='Manual';$view.Topmost=$true
-  $metrics=[Collections.Generic.List[HardwarePulse.DesktopMetric]]::new();$metrics.Add([HardwarePulse.DesktopMetric]::new('demo','MMMMMMMMMMMM','60','fps'))
+  $metrics=[Collections.Generic.List[HardwarePulse.DesktopMetric]]::new();$metrics.Add([HardwarePulse.DesktopMetric]::new('demo','MMMMMMMMMMMM','60','cpu'))
   $view.Render($metrics,24,10,'#FFFFFF',$true,1,$null);$view.SetTextOpacity(100,$true,$true,0,0);$view.Show();$view.SetLocalContrast($true);Settle;Settle
-  $flags=[Reflection.BindingFlags]'Instance,NonPublic';$rows=$view.GetType().GetField('rows',$flags).GetValue($view);Assert ($rows['demo'].Name.Foreground -is [Windows.Media.ImageBrush]) 'Runtime did not apply per-pixel brush to text'
+  $flags=[Reflection.BindingFlags]'Instance,NonPublic';$rows=$view.GetType().GetField('rows',$flags).GetValue($view);Assert ($rows['demo'].Name.Foreground -is [Windows.Media.SolidColorBrush] -and $rows['demo'].Value.Foreground.Color.R -eq 20) 'Local reading must use one coherent dark color over white'
+  $frozen=$rows['demo'].Name.Foreground;$view.BeginScreenshot();Assert ($view.ScreenshotActive) 'Screenshot mode did not start';Settle;Assert ($rows['demo'].Name.Foreground -eq $frozen) 'Screenshot mode changed the sampled colors'
+  $timer=$view.GetType().GetField('screenshotTimer',$flags).GetValue($view);$timer.Interval=[TimeSpan]::FromMilliseconds(50);$timer.Stop();$timer.Start();Settle;Assert (-not $view.ScreenshotActive -and $view.LocalContrastAvailable) 'Screenshot mode did not automatically resume contrast'
   $visual=[Windows.Media.DrawingVisual]::new();$context=$visual.RenderOpen();$rect=[Windows.Rect]::new(0,0,300,150);$context.DrawRectangle([Windows.Media.VisualBrush]::new($grid),$null,$rect);$context.DrawRectangle([Windows.Media.VisualBrush]::new($view.Content),$null,$rect);$context.Close()
   $image=[Windows.Media.Imaging.RenderTargetBitmap]::new(300,150,96,96,[Windows.Media.PixelFormats]::Pbgra32);$image.Render($visual);$encoder=[Windows.Media.Imaging.PngBitmapEncoder]::new();$encoder.Frames.Add([Windows.Media.Imaging.BitmapFrame]::Create($image));$stream=[IO.File]::Create((Join-Path $PWD 'vendor/local-contrast-preview.png'));try{$encoder.Save($stream)}finally{$stream.Dispose()}
   $view.SetLocalContrast($false);Assert ($rows['demo'].Name.Foreground -is [Windows.Media.SolidColorBrush]) 'Manual foreground not restored'

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Reflection;
 using System.Security.Principal;
@@ -9,7 +9,7 @@ using System.Windows;
 [assembly:AssemblyProduct("Hardware Pulse")]
 [assembly:AssemblyCompany("Marck Wong")]
 [assembly:AssemblyCopyright("Copyright 2026 Marck Wong")]
-[assembly:AssemblyVersion("0.6.11.0")]
+[assembly:AssemblyVersion("0.6.12.0")]
 namespace HardwarePulse {
     internal static class Program {
         [STAThread] static int Main(string[] args){

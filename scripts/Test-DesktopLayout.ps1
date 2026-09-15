@@ -33,6 +33,16 @@ try {
             Assert ($label.TranslatePoint([Windows.Point]::new($label.ActualWidth,0),$grid).X -le $left) 'Name overlaps reading'
         }
     }
+    $view.Width=430;$view.Height=200;$view.SizeToContent='Manual';$items.Clear()
+    foreach($i in 1..24){$items.Add([HardwarePulse.DesktopMetric]::new("metric$i",'Reading','100','airflow'))}
+    $view.Render($items,16,10,'#FFFFFF',$true,0,$null);$view.UpdateLayout()
+    $scroll=$view.Content.Child.Children[1]
+    Assert ($scroll.ExtentHeight -le $scroll.ViewportHeight+1) 'Locked Desktop leaves avoidable overflow at a saved short height'
+    $items.Clear();$items.Add([HardwarePulse.DesktopMetric]::new('fps','FPS',"144 / 128 /  60",'fps'))
+    $view.Width=280;$view.Render($items,24,10,'#FFFFFF',$true,1,$null);$view.UpdateLayout()
+    $grid=$panel.Children[0].Child;$reading=$grid.Children[2]
+    Assert ($reading.Inlines.Count -eq 8 -and $reading.TextWrapping -eq 'NoWrap') 'FPS badges must stay in one reading'
+    Assert ($reading.TranslatePoint([Windows.Point]::new($reading.ActualWidth,0),$grid).X -le $grid.ActualWidth+1) 'FPS badges exceed a narrow panel'
     if($ScreenshotDirectory){
         [void][IO.Directory]::CreateDirectory([IO.Path]::GetFullPath($ScreenshotDirectory))
         $view.Width=700;$view.Render($items,20,10,'#FFFFFF',$true,1,$null);$view.SetTextOpacity(100,$true);$view.UpdateLayout()

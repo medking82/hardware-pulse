@@ -1,4 +1,4 @@
-<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="Hardware Pulse Glass" Width="280" Height="650" MinWidth="240" MinHeight="340" WindowStyle="None" ResizeMode="CanResizeWithGrip" Background="#182332" Foreground="#F0F5FA" FontFamily="Segoe UI, Microsoft YaHei UI, Microsoft JhengHei UI" FontSize="12" TextOptions.TextFormattingMode="Display" UseLayoutRounding="True" SnapsToDevicePixels="True" WindowStartupLocation="CenterScreen">
+﻿<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="Hardware Pulse Glass" Width="280" Height="650" MinWidth="240" MinHeight="340" WindowStyle="None" ResizeMode="CanResizeWithGrip" Background="#182332" Foreground="#F0F5FA" FontFamily="Segoe UI, Microsoft YaHei UI, Microsoft JhengHei UI" FontSize="12" TextOptions.TextFormattingMode="Display" UseLayoutRounding="True" SnapsToDevicePixels="True" WindowStartupLocation="CenterScreen">
   <Window.Resources>
     <Style x:Key="PulseScrollThumb" TargetType="Thumb">
       <Setter Property="Template">
@@ -258,7 +258,7 @@
             </ComboBox>
             <CheckBox x:Name="StartWithWindows" Content="Start with Windows" Margin="0,0,0,10" />
             <TextBlock x:Name="StartupStatus" FontSize="11" Margin="0,0,0,10" />
-            <TextBlock Text="Version 0.6.11 · Marck Wong" FontSize="11" Foreground="#ADC1D2" Margin="0,0,0,8" />
+            <TextBlock Text="Version 0.6.12 · Marck Wong" FontSize="11" Foreground="#ADC1D2" Margin="0,0,0,8" />
             <Button x:Name="GitHub" Content="GitHub" HorizontalAlignment="Left" ToolTip="github.com/medking82/hardware-pulse" />
             <CheckBox x:Name="AutoUpdates" Content="Check for Updates Automatically" Margin="0,12,0,8" />
             <CheckBox x:Name="AutoDownload" Content="Download Updates Automatically" Margin="0,0,0,8" />
@@ -311,8 +311,10 @@
             <Slider x:Name="DesktopSpacing" Minimum="4" Maximum="40" TickFrequency="1" IsSnapToTickEnabled="True" AutomationProperties.Name="Row Spacing" Margin="0,8,0,12" />
             <CheckBox x:Name="DesktopAutoContrast" Content="Auto Contrast" Margin="0,0,0,8" />
             <CheckBox x:Name="DesktopLocalContrast" Content="Local adaptive text contrast" Margin="0,0,0,8" />
-            <TextBlock Text="Adapts text to the background beneath each pixel. Pulse may disappear from screenshots and recordings while enabled." TextWrapping="Wrap" Margin="0,0,0,12" />
+            <TextBlock Text="Adapts each label and reading to its local background. Use Screenshot mode to include Pulse in captures." TextWrapping="Wrap" Margin="0,0,0,12" />
             <TextBlock x:Name="DesktopLocalContrastStatus" TextWrapping="Wrap" Margin="0,0,0,8" />
+            <Button x:Name="DesktopScreenshot" Content="Screenshot mode · 15 seconds" Margin="0,0,0,8" />
+            <TextBlock Text="Freeze text colors and allow screenshots for 15 seconds. Use Win+Shift+S; local contrast resumes automatically." TextWrapping="Wrap" Margin="0,0,0,12" />
             <DockPanel><TextBlock x:Name="DesktopBackgroundOpacityValue" DockPanel.Dock="Right" /><TextBlock Text="Desktop background opacity" /></DockPanel>
             <Slider x:Name="DesktopBackgroundOpacity" Minimum="0" Maximum="100" TickFrequency="1" IsSnapToTickEnabled="True" AutomationProperties.Name="Desktop background opacity" Margin="0,8,0,8" />
             <DockPanel><TextBlock x:Name="DesktopOverlayOpacityValue" DockPanel.Dock="Right" /><TextBlock Text="Topmost background opacity" /></DockPanel>

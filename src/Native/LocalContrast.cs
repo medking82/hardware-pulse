@@ -29,6 +29,14 @@ namespace HardwarePulse {
             // Hysteresis, not a fixed delay: large changes switch on the next frame.
             return luminance>.22?(byte)20:luminance<.16?(byte)245:previous==20?(byte)20:(byte)245;
         }
+        public static byte RegionColor(BitmapSource image,Int32Rect region,byte previous){
+            int left=Math.Max(0,region.X),top=Math.Max(0,region.Y),right=Math.Min(image.PixelWidth,region.X+region.Width),bottom=Math.Min(image.PixelHeight,region.Y+region.Height);
+            if(right<=left||bottom<=top)return previous;
+            int width=right-left,height=bottom-top;var pixels=new byte[width*height*4];image.CopyPixels(new Int32Rect(left,top,width,height),pixels,width*4,0);
+            int dark=0;for(int i=0;i<pixels.Length;i+=4)if(pixels[i]<128)dark++;
+            double share=dark/(double)(width*height);
+            return share>.6?(byte)20:share<.4?(byte)245:previous;
+        }
         public static double Stabilize(double current,double previous){return Math.Abs(current-previous)>.18?current:previous*.65+current*.35;}
         public static void Smooth(float[] values,int width,int height,int radius,float[] temporary){
             // Two linear-time box passes remove sub-glyph texture without blurring text.
