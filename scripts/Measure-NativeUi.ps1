@@ -1,4 +1,4 @@
-﻿param([Parameter(Mandatory=$true)][string]$AppDirectory,[ValidateRange(2,3600)][int]$Seconds=30,[ValidateSet('monitor','desktop','desktop-contrast')][string]$Scene='monitor')
+﻿param([Parameter(Mandatory=$true)][string]$AppDirectory,[ValidateRange(2,3600)][int]$Seconds=30,[ValidateSet('monitor','desktop','desktop-contrast','desktop-dynamic','desktop-dynamic-contrast')][string]$Scene='monitor')
 $ErrorActionPreference='Stop'
 $root=Split-Path $PSScriptRoot
 $AppDirectory=[IO.Path]::GetFullPath($AppDirectory)
@@ -41,12 +41,18 @@ try {
         if($i -ge 5){$process.Refresh();$samples+= [pscustomobject]@{workingSet=$process.WorkingSet64;privateBytes=$process.PrivateMemorySize64}}
     }
     $process.Refresh()
-    $result=[pscustomobject]@{scope='Isolated UI harness; excludes live collector, FPS, quota requests and desktop layer integration';harnessSha256=$harnessHash;scene=$Scene;background=$(if($Scene -eq 'monitor'){'host desktop'}else{'fixed black-white-gray gradient'});localContrast=$ready.localContrast;version=$version;appSha256=$appHash;coreSha256=$coreHash;adapterSha256=$adapterHash;logicalProcessors=[Environment]::ProcessorCount;warmupSeconds=10;requestedSeconds=$Seconds;sampleIntervalSeconds=2;widthDip=$ready.widthDip;heightDip=$ready.heightDip;widthPixels=$ready.widthPixels;heightPixels=$ready.heightPixels;app=$AppDirectory;seconds=$start.Elapsed.TotalSeconds;cpuPercent=100*($process.TotalProcessorTime-$cpuStart).TotalSeconds/$start.Elapsed.TotalSeconds/[Environment]::ProcessorCount;workingSetMiB=($samples.workingSet|Measure-Object -Average).Average/1MB;privateMiB=($samples.privateBytes|Measure-Object -Average).Average/1MB;samples=$samples.Count}
+    $result=[pscustomobject]@{scope='Isolated UI harness; excludes live collector, FPS, quota requests and desktop layer integration';harnessSha256=$harnessHash;scene=$Scene;background=$(if($Scene -eq 'monitor'){'host desktop'}elseif($Scene.StartsWith('desktop-dynamic')){'moving black-white-gray gradient'}else{'fixed black-white-gray gradient'});backgroundIntervalMilliseconds=$ready.backgroundIntervalMilliseconds;backgroundPeriodSeconds=$ready.backgroundPeriodSeconds;localContrast=$ready.localContrast;version=$version;appSha256=$appHash;coreSha256=$coreHash;adapterSha256=$adapterHash;logicalProcessors=[Environment]::ProcessorCount;warmupSeconds=10;requestedSeconds=$Seconds;sampleIntervalSeconds=2;widthDip=$ready.widthDip;heightDip=$ready.heightDip;widthPixels=$ready.widthPixels;heightPixels=$ready.heightPixels;app=$AppDirectory;seconds=$start.Elapsed.TotalSeconds;cpuPercent=100*($process.TotalProcessorTime-$cpuStart).TotalSeconds/$start.Elapsed.TotalSeconds/[Environment]::ProcessorCount;workingSetMiB=($samples.workingSet|Measure-Object -Average).Average/1MB;privateMiB=($samples.privateBytes|Measure-Object -Average).Average/1MB;samples=$samples.Count}
+    Set-Content "$state/BENCH-STOP" 'done'
+    if(-not $process.WaitForExit(10000) -or $process.ExitCode -ne 0){throw 'Benchmark did not complete successfully'}
+    $completed=Get-Content "$state/completed.json" -Raw|ConvertFrom-Json
+    if($Scene.StartsWith('desktop-dynamic') -and $completed.backgroundUpdates -le 0){throw 'Dynamic background did not advance'}
+    $result|Add-Member -NotePropertyName backgroundUpdates -NotePropertyValue $completed.backgroundUpdates
     $result|ConvertTo-Json|Set-Content "$state/result.json" -Encoding utf8
     $result|ConvertTo-Json
 } finally {
     Set-Content "$state/BENCH-STOP" 'done'
     if(-not $process.WaitForExit(10000)){throw 'Benchmark process did not stop'}
+    [IO.File]::WriteAllText("$state/stderr.log",$stderr.Result)
     if($process.ExitCode -ne 0){throw $stderr.Result}
     $process.Dispose()
 }

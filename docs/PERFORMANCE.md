@@ -192,3 +192,43 @@ long-duration leaks and game frametime still need separate matched measurements.
 This measurement-only iteration changes no runtime, sampling interval, defaults
 or release binary. Local raw evidence: vendor/desktop-paired-0.6.24.json. The
 original monitor benchmark remains available through the default `monitor` scene.
+
+## Moving-background probe (0.6.24; incomplete comparison)
+
+Use `Measure-NativeUi.ps1 -Scene desktop-dynamic` and
+`-Scene desktop-dynamic-contrast` with the same AppDirectory. Both animate the
+same gradient endpoints with a sinusoidal offset (amplitude 0.35, period eight
+seconds), requested Dispatcher interval 33 ms. The completion marker records
+actual background updates; the wrapper rejects a nonmoving dynamic scene and
+retains stderr locally. The harness reports capture/render first-chance exceptions
+without adding instrumentation to the shipped App.
+
+The initial three-pair attempt stopped in pair 2 when LocalContrastAvailable
+became false. Do not treat the partial run as a completed performance baseline:
+
+| Completed sample | CPU | Mean private memory | Mean working set |
+| --- | --- | --- | --- |
+| Pair 1 off | 0.077% | 143.40 MiB | 128.58 MiB |
+| Pair 1 on | 0.448% | 120.79 MiB | 147.59 MiB |
+| Pair 2 off | 0.081% | 142.96 MiB | 128.61 MiB |
+
+All used 10 seconds warmup, 30 seconds measurement, 16 logical processors,
+320x850 DIP / 480x1275 pixels and the static comparison's other settings.
+Runtime App SHA-256 was
+`233007e88c0bdab86eb803e4f90fd3448a28237d9d90e11de34e4693b1b508ae`.
+The animation ran 894-897 updates per completed process. The background renderer
+is in the measured process; GPU/DWM work is not included. Private-memory reversal
+between these short fresh-process runs is not proof of retained-memory savings.
+
+After adding diagnostic logging, one 30-second on run passed (0.515% CPU,
+120.54 MiB private, 148.84 MiB working set, 895 background updates). It does not
+replace the failed pair or prove the intermittent problem fixed. The observed
+failure can arise from capture returning no image, a capture-task exception or
+an ArgumentException while applying adaptive styles; the previous harness did
+not record enough evidence to distinguish these. Root cause and a stable
+reproduction remain open. No runtime fix or release is claimed.
+
+Local partial evidence: vendor/desktop-dynamic-paired-0.6.24.json;
+diagnostic attempt: vendor/dynamic-diagnostic.log. Complete the matched dynamic
+comparison only after resolving the unavailable-state observation. Game frametime,
+wallpaper-layer integration and long-duration memory remain separate checks.
