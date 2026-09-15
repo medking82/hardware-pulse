@@ -933,3 +933,30 @@ Both reported a successful RAM read and three network interfaces; ARM64 reported
 both OS and process architecture as Arm64. Neither runner had PawnIO installed,
 so this provides no driver, temperature or fan support evidence. Local full
 Windows validation, including Modern Core, also passed.
+
+## Shared Desktop UI preview
+
+`src/Hosts/Desktop` is a separate .NET 10 / Avalonia 12.1.2 host, with NuGet
+lock files. It composes existing Linux and macOS adapters through ReadingSession;
+neither Core nor adapters acquire an Avalonia dependency. Windows continues to
+ship the existing WPF host. The new host requires explicit `--demo` on Windows.
+
+Run `dotnet run --project src/Hosts/Desktop/Pulse.Desktop.csproj -c Release` on
+Linux/macOS for CPU load, memory and a selected network interface. `--demo`
+uses labeled sample data on every OS. `--smoke-test` closes after three samples
+and fails when native CPU or memory readings are unavailable. This is a source
+preview, not a platform installer or feature-parity release.
+
+One serial worker owns the sessions; a one-second PeriodicTimer schedules polls,
+IO runs off the UI thread, pause skips polling, and closing cancels the worker.
+Updates reuse existing controls. Network interface selection creates a fresh
+baseline; missing data clears the displayed value. macOS RAM is labeled an
+estimate, and memory uses GiB. There is no credential access or quota polling.
+
+The native resizable window uses the platform default font, system theme, solid
+background, existing vector assets and responsive one/two-column cards. Headless
+Skia tests render the actual controls and exercise width changes, unavailable
+values, keyboard pause and worker shutdown. CI separately starts real Windows
+demo windows and Linux/macOS live windows; headless results do not prove native
+window behavior. Desktop layer, tray, persistence, quota, temperatures, fans,
+FPS, blur and platform packaging remain unimplemented in this host.
