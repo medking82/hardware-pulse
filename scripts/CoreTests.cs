@@ -27,6 +27,12 @@ class CoreTests {
         Console.WriteLine("PASS portable column layout: initial/manual/auto fit, hysteresis, shrink, unbounded measure and font-dependent widths");
     }
     static void Main(){
+#if NET10_0
+        string architecture=System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture.ToString();
+        string expectedArchitecture=Environment.GetEnvironmentVariable("PULSE_TEST_ARCH");
+        Check(string.IsNullOrEmpty(expectedArchitecture)||architecture==expectedArchitecture,"Expected process architecture "+expectedArchitecture+", got "+architecture);
+        Console.WriteLine("Core test host: "+System.Runtime.InteropServices.RuntimeInformation.OSDescription+" / "+architecture+" / "+System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription);
+#endif
         CheckColumnLayout();
         Check(typeof(MaterialPolicy).Assembly==typeof(Reading).Assembly,"Material policy still depends on platform assembly");
         var lockedMaterial=new MaterialPolicy(20,true,false,false,false);

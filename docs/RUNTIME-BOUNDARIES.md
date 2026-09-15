@@ -469,3 +469,28 @@ pre-move FrameCapture/Overlay source location reproduced that exact failure.
 The capture file's Git blob hash matches the pre-move source. This is retained as
 an unrelated legacy UI limitation; the full native Validate suite passed. No
 claim is made that the complete legacy Settings suite passed.
+
+## Cross-platform Core CI
+
+`.github/workflows/core.yml` runs the same .NET 10 Core assertion executable on
+Windows, Ubuntu and macOS, each with x64 and ARM64 GitHub-hosted runners. Core
+source/tests/workflow changes trigger it; workflow_dispatch supports an explicit
+check. The matrix disables fail-fast so one platform failure does not hide other
+results. Actions are pinned to commits, checkout credentials are not persisted,
+permissions are contents-read only, and each job is limited to 15 minutes. It
+neither accesses hardware/credentials nor builds, signs or publishes the App.
+
+The workflow installs SDK 10.0.401, prints dotnet --info and requires the actual
+Core test process architecture to match the matrix. A runner label alone is not
+proof of native execution. Local .NET 10 tests accept the same PULSE_TEST_ARCH
+expectation; the Framework test path stays unchanged. Core's existing dependency,
+allocation, format, session, quota, settings and layout assertions run on every
+matrix entry. Workflow run logs are the evidence for the exact tested commit;
+adding this file does not itself establish that any remote job passed.
+
+Runner labels follow the [GitHub-hosted runners reference](https://docs.github.com/en/actions/reference/runners/github-hosted-runners).
+Passing these tests establishes shared Core execution only. WPF, Windows adapters,
+PresentMon/driver payloads, platform collectors, native Desktop integration and
+installers still need independent OS/device validation. CI introduces no runtime
+changes or installer release. Rollback is the workflow and test-host assertion
+commit; no user settings or repository secret changes are required.
