@@ -275,3 +275,24 @@ readings. Invalid readings fail; noisy timing does not use a pass/fail threshold
 These are tight-loop adapter measurements, not an App working-set benchmark or
 an estimate of game frametime. Allocated bytes are not retained RAM. The adapter
 still has no timer or worker, and is not loaded by the Windows installer.
+Observed on 2026-09-15, commit
+`1ee8614141f6478c4c6d0d84ecb33c1b98bb9235`,
+[CI evidence](https://github.com/medking82/hardware-pulse/actions/runs/34976904596):
+Ubuntu x64 and native ARM64 fixtures/live CPU, RAM and loopback tests all passed.
+Both runners exposed 4 processors, .NET 10.0.12, and had zero invalid benchmark
+readings. Medians of three runs:
+
+| Runner | Managed bytes/poll: full / first-line | Elapsed microseconds/poll: full / first-line | Process CPU microseconds/poll: full / first-line |
+| --- | --- | --- | --- |
+| x64 | 36,494 / 29,638 | 22.85 / 21.27 | 22.87 / 21.28 |
+| ARM64 | 31,319 / 29,214 | 28.20 / 23.67 | 28.21 / 23.66 |
+
+Managed allocation fell approximately 18.8% and 6.7%, respectively. proc/stat
+contained 1,259 characters on x64 and 483 on ARM64; savings depend on host data.
+The tight loop often polls faster than CPU counters advance, so most iterations
+correctly omit CPU load while retaining valid RAM. This is not a production
+refresh-rate recommendation. All runs recorded zero GC collections inside the
+measurement interval. The first full-file timing in both pairs was slower than
+later runs; medians are descriptive evidence, not a guaranteed timing benefit.
+The Windows full validation passed; no installer or running App was changed.
+Raw local evidence: vendor/linux-polling-ci-34976904596.log.
