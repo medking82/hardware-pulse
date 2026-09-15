@@ -11,5 +11,6 @@
     <ProjectReference Include="../../src/Core/Pulse.Core.csproj" />
     <Compile Include="../CoreTests.cs" Link="CoreTests.cs" />
     <Compile Include="../CoreQuotaSessionTests.cs" Link="CoreQuotaSessionTests.cs" />
+    <Compile Include="../CoreQuotaDecoderTests.cs" Link="CoreQuotaDecoderTests.cs" />
   </ItemGroup>
 </Project>

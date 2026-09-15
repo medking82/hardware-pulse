@@ -18,6 +18,7 @@ class CoreTests {
             Check(material.Solid&&material.EffectiveOpacity(true)==1&&!material.CanAdjustOpacity(true),"Solid/high contrast must override transparent lock preferences");
         Console.WriteLine("PASS portable material policy: lock/settings/unlock, zero opacity and solid/high-contrast/unsupported fallback");
         CoreQuotaSessionTests.Run();
+        CoreQuotaDecoderTests.Run();
         Check(typeof(QuotaReading).Assembly==typeof(ContrastAnalysis).Assembly&&typeof(NetworkRate).Assembly==typeof(ContrastAnalysis).Assembly,"Quota/network boundary depends on the app");
         var quota=new QuotaReading();
         quota.AllWindows.Add(new QuotaWindow {Label="5-hour",Remaining=0});
@@ -88,7 +89,7 @@ class CoreTests {
         for(int i=0;i<10000;i++)analysis.RegionColor(0,0,64,32,20,out minority);
         Check(AllocatedBytes()-before<1024,"Region queries allocate per reading");
 #if NET10_0
-        var allowedReferences=new[]{"System.Runtime","System.Collections","System.Linq","System.Threading","System.Threading.Tasks"};
+        var allowedReferences=new[]{"System.Runtime","System.Collections","System.Linq","System.Threading","System.Threading.Tasks","System.Memory"};
 #else
         var allowedReferences=new[]{"mscorlib","System","System.Core"};
 #endif

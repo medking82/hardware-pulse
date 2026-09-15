@@ -38,7 +38,7 @@ namespace HardwarePulse {
                     foreach(int port in Ports(pid))foreach(string scheme in new[]{"https","http"}){
                         deadline.Token.ThrowIfCancellationRequested();if(!Ports(pid).Contains(port))continue;
                         try{var body=QuotaProviders.Request(scheme+"://127.0.0.1:"+port+"/exa.language_server_pb.LanguageServerService/RetrieveUserQuotaSummary",new Dictionary<string,string>{{"x-codeium-csrf-token",token},{"connect-protocol-version","1"}},"{\"forceRefresh\":true}",deadline.Token,true);
-                            if(QuotaData.Decode("Antigravity",body,DateTimeOffset.UtcNow).Status=="Live")return body;
+                            if(QuotaDecoder.Decode("Antigravity",body,DateTimeOffset.UtcNow).Status=="Live")return body;
                         }catch(QuotaFailure){}
                     }
                 }

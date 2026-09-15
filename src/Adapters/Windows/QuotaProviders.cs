@@ -28,17 +28,17 @@ namespace HardwarePulse {
                 object body;
                 if(provider=="Antigravity")body=AntigravityQuota.Read(cancel);
                 else if(provider=="Codex"){
-                    var login=ReadLogin(LoginFile("CODEX_HOME",".codex","auth.json"));var tokens=QuotaData.Get(login,"tokens");string token=QuotaData.Text(QuotaData.Get(tokens,"access_token"));
+                    var login=ReadLogin(LoginFile("CODEX_HOME",".codex","auth.json"));var tokens=QuotaDecoder.Get(login,"tokens");string token=QuotaDecoder.Text(QuotaDecoder.Get(tokens,"access_token"));
                     if(token=="")throw new QuotaFailure("Login required");
-                    var headers=new Dictionary<string,string>{{"Authorization","Bearer "+token}};string account=QuotaData.Text(QuotaData.Get(tokens,"account_id"));if(account!="")headers["ChatGPT-Account-Id"]=account;
+                    var headers=new Dictionary<string,string>{{"Authorization","Bearer "+token}};string account=QuotaDecoder.Text(QuotaDecoder.Get(tokens,"account_id"));if(account!="")headers["ChatGPT-Account-Id"]=account;
                     body=Request("https://chatgpt.com/backend-api/wham/usage",headers,null,cancel,false);
                 }else if(provider=="Claude"){
                     string token=Environment.GetEnvironmentVariable("CLAUDE_CODE_OAUTH_TOKEN");
-                    if(string.IsNullOrEmpty(token)){var login=ClaudeLogin();token=QuotaData.Text(QuotaData.Get(QuotaData.Get(login,"claudeAiOauth")??login,"accessToken"));}
+                    if(string.IsNullOrEmpty(token)){var login=ClaudeLogin();token=QuotaDecoder.Text(QuotaDecoder.Get(QuotaDecoder.Get(login,"claudeAiOauth")??login,"accessToken"));}
                     if(string.IsNullOrEmpty(token))throw new QuotaFailure("Login required");
                     body=Request("https://api.anthropic.com/api/oauth/usage",new Dictionary<string,string>{{"Authorization","Bearer "+token},{"anthropic-beta","oauth-2025-04-20"}},null,cancel,false);
                 }else throw new QuotaFailure("Quota unavailable");
-                cancel.ThrowIfCancellationRequested();return QuotaData.Decode(provider,body,DateTimeOffset.UtcNow);
+                cancel.ThrowIfCancellationRequested();return QuotaDecoder.Decode(provider,body,DateTimeOffset.UtcNow);
             }catch(OperationCanceledException){throw;}
             catch(QuotaFailure e){return new QuotaReading{Provider=provider,Status=e.Status,Observed=DateTimeOffset.UtcNow};}
             catch{cancel.ThrowIfCancellationRequested();return new QuotaReading{Provider=provider,Status="Quota unavailable",Observed=DateTimeOffset.UtcNow};}

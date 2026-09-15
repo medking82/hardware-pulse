@@ -9,7 +9,7 @@ using HardwarePulse;
 
 internal static class NativeQuotaTests {
     static void Check(bool value,string message){if(!value)throw new Exception("Quota: "+message);}
-    static QuotaReading Decode(string provider,string json){return QuotaData.Decode(provider,QuotaData.Parse(json),DateTimeOffset.UtcNow);}
+    static QuotaReading Decode(string provider,string json){return QuotaDecoder.Decode(provider,QuotaData.Parse(json),DateTimeOffset.UtcNow);}
     public static void Run(){
         var ownership=typeof(QuotaProviders).Assembly.GetType("HardwarePulse.AntigravityQuota").GetMethod("IsOwnedProcess",BindingFlags.NonPublic|BindingFlags.Static);
         uint pid=(uint)System.Diagnostics.Process.GetCurrentProcess().Id;string sid=System.Security.Principal.WindowsIdentity.GetCurrent().User.Value;
@@ -25,7 +25,7 @@ internal static class NativeQuotaTests {
         Check(selected.Windows.Count==2&&selected.Windows[0].Label=="5-hour"&&selected.Windows[0].Remaining==50&&selected.Windows[1].Label=="Weekly"&&!selected.Windows[1].Remaining.HasValue,"AG excludes other model groups and unknown windows; sorts 5-hour first and preserves disabled");
         foreach(string provider in QuotaSession.Providers)Check(Decode(provider,"{}").Status!="Live","missing response not 100%");
         Check(!Decode("Claude","{\"five_hour\":{\"utilization\":-1}}").Windows[0].Remaining.HasValue,"invalid percent");Check(!Decode("Claude","{\"five_hour\":{\"utilization\":\"0\"}}").Windows[0].Remaining.HasValue,"numeric strings rejected");
-        Check(QuotaData.ResetText(DateTimeOffset.UtcNow.AddSeconds(-1),DateTimeOffset.UtcNow)=="Reset pending","reset does not fabricate quota");
+        Check(QuotaDecoder.ResetText(DateTimeOffset.UtcNow.AddSeconds(-1),DateTimeOffset.UtcNow)=="Reset pending","reset does not fabricate quota");
         var request=typeof(QuotaProviders).GetMethod("Request",BindingFlags.NonPublic|BindingFlags.Static);
         try{request.Invoke(null,new object[]{"https://example.invalid/usage",new System.Collections.Generic.Dictionary<string,string>(),null,CancellationToken.None,false});throw new Exception("Untrusted URL admitted");}catch(TargetInvocationException e){Check(e.InnerException.GetType().Name=="QuotaFailure","remote URL allowlist");}
         var listener=new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback,0);listener.Start();

@@ -315,3 +315,22 @@ missing values; existing Cards/Desktop, stale/peak and usage checks remain.
 Allowed changes are this formatter, its consumers and related tests/docs; no
 settings, credentials, capture or sampling changes. One source commit reverts the
 ticket with no data migration. Complete with Validate.ps1 -ModernCore evidence.
+
+## CORE-02: portable quota decoding
+
+From baseline `1533e9e`, QuotaDecoder in Core owns decoded response mapping and
+reset text for Codex, Claude and Antigravity. It accepts ordinary dictionary/list/
+numeric/string values and a host observation time. Windows QuotaData retains
+JavaScriptSerializer parsing with the same 1 MiB and recursion-32 limits. Providers
+and views call Core directly; credentials, URL allowlists, redirects, process
+ownership, request cancellation and refresh scheduling retain their existing owners.
+
+Compact/full selection, aliases, zero versus missing, disabled windows, numeric
+string rejection, deduplication and reset conversion are unchanged. The native
+JSON fixtures also run in CoreTests on Framework and .NET 10 through test-only JSON
+bridges; neither JSON parser enters the Core assembly. The modern Core allowlist
+includes System.Memory, a standard BCL dependency emitted for string operations.
+Full native validation retains provider trust-boundary and UI regression coverage.
+
+This extraction adds no timer, network call or settings migration, and makes no
+performance or new-platform support claim. Rollback is the atomic source commit.
