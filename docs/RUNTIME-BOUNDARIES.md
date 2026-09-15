@@ -712,3 +712,11 @@ and recovery. `--live` additionally checks 100 actual RAM reads through a Core
 session, alongside the existing CPU native tests. There is no new background
 worker, privileged access, UI or installer integration. Long-running overhead
 and comparison against Activity Monitor still require separate measurement.
+RAM validation (2026-09-15): native Intel x64 / Apple Silicon ARM64 SDK ABI checks,
+RAM fixtures and 100 live RAM reads through Core all passed at
+`7bea6893258dc0695304aee611918ae8dc679b09` in
+[CI run 34979454819](https://github.com/medking82/hardware-pulse/actions/runs/34979454819).
+CPU fixtures and 1,000 live native CPU calls remained passing after the Mach
+ownership extraction. Local Windows fixtures and full validation passed too.
+This establishes native ABI/read coverage, not Activity Monitor parity or a
+long-duration resource/performance claim.
