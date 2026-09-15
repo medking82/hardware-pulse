@@ -1,5 +1,6 @@
 """Negative package contract tests; native launch is verified separately in CI."""
 import json
+import shutil
 from pathlib import Path
 import tarfile
 import tempfile
@@ -25,11 +26,27 @@ class PackageTests(unittest.TestCase):
             (self.folder / file).write_bytes(b"fixture")
         (self.folder / "Pulse.Desktop.runtimeconfig.json").write_text(json.dumps({"runtimeOptions": {
             "includedFrameworks": [{"name": "Microsoft.NETCore.App", "version": "10.0.12"}]}}))
+        shutil.copy2(package.ROOT / "LICENSE", self.folder / "LICENSE")
+        (self.folder / "licenses").mkdir()
+        for name in package.REQUIRED_NOTICES:
+            shutil.copy2(package.ROOT / "licenses" / name, self.folder / "licenses" / name)
         self.manifest()
 
     def manifest(self):
         (self.folder / "manifest.json").write_text(json.dumps({"kind": "development-preview", "rid": "linux-x64",
-            "files": {p.name: package.digest(p) for p in self.folder.iterdir() if p.name != "manifest.json"}}))
+            "files": {p.relative_to(self.folder).as_posix(): package.digest(p)
+                      for p in self.folder.rglob("*") if p.is_file() and p.name != "manifest.json"}}))
+
+    def test_required_notice_even_with_matching_manifest(self):
+        notice = self.folder / "licenses/SkiaSharp-HarfBuzzSharp-NOTICES.txt"
+        notice.unlink()
+        self.manifest()
+        with self.assertRaisesRegex(AssertionError, "Missing distribution notice"):
+            package.verify(self.folder, "linux-x64")
+        notice.write_text("")
+        self.manifest()
+        with self.assertRaisesRegex(AssertionError, "Missing distribution notice"):
+            package.verify(self.folder, "linux-x64")
 
     def test_inventory_and_digest(self):
         package.verify(self.folder, "linux-x64")

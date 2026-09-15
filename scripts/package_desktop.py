@@ -13,6 +13,9 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 RIDS = ("linux-x64", "linux-arm64", "osx-x64", "osx-arm64")
+REQUIRED_NOTICES = ("Avalonia-MIT.txt", "Avalonia-NOTICE.md", "DotNet-MIT.txt", "DotNet-NOTICES.txt",
+                    "MicroCom-MIT.txt", "SkiaSharp-MIT.txt", "HarfBuzzSharp-MIT.txt",
+                    "SkiaSharp-HarfBuzzSharp-NOTICES.txt", "LobeIcons-MIT.txt", "TokenMonitor.txt", "SOURCES.md")
 
 
 def run(args, **kwargs):
@@ -37,6 +40,9 @@ def verify(folder, rid):
     assert actual == set(expected), "Package file inventory changed"
     for name, value in expected.items():
         assert digest(folder / name) == value, "Package digest mismatch: " + name
+    for name in ("LICENSE", *("licenses/" + name for name in REQUIRED_NOTICES)):
+        notice = folder / name
+        assert notice.is_file() and notice.stat().st_size > 0, "Missing distribution notice: " + name
     exe = folder / executable_path(rid)
     assert exe.is_file(), "Missing executable"
     if os.name != "nt":
@@ -95,7 +101,8 @@ def build(rid, dotnet, allow_dirty=False):
             "Settings remember window size, theme, network choice and explicit Codex opt-in.\n"
             "Tray, Desktop overlay, FPS and other quota providers are not connected.\n"
             "No installation, startup registration or automatic updates are performed.\n"
-            "This CI artifact is for validation; public release and third-party notice audit remain pending.\n", encoding="utf-8")
+            "Upstream licenses and native third-party notices are included in licenses/.\n"
+            "This CI artifact is for validation; public release remains pending.\n", encoding="utf-8")
         files = {p.relative_to(package).as_posix(): digest(p) for p in sorted(package.rglob("*")) if p.is_file()}
         (package / "manifest.json").write_text(json.dumps({"schema": 1, "kind": "development-preview",
             "commit": commit, "dirty": dirty, "rid": rid, "files": files}, indent=2) + "\n", encoding="utf-8")

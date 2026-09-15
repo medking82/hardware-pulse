@@ -1,0 +1,2 @@
+# Preserve the upstream native notice bytes and documented digest on every host.
+licenses/SkiaSharp-HarfBuzzSharp-NOTICES.txt -text

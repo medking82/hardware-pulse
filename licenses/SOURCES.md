@@ -40,6 +40,16 @@ upstream notices were read from these versioned sources:
 - SkiaSharp-MIT.txt: LICENSE.txt in the locked SkiaSharp 3.119.4 NuGet package.
 - HarfBuzzSharp-MIT.txt: LICENSE.txt in the locked HarfBuzzSharp 8.3.1.3 NuGet package.
 
-These supplement the existing Pulse and icon/decoder notices. Native Skia and
-HarfBuzz transitive notice coverage still needs a distribution audit before a
-public preview release; CI archives are development validation artifacts.
+- SkiaSharp-HarfBuzzSharp-NOTICES.txt: unmodified THIRD-PARTY-NOTICES.txt from
+  SkiaSharp.NativeAssets.Linux 3.119.4. The corresponding macOS package and
+  HarfBuzzSharp.NativeAssets.Linux/macOS 8.3.1.3 contain identical bytes.
+  Notice SHA-256: `21504c46c4c58aa64c1055bd2dcbc5f9a136b4b8c412ed3cc6740e22c5b127f5`.
+  NuGet cache contentHash metadata for all four packages matches packages.lock.json.
+  This is the upstream combined notice bundle, including native Skia/HarfBuzz
+  and their third-party material; it is not replaced by the wrapper MIT licenses.
+
+These supplement the existing Pulse and icon/decoder notices. The package builder
+copies these original notices, and verification rejects missing or empty required
+license files even when an archive manifest otherwise matches. Dependency updates
+must revisit the versioned upstream notice bundle. CI archives remain development
+validation artifacts; inclusion of notices does not imply feature or release readiness.
