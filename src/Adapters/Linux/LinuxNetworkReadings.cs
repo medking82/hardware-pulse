@@ -10,9 +10,7 @@ namespace HardwarePulse {
         readonly string name,source=Guid.NewGuid().ToString("N");
         readonly Func<string> read;
         readonly Func<double> seconds;
-        ulong received,sent;
-        double timestamp;
-        bool baseline;
+        readonly NetworkInterval interval=new NetworkInterval();
         long sequence;
 
         public LinuxNetworkReadings(string interfaceName)
@@ -48,17 +46,12 @@ namespace HardwarePulse {
                 if(!found)throw new FormatException("Network interface unavailable");
                 double current=seconds();
                 if(!double.IsFinite(current))throw new FormatException("Invalid monotonic clock");
-                double elapsed=current-timestamp;
-                if(baseline&&elapsed>0&&double.IsFinite(elapsed)&&rx>=received&&tx>=sent){
-                    double down=(rx-received)/elapsed,up=(tx-sent)/elapsed;
-                    if(double.IsFinite(down)&&double.IsFinite(up)){
-                        result.values["netDown"]=down;result.values["netUp"]=up;
-                        result.available["netDown"]=result.available["netUp"]=true;result.state="LIVE";
-                    }
+                if(interval.Update(rx,tx,current,out double down,out double up)){
+                    result.values["netDown"]=down;result.values["netUp"]=up;
+                    result.available["netDown"]=result.available["netUp"]=true;result.state="LIVE";
                 }
-                received=rx;sent=tx;timestamp=current;baseline=true;
             }catch(Exception e) when(e is IOException||e is UnauthorizedAccessException||e is FormatException){
-                baseline=false;result.error=e.Message;
+                interval.Reset();result.error=e.Message;
             }
             return result;
         }

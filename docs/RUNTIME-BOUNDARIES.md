@@ -741,8 +741,8 @@ and `memory` source readings, architecture, units and `complete`, then exits.
 RAM retains the adapter's explicit estimate label. Errors stay attached to their
 source; unavailable requested metrics yield exit 3 instead of fabricated values.
 Other exit codes match Linux: 0 complete, 2 invalid arguments, 4 unsupported OS.
-`--help` works without native reads. Network arguments are rejected because this
-host does not yet have a macOS Network adapter. Nothing is saved or installed.
+`--help` works without native reads. Network arguments are currently rejected;
+the macOS Network adapter is not yet composed into this host. Nothing is saved or installed.
 
 Both platform workflows watch shared host changes and execute their actual CLI
 process tests. Windows locally verifies build/help/argument/OS guards; native
@@ -756,3 +756,20 @@ and unchanged Linux x64/ARM64 CLI contracts passed in
 both at `6372b01904fe13b4988d77ac63114989867cb2d2`. Local Windows builds, CLI guard
 tests and full native validation passed. No desktop UI or distribution-signing
 coverage is implied by this end-to-end headless result.
+
+## Shared Network intervals and macOS adapter
+
+`Core/NetworkInterval` owns byte-counter deltas, monotonic elapsed time and reset
+semantics for Linux and macOS. Adapters own interface selection, source IO and
+clock acquisition. Warm-up, zero/backwards time, decreasing counters and source
+failure never fabricate traffic; a valid idle interval remains zero. Integer
+counters are subtracted before floating-point conversion. No polling timer or
+additional process is introduced.
+
+`MacNetworkReadings` uses .NET's BSD interface statistics for one exact interface
+name, returning `netDown`/`netUp` in bytes per second through the existing Reading
+contract. Missing interfaces and failed reads reset the baseline. It does not
+aggregate Wi-Fi/LAN/VPN links or claim link speed and signal support. The native
+fixture sends UDP traffic over `lo0`; Linux retains its existing `lo` fixture.
+This adapter remains separate from the macOS CLI until host composition is added.
+Network polling cost and long-running resource use have not yet been measured.

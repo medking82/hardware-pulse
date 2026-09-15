@@ -26,7 +26,25 @@ class CoreTests {
         Check(new ColumnLayout(793.99,384,0,1).Columns==1&&new ColumnLayout(794,384,0,1).Columns==2,"Font-dependent minimum must control desktop columns");
         Console.WriteLine("PASS portable column layout: initial/manual/auto fit, hysteresis, shrink, unbounded measure and font-dependent widths");
     }
+    static void CheckNetworkInterval(){
+        var interval=new NetworkInterval();double down,up;
+        Check(!interval.Update(100,200,10,out down,out up),"Network baseline unavailable");
+        Check(interval.Update(300,600,12,out down,out up)&&down==100&&up==200,"Network bytes per monotonic second");
+        Check(interval.Update(300,600,13,out down,out up)&&down==0&&up==0,"Network idle zero");
+        Check(!interval.Update(300,600,13,out down,out up),"Zero elapsed unavailable");
+        Check(!interval.Update(300,600,12,out down,out up),"Backwards clock unavailable");
+        Check(!interval.Update(1,1,14,out down,out up),"Counter reset unavailable");
+        Check(interval.Update(2,3,15,out down,out up)&&down==1&&up==2,"Counter reset recovery");
+        interval.Reset();Check(!interval.Update(ulong.MaxValue-2,ulong.MaxValue-2,16,out down,out up),"Explicit reset");
+        Check(interval.Update(ulong.MaxValue,ulong.MaxValue,17,out down,out up)&&down==2&&up==2,"Exact integer delta before double conversion");
+        bool rejected=false;try{interval.Update(1,1,double.NaN,out down,out up);}catch(ArgumentException){rejected=true;}
+        Check(rejected&&!interval.Update(1,1,18,out down,out up),"Invalid clock resets baseline");
+        interval.Reset();interval.Update(0,0,0,out down,out up);
+        Check(!interval.Update(ulong.MaxValue,ulong.MaxValue,double.Epsilon,out down,out up)&&down==0&&up==0,"Overflowing rates unavailable");
+        Console.WriteLine("PASS portable network interval: baseline, rates, idle, reset, precision and invalid clock");
+    }
     static void Main(){
+        CheckNetworkInterval();
 #if NET10_0
         string architecture=System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture.ToString();
         string expectedArchitecture=Environment.GetEnvironmentVariable("PULSE_TEST_ARCH");

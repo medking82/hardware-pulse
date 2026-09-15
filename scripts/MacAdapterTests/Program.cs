@@ -43,5 +43,6 @@ static class Program {
         }
         Console.WriteLine("PASS macOS CPU fixtures");
         MemoryTests.Run(Array.IndexOf(args,"--live")>=0);
+        NetworkTests.Run(Array.IndexOf(args,"--live")>=0);
     }
 }
