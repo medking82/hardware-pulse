@@ -684,3 +684,31 @@ fixtures, live Core session and 1,000 Mach acquire/read/release cycles passed at
 Windows fixture execution and full `Validate.ps1 -ModernCore` passed. This is
 real system API coverage on hosted macOS runners; retained memory, long-duration
 polling cost, RAM and desktop UI have not been validated by this CPU-only module.
+## macOS RAM adapter prototype
+
+`MacMemoryReadings` supplies `usage["ram"]` to Core ReadingSession with an explicit
+"Used memory estimate" label. Estimated used bytes are
+`(internal_page_count - purgeable_count + wire_count + compressor_page_count) * kernel_page_size`.
+This accounts for non-purgeable anonymous pages, wired pages and actual physical
+compressor storage. It excludes file-backed cache and does not add uncompressed
+compressor-equivalent pages or swap storage. It is not a claim of exact Activity
+Monitor parity or a substitute for memory pressure. Inconsistent counters produce
+unavailable readings rather than clamping to a plausible percentage.
+
+Physical capacity comes from read-only `sysctlbyname("hw.memsize")`; page size
+comes from `host_page_size`, not a hard-coded 4 KiB assumption. The established
+38-integer prefix of `host_statistics64(HOST_VM_INFO64)` contains all required
+counters. CI compiles static offset/width assertions against each native macOS
+SDK before running the C# live reader. CPU and RAM share `MacMach` for balanced
+host-port acquire/release; each caller retains finally-based release.
+
+References: Apple XNU [vm_statistics.h](https://github.com/apple-oss-distributions/xnu/blob/main/osfmk/mach/vm_statistics.h)
+defines the counters; Apple's [Activity Monitor memory guide](https://support.apple.com/guide/activity-monitor/actmntr1004/mac)
+distinguishes used, wired, compressed, cached and pressure concepts. The formula
+above is Pulse's documented estimate derived from available counters.
+
+MacAdapterTests covers 4/16 KiB pages, units, invalid/overflowing counters, failure
+and recovery. `--live` additionally checks 100 actual RAM reads through a Core
+session, alongside the existing CPU native tests. There is no new background
+worker, privileged access, UI or installer integration. Long-running overhead
+and comparison against Activity Monitor still require separate measurement.

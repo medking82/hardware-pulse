@@ -42,5 +42,6 @@ static class Program {
             Check(rejected,"Reject native calls on unsupported OS");
         }
         Console.WriteLine("PASS macOS CPU fixtures");
+        MemoryTests.Run(Array.IndexOf(args,"--live")>=0);
     }
 }

@@ -42,30 +42,17 @@ namespace HardwarePulse {
             return result;
         }
 
-        const string LibSystem="/usr/lib/libSystem.B.dylib";
-        static readonly Lazy<uint> taskPort=new Lazy<uint>(()=>{
-            // mach_task_self() is a macro over an exported uint, not a function.
-            IntPtr library=NativeLibrary.Load(LibSystem);
-            try{return unchecked((uint)Marshal.ReadInt32(NativeLibrary.GetExport(library,"mach_task_self_")));}
-            finally{NativeLibrary.Free(library);}
-        });
-        [DllImport(LibSystem)] static extern uint mach_host_self();
-        [DllImport(LibSystem)] static extern int host_statistics(uint host,int flavor,[Out] uint[] ticks,ref uint count);
-        [DllImport(LibSystem)] static extern int mach_port_deallocate(uint task,uint port);
+        [DllImport(MacMach.LibSystem)] static extern int host_statistics(uint host,int flavor,[Out] uint[] ticks,ref uint count);
 
         static MacCpuTicks ReadNative(){
-            uint task=taskPort.Value;
-            if(task==0)throw new IOException("Mach task port unavailable");
-            uint host=mach_host_self();
-            if(host==0)throw new IOException("Mach host port unavailable");
+            uint host=MacMach.AcquireHost();
             try{
                 uint count=4;var ticks=new uint[4];
                 int status=host_statistics(host,3,ticks,ref count); // HOST_CPU_LOAD_INFO
                 if(status!=0||count!=4)throw new IOException("Mach CPU statistics unavailable: "+status.ToString(CultureInfo.InvariantCulture));
                 return new MacCpuTicks {User=ticks[0],System=ticks[1],Idle=ticks[2],Nice=ticks[3]};
             }finally{
-                int status=mach_port_deallocate(task,host);
-                if(status!=0)throw new IOException("Mach host port release failed: "+status.ToString(CultureInfo.InvariantCulture));
+                MacMach.ReleaseHost(host);
             }
         }
     }

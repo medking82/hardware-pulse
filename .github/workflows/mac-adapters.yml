@@ -49,5 +49,9 @@ jobs:
           dotnet-version: '10.0.401'
       - name: Record SDK and runtime
         run: dotnet --info
+      - name: Verify memory ABI against native SDK
+        run: |
+          cc -std=c11 -Wall -Werror scripts/MacAdapterTests/check_memory_abi.c -o "$RUNNER_TEMP/check-memory-abi"
+          "$RUNNER_TEMP/check-memory-abi"
       - name: Run fixtures and live Mach assertions
         run: dotnet run --project scripts/MacAdapterTests/Pulse.Mac.Tests.csproj --configuration Release --disable-build-servers -p:UseSharedCompilation=false -- --live
