@@ -604,3 +604,9 @@ LinuxAdapterTests includes deterministic reset/recovery, exact interface matchin
 single local UDP packet over loopback and verifies positive RX/TX via Core
 ReadingSession; it makes no external network request. The Ubuntu x64/ARM64 workflow
 runs these assertions. Windows App behavior and packaging remain unchanged.
+Network validation (2026-09-15): deterministic fixtures and live loopback traffic
+passed on Ubuntu x64 and native ARM64 at
+`14fe5ad972155ade4c5de205d4f280112dec6349` in
+[Linux adapter CI](https://github.com/medking82/hardware-pulse/actions/runs/34976314145).
+The complete Windows `Validate.ps1 -ModernCore` regression also passed. Physical
+NIC/Wi-Fi coverage and production polling overhead remain unmeasured.
