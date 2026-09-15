@@ -551,3 +551,28 @@ optional inventory/network and synthetic FPS parsing/reset/freshness assertions.
 The native ARM64 launch fix resolved the harness issue without changing adapter
 code. This is hosted-runner evidence for that subset, not physical Wi-Fi, LHM
 sensor/driver, PresentMon capture, WPF/Desktop or ARM64 installer validation.
+
+## Linux CPU / RAM adapter prototype
+
+`src/Adapters/Linux/Pulse.Adapters.Linux.csproj` is a .NET 10 library referencing
+only Core. `LinuxReadings.Read(now)` supplies the existing `ReadingSession`
+delegate boundary: `values["cpuLoad"]` and `usage["ram"]`. It owns per-instance
+CPU counter history, not a timer or process. Hosts must poll serially. The
+Windows build and installer do not load this prototype.
+
+CPU load uses aggregate `/proc/stat` interval deltas, excludes idle/iowait from
+busy time, and does not double-count guest time. First samples, zero-length
+intervals, counter decreases (including iowait), and recovery after read errors
+need a new baseline; they do not fabricate zero load. RAM uses
+`MemTotal - MemAvailable`, converted from KiB to the existing GiB usage contract.
+Missing/inconsistent fields are unavailable, with no MemFree-only fallback.
+One source can fail while the other remains live; errors are retained on the
+Reading. Values describe host resources, not container cgroup limits.
+See the [kernel procfs documentation](https://docs.kernel.org/filesystems/proc.html).
+
+`dotnet run --project scripts/LinuxAdapterTests/Pulse.Linux.Tests.csproj -c Release`
+runs synthetic fixtures on any .NET 10 host. Adding `-- --live` requires Linux
+and checks actual CPU/RAM reads through Core ReadingSession. The Linux adapter
+workflow runs this on Ubuntu x64 and ARM64, checking process architecture.
+This is a data-source prototype, not a Linux App release: UI, tray, desktop layer,
+Network, temperatures, fans, FPS and installation remain outside this module.
