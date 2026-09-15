@@ -14,10 +14,16 @@ namespace HardwarePulse {
 
         public LinuxReadings() {
             if(!OperatingSystem.IsLinux())throw new PlatformNotSupportedException("Linux procfs is required");
-            read=File.ReadAllText;
+            read=ReadProc;
         }
         public LinuxReadings(Func<string,string> read) {
             this.read=read??throw new ArgumentNullException("read");
+        }
+
+        static string ReadProc(string path) {
+            if(path!="/proc/stat")return File.ReadAllText(path);
+            // Only the aggregate is consumed; per-core and interrupt rows can be large.
+            using(var reader=File.OpenText(path))return reader.ReadLine();
         }
 
         public Reading Read(DateTimeOffset now) {

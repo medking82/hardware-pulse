@@ -50,4 +50,6 @@ jobs:
       - name: Record SDK and runtime
         run: dotnet --info
       - name: Run fixtures and live procfs assertions
-        run: dotnet run --project scripts/LinuxAdapterTests/Pulse.Linux.Tests.csproj --configuration Release --disable-build-servers -p:UseSharedCompilation=false -- --live
+        env:
+          DOTNET_TieredCompilation: '0'
+        run: dotnet run --project scripts/LinuxAdapterTests/Pulse.Linux.Tests.csproj --configuration Release --disable-build-servers -p:UseSharedCompilation=false -- --live --measure

@@ -256,3 +256,22 @@ measurement as expected, preserved 12 partial samples and emitted no result.json
 This tests evidence retention, not reproduction of the contrast defect. Installed
 settings and runtime behavior are unchanged. The intermittent capture/render
 failure still requires a specific exception or null-image cause before a fix.
+
+## Linux procfs polling measurement
+
+The Linux prototype now reads only the aggregate first line of `/proc/stat`;
+CPU parsing, RAM polling and host cadence are unchanged. The previous full-file
+strategy remains reproducible in the benchmark through the existing injected
+`File.ReadAllText` source. This comparison isolates source reading rather than
+comparing unrelated builds.
+
+Run LinuxAdapterTests with `--live --measure` on Linux. It alternates three pairs
+of full-stat / first-line CPU+RAM readers, each with 100 warmup and 2,000 measured
+polls. Tiered compilation is disabled in CI for repeatability. JSON log lines
+record process architecture, runtime, CPU count, procfs text size, managed bytes
+allocated per poll, elapsed/process CPU time per poll, GC counts and invalid
+readings. Invalid readings fail; noisy timing does not use a pass/fail threshold.
+
+These are tight-loop adapter measurements, not an App working-set benchmark or
+an estimate of game frametime. Allocated bytes are not retained RAM. The adapter
+still has no timer or worker, and is not loaded by the Windows installer.

@@ -60,5 +60,6 @@ static class Program {
         }
         Console.WriteLine("PASS Linux adapter fixtures");
         NetworkTests.Run(Array.IndexOf(args,"--live")>=0);
+        if(Array.IndexOf(args,"--measure")>=0)PollingBenchmark.Run();
     }
 }
