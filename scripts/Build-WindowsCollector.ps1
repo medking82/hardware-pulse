@@ -33,6 +33,7 @@ Copy-Item "$root/LICENSE","$root/dependencies.lock.json" $payload
 & "$PSScriptRoot/Build-WindowsAdapters.ps1" -OutputDirectory $worker
 $compiler=Join-Path $env:WINDIR 'Microsoft.NET/Framework64/v4.0.30319/csc.exe'
 $arguments=@('/nologo','/target:winexe','/platform:x64','/optimize+',"/out:$worker/HardwarePulse.Collector.exe",'/reference:System.Web.Extensions.dll','/reference:System.Management.dll',"/reference:$worker/Pulse.Core.dll","/reference:$worker/Pulse.Adapters.Windows.dll","/reference:$worker/lib/LibreHardwareMonitorLib.dll")
-$arguments+=@('src/Native/Collector.cs','src/Native/FpsTransport.cs','src/Hosts/WindowsCollector/Program.cs') | ForEach-Object {[IO.Path]::GetFullPath((Join-Path $root $_))}
+$arguments+=@('/reference:Microsoft.CSharp.dll')
+$arguments+=@('src/Native/Collector.cs','src/Native/FpsTransport.cs','src/Native/Startup.cs','src/Hosts/WindowsCollector/Program.cs') | ForEach-Object {[IO.Path]::GetFullPath((Join-Path $root $_))}
 & "$PSScriptRoot/Run-Hidden.ps1" $compiler $arguments $root
 'Built dedicated Windows x64 collector payload; no installation or startup registration.'

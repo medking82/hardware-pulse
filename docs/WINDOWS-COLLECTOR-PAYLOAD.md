@@ -11,7 +11,8 @@ must remain outside `worker/`; their matching assembly names are not interchange
 ## Ownership and compatibility
 
 `src/Hosts/WindowsCollector/Program.cs` is the only new runtime entry point.
-It accepts exactly `--collector` and uses a fixed layout: sibling `worker/` and
+It accepts `--collector` plus fixed [startup management switches](WINDOWS-SHARED-STARTUP.md)
+and uses a fixed layout: sibling `worker/` and
 root `HardwarePulse.exe` (the future shared Windows AppHost). No arguments may
 select a peer executable, runtime directory, target game or tool. Missing root
 UI returns an error before touching installed state.
@@ -23,10 +24,11 @@ current SID/session, process-start identity and target lease checks. PresentMon
 must still be in a non-reparse Program Files location. The UI does not receive
 driver access, and the worker contains no WPF, Avalonia or PowerShell dependency.
 
-This change builds and exercises the payload only. It neither registers nor
-changes scheduled tasks, installs a driver, starts an elevated collector or
-replaces the installed WPF application. Startup ownership/migration, the shared
-FPS client and the final installer remain separate pending release work.
+Build and test only exercise an isolated payload. They neither register nor
+change scheduled tasks, install a driver, start an elevated collector or
+replace the installed WPF application. The worker's explicit management commands
+are for the eventual installer and shared UI. The final installer and actual
+installed capture acceptance remain pending release work.
 Rollback removes only these new build/host files and the validation hook.
 
 ## Acceptance
