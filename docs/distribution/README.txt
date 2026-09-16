@@ -26,6 +26,8 @@ Codex quota is optional and off by default. It reads an existing file login with
 Settings remember window size, theme, network choice and Codex opt-in in a separate preview profile.
 Settings > Appearance > Language offers Auto (System), English, Simplified Chinese and Traditional Chinese. UI and tray labels change immediately; device names and values are preserved.
 Tray/menu bar offers Open Pulse and Quit Pulse where supported. Closing the window quits.
+Open floating monitor is available from Monitor and the tray/menu bar. Both reuse the same window and readings.
+The floating monitor supports Always on top and native move/resize. Closing it leaves Monitor running; quitting Monitor closes both.
 
 Limits
 This is an experimental preview, not feature parity with the stable Windows App.

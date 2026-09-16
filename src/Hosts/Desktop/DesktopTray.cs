@@ -19,13 +19,19 @@ public sealed class DesktopTray : IDisposable {
         window.Icon=artwork;
         Menu.Items.Add(new NativeMenuItem("Open Pulse") {Command=new ActionCommand(this,Restore)});
         Menu.Items.Add(new NativeMenuItem("Quit Pulse") {Command=new ActionCommand(this,window.Close)});
+        if(window is MonitorWindow monitor)
+            Menu.Items.Insert(1,new NativeMenuItem("Open floating monitor") {Command=new ActionCommand(this,monitor.OpenFloatingMonitor)});
         language.Changed+=Localize;Localize();
         icon=new TrayIcon {Icon=artwork,ToolTipText="Pulse",Menu=Menu,IsVisible=true};
         icon.Clicked+=OnClicked;
         window.Closed+=OnClosed;
     }
     void OnClicked(object? sender,EventArgs e)=>Restore();
-    void Localize(){((NativeMenuItem)Menu.Items[0]).Header=language.T("Open Pulse");((NativeMenuItem)Menu.Items[1]).Header=language.T("Quit Pulse");}
+    void Localize(){
+        ((NativeMenuItem)Menu.Items[0]).Header=language.T("Open Pulse");
+        if(window is MonitorWindow)((NativeMenuItem)Menu.Items[1]).Header=language.T("Open floating monitor");
+        ((NativeMenuItem)Menu.Items[Menu.Items.Count-1]).Header=language.T("Quit Pulse");
+    }
     void OnClosed(object? sender,EventArgs e)=>Dispose();
     void Restore() {
         if(disposed)return;

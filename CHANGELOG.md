@@ -6,6 +6,8 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 
 ## Unreleased
 
+- The shared tray/menu bar can reopen the existing floating monitor. The entry follows the App language and cannot reopen a window after quit.
+
 - Shared Desktop adds a floating monitor with optional Always on top, using the existing CPU/RAM/network/sensor snapshots without additional sampling. One window is reused, language/theme follow Monitor, and closing Monitor closes it. This is the first Desktop-mode increment; click-through locking, desktop-layer placement and FPS are not implemented in the shared host yet.
 
 - Shared Desktop embeds pinned Noto Sans CJK SC/TC fonts for Chinese UI on systems without CJK fonts. Build preparation verifies size and SHA-256, packages include the OFL notice, and native smoke fails on missing catalog glyphs. No system font installation or runtime download is needed.

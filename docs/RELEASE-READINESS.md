@@ -22,6 +22,14 @@ Click-through locking, desktop-layer placement, materials/local contrast, FPS
 and persistent layout remain explicit later parity work. This increment does not
 claim a completed Desktop mode or exclusive-fullscreen compatibility.
 
+The first floating monitor increment at `8879bf30612d413a0552199b6965fb642ae2e733`
+passed all six native session/package jobs in
+[run 35061561902](https://github.com/medking82/hardware-pulse/actions/runs/35061561902).
+The next increment adds a localized tray/menu-bar entry that restores the same
+floating window and rejects callbacks after App exit. Headless and Windows native
+tests cover command behavior; shell menu interaction and native click-through
+are still unverified/unimplemented respectively.
+
 ## Acceptance evidence
 
 | Area | Current evidence | Work before stable delivery |
