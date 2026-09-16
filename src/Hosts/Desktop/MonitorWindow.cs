@@ -35,6 +35,7 @@ public sealed class MonitorWindow : Window {
     readonly HardwareSensorPanel gpus;
     readonly HardwareSensorPanel windowsHardware;
     readonly FpsPanel fps;
+    readonly GameOverlayPanel gameOverlay;
     readonly TextBlock cpuIdentityText=new(){Name="CpuIdentity",Opacity=.75,TextWrapping=TextWrapping.Wrap,IsVisible=false};
     public UiLanguage Language {get;}
     readonly PreviewSettingsStore? store;
@@ -177,9 +178,10 @@ public sealed class MonitorWindow : Window {
         layoutSettings.Children.Add(Language.Set(new TextBlock{FontWeight=FontWeight.SemiBold},"Desktop readings"));layoutSettings.Children.Add(desktopEditor);
         RefreshLayoutEditors();
         updates=new DesktopUpdatePanel(Language,settings,SaveLater,source.IsDemo||smoke||measure);Closed+=(_,_)=>updates.Dispose();
+        gameOverlay=new GameOverlayPanel(Language,settings.GameOverlay,fps,SaveLater,source.IsDemo||smoke||measure);
         var settingsTabs=new TabControl{Name="SettingsTabs",ItemsSource=new[]{
             Language.Set(new TabItem{Content=network},"Network"),Language.Set(new TabItem{Content=appearance},"Appearance"),
-            Language.Set(new TabItem{Content=new Border{Padding=new Thickness(20),Child=quotaSettings}},"AI Quota"),Language.Set(new TabItem{Content=desktop},"Desktop"),Language.Set(new TabItem{Content=layoutSettings},"Layout"),Language.Set(new TabItem{Content=updates},"Updates")}};
+            Language.Set(new TabItem{Content=new Border{Padding=new Thickness(20),Child=quotaSettings}},"AI Quota"),Language.Set(new TabItem{Content=desktop},"Desktop"),Language.Set(new TabItem{Content=layoutSettings},"Layout"),Language.Set(new TabItem{Content=updates},"Updates"),Language.Set(new TabItem{Content=gameOverlay},"Game overlay")}};
         var settingsBody=new StackPanel{Spacing=12,Margin=new Thickness(12)};
         settingsBody.Children.Add(settingsTabs);settingsBody.Children.Add(saveStatus);
         if(store?.LegacyImported==true)settingsBody.Children.Add(Language.Set(new TextBlock{Name="ImportedSettingsNotice",TextWrapping=TextWrapping.Wrap},"Compatible preferences were imported. Review layout and window placement. Your original settings are preserved."));
@@ -209,7 +211,7 @@ public sealed class MonitorWindow : Window {
                 Render(latestSnapshot);
         };
         if(start)Opened+=StartSampling;
-        Closed+=(_,_)=>{stop.Cancel();FloatingMonitor?.Close();quota.Dispose();claudeQuota.Dispose();antigravityQuota.Dispose();fps.Dispose();SaveNow();};
+        Closed+=(_,_)=>{stop.Cancel();FloatingMonitor?.Close();quota.Dispose();claudeQuota.Dispose();antigravityQuota.Dispose();gameOverlay.Dispose();fps.Dispose();SaveNow();};
     }
     void StartSampling(object? sender,EventArgs args) {
         StartSession();
@@ -287,6 +289,7 @@ public sealed class MonitorWindow : Window {
         latestSnapshot=snapshot;Render(snapshot);
     }
     void Render(MonitorSnapshot snapshot) {
+        gameOverlay?.Present(snapshot);
         bool max=readingMode.SelectedIndex==1;
         // Keep the shared snapshot and floating consumer live while the Monitor
         // is hidden. Visibility restoration renders the most recent snapshot.

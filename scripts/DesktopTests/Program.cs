@@ -19,6 +19,7 @@ static class Tests {
         if(args.SequenceEqual(new[]{"--layer-native"})){HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();WindowsLayerTests.Native();return;}
         if(args.SequenceEqual(new[]{"--capture-native"})){HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();WindowsCaptureTests.Native();return;}
         if(args.SequenceEqual(new[]{"--input-native"})){HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();WindowsInputTests.Run();return;}
+        if(args.Length>=1&&args[0]=="--game-overlay-native"){HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();GameOverlayTests.Native(args.Length==2?args[1]:null);return;}
         if(args.SequenceEqual(new[]{"--contrast-native"})){HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();LocalContrastTests.Native();return;}
         if(args.Length==2&&args[0]=="--instance-secondary"){Environment.ExitCode=WindowsInstanceTests.Secondary(args[1]);return;}
         if(args.Length==2&&args[0]=="--instance-owner"){Environment.ExitCode=WindowsInstanceTests.Hold(args[1]);return;}
@@ -37,6 +38,7 @@ static class Tests {
             FloatingMonitorTests.Run();
             WindowsHardwareTests.Run(null);
             FpsPanelTests.Run();
+            GameOverlayTests.Run();GameOverlayTests.Native();
             DesktopShortcutTests.Native();
             ReadingLayoutTests.Run(native:true);
             LockedLayoutTests.Native();
@@ -57,6 +59,7 @@ static class Tests {
         AppBuilder.Configure<PulseApplication>().With(DesktopFonts.Options()).UseSkia().UseHeadless(new(){UseHeadlessDrawing=false}).SetupWithoutStarting();
         if(args.SequenceEqual(new[]{"--startup-settings"})){StartupModeTests.Settings();return;}
         if(args.SequenceEqual(new[]{"--profile-migration"})){ProfileMigrationTests.Run();return;}
+        if(args.SequenceEqual(new[]{"--game-overlay"})){GameOverlayTests.Run();return;}
         if(args.SequenceEqual(new[]{"--startup-controls"})){DesktopStartupTests.Run();return;}
         if(args.SequenceEqual(new[]{"--update-controls"})){DesktopUpdateTests.Run();return;}
         if(args.Length>=1&&args[0]=="--compact-fps"){LockedLayoutTests.Fps(args.Length==2?args[1]:null);return;}
@@ -115,6 +118,7 @@ static class Tests {
         HardwareSensorTests.Run(args.Length==1?args[0]:null);
         WindowsHardwareTests.Run(args.Length==1?args[0]:null);
         FpsPanelTests.Run();
+        GameOverlayTests.Run();
         LockedLayoutTests.Fps(args.Length==1?args[0]:null);
         DesktopShortcutTests.Run();
         AdaptiveReadingsTests.Run();

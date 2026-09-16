@@ -10,6 +10,7 @@ public sealed class PreviewSettings {
     public string? Network;
     public bool Codex,Claude,Antigravity;
     public bool Fps;
+    public GameOverlayOptions GameOverlay=new();
     public bool AutoUpdates,AutoDownload;
     public bool DesktopShortcutEnabled=true;
     public string DesktopShortcut="Ctrl+Alt+F10";
@@ -81,6 +82,7 @@ public sealed class PreviewSettingsStore {
             settings.Claude=values.Flag("claude");
             settings.Antigravity=values.Flag("antigravity");
             settings.Fps=values.Flag("fps");
+            if(fields.TryGetValue("gameOverlay",out var gameOverlay))settings.GameOverlay=GameOverlayOptions.Read(gameOverlay);
             settings.AutoUpdates=values.Flag("autoUpdates");settings.AutoDownload=values.Flag("autoDownload");
             settings.CardColumns=(int)values.Number("cardColumns",0,0,3);settings.DesktopColumns=(int)values.Number("desktopColumns",0,0,3);
             if(fields.TryGetValue("cardLayout",out var cardLayout))settings.Cards=ReadingLayout.Read(cardLayout);
@@ -116,6 +118,7 @@ public sealed class PreviewSettingsStore {
                 ["claude"]=JsonSerializer.SerializeToElement(settings.Claude),
                 ["antigravity"]=JsonSerializer.SerializeToElement(settings.Antigravity),
                 ["fps"]=JsonSerializer.SerializeToElement(settings.Fps),["fpsTarget"]=JsonSerializer.SerializeToElement(settings.FpsTarget),
+                ["gameOverlay"]=JsonSerializer.SerializeToElement(settings.GameOverlay),
                 ["cardColumns"]=JsonSerializer.SerializeToElement(settings.CardColumns),["desktopColumns"]=JsonSerializer.SerializeToElement(settings.DesktopColumns),
                 ["cardLayout"]=JsonSerializer.SerializeToElement(settings.Cards),["desktopLayout"]=JsonSerializer.SerializeToElement(settings.DesktopRows),
                 ["desktopShortcutEnabled"]=JsonSerializer.SerializeToElement(settings.DesktopShortcutEnabled),

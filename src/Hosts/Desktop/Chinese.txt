@@ -76,6 +76,25 @@ Quit Pulse|退出 Pulse
 Floating monitor|浮动监控窗口
 Desktop|桌面
 Background opacity|背景不透明度
+Game overlay|游戏叠加层
+Enable game overlay|启用游戏叠加层
+Detailed overlay|详细叠加层
+Fans|风扇
+Storage|存储
+Background color|背景颜色
+Uses the FPS app selection. Enable FPS separately to capture frame metrics.|使用 FPS 的 App 选择。请单独启用 FPS 以采集帧指标。
+Game overlay is unavailable in this session.|此会话无法使用游戏叠加层。
+Game overlay is off.|游戏叠加层已关闭。
+Waiting for foreground target app|正在等待目标 App 进入前台
+Game overlay active|游戏叠加层已启用
+Game overlay input unavailable|游戏叠加层输入设置不可用
+Reset overlay appearance|重置叠加层外观
+top-left|左上
+top-center|顶部居中
+top-right|右上
+bottom-left|左下
+bottom-center|底部居中
+bottom-right|右下
 Font size|文字大小
 Background blur|背景模糊
 Background blur is off.|背景模糊已关闭。
