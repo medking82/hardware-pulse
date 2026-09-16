@@ -28,11 +28,13 @@ Settings > Appearance > Language offers Auto (System), English, Simplified Chine
 Tray/menu bar offers Open Pulse and Quit Pulse where supported. Closing the window quits.
 Open floating monitor is available from Monitor and the tray/menu bar. Both reuse the same window and readings.
 The floating monitor supports Always on top and native move/resize. Closing it leaves Monitor running; quitting Monitor closes both.
-On Windows/macOS and Linux X11 with XFixes, Lock floating monitor requests native mouse input pass-through. Reopen it from Monitor or the tray/menu bar to unlock. X11 temporarily removes the interactive window frame and restores it on unlock. Linux X11 native verification and Windows ARM64 interactive validation are still pending; this remains a development build. Native Wayland locking is not implemented.
+Settings > Desktop controls font size, Always on top, background opacity and system blur. Preferences and floating size/position are remembered. Opacity changes only the background, not text. Blur status reports the achieved backend effect; its strength is controlled by the OS.
+Enabled Codex quota appears in the floating monitor using the existing session. Locking hides editing controls; reopening restores them.
+On Windows/macOS and Linux X11 with XFixes, Lock floating monitor requests native mouse input pass-through. Reopen it from Monitor or the tray/menu bar to unlock. X11 temporarily removes the interactive window frame and restores it on unlock. Windows ARM64 interactive validation remains incomplete; it is not included in this preview update. Native Wayland locking is not implemented.
 
 Limits
 This is an experimental preview, not feature parity with the stable Windows App.
-GPU telemetry, FPS, complete Desktop overlay, blur/local contrast, global shortcuts,
+GPU telemetry, FPS, complete Desktop overlay, adjustable blur radius/local contrast, global shortcuts,
 startup registration, automatic updates and other quota providers are not connected.
 Temperature/fan channels are currently supported only through Linux hwmon in this shared App.
 Windows CPU requires a single processor group; macOS RAM is an estimate of used memory.
