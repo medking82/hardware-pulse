@@ -38,3 +38,11 @@ passed local Desktop render/interaction tests and `Validate.ps1 -ModernCore`.
 passed all six packaged application jobs. This closes integrated native startup
 validation for this change, not the remaining release scope decision or physical
 sensor coverage.
+
+Shared Session Max at `c3f547f65098770f0a9004899f2a5b2c7540ed0c` reuses
+Core ReadingSession for CPU, selected network and Linux sensor peaks. RAM and
+quota remain current, matching the existing Windows behavior. Local projection,
+mode-switch, responsive rendering and full regression checks passed;
+[run 35046859819](https://github.com/medking82/hardware-pulse/actions/runs/35046859819)
+passed all six native package jobs. No stable release has been published from
+these development commits.
