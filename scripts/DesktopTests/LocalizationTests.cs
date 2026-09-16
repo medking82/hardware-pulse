@@ -8,6 +8,7 @@ static class LocalizationTests {
     static void Check(bool ok,string message){if(!ok)throw new Exception(message);}
     static void Until(Func<bool> done){var end=DateTime.UtcNow.AddSeconds(5);while(!done()&&DateTime.UtcNow<end){using var slice=new CancellationTokenSource(TimeSpan.FromMilliseconds(20));Dispatcher.UIThread.MainLoop(slice.Token);}Check(done(),"Localization operation timed out");}
     public static void Run(string? output,bool native=false) {
+        void Phase(string step){if(native)Console.WriteLine("NATIVE_SESSION_PHASE "+step);}
         Check(new UiLanguage("auto","zh-CN").T("Memory")=="内存","System Chinese selection");
         Check(new UiLanguage("auto","de-DE").T("Memory")=="Memory","Unsupported system language falls back to English");
         Check(new UiLanguage("en","zh-CN").T("Memory")=="Memory","Explicit choice overrides system");
@@ -64,17 +65,19 @@ static class LocalizationTests {
                 if(output!=null){using var frame=window.CaptureRenderedFrame();frame!.Save(Path.Combine(output,$"traditional-{tab}.png"),Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);}
             }
             Check(window.GetVisualDescendants().OfType<TextBlock>().Any(x=>x.Text=="24.0%"),"Numeric snapshot survives language switch");
-            window.Close();Until(()=>window.Sampling.IsCompleted);var saved=store.Load();Check(saved.Language=="zh-TW"&&saved.Network=="Device / eth0"&&saved.Theme=="Dark","Language persists without modifying other choices");
-            var reopened=new MonitorWindow(source,start:false,store:store);Check(reopened.Title=="Pulse · 桌面預覽版","Saved language restored");reopened.Show();reopened.Close();
+            Phase("close localized monitor");window.Close();Phase("await sampling stop");Until(()=>window.Sampling.IsCompleted);
+            Phase("load saved settings");var saved=store.Load();Check(saved.Language=="zh-TW"&&saved.Network=="Device / eth0"&&saved.Theme=="Dark","Language persists without modifying other choices");
+            Phase("construct reopened monitor");var reopened=new MonitorWindow(source,start:false,store:store);Check(reopened.Title=="Pulse · 桌面預覽版","Saved language restored");
+            Phase("show reopened monitor");reopened.Show();Phase("close reopened monitor");reopened.Close();
             var quotaLanguage=new UiLanguage("en");int reads=0;
             using var quota=new CodexQuotaPanel(true,_=>{Interlocked.Increment(ref reads);return new HardwarePulse.QuotaReading{Provider="Codex",Status="Live",Windows=new(){new(){Label="Weekly",Remaining=45.5}}};},language:quotaLanguage);
-            var host=new Window{Content=quota,Width=360,Height=500};host.Show();quota.QuotaEnabled=true;
+            Phase("show quota host");var host=new Window{Content=quota,Width=360,Height=500};host.Show();Phase("enable synthetic quota");quota.QuotaEnabled=true;
             bool Has(string text)=>host.GetVisualDescendants().OfType<TextBlock>().Any(x=>x.Text==text);
-            Until(()=>Has("45.5% left"));quotaLanguage.Select("zh-CN");
+            Phase("await synthetic quota");Until(()=>Has("45.5% left"));Phase("switch quota language");quotaLanguage.Select("zh-CN");
             Check(Has("每周")&&Has("剩余 45.5%")&&reads==1,"Quota switches from cached data without reading credentials again");
             if(output!=null){Dispatcher.UIThread.RunJobs();using var frame=host.CaptureRenderedFrame();frame!.Save(Path.Combine(output,"chinese-quota.png"),Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);}
             quotaLanguage.Select("zh-TW");Check(Has("每週")&&Has("剩餘 45.5%")&&reads==1,"Traditional quota retains cached data");
-            quotaLanguage.Select("en");Check(Has("Weekly")&&Has("45.5% left")&&reads==1,"Quota language round trip retains values");host.Close();
+            quotaLanguage.Select("en");Check(Has("Weekly")&&Has("45.5% left")&&reads==1,"Quota language round trip retains values");Phase("close quota host");host.Close();Phase("session complete");
         } finally {Directory.Delete(directory,true);}
         Console.WriteLine("PASS shared localization: system fallback, instant UI/tray switch, stable sampling, narrow layouts and persistence");
     }
