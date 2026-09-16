@@ -18,4 +18,4 @@ if [[ "$ready" != true ]]; then
     echo 'FAIL native session: X11 window manager did not become ready' >&2
     exit 1
 fi
-timeout 60s dotnet scripts/DesktopTests/bin/Release/net10.0/Pulse.Desktop.Tests.dll --native-session
+PULSE_TEST_PRIVATE_X11=1 timeout 60s dotnet scripts/DesktopTests/bin/Release/net10.0/Pulse.Desktop.Tests.dll --native-session

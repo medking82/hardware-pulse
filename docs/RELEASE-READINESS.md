@@ -96,6 +96,18 @@ these checks do not complete Desktop overlay parity or authorize stable delivery
 
 ## Acceptance evidence
 
+The X11 input increment is owned by the shared host's `X11WindowInput`: it borrows
+the live Avalonia window, checks XFixes/Shape capability, shapes only the owned
+client/render surfaces, and removes the window-manager frame through the host's
+decoration property. It restores default input regions so later resize remains
+interactive. Closed releases its connection; Core, sampling and installed WPF
+settings are unchanged. The private Xvfb native test checks pointer routing to an
+underlying fixture while the composed pixel stays visible, unlock/frame restore,
+resize after unlock and closed-handle rejection. Local headless tests and
+`Validate.ps1 -ModernCore` precede commit; Linux x64/ARM64 CI is required. Native
+Wayland and physical desktop/game behavior remain unverified. Rollback is the
+isolated host adapter/integration and native fixture change.
+
 | Area | Current evidence | Work before stable delivery |
 | --- | --- | --- |
 | Architecture / CPU / RAM / selected network | Native x64/ARM64 CI on Windows, Linux, macOS | Repeat on the exact release commit; document supported OS and counter limitations |

@@ -6,13 +6,15 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 
 ## Unreleased
 
-- Shared macOS floating monitor adds AppKit mouse-through locking and reuses the Monitor/tray unlock action. Native Intel/ARM64 verification is pending; Linux locking remains unimplemented.
+- Shared Linux X11 floating monitor adds mouse-through locking with XFixes. Unlock restores the default input region and window frame; native verification is pending. Native Wayland locking is not implemented.
 
-- Shared Windows floating monitor supports native click-through locking. Reopening it from Monitor or the tray unlocks the same window. This implementation is Windows-only; Linux/macOS adapters remain pending.
+- Shared macOS floating monitor adds AppKit mouse-through locking and reuses the Monitor/tray unlock action. Native Intel/ARM64 lifecycle and package checks pass.
+
+- Shared Windows floating monitor supports native click-through locking. Reopening it from Monitor or the tray unlocks the same window. Windows ARM64 interactive verification remains pending.
 
 - The shared tray/menu bar can reopen the existing floating monitor. The entry follows the App language and cannot reopen a window after quit.
 
-- Shared Desktop adds a floating monitor with optional Always on top, using the existing CPU/RAM/network/sensor snapshots without additional sampling. One window is reused, language/theme follow Monitor, and closing Monitor closes it. This is the first Desktop-mode increment; click-through locking, desktop-layer placement and FPS are not implemented in the shared host yet.
+- Shared Desktop adds a floating monitor with optional Always on top, using the existing CPU/RAM/network/sensor snapshots without additional sampling. One window is reused, language/theme follow Monitor, and closing Monitor closes it. Desktop-layer placement and FPS are not implemented in the shared host yet.
 
 - Shared Desktop embeds pinned Noto Sans CJK SC/TC fonts for Chinese UI on systems without CJK fonts. Build preparation verifies size and SHA-256, packages include the OFL notice, and native smoke fails on missing catalog glyphs. No system font installation or runtime download is needed.
 

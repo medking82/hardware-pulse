@@ -35,6 +35,10 @@ public sealed class FloatingMonitorWindow : Window {
             else if(OperatingSystem.IsMacOS()&&handle?.HandleDescriptor=="NSWindow"&&input==null) {
                 var adapter=new MacWindowInput(handle.Handle);input=adapter.SetPassThrough;inputLifetime=adapter;
             }
+            else if(OperatingSystem.IsLinux()&&input==null) {
+                var adapter=X11WindowInput.TryCreate(this);
+                if(adapter!=null){input=adapter.SetPassThrough;inputLifetime=adapter;}
+            }
             lockButton.IsVisible=lockStatus.IsVisible=input!=null;
         };
         rows.Children.Add(Row(language.T("CPU"),cpu));

@@ -20,6 +20,7 @@ static class Tests {
             FloatingMonitorTests.Run();
             WindowsInputTests.Run();
             MacInputTests.Run();
+            X11InputTests.Run();
             Console.WriteLine("PASS native Desktop session: isolated settings, language, theme, restore, tray commands and shutdown");
             return;
         }
