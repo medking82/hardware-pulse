@@ -28,7 +28,8 @@ static class FpsPanelTests {
         var desktop=new FloatingMonitorWindow(language,new PreviewSettings(),()=>{});desktop.Show();panel.ReadingChanged+=desktop.PresentFps;
         Check(creates==0&&discoveries==0,"Disabled FPS accesses source");
         panel.Enabled=true;Until(()=>panel.Current.Current=="60","FPS reading never arrived");
-        Check(panel.Current.Low=="—"&&desktop.GetVisualDescendants().OfType<TextBlock>().Any(x=>x.Text?.Contains("FPS 60 · AVG 58")==true),"Desktop snapshot mismatch or invented low");
+        var fpsRow=desktop.GetVisualDescendants().OfType<DesktopFpsRow>().Single();
+        Check(panel.Current.Low=="—"&&fpsRow.GetVisualDescendants().OfType<TextBlock>().Single(x=>x.Name=="FpsMetric0").Text=="60"&&fpsRow.GetVisualDescendants().OfType<TextBlock>().Single(x=>x.Name=="FpsMetric1").Text=="58"&&fpsRow.GetVisualDescendants().OfType<TextBlock>().Single(x=>x.Name=="FpsMetric3").Text=="—","Desktop snapshot mismatch or invented low");
         if(output!=null){Dispatcher.UIThread.RunJobs();using var frame=window.CaptureRenderedFrame();frame!.Save(Path.Combine(output,"fps-panel-360.png"),Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);}
         var buttons=panel.GetVisualDescendants().OfType<Button>().ToArray();
         buttons.Single(x=>x.Name=="ResetFps").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
@@ -38,7 +39,7 @@ static class FpsPanelTests {
         Until(()=>picker.ItemCount==2,"App discovery did not finish");picker.SelectedIndex=1;
         Check(panel.Target=="FixtureGame"&&panel.Current.Current=="—","Target change must clear previous metrics");
         source.Hold=true;Until(()=>source.Entered.IsSet,"Pending poll not entered");panel.Enabled=false;
-        Check(!panel.Current.Enabled&&!desktop.GetVisualDescendants().OfType<TextBlock>().Any(x=>x.IsVisible&&x.Text?.StartsWith("FPS ")==true),"Disable retains displayed FPS");
+        Check(!panel.Current.Enabled&&!desktop.GetVisualDescendants().OfType<DesktopFpsRow>().Any(),"Disable retains displayed FPS");
         panel.Enabled=true;Dispatcher.UIThread.RunJobs();Check(creates==1,"Re-enable overlaps pending source");
         source.Release.Set();Until(()=>creates==2&&panel.Current.Current=="60","Re-enable did not resume after disposal");
         Check(source.Disposals==1&&second.Disposals==0,"Prior source lifetime failure");

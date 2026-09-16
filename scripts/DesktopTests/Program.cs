@@ -12,6 +12,7 @@ static class Tests {
     static void Main(string[] args) {
         var expected=Environment.GetEnvironmentVariable("PULSE_TEST_ARCH");
         Check(expected==null||expected==System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture.ToString(),"Architecture mismatch");
+        if(args.SequenceEqual(new[]{"--locked-layout-native"})) {HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();LockedLayoutTests.Native();return;}
         if(args.SequenceEqual(new[]{"--shortcuts-native"})) {HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();DesktopShortcutTests.Native();return;}
         if(args.SequenceEqual(new[]{"--layouts-native"})) {HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();ReadingLayoutTests.Run(native:true);return;}
         if(args.SequenceEqual(new[]{"--native-session"})) {
@@ -25,6 +26,7 @@ static class Tests {
             FpsPanelTests.Run();
             DesktopShortcutTests.Native();
             ReadingLayoutTests.Run(native:true);
+            LockedLayoutTests.Native();
             WindowsInputTests.Run();
             MacInputTests.Run();
             MacMaterialTests.Run();
@@ -33,6 +35,7 @@ static class Tests {
             return;
         }
         AppBuilder.Configure<PulseApplication>().With(DesktopFonts.Options()).UseSkia().UseHeadless(new(){UseHeadlessDrawing=false}).SetupWithoutStarting();
+        if(args.Length>=1&&args[0]=="--compact-fps"){LockedLayoutTests.Fps(args.Length==2?args[1]:null);return;}
         if(args.Length>=1&&args[0]=="--layouts"){ReadingLayoutTests.Run(args.Length==2?args[1]:null);return;}
         if(args.Length>=1&&args[0]=="--columns"){AdaptiveReadingsTests.Run(args.Length==2?args[1]:null);return;}
         if(args.Length>=1&&args[0]=="--shortcuts"){DesktopShortcutTests.Run(args.Length==2?args[1]:null);return;}
@@ -83,6 +86,7 @@ static class Tests {
         HardwareSensorTests.Run(args.Length==1?args[0]:null);
         WindowsHardwareTests.Run(args.Length==1?args[0]:null);
         FpsPanelTests.Run();
+        LockedLayoutTests.Fps(args.Length==1?args[0]:null);
         DesktopShortcutTests.Run();
         AdaptiveReadingsTests.Run();
         ReadingLayoutTests.Run(args.Length==1?args[0]:null);

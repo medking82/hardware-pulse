@@ -19,6 +19,8 @@ public sealed class FloatingMonitorWindow : Window {
     readonly Dictionary<string,QuotaReading> quotaReadings=new();
     readonly TextBlock lockStatus=new(){TextWrapping=TextWrapping.Wrap,IsVisible=false};
     readonly StackPanel toolbar=new(){Spacing=8};
+    readonly ScrollViewer scroll=new(){HorizontalScrollBarVisibility=Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled};
+    bool fitQueued;
     Action<bool>? input;
     IDisposable? inputLifetime;
     double backgroundOpacity=100;
@@ -78,10 +80,12 @@ public sealed class FloatingMonitorWindow : Window {
                 if(adapter!=null){input=adapter.SetPassThrough;inputLifetime=adapter;}
             }
             lockButton.IsVisible=lockStatus.IsVisible=input!=null;
+            QueueLockedFit();
         };
         rows.Children.Add(readings);
         ApplyTextAppearance();
-        Content=new ScrollViewer{Content=rows,HorizontalScrollBarVisibility=Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled};
+        scroll.Content=rows;Content=scroll;
+        scroll.PropertyChanged+=(_,e)=>{if(e.Property==ScrollViewer.ExtentProperty||e.Property==ScrollViewer.ViewportProperty)QueueLockedFit();};
         language.Changed+=Localize;Localize();
         Closed+=(_,_)=>{language.Changed-=Localize;input=null;inputLifetime?.Dispose();inputLifetime=null;};
     }
@@ -112,17 +116,45 @@ public sealed class FloatingMonitorWindow : Window {
             input(locked);IsLocked=locked;
             toolbar.IsVisible=!locked;
             language.Set(lockStatus,locked?"Locked · Reopen from Monitor or the tray to unlock.":"Reopen from Monitor or the tray to unlock.");
+            QueueLockedFit();
             return true;
         } catch(Exception e) when(e is System.ComponentModel.Win32Exception or InvalidOperationException) {
             language.Set(lockStatus,"Could not change window lock. Reopen the floating monitor and try again.");return false;
         }
     }
     public void PresentFps(DesktopFpsSnapshot snapshot){fpsSnapshot=snapshot;RenderReadings();}
+    void QueueLockedFit() {
+        if(fitQueued||!IsLocked||!IsVisible)return;
+        fitQueued=true;
+        Avalonia.Threading.Dispatcher.UIThread.Post(()=>{fitQueued=false;FitLockedHeight();},Avalonia.Threading.DispatcherPriority.Background);
+    }
+    void FitLockedHeight() {
+        if(!IsLocked||!IsVisible||WindowState!=WindowState.Normal||scroll.Viewport.Height<=0)return;
+        double overflow=scroll.Extent.Height-scroll.Viewport.Height;
+        if(overflow<=1)return;
+        var screen=Screens.ScreenFromWindow(this);if(screen==null)return;
+        double chrome=Math.Max(0,(FrameSize?.Height??ClientSize.Height)-ClientSize.Height);
+        double maximum=Math.Max(MinHeight,screen.WorkingArea.Height/screen.Scaling-chrome-16);
+        if(Height+overflow>maximum&&appearance.DesktopColumns==0&&readings.Columns<3) {
+            double side=Math.Max(0,(FrameSize?.Width??ClientSize.Width)-ClientSize.Width);
+            double maxWidth=Math.Max(MinWidth,screen.WorkingArea.Width/screen.Scaling-side-16);
+            double wider=Math.Min(maxWidth,(readings.Columns+1)*readings.MinimumColumnWidth+readings.Columns*ColumnLayout.Gap+64);
+            if(wider>Width+.5) {
+                Width=wider;
+                Position=ConstrainPosition(Position,screen.WorkingArea,(int)Math.Ceiling((wider+side)*screen.Scaling),(int)Math.Ceiling((FrameSize?.Height??Height)*screen.Scaling));
+                return; // The acknowledged viewport width schedules the next fit.
+            }
+        }
+        double next=Math.Min(maximum,Math.Ceiling(Height+overflow+1));
+        if(next<=Height+.5)return;
+        Height=next;
+        Position=ConstrainPosition(Position,screen.WorkingArea,(int)Math.Ceiling((FrameSize?.Width??Width)*screen.Scaling),(int)Math.Ceiling((next+chrome)*screen.Scaling));
+    }
     public void ApplyTextAppearance() {
         rows.Spacing=readings.Spacing=appearance.FloatingRowSpacing;
         readings.RequestedColumns=appearance.DesktopColumns;
         readings.MinimumColumnWidth=Math.Max(280,24*FontSize);
-        foreach(var row in readings.Children)StyleReading(row);
+        foreach(var row in readings.Children){if(row is DesktopFpsRow fps)fps.SetReadingSize(FontSize);StyleReading(row);}
     }
     public void ApplyReadingLayout()=>appearance.DesktopRows.Apply(readings,readingControls);
     void StyleReading(Control control) {
@@ -135,6 +167,7 @@ public sealed class FloatingMonitorWindow : Window {
             if(icon.Stroke!=null)icon.Stroke=iconBrush;else icon.Fill=iconBrush;
         }
         if(control is Panel panel)foreach(var child in panel.Children)StyleReading(child);
+        if(control is Viewbox box&&box.Child!=null)StyleReading(box.Child);
     }
     Grid Row(string label,TextBlock value,string? icon=null) {
         var grid=new Grid{ColumnDefinitions=new("*,Auto"),ColumnSpacing=12};
@@ -162,8 +195,10 @@ public sealed class FloatingMonitorWindow : Window {
         }
         foreach(var item in current) {
             if(!readingControls.TryGetValue(item.Id,out var control)) {
-                control=Row(item.Label,new TextBlock(),item.Icon);control.Tag=item.Id;readingControls.Add(item.Id,control);
+                control=item.Id=="FPS"?new DesktopFpsRow():Row(item.Label,new TextBlock(),item.Icon);control.Tag=item.Id;readingControls.Add(item.Id,control);
+                StyleReading(control);
             }
+            if(control is DesktopFpsRow fps){fps.SetReadingSize(FontSize);fps.Present(fpsSnapshot!,language);continue;}
             var row=(Grid)control;((TextBlock)row.Children[0]).Text=item.Label;((TextBlock)row.Children[1]).Text=item.Value;
             Avalonia.Automation.AutomationProperties.SetName(row,item.EditorLabel);ToolTip.SetTip(row,item.EditorLabel);
         }

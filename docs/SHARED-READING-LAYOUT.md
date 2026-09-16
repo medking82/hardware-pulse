@@ -37,4 +37,30 @@ Local evidence: `vendor/test-layout-full.log`, `vendor/test-layout-native.log`,
 `vendor/validate-shared-layout.log`, and `vendor/layout-ui/` screenshots.
 These are incremental checks, not final installed or resource acceptance.
 
+## Compact FPS and locked overflow recovery
+
+The Desktop FPS metric uses four numeric cells (FPS, AVG, MIN, 1% LOW), a stable
+numeric row height and a separate localized status. Unknown low remains `—`.
+Large values scale down within their cell instead of wrapping or overlapping.
+Text color/opacity and visibility/order still use the existing owners.
+
+The locked window now responds to measured viewport overflow by growing its
+height within the current screen's work area. Auto columns can also grow width
+when height alone cannot fit; explicit column preferences are retained. It never
+shrinks merely because a reading becomes shorter. Measurement notifications
+coalesce on the UI dispatcher; no timer or acquisition loop is added. Content
+larger than the work area still requires unlocking to scroll or changing layout.
+
+This bounded follow-up changes only floating presentation and its tests.
+`LockedLayoutTests.Native` reproduced avoidable overflow before the fix and
+passed afterward; it covers short saved height, Auto widening, work-area bounds,
+no shrink from live values, and unlocking. The headless FPS case checks
+360px layouts at 10/24/32px reading sizes, five-digit values and unavailable low.
+Evidence: `vendor/test-locked-layout-full.log`,
+`vendor/test-locked-layout-native.log`, `vendor/validate-locked-layout.log`, and
+`vendor/locked-layout-ui/`. Final display/installer and resource checks remain
+separate. Revert this fit/FPS diff without changing saved user settings to roll back.
+
+<!-- sop-risk-classification: {"facts":{"blast_radius":"isolated","change_kind":"implementation","data_boundary":"ordinary","destructive":"no","failure_cost":"low","irreversibility":"reversible","operational_controls":"not_applicable","privilege_boundary":"unchanged","project_policy":"default","rollback":"easy","scope_knowledge":"known","uncertainty":"low","verification":"deterministic"},"formal_review":"not_required","kind":"risk-classification-assessment","reasons":{"formal_review":["routine_no_review"],"risk":["no_high_risk_signal"]},"risk":"routine","schema_version":2} -->
+
 <!-- sop-risk-classification: {"facts":{"blast_radius":"shared","change_kind":"implementation","data_boundary":"ordinary","destructive":"no","failure_cost":"low","irreversibility":"reversible","operational_controls":"not_applicable","privilege_boundary":"unchanged","project_policy":"default","rollback":"easy","scope_knowledge":"known","uncertainty":"low","verification":"deterministic"},"formal_review":"not_required","kind":"risk-classification-assessment","reasons":{"formal_review":["routine_no_review"],"risk":["no_high_risk_signal"]},"risk":"routine","schema_version":2} -->
