@@ -14,7 +14,7 @@
 
 [Dependency maintenance and Linux/macOS roadmap](docs/DEPENDENCIES.md)
 
-**Experimental shared Desktop:** [0.7.0-preview.1 — Windows / Linux / macOS, x64 / ARM64](https://github.com/medking82/hardware-pulse/releases/tag/v0.7.0-preview.1). Self-contained downloads with live CPU/RAM/network and opt-in Codex quota. This preview does not replace the stable Windows App; [feature gaps, signing status and launch guide](docs/DESKTOP-PREVIEW.md).
+**Experimental shared Desktop:** [0.7.0-preview.2 — Windows x64 / Linux x64 + ARM64 / macOS Intel + Apple Silicon](https://github.com/medking82/hardware-pulse/releases/tag/v0.7.0-preview.2). Self-contained downloads with live CPU/RAM/network and opt-in Codex quota. This preview does not replace the stable Windows App; [feature gaps, signing status and launch guide](docs/DESKTOP-PREVIEW.md).
 
 **[Download 0.6.27 EXE](https://github.com/medking82/hardware-pulse/releases/download/v0.6.27/HardwarePulse-Setup.exe)** · [0.6.27 release notes](https://github.com/medking82/hardware-pulse/releases/tag/v0.6.27)
 

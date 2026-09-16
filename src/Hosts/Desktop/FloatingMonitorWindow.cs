@@ -75,10 +75,10 @@ public sealed class FloatingMonitorWindow : Window {
             }
             lockButton.IsVisible=lockStatus.IsVisible=input!=null;
         };
-        rows.Children.Add(Row(language.T("CPU"),cpu));
-        rows.Children.Add(Row(language.T("Memory"),memory));
-        rows.Children.Add(Row(language.T("Download"),download));
-        rows.Children.Add(Row(language.T("Upload"),upload));
+        rows.Children.Add(Row(language.T("CPU"),cpu,"cpu"));
+        rows.Children.Add(Row(language.T("Memory"),memory,"memory"));
+        rows.Children.Add(Row(language.T("Download"),download,"down"));
+        rows.Children.Add(Row(language.T("Upload"),upload,"up"));
         rows.Children.Add(sensors);
         rows.Children.Add(quotaRows);
         Content=new ScrollViewer{Content=rows,HorizontalScrollBarVisibility=Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled};
@@ -117,10 +117,11 @@ public sealed class FloatingMonitorWindow : Window {
             language.Set(lockStatus,"Could not change window lock. Reopen the floating monitor and try again.");return false;
         }
     }
-    static Grid Row(string label,TextBlock value) {
+    static Grid Row(string label,TextBlock value,string? icon=null) {
         var grid=new Grid{ColumnDefinitions=new("*,2*"),ColumnSpacing=12};
-        grid.Children.Add(new TextBlock{Text=label,TextWrapping=TextWrapping.Wrap,VerticalAlignment=VerticalAlignment.Center});
+        grid.Children.Add(new TextBlock{Text=label,TextWrapping=TextWrapping.Wrap,VerticalAlignment=VerticalAlignment.Center,Margin=new Thickness(icon==null?0:32,0,0,0)});
         value.Text="—";value.TextWrapping=TextWrapping.Wrap;value.TextAlignment=TextAlignment.Right;value.VerticalAlignment=VerticalAlignment.Center;Grid.SetColumn(value,1);grid.Children.Add(value);
+        if(icon!=null){var artwork=AppIcon.Create(icon);artwork.HorizontalAlignment=HorizontalAlignment.Left;artwork.VerticalAlignment=VerticalAlignment.Center;artwork.IsHitTestVisible=false;grid.Children.Add(artwork);}
         return grid;
     }
     void Localize() {
@@ -136,7 +137,7 @@ public sealed class FloatingMonitorWindow : Window {
         quotaRows.Children.Add(new TextBlock{Text="Codex · "+language.T(reading.Status),TextWrapping=TextWrapping.Wrap,FontWeight=FontWeight.SemiBold});
         var windows=reading.AllWindows.Count>0?reading.AllWindows:reading.Windows;
         foreach(var item in windows){
-            var value=new TextBlock();var row=Row(language.T(item.Label),value);
+            var value=new TextBlock();var row=Row(language.T(item.Label),value,"codex");
             value.Text=item.Remaining.HasValue?string.Format(language.T("{0}% left"),item.Remaining.Value.ToString("F1")):"—";
             quotaRows.Children.Add(row);
         }

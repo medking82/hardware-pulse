@@ -1,7 +1,7 @@
 # Shared Desktop preview
 
 The 0.7.0 preview is the new shared host for Windows, Linux and macOS, on x64
-and ARM64. It is an experimental, separate App rather than a replacement for the
+and ARM64. The current [preview.2 release](https://github.com/medking82/hardware-pulse/releases/tag/v0.7.0-preview.2) excludes Windows ARM64 while its native input verification remains incomplete. It is an experimental, separate App rather than a replacement for the
 stable Windows WPF installer. Platform feature parity is not complete.
 
 ## Available
@@ -36,7 +36,7 @@ remain available when the App is moved out of the extracted archive folder.
 | Package | Native CI environment | Launch |
 | --- | --- | --- |
 | win-x64 | Windows Server 2022 x64 | Pulse.Desktop.exe |
-| win-arm64 | Windows 11 ARM64 | Pulse.Desktop.exe |
+| win-arm64 | Windows 11 ARM64 input check incomplete | Not included in preview.2 |
 | linux-x64 | Ubuntu 24.04 x64, X11/Xvfb | ./Pulse.Desktop |
 | linux-arm64 | Ubuntu 24.04 ARM64, X11/Xvfb | ./Pulse.Desktop |
 | osx-x64 | macOS 15 Intel | Pulse Preview.app |
@@ -52,39 +52,38 @@ by CI launch tests. No security settings are changed by the package.
 macOS notices and dependency information are inside Contents/Resources so they
 remain with the App when it is moved. Windows/Linux notices are in licenses/.
 
+## Added in preview.2
+
+Linux kernel-exposed temperature/fan channels appear in a dedicated panel. Polling
+uses the existing worker; discovery refreshes every 30 seconds. Missing readings
+show an em dash. Device labels come from the kernel, not guessed CPU/GPU assignments.
+Other platforms still report this sensor capability as unavailable.
+
+Live / Session Max uses Core ReadingSession history for CPU, selected-interface
+rates and Linux sensors; RAM and quota remain current. Network settings can refresh
+interfaces without restarting. A missing saved interface stays unselected.
+
+The floating monitor reuses existing readings and enabled Codex quota. It remembers
+position, size and Always on top. Settings > Desktop groups font size, background
+opacity and optional system blur, with achieved-backend status. macOS native blur
+and lock restoration passed Intel/Apple Silicon CI. Blur strength is OS-controlled.
+Windows x64, macOS and Linux X11 support native input pass-through locking; reopen
+from Monitor or tray/menu bar to unlock. Locking hides editing controls.
+
+Settings > Appearance > Language offers Auto (System), English and Simplified or
+Traditional Chinese, including embedded CJK fonts. Changes apply immediately to UI
+and tray labels, without restarting sampling or refreshing credentials. Preferences
+use the separate preview profile. Device names and readings are preserved.
+
 ## Not included yet
 
-Development after `0.7.0-preview.1` connects Linux kernel-exposed temperature/fan
-channels to a dedicated monitor panel. Polling runs on the existing worker;
-discovery refreshes every 30 seconds. Missing readings show an em dash and a
-device exposing no channels has an explicit empty state. Labels are supplied by
-the kernel and are not guessed CPU/GPU assignments. This is not present in the
-published preview. Other platforms still report this capability as unavailable.
-
-Temperature/fan sensors, GPU telemetry, FPS capture, Desktop overlay and
-click-through, blur/local contrast, global shortcuts, startup registration,
-cross-process single-instance restoration, automatic updates, additional quota
-providers and complete localization are not connected in this shared host.
-Development also adds Live / Session Max selection using Core ReadingSession
-history. CPU, selected-interface byte rates and exposed Linux sensor values
-support peaks; RAM usage and quota remain current, as labelled in the UI.
-Changing mode does not poll again. Network selection starts a fresh network
-session; detected hwmon topology/label changes reset sensor peaks because hwmon
-ids are not permanent identities. Closing the App ends the session. These changes
-are not in the published `0.7.0-preview.1` archive.
-Development Network settings also provide **Refresh interfaces** for newly
-connected devices. A missing saved interface stays unselected; reconnecting it
-and refreshing restores the selection without switching silently to another.
-Development Settings → Appearance → Language now offers Auto (System), English
-and Simplified/Traditional Chinese. Monitor, Settings, sensor status, Codex quota and tray
-labels update in place, without restarting sampling or refreshing credentials.
-The language choice is saved in the separate preview profile. Unknown system
-languages fall back to English; device names and readings are never translated.
-Auto distinguishes Chinese scripts and regions (Traditional for TW/HK/MO or
-explicit Hant; Simplified for CN/SG or explicit Hans). Other UI languages remain
-future work.
-It does not infer hardware support from a successful UI launch. The existing
-stable Windows App remains the feature-complete choice for its supported hardware.
+GPU telemetry, FPS capture, complete desktop-layer integration, adjustable blur
+radius/local contrast, global shortcuts, startup registration, cross-process
+single-instance restoration, automatic updates and additional quota providers
+remain incomplete. Native Wayland interaction is not verified. Windows ARM64 input
+verification remains blocked by an unrelated runner window; no package for that
+platform is included in preview.2. Other UI languages remain future work.
+The stable Windows App remains the feature-complete choice for supported hardware.
 
 CI proves native architecture, live system counters, UI lifecycle and extracted
 package startup. It does not prove every physical desktop's tray interaction,
