@@ -5,6 +5,7 @@ namespace HardwarePulse.Desktop;
 public sealed class PreviewSettings {
     public double Width=800,Height=560;
     public string Theme="System";
+    public string StartupMode="Monitor";
     public string Language="auto";
     public string? Network;
     public bool Codex,Claude,Antigravity;
@@ -64,6 +65,7 @@ public sealed class PreviewSettingsStore {
             string textColor=values.Text("floatingTextColor");settings.FloatingTextColor=PreviewSettings.IsTextColor(textColor)?textColor:"";
             settings.FloatingIconsFollowApp=values.Flag("floatingIconsFollowApp",true);
             string theme=values.Text("theme","System");settings.Theme=theme is "Light" or "Dark"?theme:"System";
+            string startup=values.Text("startupMode","Monitor");settings.StartupMode=startup is "Desktop" or "Tray"?startup:"Monitor";
             string network=values.Text("network");settings.Network=network.Length>0&&network.Length<=256&&!network.Any(char.IsControl)?network:null;
             settings.Codex=values.Flag("codex");
             settings.Claude=values.Flag("claude");
@@ -91,6 +93,7 @@ public sealed class PreviewSettingsStore {
             var updated=new Dictionary<string,JsonElement>(fields){
                 ["schema"]=JsonSerializer.SerializeToElement(1),["width"]=JsonSerializer.SerializeToElement(settings.Width),
                 ["height"]=JsonSerializer.SerializeToElement(settings.Height),["theme"]=JsonSerializer.SerializeToElement(settings.Theme),
+                ["startupMode"]=JsonSerializer.SerializeToElement(settings.StartupMode),
                 ["network"]=JsonSerializer.SerializeToElement(settings.Network),["codex"]=JsonSerializer.SerializeToElement(settings.Codex),
                 ["claude"]=JsonSerializer.SerializeToElement(settings.Claude),
                 ["antigravity"]=JsonSerializer.SerializeToElement(settings.Antigravity),

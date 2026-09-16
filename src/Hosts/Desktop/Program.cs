@@ -44,17 +44,30 @@ public sealed class PulseApplication : Application {
     public override void Initialize()=>Styles.Add(new FluentTheme());
     public override void OnFrameworkInitializationCompleted() {
         if(ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop) {
-            desktop.MainWindow=new MonitorWindow(new MonitorSource(Program.Demo),Program.Smoke,
+            var monitor=new MonitorWindow(new MonitorSource(Program.Demo),Program.Smoke,
                 store:Program.Demo||Program.Smoke||Program.Measure?null:PreviewSettingsStore.Default(),measure:Program.Measure);
-            Program.Instance?.Listen(action=>Avalonia.Threading.Dispatcher.UIThread.Post(action),((MonitorWindow)desktop.MainWindow).RestoreMain);
-            if(Program.Smoke)desktop.MainWindow.Opened+=(_,_)=>{
+            Program.Instance?.Listen(action=>Avalonia.Threading.Dispatcher.UIThread.Post(action),monitor.RestoreMain);
+            if(Program.Smoke)monitor.Opened+=(_,_)=>{
                 var coverage=FontCoverage.Capture();Console.WriteLine("FONT_COVERAGE "+System.Text.Json.JsonSerializer.Serialize(coverage));
                 if(coverage.Any(x=>x.Missing.Length!=0)){Environment.ExitCode=3;desktop.Shutdown(3);}
             };
-            if(!Program.Measure)tray=new DesktopTray(desktop.MainWindow,
+            if(!Program.Measure)tray=new DesktopTray(monitor,
                 closeToTray:!Program.Smoke&&(OperatingSystem.IsWindows()||OperatingSystem.IsMacOS()));
-            desktop.Exit+=(_,_)=>tray?.Dispose();
+            ConfigureLifetime(desktop,monitor,tray);
         }
         base.OnFrameworkInitializationCompleted();
+    }
+    public static void ConfigureLifetime(IClassicDesktopStyleApplicationLifetime desktop,MonitorWindow monitor,DesktopTray? tray) {
+        desktop.ShutdownMode=Avalonia.Controls.ShutdownMode.OnExplicitShutdown;
+        desktop.MainWindow=null;
+        bool exiting=false,closed=false;
+        monitor.Closing+=(_,e)=>{if(e.CloseReason is Avalonia.Controls.WindowCloseReason.ApplicationShutdown or Avalonia.Controls.WindowCloseReason.OSShutdown)exiting=true;};
+        monitor.Closed+=(_,_)=>{closed=true;if(!exiting)desktop.Shutdown(Environment.ExitCode);};
+        desktop.Startup+=(_,_)=>Avalonia.Threading.Dispatcher.UIThread.Post(()=>{
+            if(closed)return;
+            // The framework's automatic ShowMainWindow has already seen null.
+            desktop.MainWindow=monitor;monitor.StartConfigured(tray?.IsAvailable==true);
+        });
+        desktop.Exit+=(_,_)=>{exiting=true;if(!closed)monitor.Close();tray?.Dispose();};
     }
 }

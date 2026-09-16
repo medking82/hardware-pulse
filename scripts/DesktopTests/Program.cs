@@ -12,6 +12,8 @@ static class Tests {
     static void Main(string[] args) {
         var expected=Environment.GetEnvironmentVariable("PULSE_TEST_ARCH");
         Check(expected==null||expected==System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture.ToString(),"Architecture mismatch");
+        if(args.Length==2&&args[0]=="--startup-fixture"){Environment.ExitCode=StartupModeTests.Child(args[1]);return;}
+        if(args.SequenceEqual(new[]{"--startup-native"})){StartupModeTests.Native();return;}
         if(args.Length==2&&args[0]=="--instance-secondary"){Environment.ExitCode=WindowsInstanceTests.Secondary(args[1]);return;}
         if(args.Length==2&&args[0]=="--instance-owner"){Environment.ExitCode=WindowsInstanceTests.Hold(args[1]);return;}
         if(args.SequenceEqual(new[]{"--instance-native"})){HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();WindowsInstanceTests.Native();return;}
@@ -31,6 +33,7 @@ static class Tests {
             ReadingLayoutTests.Run(native:true);
             LockedLayoutTests.Native();
             WindowsInstanceTests.Native();
+            StartupModeTests.Native();
             WindowsInputTests.Run();
             MacInputTests.Run();
             MacMaterialTests.Run();
@@ -39,6 +42,7 @@ static class Tests {
             return;
         }
         AppBuilder.Configure<PulseApplication>().With(DesktopFonts.Options()).UseSkia().UseHeadless(new(){UseHeadlessDrawing=false}).SetupWithoutStarting();
+        if(args.SequenceEqual(new[]{"--startup-settings"})){StartupModeTests.Settings();return;}
         if(args.Length>=1&&args[0]=="--compact-fps"){LockedLayoutTests.Fps(args.Length==2?args[1]:null);return;}
         if(args.Length>=1&&args[0]=="--layouts"){ReadingLayoutTests.Run(args.Length==2?args[1]:null);return;}
         if(args.Length>=1&&args[0]=="--columns"){AdaptiveReadingsTests.Run(args.Length==2?args[1]:null);return;}
@@ -82,6 +86,7 @@ static class Tests {
         QuotaPanelTests.Run(args.Length==1?args[0]:null);
         WindowsQuotaTests.Run();
         SettingsTests.Run(args.Length==1?args[0]:null);
+        StartupModeTests.Settings();
         MeasurementTests.Run();
         TrayTests.Run();
         FloatingMonitorTests.Run(args.Length==1?args[0]:null);

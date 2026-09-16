@@ -139,6 +139,9 @@ Disconnected|未連線
 Enable FPS|啟用 FPS
 Refresh apps|重新整理 App
 Auto|自動
+Tray|Tray
+Startup view|啟動 view
+Applies on the next Windows launch. If the tray is unavailable, Monitor opens instead.|下次 Windows 啟動時生效；如果 tray 不可用，則開啟 Monitor。
 Move up|上移
 Move down|下移
 Show reading|顯示 reading

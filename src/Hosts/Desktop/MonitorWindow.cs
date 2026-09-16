@@ -26,6 +26,8 @@ public sealed class MonitorWindow : Window {
     MonitorSnapshot? latestSnapshot;
     public FloatingMonitorWindow? FloatingMonitor {get;private set;}
     bool samplingFailed;
+    bool sessionStarted;
+    readonly Action initializeRuntime;
     readonly CodexQuotaPanel quota;
     readonly CodexQuotaPanel claudeQuota;
     readonly CodexQuotaPanel antigravityQuota;
@@ -88,6 +90,10 @@ public sealed class MonitorWindow : Window {
         network.Children.Add(Language.Set(new TextBlock{TextWrapping=TextWrapping.Wrap},"Download and upload show the selected interface. A missing saved interface stays unselected until you choose another."));
         var appearance=new StackPanel{Spacing=12,Margin=new Thickness(20)};
         appearance.Children.Add(Language.Set(new TextBlock{FontSize=21,FontWeight=FontWeight.SemiBold},"Appearance"));
+        appearance.Children.Add(Language.Set(new TextBlock(),"Startup view"));
+        var startupMode=new ComboBox{Name="StartupMode",ItemsSource=new[]{"Monitor","Desktop","Tray"},SelectedItem=settings.StartupMode,HorizontalAlignment=HorizontalAlignment.Stretch,ItemTemplate=Language.Choices(),IsEnabled=OperatingSystem.IsWindows()};
+        startupMode.SelectionChanged+=(_,_)=>{settings.StartupMode=startupMode.SelectedItem as string??"Monitor";SaveLater();};appearance.Children.Add(startupMode);
+        appearance.Children.Add(Language.Set(new TextBlock{TextWrapping=TextWrapping.Wrap},"Applies on the next Windows launch. If the tray is unavailable, Monitor opens instead."));
         void ColumnsChoice(StackPanel parent,string label,string name,int selected,Action<int> changed) {
             parent.Children.Add(Language.Set(new TextBlock(),label));
             var choice=new ComboBox{Name=name,ItemsSource=new[]{"Auto","1","2","3"},SelectedIndex=selected,HorizontalAlignment=HorizontalAlignment.Stretch,ItemTemplate=Language.Choices()};
@@ -105,7 +111,8 @@ public sealed class MonitorWindow : Window {
         bool shortcutSupported=OperatingSystem.IsWindows()&&store!=null&&!source.IsDemo&&!smoke&&!measure;
         var shortcut=new DesktopShortcutSettings(Language,settings,SaveLater,shortcutSupported);
         bool shortcutAttached=false;
-        Opened+=(_,_)=>{if(shortcutSupported&&!shortcutAttached){shortcut.Attach(new WindowsDesktopShortcut(this,()=>{if(!shortcut.CancelCapture())ToggleFloatingMonitor();}));shortcutAttached=true;}};
+        initializeRuntime=()=>{if(shortcutSupported&&!shortcutAttached){shortcut.Attach(new WindowsDesktopShortcut(this,()=>{if(!shortcut.CancelCapture())ToggleFloatingMonitor();}));shortcutAttached=true;}};
+        Opened+=(_,_)=>initializeRuntime();
         Closed+=(_,_)=>shortcut.Dispose();
         desktop.Children.Add(Language.Set(new TextBlock{FontSize=21,FontWeight=FontWeight.SemiBold},"Floating monitor"));
         ColumnsChoice(desktop,"Desktop columns","DesktopColumns",settings.DesktopColumns,value=>{settings.DesktopColumns=value;FloatingMonitor?.ApplyTextAppearance();});
@@ -191,9 +198,20 @@ public sealed class MonitorWindow : Window {
         Closed+=(_,_)=>{stop.Cancel();FloatingMonitor?.Close();quota.Dispose();claudeQuota.Dispose();antigravityQuota.Dispose();fps.Dispose();SaveNow();};
     }
     void StartSampling(object? sender,EventArgs args) {
-        // Hide/Show raises Opened again. A Monitor owns exactly one polling loop.
+        StartSession();
+    }
+    public void StartSession() {
+        if(sessionStarted||stop.IsCancellationRequested)return;
+        initializeRuntime();sessionStarted=true;
         Opened-=StartSampling;
         Sampling=SampleAsync();
+    }
+    public void StartConfigured(bool trayAvailable) {
+        if(stop.IsCancellationRequested)return;
+        // An explicit activation received during startup takes precedence.
+        if(IsVisible||!OperatingSystem.IsWindows()||!trayAvailable||settings.StartupMode=="Monitor") {RestoreMain();StartSession();return;}
+        StartSession();
+        if(settings.StartupMode=="Desktop"){OpenFloatingMonitor();FloatingMonitor?.SetLocked(true);}
     }
     public void OpenFloatingMonitor() {
         if(stop.IsCancellationRequested)return;

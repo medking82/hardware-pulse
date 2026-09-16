@@ -12,6 +12,7 @@ public sealed class DesktopTray : IDisposable {
     bool disposed;
     readonly bool closeToTray;
     readonly Func<bool> trayAvailable;
+    public bool IsAvailable=>!disposed&&trayAvailable();
     public NativeMenu Menu { get; }=new();
     public DesktopTray(Window window,bool closeToTray=false,Func<bool>? trayAvailable=null) {
         this.window=window;
@@ -32,7 +33,7 @@ public sealed class DesktopTray : IDisposable {
         window.Closing+=OnClosing;
     }
     void OnClosing(object? sender,WindowClosingEventArgs e) {
-        if(disposed||!closeToTray||!trayAvailable()||e.Cancel||e.IsProgrammatic||e.CloseReason!=WindowCloseReason.WindowClosing)return;
+        if(disposed||!closeToTray||!IsAvailable||e.Cancel||e.IsProgrammatic||e.CloseReason!=WindowCloseReason.WindowClosing)return;
         // Do not intercept application/OS shutdown or programmatic test/measurement close.
         e.Cancel=true;window.Hide();
     }
