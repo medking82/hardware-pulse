@@ -11,6 +11,7 @@
     <RuntimeFrameworkVersion>10.0.12</RuntimeFrameworkVersion>
   </PropertyGroup>
   <ItemGroup>
+    <AvaloniaResource Include="../../../vendor/desktop-fonts/*.otf" Link="Assets/Fonts/%(Filename)%(Extension)" />
     <EmbeddedResource Include="Chinese.txt" LogicalName="Pulse.Desktop.Chinese.txt" />
     <EmbeddedResource Include="ChineseTraditional.txt" LogicalName="Pulse.Desktop.ChineseTraditional.txt" />
     <AvaloniaResource Include="../../../assets/pulse.ico" Link="Assets/pulse.ico" />
@@ -21,4 +22,7 @@
     <ProjectReference Include="../../Adapters/Mac/Pulse.Adapters.Mac.csproj" />
     <ProjectReference Include="../../Adapters/Windows/Modern/Pulse.Adapters.Windows.Modern.csproj" />
   </ItemGroup>
+  <Target Name="RequireDesktopFonts" BeforeTargets="PrepareForBuild">
+    <Error Condition="!Exists('../../../vendor/desktop-fonts/NotoSansCJKsc-Regular.otf') Or !Exists('../../../vendor/desktop-fonts/NotoSansCJKtc-Regular.otf')" Text="Prepare pinned fonts first: python scripts/prepare_desktop_fonts.py" />
+  </Target>
 </Project>

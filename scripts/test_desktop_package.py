@@ -5,7 +5,33 @@ from pathlib import Path
 import tarfile
 import tempfile
 import unittest
+from unittest.mock import patch
+from io import BytesIO
 import package_desktop as package
+import prepare_desktop_fonts as fonts
+
+
+class FontPreparationTests(unittest.TestCase):
+    def test_pinned_download_cache_and_corrupt_response(self):
+        with tempfile.TemporaryDirectory(dir=package.ROOT / "vendor") as temp:
+            root = Path(temp)
+            (root / "scripts").mkdir()
+            good = b"font fixture"
+            (root / "scripts/desktop-fonts.lock.json").write_text(json.dumps({"fonts": [{
+                "name": "fixture.otf", "size": len(good),
+                "sha256": package.hashlib.sha256(good).hexdigest(), "url": "https://example.invalid/font"
+            }]}))
+            with patch.object(fonts, "ROOT", root), patch.object(fonts.urllib.request, "urlopen", return_value=BytesIO(good)) as request:
+                fonts.ensure()
+                fonts.ensure()
+                self.assertEqual(request.call_count, 1, "Valid cache should avoid network")
+            target = root / "vendor/desktop-fonts/fixture.otf"
+            target.write_bytes(b"invalid cache")
+            with patch.object(fonts, "ROOT", root), patch.object(fonts.urllib.request, "urlopen", return_value=BytesIO(b"x" * 100)):
+                with self.assertRaisesRegex(ValueError, "size/hash mismatch"):
+                    fonts.ensure()
+            self.assertEqual(target.read_bytes(), b"invalid cache", "Rejected download must not replace cache")
+            self.assertEqual(list(target.parent.iterdir()), [target], "Failed download cleans temporary data")
 
 
 class PackageTests(unittest.TestCase):

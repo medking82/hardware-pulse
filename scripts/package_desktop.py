@@ -11,12 +11,13 @@ import subprocess
 import tarfile
 import tempfile
 import xml.etree.ElementTree as ET
+from prepare_desktop_fonts import ensure as prepare_fonts
 
 ROOT = Path(__file__).resolve().parents[1]
 RIDS = ("win-x64", "win-arm64", "linux-x64", "linux-arm64", "osx-x64", "osx-arm64")
 REQUIRED_NOTICES = ("Avalonia-MIT.txt", "Avalonia-NOTICE.md", "Avalonia-ANGLE-LICENSE.txt", "DotNet-MIT.txt", "DotNet-NOTICES.txt",
                     "MicroCom-MIT.txt", "SkiaSharp-MIT.txt", "HarfBuzzSharp-MIT.txt",
-                    "SkiaSharp-HarfBuzzSharp-NOTICES.txt", "LobeIcons-MIT.txt", "TokenMonitor.txt", "SOURCES.md")
+                    "SkiaSharp-HarfBuzzSharp-NOTICES.txt", "LobeIcons-MIT.txt", "TokenMonitor.txt", "NotoSansCJK-OFL.txt", "SOURCES.md")
 
 
 def app_version():
@@ -106,6 +107,7 @@ def build(rid, dotnet, allow_dirty=False):
     dirty = bool(run(["git", "diff", "HEAD", "--name-only"], cwd=ROOT, capture_output=True).stdout.strip())
     if dirty and not allow_dirty:
         raise ValueError("Tracked changes present; commit first or use --allow-dirty for local validation only")
+    prepare_fonts()
     dest = (ROOT / "dist" / "desktop-preview").resolve()
     assert dest.is_relative_to(ROOT.resolve()), "Package workspace escapes repository"
     dest.mkdir(parents=True, exist_ok=True)

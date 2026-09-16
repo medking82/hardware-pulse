@@ -57,3 +57,10 @@ copies these original notices, and verification rejects missing or empty require
 license files even when an archive manifest otherwise matches. Dependency updates
 must revisit the versioned upstream notice bundle. CI archives remain development
 validation artifacts; inclusion of notices does not imply feature or release readiness.
+
+- NotoSansCJK-OFL.txt: unmodified Sans/LICENSE from notofonts/noto-cjk,
+  commit `f8d157532fbfaeda587e826d4cd5b21a49186f7c` (SIL OFL 1.1).
+  Shared Desktop embeds unmodified Noto Sans CJK SC and TC Regular OTF files;
+  exact upstream URLs, sizes and SHA-256 digests are in
+  `scripts/desktop-fonts.lock.json`. Original font metadata is preserved.
+  Fonts are prepared at build time, not downloaded or installed at runtime.

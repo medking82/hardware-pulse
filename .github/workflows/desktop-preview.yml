@@ -3,9 +3,9 @@ name: Desktop preview
 on:
   push:
     branches: [main]
-    paths: ['src/Hosts/Desktop/**', 'src/Core/**', 'src/Adapters/**', 'scripts/DesktopTests/**', 'scripts/package_desktop.py', 'scripts/test_desktop_package.py', 'licenses/**', 'docs/distribution/**', 'assets/*.svg', '.github/workflows/desktop-preview.yml']
+    paths: ['src/Hosts/Desktop/**', 'src/Core/**', 'src/Adapters/**', 'scripts/DesktopTests/**', 'scripts/package_desktop.py', 'scripts/prepare_desktop_fonts.py', 'scripts/desktop-fonts.lock.json', 'scripts/test_desktop_package.py', 'licenses/**', 'docs/distribution/**', 'assets/*.svg', '.github/workflows/desktop-preview.yml']
   pull_request:
-    paths: ['src/Hosts/Desktop/**', 'src/Core/**', 'src/Adapters/**', 'scripts/DesktopTests/**', 'scripts/package_desktop.py', 'scripts/test_desktop_package.py', 'licenses/**', 'docs/distribution/**', 'assets/*.svg', '.github/workflows/desktop-preview.yml']
+    paths: ['src/Hosts/Desktop/**', 'src/Core/**', 'src/Adapters/**', 'scripts/DesktopTests/**', 'scripts/package_desktop.py', 'scripts/prepare_desktop_fonts.py', 'scripts/desktop-fonts.lock.json', 'scripts/test_desktop_package.py', 'licenses/**', 'docs/distribution/**', 'assets/*.svg', '.github/workflows/desktop-preview.yml']
   workflow_dispatch:
 
 permissions:
@@ -50,6 +50,13 @@ jobs:
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
         with:
           dotnet-version: '10.0.401'
+      - name: Prepare pinned embedded fonts (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./scripts/Run-Hidden.ps1 (Get-Command python).Source @('scripts/prepare_desktop_fonts.py') $PWD.Path
+      - name: Prepare pinned embedded fonts (Unix)
+        if: runner.os != 'Windows'
+        run: python3 scripts/prepare_desktop_fonts.py
       - name: Restore pinned dependencies
         run: dotnet restore scripts/DesktopTests/Pulse.Desktop.Tests.csproj --locked-mode
       - name: Render, layout, keyboard and shutdown contracts
@@ -82,7 +89,7 @@ jobs:
         shell: pwsh
         run: |
           ./scripts/Run-Hidden.ps1 (Get-Command python).Source @('scripts/test_desktop_package.py') $PWD.Path
-          ./scripts/Run-Hidden.ps1 (Get-Command python).Source @('scripts/package_desktop.py','--rid','${{ matrix.rid }}','--smoke-test') $PWD.Path
+          ./scripts/Run-Hidden.ps1 (Get-Command python).Source @('scripts/package_desktop.py', 'scripts/prepare_desktop_fonts.py', 'scripts/desktop-fonts.lock.json','--rid','${{ matrix.rid }}','--smoke-test') $PWD.Path
       - name: Package and launch extracted macOS AppHost
         if: runner.os == 'macOS'
         run: python3 scripts/package_desktop.py --rid ${{ matrix.rid }} --measure-session

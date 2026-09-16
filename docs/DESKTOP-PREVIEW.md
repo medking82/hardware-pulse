@@ -19,6 +19,12 @@ stable Windows WPF installer. Platform feature parity is not complete.
 
 ## Packages and launch
 
+Source builds must first run `python scripts/prepare_desktop_fonts.py` from the
+repository root. This fetches immutable, SHA-256-pinned Noto Sans CJK SC/TC assets
+into ignored `vendor/desktop-fonts`. The package builder performs this step
+automatically. Fonts are embedded in the App and accompanied by the OFL license;
+users do not need to install Chinese fonts or download them at runtime.
+
 Choose the archive matching your OS and CPU architecture. Extract the entire
 archive into its own folder; do not copy just the executable or mix versions.
 The .NET runtime is included. Each archive has a SHA-256 sidecar and an internal

@@ -103,3 +103,12 @@ Traditional Chinese commit `e45231455b4ec2749909473b6d87fef6a8570c63` passed
 all six native package jobs in
 [run 35051139255](https://github.com/medking82/hardware-pulse/actions/runs/35051139255).
 That run predates native glyph coverage logging and is not font coverage evidence.
+
+Native coverage in run `35051508276` exposed a real Linux font gap: both Linux
+architectures lacked 184 Simplified and 189 Traditional catalog code points,
+despite successful telemetry smoke. Windows and macOS had no missing catalog
+glyphs. The repair embeds pinned Noto Sans CJK SC/TC fonts, uses the corresponding
+regional family for Chinese UI, and makes missing native catalog glyphs fail
+smoke. Local Windows embedded-family, language-switch and native coverage checks
+pass. Linux native confirmation is still required; local Windows results do not
+close that gate. Font diagnostics remain outside performance measurement.

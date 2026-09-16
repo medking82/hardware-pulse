@@ -28,6 +28,7 @@ public static class Program {
         return Environment.ExitCode!=0?Environment.ExitCode:result;
     }
     public static AppBuilder BuildApp()=>AppBuilder.Configure<PulseApplication>().UsePlatformDetect()
+        .With(DesktopFonts.Options())
         // Reuse the software surface across live updates; resizing still replaces it.
         // Hardware rendering selection/fallback remains Avalonia's default.
         .With(new X11PlatformOptions { UseRetainedFramebuffer=!transientFramebuffer });
@@ -40,7 +41,10 @@ public sealed class PulseApplication : Application {
         if(ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop) {
             desktop.MainWindow=new MonitorWindow(new MonitorSource(Program.Demo),Program.Smoke,
                 store:Program.Demo||Program.Smoke||Program.Measure?null:PreviewSettingsStore.Default(),measure:Program.Measure);
-            if(Program.Smoke)desktop.MainWindow.Opened+=(_,_)=>Console.WriteLine("FONT_COVERAGE "+System.Text.Json.JsonSerializer.Serialize(FontCoverage.Capture()));
+            if(Program.Smoke)desktop.MainWindow.Opened+=(_,_)=>{
+                var coverage=FontCoverage.Capture();Console.WriteLine("FONT_COVERAGE "+System.Text.Json.JsonSerializer.Serialize(coverage));
+                if(coverage.Any(x=>x.Missing.Length!=0)){Environment.ExitCode=3;desktop.Shutdown(3);}
+            };
             if(!Program.Measure)tray=new DesktopTray(desktop.MainWindow);
             desktop.Exit+=(_,_)=>tray?.Dispose();
         }

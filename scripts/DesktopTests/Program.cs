@@ -12,7 +12,7 @@ static class Tests {
     static void Main(string[] args) {
         var expected=Environment.GetEnvironmentVariable("PULSE_TEST_ARCH");
         Check(expected==null||expected==System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture.ToString(),"Architecture mismatch");
-        AppBuilder.Configure<PulseApplication>().UseSkia().UseHeadless(new(){UseHeadlessDrawing=false}).SetupWithoutStarting();
+        AppBuilder.Configure<PulseApplication>().With(DesktopFonts.Options()).UseSkia().UseHeadless(new(){UseHeadlessDrawing=false}).SetupWithoutStarting();
         var source=new MonitorSource(true);
         var window=new MonitorWindow(source,start:false);
         window.Show();window.Present(source.Poll(null));

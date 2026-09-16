@@ -15,7 +15,7 @@ public static class FontCoverage {
             var points=UiLanguage.Catalog(language).SelectMany(text=>text.EnumerateRunes())
                 .Where(rune=>!Rune.IsWhiteSpace(rune)).Select(rune=>rune.Value).Distinct().Order().ToArray();
             bool Supports(int point)=>new[]{FontWeight.Normal,FontWeight.SemiBold}.All(weight=>
-                FontManager.Current.TryMatchCharacter(point,FontStyle.Normal,weight,FontStretch.Normal,null,culture,out _));
+                FontManager.Current.TryMatchCharacter(point,FontStyle.Normal,weight,FontStretch.Normal,DesktopFonts.ForLanguage(language),culture,out _));
             return new FontCoverageResult(language,points.Length,points.Where(point=>!Supports(point)).Select(point=>"U+"+point.ToString("X4")).ToArray());
         }).ToArray();
     }

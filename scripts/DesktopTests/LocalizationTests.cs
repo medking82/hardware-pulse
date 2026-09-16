@@ -30,6 +30,11 @@ static class LocalizationTests {
         Check(coverage.Select(x=>x.Language).SequenceEqual(new[]{"en","zh-CN","zh-TW"})&&coverage.All(x=>x.CodePoints>0),"Font coverage observes all catalogs");
         Check(coverage.All(x=>x.Missing.Length<=x.CodePoints&&x.Missing.Distinct().Count()==x.Missing.Length),"Font coverage reports unique missing code points");
         Console.WriteLine("HEADLESS_FONT_COVERAGE "+System.Text.Json.JsonSerializer.Serialize(coverage));
+        Check(coverage.All(x=>x.Missing.Length==0),"UI catalogs must have complete glyph coverage");
+        foreach(var family in new[]{DesktopFonts.Simplified,DesktopFonts.Traditional}) {
+            Check(Avalonia.Media.FontManager.Current.TryGetGlyphTypeface(new Avalonia.Media.Typeface(family),out var glyphs),"Embedded CJK family resolves");
+            Check(glyphs!=null&&glyphs.FamilyName.StartsWith("Noto Sans CJK",StringComparison.Ordinal),"Embedded font must resolve without a system substitute");
+        }
         string directory=Directory.CreateTempSubdirectory("pulse-language-").FullName;
         try {
             var store=new PreviewSettingsStore(Path.Combine(directory,"settings.json"));store.Save(new PreviewSettings{Language="en",Network="Device / eth0",Theme="Dark"});

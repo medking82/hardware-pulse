@@ -36,6 +36,8 @@ public sealed class MonitorWindow : Window {
         this.source=source;this.smoke=smoke;this.measure=measure;
         this.store=store;settings=store?.Load()??new PreviewSettings();
         Language=new UiLanguage(settings.Language);sensors=new HardwareSensorPanel(Language);
+        void ApplyLanguageFont(){var family=DesktopFonts.ForLanguage(Language.EffectiveLanguage);if(family is null)ClearValue(FontFamilyProperty);else FontFamily=family;}
+        Language.Changed+=ApplyLanguageFont;ApplyLanguageFont();
         Title="Pulse · Desktop preview";Width=settings.Width;Height=settings.Height;MinWidth=360;MinHeight=400;
         FontSize=15;
         var heading=Language.Set(new TextBlock{FontSize=32,FontWeight=FontWeight.SemiBold},"Pulse");
