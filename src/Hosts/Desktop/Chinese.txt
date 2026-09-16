@@ -138,6 +138,12 @@ Windows collector unavailable. Waiting for hardware readings.|Windows collector 
 Disconnected|未连接
 Enable FPS|启用 FPS
 Refresh apps|刷新 App
+Enable Desktop shortcut|启用 Desktop shortcut
+Global shortcut is unavailable in this session.|此 session 无法使用 global shortcut。
+Press a shortcut; Esc cancels|按下 shortcut；Esc 取消
+Use two modifiers (Ctrl, Alt, Shift) with a letter, number or F1–F11.|使用两个 modifier（Ctrl、Alt、Shift），搭配字母、数字或 F1–F11。
+Shortcut unavailable. Choose another combination.|Shortcut 不可用，请选择其他组合。
+Shortcut ready; game bindings may still overlap.|Shortcut 已注册；仍可能与游戏内键位重叠。
 Reset FPS|重置 FPS
 Auto (foreground app)|自动（前台 App）
 Could not refresh apps.|无法刷新 App。

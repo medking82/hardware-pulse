@@ -12,6 +12,7 @@ static class Tests {
     static void Main(string[] args) {
         var expected=Environment.GetEnvironmentVariable("PULSE_TEST_ARCH");
         Check(expected==null||expected==System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture.ToString(),"Architecture mismatch");
+        if(args.SequenceEqual(new[]{"--shortcuts-native"})) {HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();DesktopShortcutTests.Native();return;}
         if(args.SequenceEqual(new[]{"--native-session"})) {
             HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();
             SettingsTests.Run(null);
@@ -21,6 +22,7 @@ static class Tests {
             FloatingMonitorTests.Run();
             WindowsHardwareTests.Run(null);
             FpsPanelTests.Run();
+            DesktopShortcutTests.Native();
             WindowsInputTests.Run();
             MacInputTests.Run();
             MacMaterialTests.Run();
@@ -29,6 +31,7 @@ static class Tests {
             return;
         }
         AppBuilder.Configure<PulseApplication>().With(DesktopFonts.Options()).UseSkia().UseHeadless(new(){UseHeadlessDrawing=false}).SetupWithoutStarting();
+        if(args.Length>=1&&args[0]=="--shortcuts"){DesktopShortcutTests.Run(args.Length==2?args[1]:null);return;}
         if(args.Length>=1&&args[0]=="--fps"){FpsPanelTests.Run(args.Length==2?args[1]:null);return;}
         if(args.Length>=1&&args[0]=="--windows-hardware") {WindowsHardwareTests.Run(args.Length==2?args[1]:null);return;}
         var source=new MonitorSource(true);
@@ -76,6 +79,7 @@ static class Tests {
         HardwareSensorTests.Run(args.Length==1?args[0]:null);
         WindowsHardwareTests.Run(args.Length==1?args[0]:null);
         FpsPanelTests.Run();
+        DesktopShortcutTests.Run();
         GpuPresentationTests.Run(args.Length==1?args[0]:null);
         SessionMaxTests.Run();
         SamplingRecoveryTests.Run();

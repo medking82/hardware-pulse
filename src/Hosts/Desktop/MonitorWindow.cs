@@ -89,7 +89,13 @@ public sealed class MonitorWindow : Window {
         appearance.Children.Add(languageChoice);
         languageChoice.SelectionChanged+=(_,_)=>{settings.Language=languageChoice.SelectedIndex==1?"en":languageChoice.SelectedIndex==2?"zh-CN":languageChoice.SelectedIndex==3?"zh-TW":"auto";Language.Select(settings.Language);SaveLater();};
         var desktop=new StackPanel{Spacing=12,Margin=new Thickness(20)};
+        bool shortcutSupported=OperatingSystem.IsWindows()&&store!=null&&!source.IsDemo&&!smoke&&!measure;
+        var shortcut=new DesktopShortcutSettings(Language,settings,SaveLater,shortcutSupported);
+        bool shortcutAttached=false;
+        Opened+=(_,_)=>{if(shortcutSupported&&!shortcutAttached){shortcut.Attach(new WindowsDesktopShortcut(this,()=>{if(!shortcut.CancelCapture())ToggleFloatingMonitor();}));shortcutAttached=true;}};
+        Closed+=(_,_)=>shortcut.Dispose();
         desktop.Children.Add(Language.Set(new TextBlock{FontSize=21,FontWeight=FontWeight.SemiBold},"Floating monitor"));
+        desktop.Children.Add(shortcut);
         var desktopOpen=Language.Set(new Button(),"Open floating monitor");desktopOpen.Click+=(_,_)=>OpenFloatingMonitor();desktop.Children.Add(desktopOpen);
         desktopTopmost.IsChecked=settings.FloatingTopmost;
         desktopTopmost.IsCheckedChanged+=(_,_)=>{settings.FloatingTopmost=desktopTopmost.IsChecked==true;if(FloatingMonitor!=null)FloatingMonitor.Topmost=settings.FloatingTopmost;SaveLater();};
@@ -184,6 +190,14 @@ public sealed class MonitorWindow : Window {
         if(FloatingMonitor.WindowState==WindowState.Minimized)FloatingMonitor.WindowState=WindowState.Normal;
         FloatingMonitor.Activate();
         UpdateMaterialStatus();
+    }
+    public void ToggleFloatingMonitor() {
+        if(stop.IsCancellationRequested)return;
+        if(FloatingMonitor?.IsVisible==true){FloatingMonitor.Hide();return;}
+        if(FloatingMonitor==null)OpenFloatingMonitor();
+        else FloatingMonitor.Show();
+        if(FloatingMonitor?.WindowState==WindowState.Minimized)FloatingMonitor.WindowState=WindowState.Normal;
+        FloatingMonitor?.SetLocked(true);
     }
     void UpdateMaterialStatus()=>Language.Set(materialStatus,FloatingMonitor?.MaterialStatus??"Open the floating monitor to check background effects.");
     static ScrollViewer Scroll(Control content)=>new(){Content=content,HorizontalScrollBarVisibility=Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled};

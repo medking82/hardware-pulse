@@ -9,6 +9,8 @@ public sealed class PreviewSettings {
     public string? Network;
     public bool Codex,Claude,Antigravity;
     public bool Fps;
+    public bool DesktopShortcutEnabled=true;
+    public string DesktopShortcut="Ctrl+Alt+F10";
     public string FpsTarget="";
     public double FloatingWidth=440,FloatingHeight=420;
     public int FloatingX,FloatingY;
@@ -65,6 +67,9 @@ public sealed class PreviewSettingsStore {
             settings.Claude=values.Flag("claude");
             settings.Antigravity=values.Flag("antigravity");
             settings.Fps=values.Flag("fps");
+            settings.DesktopShortcutEnabled=values.Flag("desktopShortcutEnabled",true);
+            string shortcut=values.Text("desktopShortcut","Ctrl+Alt+F10");
+            if(WindowsDesktopShortcut.TryParse(shortcut,out _,out _,out _))settings.DesktopShortcut=shortcut;
             string fpsTarget=values.Text("fpsTarget");settings.FpsTarget=fpsTarget.Length<=256&&!fpsTarget.Any(char.IsControl)&&fpsTarget.IndexOfAny(['/', '\\', ':'])<0?fpsTarget:"";
             string language=values.Text("language","auto");settings.Language=language is "en" or "zh-CN" or "zh-TW"?language:"auto";
         }catch(Exception e) when(e is IOException or InvalidDataException or UnauthorizedAccessException or JsonException or InvalidOperationException) {
@@ -85,6 +90,8 @@ public sealed class PreviewSettingsStore {
                 ["claude"]=JsonSerializer.SerializeToElement(settings.Claude),
                 ["antigravity"]=JsonSerializer.SerializeToElement(settings.Antigravity),
                 ["fps"]=JsonSerializer.SerializeToElement(settings.Fps),["fpsTarget"]=JsonSerializer.SerializeToElement(settings.FpsTarget),
+                ["desktopShortcutEnabled"]=JsonSerializer.SerializeToElement(settings.DesktopShortcutEnabled),
+                ["desktopShortcut"]=JsonSerializer.SerializeToElement(settings.DesktopShortcut),
                 ["floatingWidth"]=JsonSerializer.SerializeToElement(settings.FloatingWidth),["floatingHeight"]=JsonSerializer.SerializeToElement(settings.FloatingHeight),
                 ["floatingX"]=JsonSerializer.SerializeToElement(settings.FloatingX),["floatingY"]=JsonSerializer.SerializeToElement(settings.FloatingY),
                 ["floatingPositionSet"]=JsonSerializer.SerializeToElement(settings.FloatingPositionSet),["floatingTopmost"]=JsonSerializer.SerializeToElement(settings.FloatingTopmost),
