@@ -131,3 +131,12 @@ and the extracted-package live telemetry smoke. It does not prove shell-level
 tray icon placement, mouse interaction with native menus, download quarantine or
 physical sensor coverage. Local Windows execution passes; six-platform native
 session results are pending.
+
+Run `35053670196` found a Linux-only narrow-layout assertion in the native session
+test after settings restore and complete glyph coverage passed. The test requested
+360 px then checked child bounds without waiting for the native window manager's
+resize acknowledgement. The next revision records before/settled client and text
+widths, waits for the requested client width, and keeps the overflow assertion.
+Windows local checks remain green; Linux results are needed to distinguish a
+test timing defect from actual layout overflow. The failed run does not close
+the native session gate.

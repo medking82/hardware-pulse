@@ -51,7 +51,16 @@ static class LocalizationTests {
             Check(window.Title=="Pulse · 桌面預覽版"&&window.GetVisualDescendants().OfType<TextBlock>().Any(x=>x.Text=="佈景主題"),"Traditional choice applies immediately");
             foreach(int tab in new[]{1,0}) {
                 main.SelectedIndex=tab;window.Width=360;window.Height=800;Dispatcher.UIThread.RunJobs();
-                foreach(var text in window.GetVisualDescendants().OfType<TextBlock>())Check(text.Bounds.Width<=360,"Chinese text exceeds window");
+                if(native) {
+                    double Widest()=>window.GetVisualDescendants().OfType<TextBlock>().Select(x=>x.Bounds.Width).DefaultIfEmpty().Max();
+                    Console.WriteLine($"NATIVE_RESIZE before: requested={window.Width} client={window.ClientSize.Width} widest={Widest()}");
+                    // Native window managers acknowledge resize asynchronously. Test the
+                    // resulting layout, not the previous frame still using the old width.
+                    Until(()=>Math.Abs(window.ClientSize.Width-360)<.5);
+                    window.UpdateLayout();
+                    Console.WriteLine($"NATIVE_RESIZE settled: requested={window.Width} client={window.ClientSize.Width} widest={Widest()}");
+                }
+                foreach(var text in window.GetVisualDescendants().OfType<TextBlock>())Check(text.Bounds.Width<=360,$"Chinese text exceeds window: text={text.Bounds.Width}, client={window.ClientSize.Width}, requested={window.Width}");
                 if(output!=null){using var frame=window.CaptureRenderedFrame();frame!.Save(Path.Combine(output,$"traditional-{tab}.png"),Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);}
             }
             Check(window.GetVisualDescendants().OfType<TextBlock>().Any(x=>x.Text=="24.0%"),"Numeric snapshot survives language switch");
