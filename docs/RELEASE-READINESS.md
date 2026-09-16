@@ -85,6 +85,15 @@ The Windows ARM64 pre-lock obstruction was identified as a foreign full-screen,
 topmost `WWAHost` window. It is left untouched; this job remains failed and does
 not establish ARM64 click-through behavior.
 
+At `2732f8be0783e28edcf2bf325bfa05771060e370`,
+[run 35064777018](https://github.com/medking82/hardware-pulse/actions/runs/35064777018)
+passed both macOS jobs, including the input-property round trip, main-thread and
+closed-window guards, floating-window tray unlock, and extracted `.app` Launch
+Services checks. Windows x64 and both Linux jobs also passed. Windows ARM64 again failed before lock
+because a full-screen `WWAHost` window covered the fixture; the failed result is
+retained. AppKit property verification is not a physical game-input test, and
+these checks do not complete Desktop overlay parity or authorize stable delivery.
+
 ## Acceptance evidence
 
 | Area | Current evidence | Work before stable delivery |
