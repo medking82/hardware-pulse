@@ -65,14 +65,19 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
+          ./scripts/Run-Hidden.ps1 (Get-Command dotnet).Source @('scripts/DesktopTests/bin/Release/net10.0/Pulse.Desktop.Tests.dll','--native-session') $PWD.Path
           ./scripts/Run-Hidden.ps1 (Get-Command dotnet).Source @('src/Hosts/Desktop/bin/Release/net10.0/Pulse.Desktop.dll','--smoke-test') $PWD.Path
           ./scripts/Run-Hidden.ps1 (Get-Command dotnet).Source @('src/Hosts/Desktop/bin/Release/net10.0/Pulse.Desktop.dll','--demo','--measure-session') $PWD.Path
       - name: Native Linux window with live telemetry
         if: runner.os == 'Linux'
-        run: timeout 30s xvfb-run -a dotnet src/Hosts/Desktop/bin/Release/net10.0/Pulse.Desktop.dll --smoke-test
+        run: |
+          timeout 60s xvfb-run -a dotnet scripts/DesktopTests/bin/Release/net10.0/Pulse.Desktop.Tests.dll --native-session
+          timeout 30s xvfb-run -a dotnet src/Hosts/Desktop/bin/Release/net10.0/Pulse.Desktop.dll --smoke-test
       - name: Native macOS window with live telemetry
         if: runner.os == 'macOS'
-        run: dotnet src/Hosts/Desktop/bin/Release/net10.0/Pulse.Desktop.dll --smoke-test
+        run: |
+          dotnet scripts/DesktopTests/bin/Release/net10.0/Pulse.Desktop.Tests.dll --native-session
+          dotnet src/Hosts/Desktop/bin/Release/net10.0/Pulse.Desktop.dll --smoke-test
       - name: Linux GC attribution with transient and retained framebuffer
         if: runner.os == 'Linux'
         run: |

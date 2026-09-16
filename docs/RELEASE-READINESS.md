@@ -117,3 +117,17 @@ coverage but failed packaging because the workflow supplied extra CLI arguments.
 The corrected Windows command passes local extracted-package smoke; the complete
 matrix must be repeated on the correction commit. This failed run is not a
 six-platform release gate. Font diagnostics remain outside performance measurement.
+
+The correction at `411c90cb3fb3799e85de8261b1b6a0cd26c52d5e` passed all six
+native build/package jobs in
+[run 35053263263](https://github.com/medking82/hardware-pulse/actions/runs/35053263263).
+This closes the bundled-font matrix gate, not the broader stable release gates.
+
+The test runner now supports `--native-session`, reusing production platform
+initialization with isolated test profiles and demo readings. It exercises actual
+native windows through settings/theme/language changes, close/reopen persistence,
+and Tray Open/Quit command handlers. This is separate from both headless rendering
+and the extracted-package live telemetry smoke. It does not prove shell-level
+tray icon placement, mouse interaction with native menus, download quarantine or
+physical sensor coverage. Local Windows execution passes; six-platform native
+session results are pending.

@@ -12,6 +12,14 @@ static class Tests {
     static void Main(string[] args) {
         var expected=Environment.GetEnvironmentVariable("PULSE_TEST_ARCH");
         Check(expected==null||expected==System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture.ToString(),"Architecture mismatch");
+        if(args.SequenceEqual(new[]{"--native-session"})) {
+            HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();
+            SettingsTests.Run(null);
+            LocalizationTests.Run(null,native:true);
+            TrayTests.Run();
+            Console.WriteLine("PASS native Desktop session: isolated settings, language, theme, restore, tray commands and shutdown");
+            return;
+        }
         AppBuilder.Configure<PulseApplication>().With(DesktopFonts.Options()).UseSkia().UseHeadless(new(){UseHeadlessDrawing=false}).SetupWithoutStarting();
         var source=new MonitorSource(true);
         var window=new MonitorWindow(source,start:false);

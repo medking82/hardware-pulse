@@ -7,7 +7,7 @@ using HardwarePulse.Desktop;
 static class LocalizationTests {
     static void Check(bool ok,string message){if(!ok)throw new Exception(message);}
     static void Until(Func<bool> done){var end=DateTime.UtcNow.AddSeconds(5);while(!done()&&DateTime.UtcNow<end){using var slice=new CancellationTokenSource(TimeSpan.FromMilliseconds(20));Dispatcher.UIThread.MainLoop(slice.Token);}Check(done(),"Localization operation timed out");}
-    public static void Run(string? output) {
+    public static void Run(string? output,bool native=false) {
         Check(new UiLanguage("auto","zh-CN").T("Memory")=="内存","System Chinese selection");
         Check(new UiLanguage("auto","de-DE").T("Memory")=="Memory","Unsupported system language falls back to English");
         Check(new UiLanguage("en","zh-CN").T("Memory")=="Memory","Explicit choice overrides system");
@@ -29,7 +29,7 @@ static class LocalizationTests {
         var coverage=FontCoverage.Capture();
         Check(coverage.Select(x=>x.Language).SequenceEqual(new[]{"en","zh-CN","zh-TW"})&&coverage.All(x=>x.CodePoints>0),"Font coverage observes all catalogs");
         Check(coverage.All(x=>x.Missing.Length<=x.CodePoints&&x.Missing.Distinct().Count()==x.Missing.Length),"Font coverage reports unique missing code points");
-        Console.WriteLine("HEADLESS_FONT_COVERAGE "+System.Text.Json.JsonSerializer.Serialize(coverage));
+        Console.WriteLine((native?"NATIVE_SESSION_FONT_COVERAGE ":"HEADLESS_FONT_COVERAGE ")+System.Text.Json.JsonSerializer.Serialize(coverage));
         Check(coverage.All(x=>x.Missing.Length==0),"UI catalogs must have complete glyph coverage");
         foreach(var family in new[]{DesktopFonts.Simplified,DesktopFonts.Traditional}) {
             Check(Avalonia.Media.FontManager.Current.TryGetGlyphTypeface(new Avalonia.Media.Typeface(family),out var glyphs),"Embedded CJK family resolves");
