@@ -45,6 +45,13 @@ remain with the App when it is moved. Windows/Linux notices are in licenses/.
 
 ## Not included yet
 
+Development after `0.7.0-preview.1` connects Linux kernel-exposed temperature/fan
+channels to a dedicated monitor panel. Polling runs on the existing worker;
+discovery refreshes every 30 seconds. Missing readings show an em dash and a
+device exposing no channels has an explicit empty state. Labels are supplied by
+the kernel and are not guessed CPU/GPU assignments. This is not present in the
+published preview. Other platforms still report this capability as unavailable.
+
 Temperature/fan sensors, GPU telemetry, FPS capture, Desktop overlay and
 click-through, blur/local contrast, global shortcuts, startup registration,
 cross-process single-instance restoration, automatic updates, additional quota

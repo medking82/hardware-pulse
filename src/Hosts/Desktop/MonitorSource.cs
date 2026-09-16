@@ -2,7 +2,11 @@ using System.Net.NetworkInformation;
 
 namespace HardwarePulse.Desktop;
 
-public sealed record MonitorSnapshot(string Cpu,string Memory,string Download,string Upload,bool CpuReady,bool MemoryReady);
+public sealed record HardwareSensorSnapshot(string Id,string Label,string Value);
+public sealed record MonitorSnapshot(string Cpu,string Memory,string Download,string Upload,bool CpuReady,bool MemoryReady) {
+    public IReadOnlyList<HardwareSensorSnapshot> Sensors {get;init;}=[];
+    public bool SensorsSupported {get;init;}
+}
 
 // One worker owns these sessions; the UI supplies only the selected interface name.
 public sealed class MonitorSource {
@@ -10,6 +14,8 @@ public sealed class MonitorSource {
     readonly ReadingSession? cpu,memory;
     ReadingSession? network;
     string? selected;
+    LinuxHwmonReadings? hwmon;
+    long hwmonDiscovery;
     public bool IsDemo=>demo;
     public MonitorSource(bool demo) {
         this.demo=demo;
@@ -38,9 +44,20 @@ public sealed class MonitorSource {
         network?.Poll(now);
         bool c=cpu.Latest.values.TryGetValue("cpuLoad",out var load);
         bool m=memory!.Latest.usage.TryGetValue("ram",out var ram);
+        var sensors=ReadSensors(now);
         return new(c?ReadingFormat.SensorNumber(load,"%")+"%":"—",
             m?$"{ram!.used:F1} / {ram.total:F1} GiB · {ram.percent:F1}%":"—",
-            Rate(network,"netDown"),Rate(network,"netUp"),c,m);
+            Rate(network,"netDown"),Rate(network,"netUp"),c,m) {Sensors=sensors,SensorsSupported=OperatingSystem.IsLinux()};
+    }
+    IReadOnlyList<HardwareSensorSnapshot> ReadSensors(DateTimeOffset now) {
+        if(!OperatingSystem.IsLinux())return [];
+        if(hwmon==null) {hwmon=new LinuxHwmonReadings();hwmonDiscovery=System.Diagnostics.Stopwatch.GetTimestamp();}
+        else if(System.Diagnostics.Stopwatch.GetElapsedTime(hwmonDiscovery)>=TimeSpan.FromSeconds(30)) {
+            hwmon.Refresh();hwmonDiscovery=System.Diagnostics.Stopwatch.GetTimestamp();
+        }
+        var reading=hwmon.Read(now);
+        return hwmon.Channels.Select(channel=>new HardwareSensorSnapshot(channel.Id,channel.Label,
+            reading.values.TryGetValue(channel.Id,out var value)?ReadingFormat.SensorNumber(value,channel.Unit)+" "+channel.Unit:"—")).ToArray();
     }
     static string Rate(ReadingSession? session,string key) {
         if(session==null||!session.Latest.values.TryGetValue(key,out var value))return "—";

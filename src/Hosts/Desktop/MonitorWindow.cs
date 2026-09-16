@@ -19,6 +19,7 @@ public sealed class MonitorWindow : Window {
     readonly ComboBox interfaces=new(){HorizontalAlignment=HorizontalAlignment.Stretch,PlaceholderText="Select network interface"};
     readonly CheckBox pause=new(){Name="PauseHardware",Content="Pause hardware monitoring"};
     readonly CodexQuotaPanel quota;
+    readonly HardwareSensorPanel sensors=new();
     readonly PreviewSettingsStore? store;
     readonly PreviewSettings settings;
     readonly DispatcherTimer saveTimer=new(){Interval=TimeSpan.FromMilliseconds(500)};
@@ -35,8 +36,9 @@ public sealed class MonitorWindow : Window {
         foreach(var panel in panels)cards.Children.Add(panel);
         var body=new StackPanel{Spacing=16,Margin=new Thickness(24)};
         body.Children.Add(status);body.Children.Add(cards);body.Children.Add(pause);
+        body.Children.Add(sensors);
         quota=new CodexQuotaPanel(source.IsDemo,inlineSettings:false);body.Children.Add(quota);
-        body.Children.Add(new TextBlock{Text="Preview · Temperature, fans, FPS and Desktop overlay are not connected yet.",TextWrapping=TextWrapping.Wrap,Opacity=.75});
+        body.Children.Add(new TextBlock{Text="Preview · FPS and Desktop overlay are not connected yet. Hardware support depends on the platform and device.",TextWrapping=TextWrapping.Wrap,Opacity=.75});
         var network=new StackPanel{Spacing=12,Margin=new Thickness(20)};
         network.Children.Add(new TextBlock{Text="Network interface",FontSize=21,FontWeight=FontWeight.SemiBold});network.Children.Add(interfaces);
         network.Children.Add(new TextBlock{Text="Download and upload show the selected interface. A missing saved interface stays unselected until you choose another.",TextWrapping=TextWrapping.Wrap});
@@ -88,6 +90,7 @@ public sealed class MonitorWindow : Window {
     }
     public void Present(MonitorSnapshot snapshot) {
         cpu.Text=snapshot.Cpu;ram.Text=snapshot.Memory;down.Text=snapshot.Download;up.Text=snapshot.Upload;
+        sensors.Present(snapshot.Sensors,snapshot.SensorsSupported);
         status.Text=source.IsDemo?"Demo · Sample values":snapshot.CpuReady&&snapshot.MemoryReady?"Live · Refreshes every second":"Waiting for available readings…";
     }
     async Task SampleAsync() {
