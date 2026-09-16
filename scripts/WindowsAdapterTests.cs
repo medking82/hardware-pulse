@@ -5,6 +5,17 @@ using HardwarePulse;
 class WindowsAdapterTests {
     static void Check(bool value,string message){if(!value)throw new Exception(message);}
     static void Main(){
+        Check(WindowsCompatibility.RequiresDriverFreeCollector(new Version(6,1,7601)),"Win7 must not load PawnIO path");
+        Check(WindowsCompatibility.RequiresDriverFreeCollector(new Version(6,3,9600)),"Win8.1 must not load PawnIO path");
+        Check(!WindowsCompatibility.RequiresDriverFreeCollector(new Version(10,0,19045)),"Modern Windows lost hardware path");
+        var systemSample=new WindowsSystemSample(true,100,200,100,true,16UL<<30,4UL<<30);
+        var system=new WindowsSystemReadings(delegate{return systemSample;});
+        Check(!system.Read(DateTimeOffset.UtcNow).values.ContainsKey("cpuLoad"),"Initial CPU baseline fabricated load");
+        systemSample.Idle+=20;systemSample.Kernel+=50;systemSample.User+=50;
+        var systemReading=system.Read(DateTimeOffset.UtcNow);
+        Check(systemReading.values["cpuLoad"]==80&&systemReading.usage["ram"].percent==75,"Framework CPU/RAM counter mapping changed");
+        Check(!system.Read(DateTimeOffset.UtcNow).values.ContainsKey("cpuLoad"),"Zero CPU interval fabricated load");
+        Console.WriteLine("PASS Framework driver-free CPU/RAM and Windows version policy");
         CodexQuotaTests.Run();
         string architecture=System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture.ToString();
         string expected=Environment.GetEnvironmentVariable("PULSE_TEST_ARCH");

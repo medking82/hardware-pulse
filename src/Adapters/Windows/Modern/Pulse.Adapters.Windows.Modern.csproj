@@ -6,6 +6,7 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../WindowsSystemReadings.cs" Link="WindowsSystemReadings.cs" />
     <ProjectReference Include="../../../Core/Pulse.Core.csproj" />
     <ProjectReference Include="../../Common/Pulse.Adapters.Common.csproj" />
   </ItemGroup>

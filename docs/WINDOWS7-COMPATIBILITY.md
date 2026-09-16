@@ -25,6 +25,31 @@ availability has been requested and is not yet known.
 
 ## Delivery gates
 
+The first implementation shares the driver-free `WindowsSystemReadings` source
+between the Framework and modern hosts. The existing collector selects this
+path on Windows versions before 10, leaves the hardware library unopened, does
+not create the FPS server, and publishes CPU load, physical RAM and per-interface
+throughput/link readings through the existing snapshot/presentation schema.
+Temperature/fan/GPU readings are unavailable in this path; this is preparation
+for compatibility, not an accepted reduction of the complete product target.
+Memory metadata accepts older WMI schemas and falls back to Speed/MemoryType.
+
+Validation includes a two-sample driver-free collector run in an isolated test
+directory, valid CPU/RAM/throughput mappings, absence of fabricated hardware
+readings and no loaded PawnIO module. Framework and modern counter tests share
+the implementation. These tests run on the development Windows 11 machine and
+do not prove Windows 7 installation or UI compatibility. The installer minimum
+is unchanged until a compatibility package and its dependencies are verified.
+
+The bounded change owns the Framework/modern Windows counter source, native
+collector selection and tests. It preserves current Windows 10/11 hardware
+selection, privilege isolation, snapshot schema and the existing polling cadence;
+no driver or OS settings are changed. Validate with `Test-WindowsAdapters.ps1`,
+the shared Desktop tests and `Validate.ps1 -ModernCore`. Revert this source change
+to roll back; installed settings and release assets are untouched.
+
+<!-- sop-risk-classification: {"facts":{"blast_radius":"shared","change_kind":"implementation","data_boundary":"ordinary","destructive":"no","failure_cost":"low","irreversibility":"reversible","operational_controls":"not_applicable","privilege_boundary":"unchanged","project_policy":"default","rollback":"easy","scope_knowledge":"known","uncertainty":"low","verification":"deterministic"},"formal_review":"not_required","kind":"risk-classification-assessment","reasons":{"formal_review":["routine_no_review"],"risk":["no_high_risk_signal"]},"risk":"routine","schema_version":2} -->
+
 1. Audit WPF startup, native window/material APIs, task registration, tray,
    network, quota transport and PresentMon against Windows 7 SP1.
 2. Establish an explicit capability/fallback policy. Do not invent missing
@@ -43,3 +68,4 @@ availability has been requested and is not yet known.
 - [Microsoft .NET Framework 4.8 release and Windows 7 SP1 requirements](https://devblogs.microsoft.com/dotnet/announcing-the-net-framework-4-8/)
 - [Microsoft current .NET Windows installation requirements](https://learn.microsoft.com/en-us/dotnet/core/install/windows)
 - [LibreHardwareMonitor maintainer discussion of PawnIO OS support](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor/discussions/1904)
+- [Microsoft processor-group API: available from Windows 7](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-getactiveprocessorgroupcount)

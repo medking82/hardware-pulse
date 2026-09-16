@@ -21,10 +21,13 @@ namespace HardwarePulse {
         }
         public static MemoryModule[] ReadMemoryModules(out string name) {
             var modules=new List<MemoryModule>();var speeds=new HashSet<int>();var types=new List<int>();
-            using(var query=new ManagementObjectSearcher("SELECT Manufacturer,PartNumber,DeviceLocator,Capacity,ConfiguredClockSpeed,SMBIOSMemoryType FROM Win32_PhysicalMemory"))
+            // Win7 lacks newer optional fields. SELECT * keeps the query valid;
+            // Number tolerates absent properties and falls back to legacy metadata.
+            using(var query=new ManagementObjectSearcher("SELECT * FROM Win32_PhysicalMemory"))
             using(var rows=query.Get())foreach(ManagementObject row in rows)using(row){
                 modules.Add(new MemoryModule {brand=Text(row,"Manufacturer").Trim(),part=Text(row,"PartNumber").Trim(),slot=Text(row,"DeviceLocator"),capacityGb=Math.Round(Number(row,"Capacity")/1073741824.0)});
-                int speed=(int)Number(row,"ConfiguredClockSpeed");if(speed>0)speeds.Add(speed);types.Add((int)Number(row,"SMBIOSMemoryType"));
+                int speed=(int)Number(row,"ConfiguredClockSpeed");if(speed<=0)speed=(int)Number(row,"Speed");if(speed>0)speeds.Add(speed);
+                int memoryType=(int)Number(row,"SMBIOSMemoryType");if(memoryType<=0)memoryType=(int)Number(row,"MemoryType");types.Add(memoryType);
             }
             double gb=modules.Sum(m=>m.capacityGb);string type=types.Count>0&&types.All(t=>t==34)?"DDR5":types.Count>0&&types.All(t=>t==26)?"DDR4":"RAM";
             name=gb>0?gb+" GB "+type:"Memory";if(speeds.Count==1)name+="-"+speeds.First()+" configured";return modules.ToArray();

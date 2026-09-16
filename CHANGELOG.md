@@ -6,6 +6,8 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 
 ## Unreleased
 
+- Prepare the Windows WPF collector for legacy Windows with driver-free CPU/RAM/network counters and older memory-metadata fields. The Framework and modern hosts share counter mapping. This does not add verified Windows 7 support or lower the installer minimum; temperature/fan/GPU and FPS compatibility remain unresolved.
+
 - Shared Linux X11 floating monitor adds mouse-through locking with XFixes. Unlock restores the default input region and window frame; native verification is pending. Native Wayland locking is not implemented.
 
 - Shared macOS floating monitor adds AppKit mouse-through locking and reuses the Monitor/tray unlock action. Native Intel/ARM64 lifecycle and package checks pass.

@@ -136,6 +136,20 @@ internal static class NativeTests {
     [STAThread] static int Main(string[] args){
         DiagnosticChecks();
         try{
+            if(args.Length==1){
+                string smokeState=Path.Combine(args[0],"driver-free-collector");
+                var smokePaths=new PulsePaths(AppDomain.CurrentDomain.BaseDirectory,smokeState,Path.Combine(smokeState,"runtime"));
+                Assert(Collector.Run(smokePaths,2,"Local\\PulseDriverFreeTest-"+Guid.NewGuid().ToString("N"),true)==0,"Driver-free collector failed");
+                var raw=Json.Serializer().Deserialize<RawSnapshot>(Json.Read(smokePaths.Snapshot));
+                var reading=SensorProfile.Parse(raw,DateTimeOffset.Now);
+                Assert(raw.sequence==2&&raw.ramUsage!=null&&raw.ramUsage.totalGb>0,"Driver-free collector did not publish RAM");
+                Assert(raw.sensors.Any(s=>s.type=="Load"&&s.value>=0&&s.value<=100),"Driver-free collector did not publish CPU");
+                Assert(reading.state=="LIVE"&&reading.available["cpuLoad"]&&reading.values["cpuLoad"]>=0,"Driver-free CPU did not reach the existing presentation model");
+                Assert(!raw.sensors.Any(s=>s.type=="Temperature"||s.type=="Fan"),"Driver-free collector fabricated hardware readings");
+                foreach(var sensor in raw.sensors.Where(s=>s.type=="Throughput"))Assert(sensor.value.HasValue&&sensor.value>=0,"Driver-free network counters lost their second-sample interval");
+                Assert(!Process.GetCurrentProcess().Modules.Cast<ProcessModule>().Any(m=>m.ModuleName.StartsWith("PawnIO",StringComparison.OrdinalIgnoreCase)),"Driver-free collector loaded PawnIO");
+                Console.WriteLine("PASS driver-free collector: isolated snapshot, real CPU/RAM/network and no invented temperature/fan channels");
+            }
             if(args.Length==2&&args[0]=="--activation-test"){
                 using(var sender=new AppActivation(args[1]))sender.Notify(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"HardwarePulse.exe"));
                 return 0;
