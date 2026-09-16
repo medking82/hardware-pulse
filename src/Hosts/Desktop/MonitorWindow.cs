@@ -8,7 +8,7 @@ using Avalonia.Styling;
 namespace HardwarePulse.Desktop;
 
 public sealed class MonitorWindow : Window {
-    readonly MonitorSource source;
+    readonly IMonitorSource source;
     readonly bool smoke;
     readonly bool measure;
     readonly CancellationTokenSource stop=new();
@@ -22,6 +22,7 @@ public sealed class MonitorWindow : Window {
     readonly CheckBox pause=new(){Name="PauseHardware",Content="Pause hardware monitoring"};
     readonly ComboBox readingMode=new(){Name="ReadingMode",ItemsSource=new[]{"Live","Session Max"},SelectedIndex=0,MinWidth=160};
     MonitorSnapshot? latestSnapshot;
+    bool samplingFailed;
     readonly CodexQuotaPanel quota;
     readonly HardwareSensorPanel sensors=new();
     readonly PreviewSettingsStore? store;
@@ -30,7 +31,7 @@ public sealed class MonitorWindow : Window {
     readonly TextBlock saveStatus=new(){TextWrapping=TextWrapping.Wrap};
     bool loadingNetwork;
     public Task Sampling {get;private set;}=Task.CompletedTask;
-    public MonitorWindow(MonitorSource source,bool smoke=false,bool start=true,PreviewSettingsStore? store=null,bool measure=false) {
+    public MonitorWindow(IMonitorSource source,bool smoke=false,bool start=true,PreviewSettingsStore? store=null,bool measure=false) {
         this.source=source;this.smoke=smoke;this.measure=measure;
         this.store=store;settings=store?.Load()??new PreviewSettings();
         Title="Pulse · Desktop preview";Width=settings.Width;Height=settings.Height;MinWidth=360;MinHeight=400;
@@ -103,7 +104,7 @@ public sealed class MonitorWindow : Window {
         cpu.Text=max?snapshot.PeakCpu:snapshot.Cpu;ram.Text=snapshot.Memory;
         down.Text=max?snapshot.PeakDownload:snapshot.Download;up.Text=max?snapshot.PeakUpload:snapshot.Upload;
         sensors.Present(max?snapshot.PeakSensors:snapshot.Sensors,snapshot.SensorsSupported);
-        status.Text=max?(source.IsDemo?"Demo · ":"")+"Session Max · Memory and quota remain current":source.IsDemo?"Demo · Sample values":snapshot.CpuReady&&snapshot.MemoryReady?"Live · Refreshes every second":"Waiting for available readings…";
+        status.Text=samplingFailed?"Monitoring unavailable. Retrying…":max?(source.IsDemo?"Demo · ":"")+"Session Max · Memory and quota remain current":source.IsDemo?"Demo · Sample values":snapshot.CpuReady&&snapshot.MemoryReady?"Live · Refreshes every second":"Waiting for available readings…";
     }
     public void PresentInterfaces(string[] names) {
         // Preserve both the active choice and a temporarily absent saved device.
@@ -138,8 +139,19 @@ public sealed class MonitorWindow : Window {
             do {
                 if(pause.IsChecked==true){status.Text="Paused";continue;}
                 string? name=interfaces.SelectedItem as string;
-                var snapshot=await Task.Run(()=>source.Poll(name),stop.Token);
+                MonitorSnapshot snapshot;
+                try {snapshot=await Task.Run(()=>source.Poll(name),stop.Token);}
+                catch(OperationCanceledException) when(stop.IsCancellationRequested){throw;}
+                catch(Exception) when(!smoke&&!measure) {
+                    if(stop.IsCancellationRequested)return;
+                    samplingFailed=true;
+                    var previous=latestSnapshot??new MonitorSnapshot("—","—","—","—",false,false);
+                    Present(previous with {Cpu="—",Memory="—",Download="—",Upload="—",CpuReady=false,MemoryReady=false,
+                        Sensors=previous.Sensors.Select(sensor=>sensor with {Value="—"}).ToArray()});
+                    continue;
+                }
                 if(stop.IsCancellationRequested)return;
+                samplingFailed=false;
                 Present(snapshot);
                 var report=measurement?.Observe(snapshot);
                 if(report!=null)Console.WriteLine("BENCH_DESKTOP "+System.Text.Json.JsonSerializer.Serialize(report));

@@ -55,6 +55,7 @@ static class Tests {
         NetworkAdapterTests.Run();
         HardwareSensorTests.Run(args.Length==1?args[0]:null);
         SessionMaxTests.Run();
+        SamplingRecoveryTests.Run();
         Console.WriteLine("PASS Desktop rendering, responsive cards, unavailable state, keyboard and worker shutdown");
     }
 }

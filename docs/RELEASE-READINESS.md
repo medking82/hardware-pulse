@@ -63,3 +63,15 @@ verifier rejects missing or empty guides even with an updated manifest; nine
 package contract tests and an extracted Windows x64 live CPU/RAM smoke passed.
 CLI help now accurately describes Linux hwmon and shared Session Max support.
 These are source/package improvements, not a new stable cross-platform release.
+All six native package jobs for guide commit
+`d3ed72ef38dee672200728a5eaf0834b15ac6863` passed in
+[run 35049537837](https://github.com/medking82/hardware-pulse/actions/runs/35049537837).
+
+Shared hardware sampling now contains individual reader exceptions within the
+existing one-second loop. Live values become unavailable, Session Max remains
+historical, and a later successful sample restores live status. Repeated failures
+retain the normal cadence; shutdown cancels the loop. Synthetic reader/UI tests
+cover success/failure/recovery, mode switching during failure, repeated failures,
+and strict smoke/measurement failure (exit code 3, no automatic retry).
+`IMonitorSource` is the host's synchronous reader boundary; it owns no scheduling
+and leaves platform adapter selection in `MonitorSource`.

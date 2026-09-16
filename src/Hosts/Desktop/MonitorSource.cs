@@ -3,7 +3,13 @@ using System.Net.NetworkInformation;
 namespace HardwarePulse.Desktop;
 
 // One worker owns these sessions; the UI supplies only the selected interface name.
-public sealed class MonitorSource {
+public interface IMonitorSource {
+    bool IsDemo {get;}
+    string[] Interfaces();
+    MonitorSnapshot Poll(string? name);
+}
+
+public sealed class MonitorSource : IMonitorSource {
     readonly bool demo;
     readonly ReadingSession? cpu,memory;
     ReadingSession? network;
