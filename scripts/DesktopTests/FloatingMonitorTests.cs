@@ -28,6 +28,14 @@ static class FloatingMonitorTests {
             Check(!floating.GetVisualDescendants().OfType<TextBlock>().Any(x=>x.Text=="21.0%"),"Floating window retained unavailable live data");
             owner.Language.Select("zh-CN");Check(floating.Title=="浮动监控窗口"&&open.Header=="打开浮动监控窗口","Floating/tray entry not localized");
             floating.Width=360;Dispatcher.UIThread.RunJobs();
+            Console.WriteLine($"FLOATING_RESIZE requested=360 client={floating.ClientSize.Width} widest={floating.GetVisualDescendants().OfType<TextBlock>().Max(x=>x.Bounds.Width)}");
+            // A real window manager acknowledges resize asynchronously, especially
+            // after removing/restoring decorations. RunJobs alone is not an acknowledgement.
+            var resized=DateTime.UtcNow.AddSeconds(3);
+            while(Math.Abs(floating.ClientSize.Width-360)>1&&DateTime.UtcNow<resized){Dispatcher.UIThread.RunJobs();Thread.Sleep(10);}
+            Dispatcher.UIThread.RunJobs();
+            Console.WriteLine($"FLOATING_RESIZE settled client={floating.ClientSize.Width} widest={floating.GetVisualDescendants().OfType<TextBlock>().Max(x=>x.Bounds.Width)}");
+            Check(Math.Abs(floating.ClientSize.Width-360)<=1,"Floating native resize was not acknowledged");
             Check(floating.GetVisualDescendants().OfType<TextBlock>().All(x=>x.Bounds.Width<=360),"Floating text overflow");
             floating.Close();Check(owner.FloatingMonitor==null&&owner.IsVisible,"Floating close ended Monitor");
             owner.OpenFloatingMonitor();floating=owner.FloatingMonitor!;

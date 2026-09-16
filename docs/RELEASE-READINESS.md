@@ -6,6 +6,13 @@ WPF v0.6.26 remains stable; v0.7.0-preview.1 is still experimental.
 
 ## Scope decision
 
+Priority correction (2026-09-16): the user is waiting for Windows x64 delivery
+and Windows 7 compatibility. Finish the in-flight checks, then pause further
+macOS/Linux expansion and prioritize the existing Windows WPF host and Windows 7
+assessment. Windows releases need not wait for multi-platform feature parity.
+The full multi-platform objective remains open; this changes order, not completion.
+See [Windows 7 compatibility](WINDOWS7-COMPATIBILITY.md).
+
 The user selected option 2: complete the main Windows features before the final
 multi-platform stable release. Platform-specific capability lists alone do not
 satisfy this scope. FPS, Desktop overlay and its interaction/appearance controls,
@@ -94,6 +101,14 @@ because a full-screen `WWAHost` window covered the fixture; the failed result is
 retained. AppKit property verification is not a physical game-input test, and
 these checks do not complete Desktop overlay parity or authorize stable delivery.
 
+The matching upstream runner report is
+[actions/runner-images#14069](https://github.com/actions/runner-images/issues/14069),
+still open when inspected on 2026-09-16. It documents Windows 11 ARM GUI tests
+obstructed by the first-run privacy experience, including `WWAHost`. This supports
+an environment diagnosis; it does not prove Pulse input behavior. Treat runner
+desktop initialization as a separate CI change, not a reason to weaken the native
+hit-test assertions or modify the installed user's desktop/security settings.
+
 ## Acceptance evidence
 
 The X11 input increment is owned by the shared host's `X11WindowInput`: it borrows
@@ -107,6 +122,17 @@ resize after unlock and closed-handle rejection. Local headless tests and
 `Validate.ps1 -ModernCore` precede commit; Linux x64/ARM64 CI is required. Native
 Wayland and physical desktop/game behavior remain unverified. Rollback is the
 isolated host adapter/integration and native fixture change.
+
+Initial X11 run `35066167507` failed on both Linux architectures in the existing
+floating-window width assertion, before the pointer-routing fixture ran. Lock and
+tray unlock returned successfully. The assertion previously sampled layout
+immediately after requesting width 360; changing native decorations adds an
+asynchronous WM resize. The diagnostic correction records client/text widths and
+requires native client-width acknowledgement before the unchanged overflow check.
+Until native CI passes, neither the resize hypothesis nor X11 pointer routing is
+considered verified.
+
+<!-- sop-risk-classification: {"facts":{"blast_radius":"isolated","change_kind":"implementation","data_boundary":"ordinary","destructive":"no","failure_cost":"low","irreversibility":"reversible","operational_controls":"not_applicable","privilege_boundary":"unchanged","project_policy":"default","rollback":"easy","scope_knowledge":"known","uncertainty":"low","verification":"deterministic"},"formal_review":"not_required","kind":"risk-classification-assessment","reasons":{"formal_review":["routine_no_review"],"risk":["no_high_risk_signal"]},"risk":"routine","schema_version":2} -->
 
 | Area | Current evidence | Work before stable delivery |
 | --- | --- | --- |
