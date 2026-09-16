@@ -1,4 +1,4 @@
-﻿param([Parameter(Mandatory=$true)][string]$AppDirectory,[ValidateRange(2,3600)][int]$Seconds=30,[ValidateSet('monitor','desktop','desktop-contrast','desktop-dynamic','desktop-dynamic-contrast')][string]$Scene='monitor')
+﻿param([Parameter(Mandatory=$true)][string]$AppDirectory,[ValidateRange(2,3600)][int]$Seconds=30,[ValidateSet('monitor','tray','desktop','desktop-contrast','desktop-dynamic','desktop-dynamic-contrast')][string]$Scene='monitor',[ValidateSet('Wpf','Shared')][string]$HostKind='Wpf',[ValidateRange(360,1600)][int]$Width=440,[ValidateRange(400,1600)][int]$Height=640)
 $ErrorActionPreference='Stop'
 $root=Split-Path $PSScriptRoot
 $AppDirectory=[IO.Path]::GetFullPath($AppDirectory)
@@ -8,6 +8,15 @@ $appHash=(Get-FileHash $appFile -Algorithm SHA256).Hash
 $coreHash=(Get-FileHash (Join-Path $AppDirectory 'Pulse.Core.dll') -Algorithm SHA256).Hash
 $adapterHash=(Get-FileHash (Join-Path $AppDirectory 'Pulse.Adapters.Windows.dll') -Algorithm SHA256).Hash
 $harnessHash=(Get-FileHash (Join-Path $AppDirectory 'NativeTests.exe') -Algorithm SHA256).Hash
+if($HostKind -eq 'Shared'){
+    $shared=Join-Path $root 'scripts/DesktopTests/bin/Release/net10.0'
+    $appFile=Join-Path $shared 'Pulse.Desktop.dll'
+    $version=[Reflection.AssemblyName]::GetAssemblyName($appFile).Version.ToString()
+    $appHash=(Get-FileHash $appFile -Algorithm SHA256).Hash
+    $coreHash=(Get-FileHash (Join-Path $shared 'Pulse.Core.dll') -Algorithm SHA256).Hash
+    $adapterHash=(Get-FileHash (Join-Path $shared 'Pulse.Adapters.Windows.Modern.dll') -Algorithm SHA256).Hash
+    $harnessHash=(Get-FileHash (Join-Path $shared 'Pulse.Desktop.Tests.dll') -Algorithm SHA256).Hash
+}
 $state=Join-Path $root ('vendor/ui-measure-'+[Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $state | Out-Null
 $info=[Diagnostics.ProcessStartInfo]::new()
@@ -15,7 +24,12 @@ $info.FileName=Join-Path $AppDirectory 'NativeTests.exe'
 $info.WorkingDirectory=$root
 $info.UseShellExecute=$false;$info.CreateNoWindow=$true
 $info.RedirectStandardOutput=$true;$info.RedirectStandardError=$true
-$info.ArgumentList.Add($state);$info.ArgumentList.Add('bench');$info.ArgumentList.Add($Scene)
+if($HostKind -eq 'Shared'){
+    & "$PSScriptRoot/Run-Hidden.ps1" (Join-Path $AppDirectory 'NativeTests.exe') @('--benchmark-snapshot',(Join-Path $state 'runtime/snapshot.json')) $root
+    $info.FileName=Join-Path $root 'vendor/dotnet-sdk/dotnet.exe'
+    $info.ArgumentList.Add((Join-Path $shared 'Pulse.Desktop.Tests.dll'));$info.ArgumentList.Add('--ui-benchmark');$info.ArgumentList.Add($state)
+}else{$info.ArgumentList.Add($state);$info.ArgumentList.Add('bench')}
+$info.ArgumentList.Add($Scene);$info.ArgumentList.Add([string]$Width);$info.ArgumentList.Add([string]$Height)
 $process=[Diagnostics.Process]::Start($info)
 $stdout=$process.StandardOutput.ReadToEndAsync();$stderr=$process.StandardError.ReadToEndAsync()
 $samples=@();$failure=$null;$measurementComplete=$false
@@ -27,6 +41,7 @@ try {
     }
     $ready=Get-Content "$state/ready.json" -Raw|ConvertFrom-Json
     if($ready.scene -ne $Scene){throw 'Benchmark harness scene mismatch; rebuild NativeTests.exe'}
+    if([Math]::Abs($ready.widthDip-$Width) -gt 1 -or [Math]::Abs($ready.heightDip-$Height) -gt 1){throw 'Benchmark window did not reach the requested dimensions'}
     $snapshot=Get-Content "$state/runtime/snapshot.json" -Raw | ConvertFrom-Json
     $cpuStart=$null;$start=$null
     for($i=0;$i -lt [Math]::Ceiling(($Seconds+10)/2);$i++){
@@ -42,12 +57,18 @@ try {
         if($i -ge 5){$process.Refresh();$samples+= [pscustomobject]@{seconds=$start.Elapsed.TotalSeconds;cpuSeconds=($process.TotalProcessorTime-$cpuStart).TotalSeconds;workingSet=$process.WorkingSet64;privateBytes=$process.PrivateMemorySize64}}
     }
     $process.Refresh()
-    $result=[pscustomobject]@{scope='Isolated UI harness; excludes live collector, FPS, quota requests and desktop layer integration';harnessSha256=$harnessHash;scene=$Scene;background=$(if($Scene -eq 'monitor'){'host desktop'}elseif($Scene.StartsWith('desktop-dynamic')){'moving black-white-gray gradient'}else{'fixed black-white-gray gradient'});backgroundIntervalMilliseconds=$ready.backgroundIntervalMilliseconds;backgroundPeriodSeconds=$ready.backgroundPeriodSeconds;localContrast=$ready.localContrast;version=$version;appSha256=$appHash;coreSha256=$coreHash;adapterSha256=$adapterHash;logicalProcessors=[Environment]::ProcessorCount;warmupSeconds=10;requestedSeconds=$Seconds;sampleIntervalSeconds=2;widthDip=$ready.widthDip;heightDip=$ready.heightDip;widthPixels=$ready.widthPixels;heightPixels=$ready.heightPixels;app=$AppDirectory;seconds=$start.Elapsed.TotalSeconds;cpuPercent=100*($process.TotalProcessorTime-$cpuStart).TotalSeconds/$start.Elapsed.TotalSeconds/[Environment]::ProcessorCount;workingSetMiB=($samples.workingSet|Measure-Object -Average).Average/1MB;privateMiB=($samples.privateBytes|Measure-Object -Average).Average/1MB;samples=$samples.Count}
+    $result=[pscustomobject]@{scope='Isolated UI harness; excludes live collector, FPS, quota requests and desktop layer integration';harnessSha256=$harnessHash;scene=$Scene;background=$(if($Scene -in @('monitor','tray')){'host desktop'}elseif($Scene.StartsWith('desktop-dynamic')){'moving black-white-gray gradient'}else{'fixed black-white-gray gradient'});backgroundIntervalMilliseconds=$ready.backgroundIntervalMilliseconds;backgroundPeriodSeconds=$ready.backgroundPeriodSeconds;localContrast=$ready.localContrast;version=$version;appSha256=$appHash;coreSha256=$coreHash;adapterSha256=$adapterHash;logicalProcessors=[Environment]::ProcessorCount;warmupSeconds=10;requestedSeconds=$Seconds;sampleIntervalSeconds=2;widthDip=$ready.widthDip;heightDip=$ready.heightDip;widthPixels=$ready.widthPixels;heightPixels=$ready.heightPixels;app=$AppDirectory;seconds=$start.Elapsed.TotalSeconds;cpuPercent=100*($process.TotalProcessorTime-$cpuStart).TotalSeconds/$start.Elapsed.TotalSeconds/[Environment]::ProcessorCount;workingSetMiB=($samples.workingSet|Measure-Object -Average).Average/1MB;privateMiB=($samples.privateBytes|Measure-Object -Average).Average/1MB;samples=$samples.Count}
     Set-Content "$state/BENCH-STOP" 'done'
     if(-not $process.WaitForExit(10000) -or $process.ExitCode -ne 0){throw 'Benchmark did not complete successfully'}
     $completed=Get-Content "$state/completed.json" -Raw|ConvertFrom-Json
     if($Scene.StartsWith('desktop-dynamic') -and $completed.backgroundUpdates -le 0){throw 'Dynamic background did not advance'}
     $result|Add-Member -NotePropertyName backgroundUpdates -NotePropertyValue $completed.backgroundUpdates
+    $result|Add-Member -NotePropertyName hostKind -NotePropertyValue $HostKind
+    $result|Add-Member -NotePropertyName requestedWidthDip -NotePropertyValue $Width
+    $result|Add-Member -NotePropertyName requestedHeightDip -NotePropertyValue $Height
+    $result|Add-Member -NotePropertyName readingIntervalSeconds -NotePropertyValue 2
+    $result|Add-Member -NotePropertyName stateDirectory -NotePropertyValue $state
+    if($HostKind -eq 'Shared'){$result.scope='Isolated shared UI with the same synthetic snapshot at 2-second cadence; includes its own Desktop input/layer adapters; excludes live collector, FPS and quota requests';$result.app=$shared}
     $result|ConvertTo-Json|Set-Content "$state/result.json" -Encoding utf8
     $measurementComplete=$true
     $result|ConvertTo-Json

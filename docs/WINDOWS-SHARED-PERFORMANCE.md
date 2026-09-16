@@ -1,0 +1,102 @@
+# Windows shared performance acceptance
+
+The shared Windows host must be measured before stable 0.7.0. A different UI
+framework does not establish lower CPU or memory use. The isolated harness below
+is diagnostic evidence, not installed-product or long-running acceptance.
+
+## Paired UI harness
+
+Build the native application with `Build-Native.ps1`, compile and run
+`Test-Native.ps1`, and build `scripts/DesktopTests/Pulse.Desktop.Tests.csproj`
+in Release using the repository's .NET SDK. Run `Measure-NativeUi.ps1` twice
+with the same arguments except `-HostKind Wpf` / `-HostKind Shared`:
+
+```powershell
+./scripts/Measure-NativeUi.ps1 -AppDirectory ./build/native/app -HostKind Shared -Scene monitor -Seconds 60 -Width 440 -Height 640
+```
+
+Supported scenes are `monitor`, `tray`, `desktop`, `desktop-contrast`,
+`desktop-dynamic`, and `desktop-dynamic-contrast`. Run them sequentially on
+the same display without concurrent UI tests. Each child uses its own fixture
+directory, a 10-second warmup, two-second readings and external process counters.
+Both consume `NativeTests.Snapshot()` through their existing reading adapters.
+The driver changes the same synthetic temperature and sequence during each run.
+No real collector, driver, account credentials, quota requests, FPS capture,
+installed settings, startup tasks, or updater transport participates.
+
+The script rejects a mismatched scene or actual DIP dimensions. Results retain
+actual DIP and physical dimensions, assembly/harness hashes, processor count,
+sample duration, average working set/private bytes, and CPU time normalized
+across all logical processors. Compare physical dimensions as well as DIP.
+The state directory contains `result.json`, raw `samples.json`, `ready.json`,
+`completed.json`, and captured stderr. A successful result requires a clean
+child exit and, for dynamic scenes, observed backdrop updates.
+
+Desktop fixtures use matching font size, spacing, one column, transparent
+background, topmost state, and a black/white/gray gradient. Dynamic gradients
+advance every 33 ms with an eight-second period. The shared fixture includes
+its normal window input/layer adapters; the isolated WPF shell excludes desktop
+layer integration. UI content and rendering implementations differ. This is not
+a controlled experiment of framework overhead alone. Shared production currently
+polls once per second; this harness deliberately uses WPF's two-second cadence
+to isolate presentation. Do not describe it as production sampling acceptance.
+
+## Local baseline, 2026-09-17
+
+Production source at `f338b0414157a134f7183032d15a1b9cf7552f21`, with the
+paired harness introduced alongside this document. Each run completed 30 samples
+over at least 60 seconds after warmup, on 16 logical processors, at 440 x 640 DIP
+and 660 x 960 physical pixels. CPU percentages represent the whole machine.
+
+| Scene | Host | CPU % | Working set MiB | Private MiB | Local evidence directory under vendor/ |
+| --- | --- | ---: | ---: | ---: | --- |
+| Monitor | WPF | 0.092 | 119.5 | 96.9 | ui-measure-b54be959d3994e0cb4f16761fba3fdd3 |
+| Monitor | Shared | 0.095 | 147.4 | 123.3 | ui-measure-d6a867cb26ec46aa9cae3c9a4d646299 |
+| Tray | WPF | 0.021 | 119.0 | 96.1 | ui-measure-c997be059faf465ca43cd563f060ba88 |
+| Tray | Shared | 0.063 | 144.9 | 120.8 | ui-measure-0fb2d6f67d734bf6acae5e5c7c9b4479 |
+| Desktop, Local Contrast | WPF | 0.495 | 140.7 | 167.1 | ui-measure-f507d164a9cb483db1e3a26b26eb89ad |
+| Desktop, Local Contrast | Shared | 0.513 | 149.8 | 171.3 | ui-measure-43d7385a76784448924cab659ec19a4f |
+
+These single runs do not establish statistical equivalence. Shared uses more
+memory in these scenes; there is no measured basis to market it as inherently
+lighter than WPF. Monitor and Local Contrast CPU are close in absolute terms.
+The higher shared Tray CPU warrants checking its hidden Monitor rendering:
+`MonitorWindow.Present` currently always calls `Render`, whereas WPF
+`Shell.UpdatePanel` skips hidden/minimized Monitor rendering while retaining
+readings and Desktop updates. This is a code-grounded optimization candidate,
+not a measured causal attribution or permission to stop background sampling.
+
+The WPF application SHA-256 was
+`4DB45A9712BA894F4FFE926A4C3FA0D893C9B582A67BB4241FFCBFE3B39456EC`;
+the shared application SHA-256 was
+`F3CCEEDBAD16155E4D1EF49A71406949DAB095A6CF6BDE4DF8373DED8C9903B6`.
+Full adapter/Core/harness hashes and counter samples remain in the local evidence.
+
+Validation passed: native regression (`vendor/test-benchmark-native.log`),
+shared headless suite (`vendor/test-benchmark-shared.log`), and repository
+`Validate.ps1 -ModernCore` (`vendor/validate-ui-benchmark.log`). A separate
+two-second shared dynamic-contrast smoke completed 356 backdrop updates after
+warmup (`vendor/benchmark-shared-dynamic-smoke.log`); it verifies execution and
+cleanup, not sustained dynamic-background performance.
+
+## Remaining release evidence
+
+- Measure the actual installed UI plus collector and all helper processes,
+  with the same sensor availability and display conditions as the WPF baseline.
+- Cover Monitor, Desktop and Tray, quota/FPS/Local Contrast off and on, and
+  dynamic backgrounds. Record unavailable features rather than counting them
+  as a cheap successful run.
+- Verify reading accuracy and staleness with real inputs; the synthetic fixture
+  only verifies a repeatable benchmark source.
+- Run a sustained soak and inspect resource trends, hide/show, display changes,
+  screenshot-mode restoration and disposal. A 60-second average cannot prove
+  leak freedom or long-term stability.
+- Keep final release evidence bound to the actual packaged binaries and source
+  revision. Rebuilt local UI test assemblies are not the downloadable product.
+
+The harness change is reversible and limited to test entry points, the measurement
+driver and this document. Production sampling, privileges and settings are
+unchanged. Relevant validation is both harness builds, native regression tests,
+paired benchmark runs, shared headless tests and `Validate.ps1 -ModernCore`.
+
+<!-- sop-risk-classification: {"facts":{"blast_radius":"isolated","change_kind":"implementation","data_boundary":"ordinary","destructive":"no","failure_cost":"low","irreversibility":"reversible","operational_controls":"not_applicable","privilege_boundary":"unchanged","project_policy":"default","rollback":"easy","scope_knowledge":"known","uncertainty":"low","verification":"deterministic"},"formal_review":"not_required","kind":"risk-classification-assessment","reasons":{"formal_review":["routine_no_review"],"risk":["no_high_risk_signal"]},"risk":"routine","schema_version":2} -->
