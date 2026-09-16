@@ -76,6 +76,7 @@ Quit Pulse|結束 Pulse
 Floating monitor|浮動監控視窗
 Desktop|桌面
 Background opacity|背景不透明度
+Font size|文字大小
 Background blur|背景模糊
 Background blur is off.|背景模糊已關閉。
 Background blur is active.|背景模糊已生效。

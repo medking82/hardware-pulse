@@ -29,7 +29,7 @@ public sealed class FloatingMonitorWindow : Window {
     public FloatingMonitorWindow(UiLanguage language,PreviewSettings? saved=null,Action? changed=null) {
         this.language=language;
         saved??=new PreviewSettings();
-        Width=saved.FloatingWidth;Height=saved.FloatingHeight;MinWidth=360;MinHeight=240;FontSize=15;
+        Width=saved.FloatingWidth;Height=saved.FloatingHeight;MinWidth=360;MinHeight=240;FontSize=saved.FloatingFontSize;
         Topmost=saved.FloatingTopmost;
         SetBackgroundBlur(saved.FloatingBackgroundBlur);
         PropertyChanged+=(_,e)=>{if(e.Property==ActualTransparencyLevelProperty||e.Property==ActualThemeVariantProperty)ApplyBackground();};
@@ -46,6 +46,7 @@ public sealed class FloatingMonitorWindow : Window {
         var topmost=language.Set(new CheckBox{Name="FloatingTopmost"},"Always on top");
         topmost.IsChecked=Topmost;
         topmost.IsCheckedChanged+=(_,_)=>{Topmost=topmost.IsChecked==true;Remember();};
+        PropertyChanged+=(_,e)=>{if(e.Property==TopmostProperty){topmost.IsChecked=Topmost;Remember();}};
         var lockButton=language.Set(new Button{Name="LockFloatingMonitor",IsVisible=false},"Lock floating monitor");
         lockButton.Click+=(_,_)=>SetLocked(true);
         toolbar.Name="FloatingEditControls";toolbar.Children.Add(topmost);toolbar.Children.Add(lockButton);toolbar.Children.Add(lockStatus);
@@ -92,7 +93,9 @@ public sealed class FloatingMonitorWindow : Window {
     }
     public void SetBackgroundBlur(bool enabled) {
         BackgroundBlur=enabled;
-        TransparencyLevelHint=enabled?[WindowTransparencyLevel.Blur,WindowTransparencyLevel.Transparent,WindowTransparencyLevel.None]:[WindowTransparencyLevel.Transparent,WindowTransparencyLevel.None];
+        // Avalonia.Native maps AcrylicBlur to AppKit's behind-window NSVisualEffectView.
+        // Its macOS backend does not map the plain Blur value.
+        TransparencyLevelHint=enabled?[WindowTransparencyLevel.Blur,WindowTransparencyLevel.AcrylicBlur,WindowTransparencyLevel.Transparent,WindowTransparencyLevel.None]:[WindowTransparencyLevel.Transparent,WindowTransparencyLevel.None];
         MaterialChanged?.Invoke();
     }
     void ApplyBackground() {

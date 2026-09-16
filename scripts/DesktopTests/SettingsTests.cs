@@ -64,6 +64,13 @@ static class SettingsTests {
             Check(window.RequestedThemeVariant==ThemeVariant.Dark,"Theme applies immediately");
             Until(()=>new PreviewSettingsStore(path).Load().Theme=="Dark");
             groups.SelectedIndex=3;Dispatcher.UIThread.RunJobs();window.OpenFloatingMonitor();
+            var topmost=window.GetVisualDescendants().OfType<CheckBox>().Single(x=>x.Name=="DesktopTopmost");
+            topmost.IsChecked=false;Check(!window.FloatingMonitor!.Topmost,"Settings topmost did not apply live");
+            var floatingTopmost=window.FloatingMonitor.GetVisualDescendants().OfType<CheckBox>().Single();
+            floatingTopmost.IsChecked=true;Check(topmost.IsChecked==true,"Floating topmost did not synchronize Settings");
+            var fontSize=window.GetVisualDescendants().OfType<Slider>().Single(x=>x.Name=="FloatingFontSize");
+            fontSize.Value=24;Check(window.FloatingMonitor.FontSize==24,"Floating font size did not apply live");
+            Until(()=>new PreviewSettingsStore(path).Load().FloatingFontSize==24);
             var opacity=window.GetVisualDescendants().OfType<Slider>().Single(x=>x.Name=="FloatingBackgroundOpacity");
             if(output!=null){window.Width=360;Dispatcher.UIThread.RunJobs();using var frame=window.CaptureRenderedFrame();frame!.Save(Path.Combine(output,"desktop-settings-360.png"),Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);}
             Check(opacity.Value==35,"Desktop opacity control did not restore saved preference");
@@ -75,6 +82,7 @@ static class SettingsTests {
             Until(()=>new PreviewSettingsStore(path).Load().FloatingBackgroundOpacity==0);
             window.FloatingMonitor.Close();window.OpenFloatingMonitor();
             Check(window.FloatingMonitor!.BackgroundOpacity==0,"Transparent background not restored on reopen");
+            Check(window.FloatingMonitor.FontSize==24&&window.FloatingMonitor.Topmost,"Font size/topmost not restored");
             Check(window.FloatingMonitor.BackgroundBlur,"Blur preference lost on reopen");
             blur.IsChecked=false;Check(window.FloatingMonitor.MaterialStatus=="Background blur is off.","Disabling blur not reflected in status");
             opacity.Value=100;Check(window.FloatingMonitor.BackgroundOpacity==100,"Solid background not applied live");window.FloatingMonitor.Close();

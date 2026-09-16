@@ -32,6 +32,7 @@ public sealed class MonitorWindow : Window {
     readonly DispatcherTimer saveTimer=new(){Interval=TimeSpan.FromMilliseconds(500)};
     readonly TextBlock saveStatus=new(){TextWrapping=TextWrapping.Wrap};
     readonly TextBlock materialStatus=new(){TextWrapping=TextWrapping.Wrap};
+    readonly CheckBox desktopTopmost=new(){Name="DesktopTopmost"};
     bool loadingNetwork;
     public Task Sampling {get;private set;}=Task.CompletedTask;
     public MonitorWindow(IMonitorSource source,bool smoke=false,bool start=true,PreviewSettingsStore? store=null,bool measure=false) {
@@ -71,6 +72,16 @@ public sealed class MonitorWindow : Window {
         var desktop=new StackPanel{Spacing=12,Margin=new Thickness(20)};
         desktop.Children.Add(Language.Set(new TextBlock{FontSize=21,FontWeight=FontWeight.SemiBold},"Floating monitor"));
         var desktopOpen=Language.Set(new Button(),"Open floating monitor");desktopOpen.Click+=(_,_)=>OpenFloatingMonitor();desktop.Children.Add(desktopOpen);
+        desktopTopmost.IsChecked=settings.FloatingTopmost;
+        desktopTopmost.IsCheckedChanged+=(_,_)=>{settings.FloatingTopmost=desktopTopmost.IsChecked==true;if(FloatingMonitor!=null)FloatingMonitor.Topmost=settings.FloatingTopmost;SaveLater();};
+        desktop.Children.Add(Language.Set(desktopTopmost,"Always on top"));
+        desktop.Children.Add(Language.Set(new TextBlock(),"Font size"));
+        var fontValue=new TextBlock{Text=settings.FloatingFontSize.ToString("F0")};desktop.Children.Add(fontValue);
+        var fontSize=new Slider{Name="FloatingFontSize",Minimum=10,Maximum=32,TickFrequency=1,IsSnapToTickEnabled=true,Value=settings.FloatingFontSize};
+        Avalonia.Automation.AutomationProperties.SetName(fontSize,Language.T("Font size"));
+        Language.Changed+=()=>Avalonia.Automation.AutomationProperties.SetName(fontSize,Language.T("Font size"));
+        fontSize.ValueChanged+=(_,_)=>{settings.FloatingFontSize=fontSize.Value;fontValue.Text=fontSize.Value.ToString("F0");if(FloatingMonitor!=null)FloatingMonitor.FontSize=fontSize.Value;SaveLater();};
+        desktop.Children.Add(fontSize);
         desktop.Children.Add(Language.Set(new TextBlock(),"Background opacity"));
         var opacityValue=new TextBlock{Text=settings.FloatingBackgroundOpacity.ToString("F0")+"%"};desktop.Children.Add(opacityValue);
         var opacity=new Slider{Name="FloatingBackgroundOpacity",Minimum=0,Maximum=100,TickFrequency=1,IsSnapToTickEnabled=true,Value=settings.FloatingBackgroundOpacity};
@@ -111,7 +122,7 @@ public sealed class MonitorWindow : Window {
     public void OpenFloatingMonitor() {
         if(stop.IsCancellationRequested)return;
         if(FloatingMonitor==null) {
-            FloatingMonitor=new FloatingMonitorWindow(Language,settings,SaveLater){RequestedThemeVariant=RequestedThemeVariant};
+            FloatingMonitor=new FloatingMonitorWindow(Language,settings,()=>{desktopTopmost.IsChecked=settings.FloatingTopmost;SaveLater();}){RequestedThemeVariant=RequestedThemeVariant};
             FloatingMonitor.MaterialChanged+=UpdateMaterialStatus;
             FloatingMonitor.Closed+=(_,_)=>{FloatingMonitor!.MaterialChanged-=UpdateMaterialStatus;FloatingMonitor=null;UpdateMaterialStatus();};
         }

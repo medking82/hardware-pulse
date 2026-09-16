@@ -6,6 +6,8 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 
 ## Unreleased
 
+- Shared Desktop settings add live, persisted font size and synchronized Always on top controls. The blur fallback list now includes AcrylicBlur, which the pinned macOS backend maps to its native behind-window material.
+
 - Shared Desktop adds an opt-in system background blur control with saved preferences and actual-backend status. Unsupported backends retain the supported background. The pinned Avalonia macOS backend supplies native blur; dedicated native-view verification is being added. Adjustable blur radius is not implemented.
 
 - Locked shared floating monitors hide inactive editing controls. Reopening from Monitor or the tray restores the controls without changing the window dimensions.

@@ -32,7 +32,7 @@ static class MacMaterialTests {
             bool Visible()=>Backdrops(content).Any(view=>!Flag(view,sel_registerName("isHiddenOrHasHiddenAncestor")));
             Check(!Visible(),"Blur disabled but a native backdrop remains visible");
             window.SetBackgroundBlur(true);Pump();
-            Check(window.ActualTransparencyLevel==WindowTransparencyLevel.Blur&&Visible(),"macOS did not activate native behind-window blur");
+            Check(window.ActualTransparencyLevel==WindowTransparencyLevel.AcrylicBlur&&Visible(),$"macOS did not activate native behind-window blur: actual={window.ActualTransparencyLevel}, visible={Visible()}");
             Check(window.MaterialStatus=="Background blur is active."&&window.Opacity==1,"Native material status/foreground mismatch");
             Check(window.SetLocked(true)&&window.SetLocked(false)&&Visible(),"Input lock altered native blur");
             window.SetBackgroundBlur(false);Pump();

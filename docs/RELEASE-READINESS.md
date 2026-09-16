@@ -11,9 +11,13 @@ calls `AutoFitContentView.ShowBlur`, which displays a behind-window
 `NSVisualEffectView`. This contradicts the generic documentation table listing
 only Transparent for macOS. Reuse the backend rather than add a duplicate native
 adapter. `MacMaterialTests` now inspects only its own test window's native view
-hierarchy, checks enable/disable and lock round trips, and requires actual Blur.
-Native Intel/ARM64 results for this new check are pending; the source alone does
-not establish visual legibility or adjustable blur-radius support.
+hierarchy and checks enable/disable and lock round trips against the achieved material.
+The first native check failed on Intel and ARM64 in run 35079502215. Inspection
+of pinned `Avalonia.Native/TopLevelImpl.cs` shows that only AcrylicBlur maps to
+the native Blur mode; plain Blur falls through. The host now includes AcrylicBlur
+before Transparent, and the test requires that achieved level plus a visible
+behind-window view. Verification of the fix is pending CI. Source alone does not
+establish visual legibility or adjustable blur-radius support.
 
 Shared floating geometry and Codex quota changes at `73e612f` passed macOS Intel,
 macOS ARM64, Windows x64 and Linux x64/ARM64 in run 35075180669. Windows ARM64
