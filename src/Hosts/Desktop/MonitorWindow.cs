@@ -212,6 +212,10 @@ public sealed class MonitorWindow : Window {
         FloatingMonitor.Activate();
         UpdateMaterialStatus();
     }
+    public void RestoreMain() {
+        if(stop.IsCancellationRequested)return;
+        Show();if(WindowState==WindowState.Minimized)WindowState=WindowState.Normal;Activate();
+    }
     public void ToggleFloatingMonitor() {
         if(stop.IsCancellationRequested)return;
         if(FloatingMonitor?.IsVisible==true){FloatingMonitor.Hide();return;}

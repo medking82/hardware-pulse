@@ -9,10 +9,11 @@ public static class Program {
     public static bool Smoke { get; private set; }
     public static bool Measure { get; private set; }
     static bool transientFramebuffer;
+    internal static WindowsInstanceSession? Instance {get;private set;}
     [STAThread]
     public static int Main(string[] args) {
         if(args.Length==1&&args[0]=="--help") {
-            Console.WriteLine("Pulse Desktop preview: [--demo] [--smoke-test | --measure-session [--diagnose-gc [--transient-framebuffer]]]. Measurement warms up for 10 seconds, then measures 60 seconds without personal settings. Optional GC diagnostics include startup and add observer overhead; transient framebuffer is a Linux-only diagnostic control. Windows/Linux/macOS live CPU, RAM and selected network; Linux kernel-exposed temperature and fan channels when available. Session Max preserves CPU, network and Linux sensor peaks; RAM and quota remain current. FPS and Desktop overlay are not connected in this shared host.");return 0;
+            Console.WriteLine("Pulse Desktop preview: [--demo] [--smoke-test | --measure-session [--diagnose-gc [--transient-framebuffer]]]. Measurement warms up for 10 seconds, then measures 60 seconds without personal settings. Optional GC diagnostics include startup and add observer overhead; transient framebuffer is a Linux-only diagnostic control. Windows/Linux/macOS live CPU, RAM and selected network; hardware support depends on the platform and device. Windows FPS requires the matching installed collector. Session Max preserves available peaks; RAM and quota remain current. Normal Windows launches reuse the existing preview window; diagnostics remain isolated.");return 0;
         }
         if(args.Any(a=>a!="--demo"&&a!="--smoke-test"&&a!="--measure-session"&&a!="--diagnose-gc"&&a!="--transient-framebuffer")||args.Distinct().Count()!=args.Length)return 2;
         Demo=args.Contains("--demo");Smoke=args.Contains("--smoke-test");Measure=args.Contains("--measure-session");
@@ -22,8 +23,12 @@ public static class Program {
         transientFramebuffer=args.Contains("--transient-framebuffer");
         if(transientFramebuffer&&(!diagnose||!OperatingSystem.IsLinux()))return 2;
         if(!Demo&&!OperatingSystem.IsLinux()&&!OperatingSystem.IsMacOS()&&!OperatingSystem.IsWindows())return 4;
+        using var instance=OperatingSystem.IsWindows()&&!Demo&&!Smoke&&!Measure?new WindowsInstanceSession("Shared.Preview"):null;
+        if(instance?.IsPrimary==false){instance.Notify();return 0;}
+        Instance=instance;
         using var gc=diagnose?new GcDiagnostics():null;
-        int result=BuildApp().StartWithClassicDesktopLifetime(args);
+        int result;
+        try{result=BuildApp().StartWithClassicDesktopLifetime(args);}finally{Instance=null;}
         if(gc!=null)Console.WriteLine("DIAG_GC "+gc.Report());
         return Environment.ExitCode!=0?Environment.ExitCode:result;
     }
@@ -41,6 +46,7 @@ public sealed class PulseApplication : Application {
         if(ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop) {
             desktop.MainWindow=new MonitorWindow(new MonitorSource(Program.Demo),Program.Smoke,
                 store:Program.Demo||Program.Smoke||Program.Measure?null:PreviewSettingsStore.Default(),measure:Program.Measure);
+            Program.Instance?.Listen(action=>Avalonia.Threading.Dispatcher.UIThread.Post(action),((MonitorWindow)desktop.MainWindow).RestoreMain);
             if(Program.Smoke)desktop.MainWindow.Opened+=(_,_)=>{
                 var coverage=FontCoverage.Capture();Console.WriteLine("FONT_COVERAGE "+System.Text.Json.JsonSerializer.Serialize(coverage));
                 if(coverage.Any(x=>x.Missing.Length!=0)){Environment.ExitCode=3;desktop.Shutdown(3);}

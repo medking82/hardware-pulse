@@ -45,6 +45,7 @@ public sealed class DesktopTray : IDisposable {
     void OnClosed(object? sender,EventArgs e)=>Dispose();
     void Restore() {
         if(disposed)return;
+        if(window is MonitorWindow monitor){monitor.RestoreMain();return;}
         window.Show();
         if(window.WindowState==WindowState.Minimized)window.WindowState=WindowState.Normal;
         window.Activate();
