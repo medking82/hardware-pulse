@@ -6,16 +6,6 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 
 ## Unreleased
 
-- Add an opt-in Win7 SP1 x64 development installer build with separate OS limits, .NET 4.8 prerequisite messaging and no PawnIO prerequisite or PresentMon executable. Its localized welcome page explains unsupported FPS/Local Contrast and current sensor limitations before installation. Both installer variants compile and are checked independently; actual Win7 installation is not yet verified, and no compatibility release has been published.
-
-- Prepare a separate fixed Win7 x64 update asset identity. Legacy clients reject modern Windows installers and report when no compatible asset exists; existing modern Windows updates retain their asset name and verification rules. No Win7 package is published yet.
-
-- Explain and disable unavailable FPS and Local Contrast controls on older Windows, including Desktop and tray entry points, while retaining saved preferences. Windows 7 compatibility is still under development.
-
-- Window snapping falls back to WPF DPI on older Windows versions that lack `GetDpiForWindow`, preserving scaled snap distances without repeated missing-API exceptions. Windows 7 installation remains unverified.
-
-- Prepare the Windows WPF collector for legacy Windows with driver-free CPU/RAM/network counters and older memory-metadata fields. The Framework and modern hosts share counter mapping. This does not add verified Windows 7 support or lower the modern installer minimum; temperature/fan/GPU compatibility remains unresolved. Windows 7 explicitly excludes FPS support; its controls are unavailable and its installer omits PresentMon.
-
 - Shared Linux X11 floating monitor adds mouse-through locking with XFixes. Unlock restores the default input region and window frame; native x64/ARM64 checks pass. Native Wayland locking is not implemented.
 
 - Shared macOS floating monitor adds AppKit mouse-through locking and reuses the Monitor/tray unlock action. Native Intel/ARM64 lifecycle and package checks pass.
@@ -29,6 +19,16 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 - Shared Desktop embeds pinned Noto Sans CJK SC/TC fonts for Chinese UI on systems without CJK fonts. Build preparation verifies size and SHA-256, packages include the OFL notice, and native smoke fails on missing catalog glyphs. No system font installation or runtime download is needed.
 
 - Shared Desktop supports Auto (System), English and Simplified/Traditional Chinese UI, including Monitor, Settings, sensor status, Codex quota and tray actions. Language switches immediately without restarting sampling or refreshing credentials and is saved in the isolated preview profile. Auto respects Chinese script and region preferences.
+
+## 0.6.27 — 2026-09-16
+
+- Windows 10/11 maintenance release: window snapping can fall back to WPF DPI when the native query is unavailable or returns zero.
+- Apply explicit OS capability guards to FPS and Local Contrast controls without discarding saved preferences. Separate modern and legacy update asset verification; the modern installer name and integrity checks remain unchanged.
+- Preserve Windows 10/11 hardware readings, FPS capture, Desktop mode and explicit App icon colors. This release does not promote the shared macOS/Linux preview or claim verified Win7 support.
+
+## 0.6.26-win7-preview.1 — 2026-09-16
+
+- Publish an independent Windows 7 SP1 x64 real-device test installer. Requires .NET Framework 4.8; offers driver-free CPU/RAM/network readings. FPS and Local Contrast are unsupported; temperature/fan/GPU readings are unavailable. Target-OS verification is pending.
 
 ## 0.6.26 — 2026-09-16
 

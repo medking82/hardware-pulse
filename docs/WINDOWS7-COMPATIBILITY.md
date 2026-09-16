@@ -1,9 +1,11 @@
 # Windows 7 compatibility work
 
-Status: an unsigned development installer can now be built; no Windows 7 release
-has been published or verified on Windows 7. The user prioritized this work over further macOS/Linux expansion
-on 2026-09-16. Initial target is Windows 7 SP1 x64; physical/VM verification
-availability has been requested and is not yet known.
+Status: [v0.6.26-win7-preview.1](https://github.com/medking82/hardware-pulse/releases/tag/v0.6.26-win7-preview.1)
+was published at the user's request for a friend's physical PC on 2026-09-16.
+The self-signed x64 installer download was SHA-256 verified:
+`941c8a9a92484044a2d3a7601934aeb552cda96d87663dc6d34ed69c3c066e5e`.
+No Windows 7 runtime result has been received. This is a test prerelease, not
+verified stable support. Subsequent priority returns to Windows 10/11 and macOS.
 
 Accepted scope (2026-09-16): the user explicitly accepts **no FPS support on
 Windows 7**, provided this is clearly documented. FPS implementation/parity is

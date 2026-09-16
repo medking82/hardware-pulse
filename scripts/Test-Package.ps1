@@ -21,7 +21,7 @@ foreach($reference in $core.GetReferencedAssemblies()){
     if($reference.Name -notin @('mscorlib','System','System.Core')){throw "Platform dependency in Core payload: $($reference.Name)"}
 }
 if($assembly.GetReferencedAssemblies().Name -contains 'System.Management.Automation'){throw 'PowerShell runtime reference remains'}
-if($assembly.GetName().Version.ToString() -ne '0.6.26.0'){throw 'Wrong native assembly version'}
+if($assembly.GetName().Version.ToString() -ne '0.6.27.0'){throw 'Wrong native assembly version'}
 $installer=[IO.File]::ReadAllText("$root/installer/HardwarePulse.iss")
 if(-not $installer.Contains('AppId={{75E8FDDA-D799-4D8A-882D-972DC72151C2}')){throw 'Upgrade application identity changed'}
 $section=[regex]::Match($installer,'(?s)\[InstallDelete\](.*?)(?:\r?\n\[|$)').Groups[1].Value

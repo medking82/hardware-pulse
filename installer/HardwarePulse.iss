@@ -1,7 +1,7 @@
 ﻿[Setup]
 AppId={{75E8FDDA-D799-4D8A-882D-972DC72151C2}
 AppName=Hardware Pulse
-AppVersion=0.6.26
+AppVersion=0.6.27
 AppPublisher=Marck Wong
 AppPublisherURL=https://github.com/medking82
 AppSupportURL=https://github.com/medking82/hardware-pulse/issues
@@ -22,7 +22,7 @@ OutputDir=..\dist
 #ifdef Win7Compatibility
 OutputBaseFilename=HardwarePulse-Win7-x64-Setup
 #else
-OutputBaseFilename=HardwarePulse-0.6.26-Setup
+OutputBaseFilename=HardwarePulse-0.6.27-Setup
 #endif
 SetupIconFile=..\assets\pulse.ico
 UninstallDisplayIcon={app}\HardwarePulse.exe

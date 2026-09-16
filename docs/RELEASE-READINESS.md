@@ -6,6 +6,12 @@ WPF v0.6.26 remains stable; v0.7.0-preview.1 is still experimental.
 
 ## Scope decision
 
+Latest priority (2026-09-16, after the Win7 test publication): the user requests
+Windows 10/11 and macOS stable delivery as soon as possible. Ship Windows
+independently; continue macOS completion. Win7 stays at the explicitly requested
+real-device test release while awaiting feedback. The unintegrated NVIDIA API
+experiment is not part of the Windows or macOS release payload.
+
 Priority correction (2026-09-16): the user is waiting for Windows x64 delivery
 and Windows 7 compatibility. Finish the in-flight checks, then pause further
 macOS/Linux expansion and prioritize the existing Windows WPF host and Windows 7
