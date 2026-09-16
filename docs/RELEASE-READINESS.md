@@ -2,7 +2,7 @@
 
 The delivery target is a public stable release with usable, verified packages,
 not merely pushed adapters or a renamed experimental release. Existing Windows
-WPF v0.6.24 remains stable; v0.7.0-preview.1 is still experimental.
+WPF v0.6.25 remains stable; v0.7.0-preview.1 is still experimental.
 
 ## Scope decision
 
@@ -46,3 +46,10 @@ mode-switch, responsive rendering and full regression checks passed;
 [run 35046859819](https://github.com/medking82/hardware-pulse/actions/runs/35046859819)
 passed all six native package jobs. No stable release has been published from
 these development commits.
+
+Shared Network settings now offer explicit interface refresh without restarting.
+Selection survives reordering; an absent saved interface stays unselected and is
+restored when it reappears. Enumeration runs off the UI thread only at startup
+or on request, with no additional sampling timer. Headless interaction tests cover
+removal, reconnection, empty lists, refresh and selection persistence. Physical
+USB/VPN hotplug across all platforms remains a separate device validation step.

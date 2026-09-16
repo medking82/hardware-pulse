@@ -17,6 +17,8 @@ public sealed class MonitorWindow : Window {
     readonly Grid cards=new(){ColumnDefinitions=new("*,*"),RowDefinitions=new("Auto,Auto")};
     readonly Border[] panels;
     readonly ComboBox interfaces=new(){HorizontalAlignment=HorizontalAlignment.Stretch,PlaceholderText="Select network interface"};
+    readonly Button refreshInterfaces=new(){Name="RefreshInterfaces",Content="Refresh interfaces"};
+    readonly TextBlock networkStatus=new(){Name="NetworkStatus",TextWrapping=TextWrapping.Wrap};
     readonly CheckBox pause=new(){Name="PauseHardware",Content="Pause hardware monitoring"};
     readonly ComboBox readingMode=new(){Name="ReadingMode",ItemsSource=new[]{"Live","Session Max"},SelectedIndex=0,MinWidth=160};
     MonitorSnapshot? latestSnapshot;
@@ -44,6 +46,8 @@ public sealed class MonitorWindow : Window {
         body.Children.Add(new TextBlock{Text="Preview · FPS and Desktop overlay are not connected yet. Hardware support depends on the platform and device.",TextWrapping=TextWrapping.Wrap,Opacity=.75});
         var network=new StackPanel{Spacing=12,Margin=new Thickness(20)};
         network.Children.Add(new TextBlock{Text="Network interface",FontSize=21,FontWeight=FontWeight.SemiBold});network.Children.Add(interfaces);
+        network.Children.Add(refreshInterfaces);network.Children.Add(networkStatus);
+        refreshInterfaces.Click+=async (_,_)=>await RefreshInterfacesAsync();
         network.Children.Add(new TextBlock{Text="Download and upload show the selected interface. A missing saved interface stays unselected until you choose another.",TextWrapping=TextWrapping.Wrap});
         var appearance=new StackPanel{Spacing=12,Margin=new Thickness(20)};
         appearance.Children.Add(new TextBlock{Text="Appearance",FontSize=21,FontWeight=FontWeight.SemiBold});
@@ -101,14 +105,33 @@ public sealed class MonitorWindow : Window {
         sensors.Present(max?snapshot.PeakSensors:snapshot.Sensors,snapshot.SensorsSupported);
         status.Text=max?(source.IsDemo?"Demo · ":"")+"Session Max · Memory and quota remain current":source.IsDemo?"Demo · Sample values":snapshot.CpuReady&&snapshot.MemoryReady?"Live · Refreshes every second":"Waiting for available readings…";
     }
-    async Task SampleAsync() {
+    public void PresentInterfaces(string[] names) {
+        // Preserve both the active choice and a temporarily absent saved device.
+        string? preferred=interfaces.SelectedItem as string??settings.Network;
+        loadingNetwork=true;
+        try {
+            interfaces.ItemsSource=names;
+            interfaces.SelectedItem=preferred==null?names.FirstOrDefault():names.FirstOrDefault(name=>name==preferred);
+            if(preferred!=null&&settings.Network==null)settings.Network=preferred;
+        } finally {loadingNetwork=false;}
+        networkStatus.Text=names.Length==0?"No network interfaces available. Connect a device and refresh.":
+            preferred!=null&&interfaces.SelectedItem==null?"Saved interface unavailable. Reconnect and refresh, or choose another interface.":"Interface list refreshed.";
+    }
+    async Task RefreshInterfacesAsync() {
+        if(!refreshInterfaces.IsEnabled||stop.IsCancellationRequested)return;
+        refreshInterfaces.IsEnabled=false;interfaces.IsEnabled=false;
+        networkStatus.Text="Refreshing interfaces…";
         try {
             var names=await Task.Run(source.Interfaces,stop.Token);
+            if(!stop.IsCancellationRequested)PresentInterfaces(names);
+        } catch(OperationCanceledException) when(stop.IsCancellationRequested){}
+        catch(Exception) {if(!stop.IsCancellationRequested)networkStatus.Text="Could not refresh interfaces. Try again.";}
+        finally {refreshInterfaces.IsEnabled=true;interfaces.IsEnabled=true;}
+    }
+    async Task SampleAsync() {
+        try {
+            await RefreshInterfacesAsync();
             if(stop.IsCancellationRequested)return;
-            loadingNetwork=true;interfaces.ItemsSource=names;
-            if(settings.Network!=null)interfaces.SelectedItem=names.FirstOrDefault(name=>name==settings.Network);
-            else if(names.Length>0)interfaces.SelectedIndex=0;
-            loadingNetwork=false;
             int samples=0;
             var measurement=measure?new AppMeasurement(source.IsDemo):null;
             using var timer=new PeriodicTimer(TimeSpan.FromSeconds(1));
