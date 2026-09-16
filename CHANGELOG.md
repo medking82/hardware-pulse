@@ -4,6 +4,10 @@
 
 Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
+## Unreleased
+
+- Shared Desktop supports Auto (System), English and Simplified Chinese UI, including Monitor, Settings, sensor status, Codex quota and tray actions. Language switches immediately without restarting sampling or refreshing credentials and is saved in the isolated preview profile.
+
 ## 0.6.25 — 2026-09-16
 
 - Desktop icons now keep the selected App palette when Always on top or Local Contrast is enabled. Local Contrast adds a fine opposite-color outline instead of replacing palette colors with near-black or near-white.

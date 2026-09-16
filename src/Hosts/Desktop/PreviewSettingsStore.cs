@@ -5,6 +5,7 @@ namespace HardwarePulse.Desktop;
 public sealed class PreviewSettings {
     public double Width=800,Height=560;
     public string Theme="System";
+    public string Language="auto";
     public string? Network;
     public bool Codex;
 }
@@ -39,6 +40,7 @@ public sealed class PreviewSettingsStore {
             string theme=values.Text("theme","System");settings.Theme=theme is "Light" or "Dark"?theme:"System";
             string network=values.Text("network");settings.Network=network.Length>0&&network.Length<=256&&!network.Any(char.IsControl)?network:null;
             settings.Codex=values.Flag("codex");
+            string language=values.Text("language","auto");settings.Language=language is "en" or "zh-CN"?language:"auto";
         }catch(Exception e) when(e is IOException or InvalidDataException or UnauthorizedAccessException or JsonException or InvalidOperationException) {
             blocked=true;Error="Settings unavailable. Changes apply to this session; the original file is preserved.";
             return new PreviewSettings();
@@ -53,7 +55,8 @@ public sealed class PreviewSettingsStore {
             var updated=new Dictionary<string,JsonElement>(fields){
                 ["schema"]=JsonSerializer.SerializeToElement(1),["width"]=JsonSerializer.SerializeToElement(settings.Width),
                 ["height"]=JsonSerializer.SerializeToElement(settings.Height),["theme"]=JsonSerializer.SerializeToElement(settings.Theme),
-                ["network"]=JsonSerializer.SerializeToElement(settings.Network),["codex"]=JsonSerializer.SerializeToElement(settings.Codex)};
+                ["network"]=JsonSerializer.SerializeToElement(settings.Network),["codex"]=JsonSerializer.SerializeToElement(settings.Codex),
+                ["language"]=JsonSerializer.SerializeToElement(settings.Language)};
             var bytes=JsonSerializer.SerializeToUtf8Bytes(updated);
             if(bytes.Length>65536)throw new InvalidDataException();
             temp=Path.Combine(directory,".settings-"+Guid.NewGuid().ToString("N")+".tmp");

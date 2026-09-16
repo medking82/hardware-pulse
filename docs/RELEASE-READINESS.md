@@ -75,3 +75,12 @@ cover success/failure/recovery, mode switching during failure, repeated failures
 and strict smoke/measurement failure (exit code 3, no automatic retry).
 `IMonitorSource` is the host's synchronous reader boundary; it owns no scheduling
 and leaves platform adapter selection in `MonitorSource`.
+Sampling recovery commit `87cca3956bf8a6fc781b286ccab380d5ce19d2d0` passed all
+six native package jobs in [run 35049906632](https://github.com/medking82/hardware-pulse/actions/runs/35049906632).
+
+Shared UI localization now supports Auto (System), English and Simplified Chinese
+with immediate Monitor/Settings/sensor/quota/tray updates and isolated preference
+persistence. Headless interactions cover system fallback, language round trips,
+unchanged running sampling task and cached quota reuse. Windows renders at 360 px
+were inspected for Monitor, Appearance and quota. Traditional Chinese and native
+cross-platform font/interaction validation are not established by these renders.

@@ -69,6 +69,12 @@ are not in the published `0.7.0-preview.1` archive.
 Development Network settings also provide **Refresh interfaces** for newly
 connected devices. A missing saved interface stays unselected; reconnecting it
 and refreshing restores the selection without switching silently to another.
+Development Settings → Appearance → Language now offers Auto (System), English
+and Simplified Chinese. Monitor, Settings, sensor status, Codex quota and tray
+labels update in place, without restarting sampling or refreshing credentials.
+The language choice is saved in the separate preview profile. Unknown system
+languages fall back to English; device names and readings are never translated.
+Traditional Chinese and other UI languages remain future work.
 It does not infer hardware support from a successful UI launch. The existing
 stable Windows App remains the feature-complete choice for its supported hardware.
 

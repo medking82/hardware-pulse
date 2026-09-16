@@ -1,0 +1,75 @@
+Pulse · Desktop preview|Pulse · 桌面预览版
+Starting…|正在启动…
+Select network interface|选择网卡
+Refresh interfaces|刷新网卡列表
+Pause hardware monitoring|暂停硬件监控
+Live|实时
+Session Max|本次峰值
+Memory|内存
+System load|系统使用率
+Used memory estimate|已用内存估计
+Host memory|系统内存
+Download|下载
+Upload|上传
+Selected interface|所选网卡
+Preview · FPS and Desktop overlay are not connected yet. Hardware support depends on the platform and device.|预览版尚未接入 FPS 与桌面悬浮层；硬件支持取决于平台和设备。
+Network interface|网卡
+Download and upload show the selected interface. A missing saved interface stays unselected until you choose another.|下载与上传显示所选网卡的数据。已保存的网卡缺席时不会自动切换到其他网卡。
+Appearance|外观
+Theme|主题
+System|跟随系统
+Light|浅色
+Dark|深色
+System follows your desktop theme. Window size is remembered automatically.|跟随系统桌面主题，窗口大小自动保存。
+Network|网络
+Monitor|监控
+Settings|设置
+Language|语言
+Auto (System)|自动（跟随系统）
+Session only · Changes will not be saved.|仅本次会话有效，修改不会保存。
+Changes save automatically.|修改自动保存。
+Changes saved.|修改已保存。
+Settings unavailable. Changes apply to this session; the original file is preserved.|无法读取设置。修改仅本次会话有效，原文件保持不变。
+Could not save settings. Changes apply to this session.|无法保存设置，修改仅本次会话有效。
+Monitoring unavailable. Retrying…|暂时无法读取，正在重试…
+Demo · Session Max · Memory and quota remain current|演示 · 本次峰值 · 内存和额度仍显示当前值
+Session Max · Memory and quota remain current|本次峰值 · 内存和额度仍显示当前值
+Demo · Sample values|演示 · 示例数据
+Live · Refreshes every second|实时 · 每秒刷新
+Waiting for available readings…|等待可用读数…
+No network interfaces available. Connect a device and refresh.|没有可用网卡。连接设备后请刷新。
+Saved interface unavailable. Reconnect and refresh, or choose another interface.|已保存的网卡不可用。重新连接后刷新，或选择其他网卡。
+Interface list refreshed.|网卡列表已刷新。
+Refreshing interfaces…|正在刷新网卡…
+Could not refresh interfaces. Try again.|无法刷新网卡，请重试。
+Paused|已暂停
+Monitoring unavailable. Close and reopen to retry.|监控不可用，请关闭并重新打开应用。
+Temperature & fans|温度与风扇
+Not available on this platform yet.|此平台暂不支持。
+No temperature or fan sensors exposed by this device.|此设备未提供温度或风扇传感器。
+Device labels · Unavailable readings show —|设备原始标签 · 不可用读数显示 —
+Show Codex quota|显示 Codex 额度
+Refresh|刷新
+Off|已关闭
+Off · Enable in Settings → Codex|已关闭 · 可在设置 → Codex 中开启
+Demo · Sample quota only. No account is accessed.|仅展示额度示例，不访问账号。
+Uses your existing Codex file login. Refreshes every five minutes while enabled. This choice is remembered. Login and token refresh stay in Codex.|读取已有的 Codex 文件登录。开启后每五分钟刷新，并保存此选择。登录及令牌刷新仍由 Codex 处理。
+Demo|演示
+Updated {0}|更新于 {0}
+Sign in through Codex, then refresh here. This preview requires file-based login.|请先在 Codex 登录，再在此刷新。本预览版需要文件登录。
+{0}% left|剩余 {0}%
+Resets {0}|重置于 {0}
+Reset time unavailable|重置时间不可用
+5-hour|5 小时
+Weekly|每周
+Login required|需要登录
+Unavailable|不可用
+Refreshing|正在刷新
+Refresh pending|等待刷新
+Quota unavailable|额度不可用
+Login unavailable|登录信息不可用
+Refresh rate limited|刷新频率受限
+Loading|正在加载
+Error|错误
+Open Pulse|打开 Pulse
+Quit Pulse|退出 Pulse

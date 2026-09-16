@@ -24,7 +24,8 @@ public sealed class MonitorWindow : Window {
     MonitorSnapshot? latestSnapshot;
     bool samplingFailed;
     readonly CodexQuotaPanel quota;
-    readonly HardwareSensorPanel sensors=new();
+    readonly HardwareSensorPanel sensors;
+    public UiLanguage Language {get;}
     readonly PreviewSettingsStore? store;
     readonly PreviewSettings settings;
     readonly DispatcherTimer saveTimer=new(){Interval=TimeSpan.FromMilliseconds(500)};
@@ -34,35 +35,44 @@ public sealed class MonitorWindow : Window {
     public MonitorWindow(IMonitorSource source,bool smoke=false,bool start=true,PreviewSettingsStore? store=null,bool measure=false) {
         this.source=source;this.smoke=smoke;this.measure=measure;
         this.store=store;settings=store?.Load()??new PreviewSettings();
+        Language=new UiLanguage(settings.Language);sensors=new HardwareSensorPanel(Language);
         Title="Pulse · Desktop preview";Width=settings.Width;Height=settings.Height;MinWidth=360;MinHeight=400;
         FontSize=15;
-        var heading=new TextBlock{Text="Pulse",FontSize=32,FontWeight=FontWeight.SemiBold};
+        var heading=Language.Set(new TextBlock{FontSize=32,FontWeight=FontWeight.SemiBold},"Pulse");
         panels=[Card("CPU",cpu,"System load","cpu"),Card("Memory",ram,OperatingSystem.IsMacOS()?"Used memory estimate":"Host memory","memory"),Card("Download",down,"Selected interface","down"),Card("Upload",up,"Selected interface","up")];
         foreach(var panel in panels)cards.Children.Add(panel);
         var body=new StackPanel{Spacing=16,Margin=new Thickness(24)};
         body.Children.Add(readingMode);body.Children.Add(status);body.Children.Add(cards);body.Children.Add(pause);
         readingMode.SelectionChanged+=(_,_)=>{if(latestSnapshot!=null)Render(latestSnapshot);};
         body.Children.Add(sensors);
-        quota=new CodexQuotaPanel(source.IsDemo,inlineSettings:false);body.Children.Add(quota);
-        body.Children.Add(new TextBlock{Text="Preview · FPS and Desktop overlay are not connected yet. Hardware support depends on the platform and device.",TextWrapping=TextWrapping.Wrap,Opacity=.75});
+        quota=new CodexQuotaPanel(source.IsDemo,inlineSettings:false,language:Language);body.Children.Add(quota);
+        body.Children.Add(Language.Set(new TextBlock{TextWrapping=TextWrapping.Wrap,Opacity=.75},"Preview · FPS and Desktop overlay are not connected yet. Hardware support depends on the platform and device."));
         var network=new StackPanel{Spacing=12,Margin=new Thickness(20)};
-        network.Children.Add(new TextBlock{Text="Network interface",FontSize=21,FontWeight=FontWeight.SemiBold});network.Children.Add(interfaces);
+        network.Children.Add(Language.Set(new TextBlock{FontSize=21,FontWeight=FontWeight.SemiBold},"Network interface"));network.Children.Add(interfaces);
         network.Children.Add(refreshInterfaces);network.Children.Add(networkStatus);
         refreshInterfaces.Click+=async (_,_)=>await RefreshInterfacesAsync();
-        network.Children.Add(new TextBlock{Text="Download and upload show the selected interface. A missing saved interface stays unselected until you choose another.",TextWrapping=TextWrapping.Wrap});
+        network.Children.Add(Language.Set(new TextBlock{TextWrapping=TextWrapping.Wrap},"Download and upload show the selected interface. A missing saved interface stays unselected until you choose another."));
         var appearance=new StackPanel{Spacing=12,Margin=new Thickness(20)};
-        appearance.Children.Add(new TextBlock{Text="Appearance",FontSize=21,FontWeight=FontWeight.SemiBold});
+        appearance.Children.Add(Language.Set(new TextBlock{FontSize=21,FontWeight=FontWeight.SemiBold},"Appearance"));
         var theme=new ComboBox{Name="PreviewTheme",ItemsSource=new[]{"System","Light","Dark"},SelectedItem=settings.Theme,HorizontalAlignment=HorizontalAlignment.Stretch};
-        appearance.Children.Add(new TextBlock{Text="Theme"});appearance.Children.Add(theme);
-        appearance.Children.Add(new TextBlock{Text="System follows your desktop theme. Window size is remembered automatically.",TextWrapping=TextWrapping.Wrap});
+        appearance.Children.Add(Language.Set(new TextBlock{},"Theme"));appearance.Children.Add(theme);
+        appearance.Children.Add(Language.Set(new TextBlock{TextWrapping=TextWrapping.Wrap},"System follows your desktop theme. Window size is remembered automatically."));
+        appearance.Children.Add(Language.Set(new TextBlock(),"Language"));
+        var languageChoice=new ComboBox{Name="PreviewLanguage",ItemsSource=new[]{"Auto (System)","English","简体中文"},SelectedIndex=settings.Language=="en"?1:settings.Language=="zh-CN"?2:0,HorizontalAlignment=HorizontalAlignment.Stretch,ItemTemplate=Language.Choices()};
+        appearance.Children.Add(languageChoice);
+        languageChoice.SelectionChanged+=(_,_)=>{settings.Language=languageChoice.SelectedIndex==1?"en":languageChoice.SelectedIndex==2?"zh-CN":"auto";Language.Select(settings.Language);SaveLater();};
         var settingsTabs=new TabControl{Name="SettingsTabs",ItemsSource=new[]{
-            new TabItem{Header="Network",Content=network},new TabItem{Header="Appearance",Content=appearance},
+            Language.Set(new TabItem{Content=network},"Network"),Language.Set(new TabItem{Content=appearance},"Appearance"),
             new TabItem{Header="Codex",Content=new Border{Padding=new Thickness(20),Child=quota.SettingsContent}}}};
         var settingsBody=new StackPanel{Spacing=12,Margin=new Thickness(12)};
         settingsBody.Children.Add(settingsTabs);settingsBody.Children.Add(saveStatus);
-        var tabs=new TabControl{Name="MainTabs",ItemsSource=new[]{new TabItem{Header="Monitor",Content=Scroll(body)},new TabItem{Header="Settings",Content=Scroll(settingsBody)}}};
+        var tabs=new TabControl{Name="MainTabs",ItemsSource=new[]{Language.Set(new TabItem{Content=Scroll(body)},"Monitor"),Language.Set(new TabItem{Content=Scroll(settingsBody)},"Settings")}};
         var root=new DockPanel();DockPanel.SetDock(heading,Dock.Top);heading.Margin=new Thickness(24,20,24,12);root.Children.Add(heading);root.Children.Add(tabs);Content=root;
-        saveStatus.Text=store?.Error??(store==null?"Session only · Changes will not be saved.":"Changes save automatically.");
+        Language.Set(this,"Pulse · Desktop preview");Language.Set(status,"Starting…");Language.Set(pause,"Pause hardware monitoring");Language.Set(refreshInterfaces,"Refresh interfaces");
+        theme.ItemTemplate=Language.Choices();readingMode.ItemTemplate=Language.Choices();
+        void Placeholder()=>interfaces.PlaceholderText=Language.T("Select network interface");
+        Language.Changed+=Placeholder;Placeholder();
+        Language.Set(saveStatus,store?.Error??(store==null?"Session only · Changes will not be saved.":"Changes save automatically."));
         theme.SelectionChanged+=(_,_)=>{settings.Theme=theme.SelectedItem as string??"System";ApplyTheme();SaveLater();};ApplyTheme();
         interfaces.SelectionChanged+=(_,_)=>{if(!loadingNetwork){settings.Network=interfaces.SelectedItem as string;SaveLater();}};
         quota.EnabledChanged+=on=>{settings.Codex=on;SaveLater();};
@@ -79,15 +89,15 @@ public sealed class MonitorWindow : Window {
     static ScrollViewer Scroll(Control content)=>new(){Content=content,HorizontalScrollBarVisibility=Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled};
     void ApplyTheme()=>RequestedThemeVariant=settings.Theme=="Dark"?ThemeVariant.Dark:settings.Theme=="Light"?ThemeVariant.Light:ThemeVariant.Default;
     void SaveLater(){if(store==null)return;saveTimer.Stop();saveTimer.Start();}
-    void SaveNow(){saveTimer.Stop();if(store!=null)saveStatus.Text=store.Save(settings)?"Changes saved.":store.Error;}
+    void SaveNow(){saveTimer.Stop();if(store!=null)Language.Set(saveStatus,store.Save(settings)?"Changes saved.":store.Error);}
     static TextBlock Value()=>new(){Text="—",FontSize=23,FontWeight=FontWeight.SemiBold,TextWrapping=TextWrapping.Wrap};
-    static Border Card(string title,TextBlock value,string detail,string icon) {
+    Border Card(string title,TextBlock value,string detail,string icon) {
         var stack=new StackPanel{Spacing=10};
         var header=new StackPanel{Orientation=Orientation.Horizontal,Spacing=10};
         header.Children.Add(AppIcon.Create(icon));
-        header.Children.Add(new TextBlock{Text=title,FontWeight=FontWeight.SemiBold,VerticalAlignment=VerticalAlignment.Center});
+        header.Children.Add(Language.Set(new TextBlock{FontWeight=FontWeight.SemiBold,VerticalAlignment=VerticalAlignment.Center},title));
         stack.Children.Add(header);stack.Children.Add(value);
-        stack.Children.Add(new TextBlock{Text=detail,Opacity=.75,TextWrapping=TextWrapping.Wrap});
+        stack.Children.Add(Language.Set(new TextBlock{Opacity=.75,TextWrapping=TextWrapping.Wrap},detail));
         return new Border{Child=stack,Padding=new Thickness(20),Margin=new Thickness(0,0,12,12),CornerRadius=new CornerRadius(14),BorderThickness=new Thickness(1),BorderBrush=Brushes.Gray};
     }
     void LayoutCards() {
@@ -104,7 +114,7 @@ public sealed class MonitorWindow : Window {
         cpu.Text=max?snapshot.PeakCpu:snapshot.Cpu;ram.Text=snapshot.Memory;
         down.Text=max?snapshot.PeakDownload:snapshot.Download;up.Text=max?snapshot.PeakUpload:snapshot.Upload;
         sensors.Present(max?snapshot.PeakSensors:snapshot.Sensors,snapshot.SensorsSupported);
-        status.Text=samplingFailed?"Monitoring unavailable. Retrying…":max?(source.IsDemo?"Demo · ":"")+"Session Max · Memory and quota remain current":source.IsDemo?"Demo · Sample values":snapshot.CpuReady&&snapshot.MemoryReady?"Live · Refreshes every second":"Waiting for available readings…";
+        Language.Set(status,samplingFailed?"Monitoring unavailable. Retrying…":max?(source.IsDemo?"Demo · ":"")+"Session Max · Memory and quota remain current":source.IsDemo?"Demo · Sample values":snapshot.CpuReady&&snapshot.MemoryReady?"Live · Refreshes every second":"Waiting for available readings…");
     }
     public void PresentInterfaces(string[] names) {
         // Preserve both the active choice and a temporarily absent saved device.
@@ -115,18 +125,18 @@ public sealed class MonitorWindow : Window {
             interfaces.SelectedItem=preferred==null?names.FirstOrDefault():names.FirstOrDefault(name=>name==preferred);
             if(preferred!=null&&settings.Network==null)settings.Network=preferred;
         } finally {loadingNetwork=false;}
-        networkStatus.Text=names.Length==0?"No network interfaces available. Connect a device and refresh.":
-            preferred!=null&&interfaces.SelectedItem==null?"Saved interface unavailable. Reconnect and refresh, or choose another interface.":"Interface list refreshed.";
+        Language.Set(networkStatus,names.Length==0?"No network interfaces available. Connect a device and refresh.":
+            preferred!=null&&interfaces.SelectedItem==null?"Saved interface unavailable. Reconnect and refresh, or choose another interface.":"Interface list refreshed.");
     }
     async Task RefreshInterfacesAsync() {
         if(!refreshInterfaces.IsEnabled||stop.IsCancellationRequested)return;
         refreshInterfaces.IsEnabled=false;interfaces.IsEnabled=false;
-        networkStatus.Text="Refreshing interfaces…";
+        Language.Set(networkStatus,"Refreshing interfaces…");
         try {
             var names=await Task.Run(source.Interfaces,stop.Token);
             if(!stop.IsCancellationRequested)PresentInterfaces(names);
         } catch(OperationCanceledException) when(stop.IsCancellationRequested){}
-        catch(Exception) {if(!stop.IsCancellationRequested)networkStatus.Text="Could not refresh interfaces. Try again.";}
+        catch(Exception) {if(!stop.IsCancellationRequested)Language.Set(networkStatus,"Could not refresh interfaces. Try again.");}
         finally {refreshInterfaces.IsEnabled=true;interfaces.IsEnabled=true;}
     }
     async Task SampleAsync() {
@@ -137,7 +147,7 @@ public sealed class MonitorWindow : Window {
             var measurement=measure?new AppMeasurement(source.IsDemo):null;
             using var timer=new PeriodicTimer(TimeSpan.FromSeconds(1));
             do {
-                if(pause.IsChecked==true){status.Text="Paused";continue;}
+                if(pause.IsChecked==true){Language.Set(status,"Paused");continue;}
                 string? name=interfaces.SelectedItem as string;
                 MonitorSnapshot snapshot;
                 try {snapshot=await Task.Run(()=>source.Poll(name),stop.Token);}
@@ -162,6 +172,6 @@ public sealed class MonitorWindow : Window {
                 }
             } while(await timer.WaitForNextTickAsync(stop.Token));
         } catch(OperationCanceledException) when(stop.IsCancellationRequested){}
-        catch(Exception) {if(!stop.IsCancellationRequested)status.Text="Monitoring unavailable. Close and reopen to retry.";if(smoke||measure){Environment.ExitCode=3;Console.WriteLine("FAIL native Desktop monitoring");Close();}}
+        catch(Exception) {if(!stop.IsCancellationRequested)Language.Set(status,"Monitoring unavailable. Close and reopen to retry.");if(smoke||measure){Environment.ExitCode=3;Console.WriteLine("FAIL native Desktop monitoring");Close();}}
     }
 }
