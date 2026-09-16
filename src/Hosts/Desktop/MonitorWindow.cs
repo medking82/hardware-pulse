@@ -101,7 +101,27 @@ public sealed class MonitorWindow : Window {
         blur.IsCheckedChanged+=(_,_)=>{settings.FloatingBackgroundBlur=blur.IsChecked==true;FloatingMonitor?.SetBackgroundBlur(settings.FloatingBackgroundBlur);UpdateMaterialStatus();SaveLater();};
         desktop.Children.Add(blur);desktop.Children.Add(materialStatus);UpdateMaterialStatus();
         desktop.Children.Add(Language.Set(new TextBlock{TextWrapping=TextWrapping.Wrap},"Blur strength is controlled by the system. Lower background opacity to reveal the effect."));
-        desktop.Children.Add(Language.Set(new TextBlock{TextWrapping=TextWrapping.Wrap},"Only the background changes. Text stays opaque. Unsupported transparency uses a solid background."));
+        desktop.Children.Add(Language.Set(new TextBlock{TextWrapping=TextWrapping.Wrap},"Background and text opacity are independent. Unsupported transparency uses a solid background."));
+        void AppearanceChanged(){FloatingMonitor?.ApplyTextAppearance();SaveLater();}
+        void AppearanceSlider(string key,string name,double value,double maximum,Action<double> assign) {
+            var label=Language.Set(new TextBlock(),key);desktop.Children.Add(label);
+            var readout=new TextBlock{Text=value.ToString("F0")};desktop.Children.Add(readout);
+            var slider=new Slider{Name=name,Minimum=0,Maximum=maximum,TickFrequency=1,IsSnapToTickEnabled=true,Value=value};
+            Avalonia.Automation.AutomationProperties.SetName(slider,Language.T(key));
+            Language.Changed+=()=>Avalonia.Automation.AutomationProperties.SetName(slider,Language.T(key));
+            slider.ValueChanged+=(_,_)=>{assign(slider.Value);readout.Text=slider.Value.ToString("F0");AppearanceChanged();};desktop.Children.Add(slider);
+        }
+        AppearanceSlider("Text opacity (%)","FloatingTextOpacity",settings.FloatingTextOpacity,100,value=>settings.FloatingTextOpacity=value);
+        AppearanceSlider("Row spacing (px)","FloatingRowSpacing",settings.FloatingRowSpacing,24,value=>settings.FloatingRowSpacing=value);
+        desktop.Children.Add(Language.Set(new TextBlock(),"Text color (#RRGGBB, blank follows theme)"));
+        var color=new TextBox{Name="FloatingTextColor",Text=settings.FloatingTextColor,MaxLength=7};
+        var colorError=Language.Set(new TextBlock{IsVisible=false,TextWrapping=TextWrapping.Wrap},"Enter a six-digit hex color, such as #FFFFFF.");
+        Avalonia.Automation.AutomationProperties.SetName(color,Language.T("Text color (#RRGGBB, blank follows theme)"));
+        Language.Changed+=()=>Avalonia.Automation.AutomationProperties.SetName(color,Language.T("Text color (#RRGGBB, blank follows theme)"));
+        color.TextChanged+=(_,_)=>{string value=color.Text??"";bool valid=PreviewSettings.IsTextColor(value);colorError.IsVisible=!valid;if(valid){settings.FloatingTextColor=value;AppearanceChanged();}};
+        desktop.Children.Add(color);desktop.Children.Add(colorError);
+        var follow=Language.Set(new CheckBox{Name="FloatingIconsFollowApp",IsChecked=settings.FloatingIconsFollowApp},"Icons follow App colors");
+        follow.IsCheckedChanged+=(_,_)=>{settings.FloatingIconsFollowApp=follow.IsChecked==true;AppearanceChanged();};desktop.Children.Add(follow);
         var quotaSettings=new StackPanel{Spacing=24};quotaSettings.Children.Add(quota.SettingsContent);quotaSettings.Children.Add(claudeQuota.SettingsContent);
         var settingsTabs=new TabControl{Name="SettingsTabs",ItemsSource=new[]{
             Language.Set(new TabItem{Content=network},"Network"),Language.Set(new TabItem{Content=appearance},"Appearance"),

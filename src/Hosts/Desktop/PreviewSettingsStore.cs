@@ -14,6 +14,10 @@ public sealed class PreviewSettings {
     public double FloatingBackgroundOpacity=100;
     public double FloatingFontSize=15;
     public bool FloatingBackgroundBlur;
+    public double FloatingTextOpacity=100,FloatingRowSpacing=8;
+    public string FloatingTextColor="";
+    public bool FloatingIconsFollowApp=true;
+    public static bool IsTextColor(string value)=>value.Length==0||(value.Length==7&&value[0]=='#'&&value.Skip(1).All(Uri.IsHexDigit));
 }
 
 // Host-specific persistence. No credentials or installed WPF settings are stored here.
@@ -49,6 +53,10 @@ public sealed class PreviewSettingsStore {
             settings.FloatingBackgroundOpacity=values.Number("floatingBackgroundOpacity",100,0,100);
             settings.FloatingFontSize=values.Number("floatingFontSize",15,10,32);
             settings.FloatingBackgroundBlur=values.Flag("floatingBackgroundBlur");
+            settings.FloatingTextOpacity=values.Number("floatingTextOpacity",100,0,100);
+            settings.FloatingRowSpacing=values.Number("floatingRowSpacing",8,0,24);
+            string textColor=values.Text("floatingTextColor");settings.FloatingTextColor=PreviewSettings.IsTextColor(textColor)?textColor:"";
+            settings.FloatingIconsFollowApp=values.Flag("floatingIconsFollowApp",true);
             string theme=values.Text("theme","System");settings.Theme=theme is "Light" or "Dark"?theme:"System";
             string network=values.Text("network");settings.Network=network.Length>0&&network.Length<=256&&!network.Any(char.IsControl)?network:null;
             settings.Codex=values.Flag("codex");
@@ -76,6 +84,10 @@ public sealed class PreviewSettingsStore {
                 ["floatingBackgroundOpacity"]=JsonSerializer.SerializeToElement(settings.FloatingBackgroundOpacity),
                 ["floatingFontSize"]=JsonSerializer.SerializeToElement(settings.FloatingFontSize),
                 ["floatingBackgroundBlur"]=JsonSerializer.SerializeToElement(settings.FloatingBackgroundBlur),
+                ["floatingTextOpacity"]=JsonSerializer.SerializeToElement(settings.FloatingTextOpacity),
+                ["floatingRowSpacing"]=JsonSerializer.SerializeToElement(settings.FloatingRowSpacing),
+                ["floatingTextColor"]=JsonSerializer.SerializeToElement(settings.FloatingTextColor),
+                ["floatingIconsFollowApp"]=JsonSerializer.SerializeToElement(settings.FloatingIconsFollowApp),
                 ["language"]=JsonSerializer.SerializeToElement(settings.Language)};
             var bytes=JsonSerializer.SerializeToUtf8Bytes(updated);
             if(bytes.Length>65536)throw new InvalidDataException();

@@ -100,3 +100,9 @@ Show Claude quota|顯示 Claude 額度
 Off · Enable in Settings → AI Quota|已關閉 · 在設定 → AI 額度中啟用
 Sign in through Claude Code, then refresh here.|請先在 Claude Code 中登入，然後在此重新整理。
 Uses your existing Claude Code login, including macOS Keychain. Refreshes every five minutes while enabled. Pulse never signs in or refreshes tokens.|使用現有的 Claude Code 登入，包括 macOS 鑰匙圈。啟用後每五分鐘重新整理一次。Pulse 不會登入或更新權杖。
+Background and text opacity are independent. Unsupported transparency uses a solid background.|背景與文字不透明度獨立設定。不支援透明效果時使用純色背景。
+Text opacity (%)|文字不透明度 (%)
+Row spacing (px)|行間距 (px)
+Text color (#RRGGBB, blank follows theme)|文字顏色（#RRGGBB，留空跟隨主題）
+Enter a six-digit hex color, such as #FFFFFF.|請輸入六位十六進位顏色，例如 #FFFFFF。
+Icons follow App colors|圖示跟隨 App 顏色

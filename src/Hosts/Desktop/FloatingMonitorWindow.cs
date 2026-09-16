@@ -9,6 +9,7 @@ namespace HardwarePulse.Desktop;
 // Presentation only. The owning Monitor supplies snapshots and controls lifetime.
 public sealed class FloatingMonitorWindow : Window {
     readonly UiLanguage language;
+    readonly PreviewSettings appearance;
     readonly StackPanel rows=new(){Spacing=8,Margin=new Thickness(16)};
     readonly TextBlock cpu=new(),memory=new(),download=new(),upload=new();
     readonly StackPanel sensors=new(){Spacing=8};
@@ -32,10 +33,11 @@ public sealed class FloatingMonitorWindow : Window {
     public FloatingMonitorWindow(UiLanguage language,PreviewSettings? saved=null,Action? changed=null) {
         this.language=language;
         saved??=new PreviewSettings();
+        appearance=saved;
         Width=saved.FloatingWidth;Height=saved.FloatingHeight;MinWidth=360;MinHeight=240;FontSize=saved.FloatingFontSize;
         Topmost=saved.FloatingTopmost;
         SetBackgroundBlur(saved.FloatingBackgroundBlur);
-        PropertyChanged+=(_,e)=>{if(e.Property==ActualTransparencyLevelProperty||e.Property==ActualThemeVariantProperty)ApplyBackground();};
+        PropertyChanged+=(_,e)=>{if(e.Property==ActualTransparencyLevelProperty||e.Property==ActualThemeVariantProperty){ApplyBackground();ApplyTextAppearance();}};
         SetBackgroundOpacity(saved.FloatingBackgroundOpacity);
         bool restored=false;
         void Remember(){
@@ -85,6 +87,7 @@ public sealed class FloatingMonitorWindow : Window {
         rows.Children.Add(sensors);
         rows.Children.Add(gpus);
         rows.Children.Add(quotaRows);
+        ApplyTextAppearance();
         Content=new ScrollViewer{Content=rows,HorizontalScrollBarVisibility=Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled};
         language.Changed+=Localize;Localize();
         Closed+=(_,_)=>{language.Changed-=Localize;input=null;inputLifetime?.Dispose();inputLifetime=null;};
@@ -121,12 +124,27 @@ public sealed class FloatingMonitorWindow : Window {
             language.Set(lockStatus,"Could not change window lock. Reopen the floating monitor and try again.");return false;
         }
     }
-    static Grid Row(string label,TextBlock value,string? icon=null) {
+    public void ApplyTextAppearance() {
+        rows.Spacing=sensors.Spacing=gpus.Spacing=quotaRows.Spacing=appearance.FloatingRowSpacing;
+        foreach(var row in rows.Children.Skip(1))StyleReading(row);
+    }
+    void StyleReading(Control control) {
+        Color color=appearance.FloatingTextColor.Length>0?Color.Parse(appearance.FloatingTextColor):
+            ActualThemeVariant==ThemeVariant.Dark?Color.Parse("#F4F6F8"):Color.Parse("#202830");
+        var brush=new SolidColorBrush(Color.FromArgb((byte)Math.Round(appearance.FloatingTextOpacity*2.55),color.R,color.G,color.B));
+        if(control is TextBlock text)text.Foreground=brush;
+        if(control is Avalonia.Controls.Shapes.Path icon) {
+            var iconBrush=appearance.FloatingIconsFollowApp?AppIcon.Brush((string)icon.Tag!):brush;
+            if(icon.Stroke!=null)icon.Stroke=iconBrush;else icon.Fill=iconBrush;
+        }
+        if(control is Panel panel)foreach(var child in panel.Children)StyleReading(child);
+    }
+    Grid Row(string label,TextBlock value,string? icon=null) {
         var grid=new Grid{ColumnDefinitions=new("*,2*"),ColumnSpacing=12};
         grid.Children.Add(new TextBlock{Text=label,TextWrapping=TextWrapping.Wrap,VerticalAlignment=VerticalAlignment.Center,Margin=new Thickness(icon==null?0:32,0,0,0)});
         value.Text="—";value.TextWrapping=TextWrapping.Wrap;value.TextAlignment=TextAlignment.Right;value.VerticalAlignment=VerticalAlignment.Center;Grid.SetColumn(value,1);grid.Children.Add(value);
         if(icon!=null){var artwork=AppIcon.Create(icon);artwork.HorizontalAlignment=HorizontalAlignment.Left;artwork.VerticalAlignment=VerticalAlignment.Center;artwork.IsHitTestVisible=false;grid.Children.Add(artwork);}
-        return grid;
+        StyleReading(grid);return grid;
     }
     void Localize() {
         string[] keys=["CPU","Memory","Download","Upload"];
@@ -153,6 +171,7 @@ public sealed class FloatingMonitorWindow : Window {
             quotaRows.Children.Add(row);
         }
         }
+        foreach(var row in quotaRows.Children)StyleReading(row);
     }
     public void Present(MonitorSnapshot snapshot,bool peaks=false) {
         lastSnapshot=snapshot;lastPeaks=peaks;

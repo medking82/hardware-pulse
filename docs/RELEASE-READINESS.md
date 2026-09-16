@@ -6,6 +6,24 @@ v0.6.27 is now published and its downloaded installer SHA-256 verified;
 v0.7.0-preview.3 is published and remains experimental;
 five native package jobs passed in run 35085997550. All ten release assets were verified against local SHA-256 and size. Windows ARM64 remains excluded.
 
+## Shared host changes after preview.3
+
+Commit `7e96ee1` adds independent Claude quota opt-in, existing-login readers
+(including macOS Keychain), and shared Monitor/floating presentation. Native
+Review completed with the accepted cleanup finding corrected and regression
+verified. macOS adapter run 35092789235 passed Intel/ARM64, including Security
+framework ABI checks. Desktop run 35092789251 passed Windows x64, both macOS
+and both Linux targets. Windows ARM64 again failed pre-lock hit testing because
+WWAHost covered the fixture; this is not a passing interaction gate. Real Claude
+Keychain account compatibility remains unverified.
+
+The next shared appearance increment adds independent text opacity, custom hex
+text color (blank follows theme), row spacing and icons-follow-App settings.
+These controls live in the Desktop tab, persist in the separate preview profile,
+and update an open floating monitor. Text alpha does not fade editing controls
+or background; App icon colors remain independent of topmost state. This does
+not implement background sampling or Local Contrast.
+
 ## Current hardware evidence (2026-09-16)
 
 Commit `c6eeb31` adds cached macOS CPU model/physical/logical core metadata and
