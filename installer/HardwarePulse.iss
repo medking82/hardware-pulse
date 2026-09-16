@@ -1,7 +1,25 @@
-﻿[Setup]
+﻿#ifdef SharedDesktop
+  #ifdef Win7Compatibility
+    #error SharedDesktop does not support Win7Compatibility
+  #endif
+  #ifndef SharedVersion
+    #error SharedDesktop requires SharedVersion from the verified payload
+  #endif
+  #define StartupExecutable "{app}\worker\HardwarePulse.Collector.exe"
+  #define StartupErrorFile "collector-host-error.txt"
+#else
+  #define StartupExecutable "{app}\HardwarePulse.exe"
+  #define StartupErrorFile "host-error.txt"
+#endif
+
+[Setup]
 AppId={{75E8FDDA-D799-4D8A-882D-972DC72151C2}
 AppName=Hardware Pulse
+#ifdef SharedDesktop
+AppVersion={#SharedVersion}
+#else
 AppVersion=0.6.27
+#endif
 AppPublisher=Marck Wong
 AppPublisherURL=https://github.com/medking82
 AppSupportURL=https://github.com/medking82/hardware-pulse/issues
@@ -22,7 +40,11 @@ OutputDir=..\dist
 #ifdef Win7Compatibility
 OutputBaseFilename=HardwarePulse-Win7-x64-Setup
 #else
+#ifdef SharedDesktop
+OutputBaseFilename=HardwarePulse-Shared-{#SharedVersion}-Setup
+#else
 OutputBaseFilename=HardwarePulse-0.6.27-Setup
+#endif
 #endif
 SetupIconFile=..\assets\pulse.ico
 UninstallDisplayIcon={app}\HardwarePulse.exe
@@ -48,7 +70,11 @@ zhTW.LaunchPulse=啟動 Hardware Pulse
 #ifdef Win7Compatibility
 Source: "..\build\app\*"; DestDir: "{app}"; Excludes: "tools\PresentMon.exe"; Flags: ignoreversion recursesubdirs createallsubdirs
 #else
+#ifdef SharedDesktop
+Source: "..\build\windows-shared\app\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+#else
 Source: "..\build\app\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+#endif
 Source: "..\vendor\PawnIO-2.2.0.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall
 #endif
 
@@ -87,7 +113,7 @@ Filename: "{app}\HardwarePulse.exe"; Description: "{cm:LaunchPulse}"; Flags: pos
 Filename: "{app}\HardwarePulse.exe"; Flags: postinstall nowait runasoriginaluser; Check: IsPulseInstallReady and IsPulseUpdate
 
 [UninstallRun]
-Filename: "{app}\HardwarePulse.exe"; Parameters: "--remove-startup"; Flags: runhidden waituntilterminated; RunOnceId: "RemovePulseStartup"
+Filename: "{#StartupExecutable}"; Parameters: "--remove-startup"; Flags: runhidden waituntilterminated; RunOnceId: "RemovePulseStartup"
 
 [Code]
 #include "InstallOutcome.iss"
@@ -219,9 +245,9 @@ begin
         RaiseException(LocalText('PawnIO setup finished, but its library or driver registration is missing. Hardware Pulse startup was not registered. Check the PawnIO installation and run setup again.','PawnIO 安装结束，但缺少库文件或驱动注册。尚未注册 Hardware Pulse 启动项。请检查 PawnIO 后重新安装。','PawnIO 安裝結束，但缺少程式庫或驅動程式註冊。尚未註冊 Hardware Pulse 啟動項目。請檢查 PawnIO 後重新安裝。'));
     end;
 #endif
-    if not Exec(ExpandConstant('{app}\HardwarePulse.exe'), '--install-startup', '', SW_HIDE, ewWaitUntilTerminated, Code) then
+    if not Exec(ExpandConstant('{#StartupExecutable}'), '--install-startup', '', SW_HIDE, ewWaitUntilTerminated, Code) then
       RaiseException(LocalText('Could not register Hardware Pulse startup.','无法注册 Hardware Pulse 启动项。','無法註冊 Hardware Pulse 啟動項目。'));
-    if Code <> 0 then RaiseException(LocalText('Startup registration failed. See LocalAppData\HardwarePulse\host-error.txt.','启动项注册失败。请查看 LocalAppData\HardwarePulse\host-error.txt。','啟動項目註冊失敗。請查看 LocalAppData\HardwarePulse\host-error.txt。'));
+    if Code <> 0 then RaiseException(LocalText('Startup registration failed. See LocalAppData\HardwarePulse\{#StartupErrorFile}.','启动项注册失败。请查看 LocalAppData\HardwarePulse\{#StartupErrorFile}。','啟動項目註冊失敗。請查看 LocalAppData\HardwarePulse\{#StartupErrorFile}。'));
     MarkPulseInstallComplete();
   end;
 end;

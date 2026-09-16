@@ -1,16 +1,37 @@
-﻿$ErrorActionPreference='Stop'
+﻿param([switch]$SharedDesktop)
+$ErrorActionPreference='Stop'
 $root=Split-Path $PSScriptRoot
 $compiler=Join-Path $root 'vendor/inno/ISCC.exe'
 if(-not(Test-Path $compiler)){throw 'Run Build.ps1 -Installer first to prepare the pinned Inno compiler.'}
 $output=Join-Path $root ('vendor/installer-variants-'+[Guid]::NewGuid().ToString('N'))
 $null=New-Item -ItemType Directory -Path $output
-foreach($legacy in @($false,$true)){
-    $name=if($legacy){'win7'}else{'modern'}
+$variants=@('modern','win7')
+if($SharedDesktop){$variants+='shared'}
+foreach($name in $variants){
+    $legacy=$name -eq 'win7'
+    $shared=$name -eq 'shared'
     $expanded=Join-Path $output ($name+'.iss')
     $arguments=@('/O-',('/DValidationOutput='+$expanded),"$root/installer/HardwarePulse.iss")
     if($legacy){$arguments=@('/DWin7Compatibility')+$arguments}
+    if($shared){
+        $version=([xml](Get-Content "$root/src/Hosts/Desktop/Pulse.Desktop.csproj" -Raw)).Project.PropertyGroup.Version
+        if(-not $version){throw 'Shared version is missing'}
+        $arguments=@('/DSharedDesktop',('/DSharedVersion='+$version))+$arguments
+    }
     & "$PSScriptRoot/Run-Hidden.ps1" $compiler $arguments $root | Out-File (Join-Path $output ($name+'.log')) -Encoding utf8
     $script=[IO.File]::ReadAllText($expanded)
+    $startup=if($shared){'{app}\worker\HardwarePulse.Collector.exe'}else{'{app}\HardwarePulse.exe'}
+    foreach($required in @(("Filename: `"$startup`"; Parameters: `"--remove-startup`""),("Exec(ExpandConstant('$startup'), '--install-startup'"))){
+        if(-not $script.Contains($required)){throw "Incorrect management owner in ${name}: $required"}
+    }
+    $launches=@($script -split '\r?\n' | Where-Object {$_ -match '^Filename: .*Check: IsPulseInstallReady'})
+    if($launches.Count -ne 2 -or @($launches | Where-Object {$_ -notmatch '^Filename: "\{app\}\\HardwarePulse.exe";'}).Count){throw "Installer launch must use UI in $name"}
+    if($shared){
+        foreach($required in @('..\build\windows-shared\app\*',"AppVersion=$version","OutputBaseFilename=HardwarePulse-Shared-$version-Setup",'collector-host-error.txt')){
+            if(-not $script.Contains($required)){throw "Shared variant contract missing: $required"}
+        }
+        if($script.Contains('..\build\app\*')){throw 'WPF payload leaked into shared installer'}
+    }elseif($script.Contains('..\build\windows-shared\app\*') -or $script.Contains('collector-host-error.txt')){throw "Shared configuration leaked into $name"}
     foreach($required in @('Check: IsPulseInstallReady and not IsPulseUpdate','Flags: postinstall nowait runasoriginaluser; Check: IsPulseInstallReady and IsPulseUpdate','MarkPulseInstallComplete();','GetCustomSetupExitCode','if PulseInstallReady then Result := 0 else Result := 10','Hardware Pulse setup is incomplete')){
         if(-not $script.Contains($required)){throw "Install outcome guard missing in ${name}: $required"}
     }
@@ -27,6 +48,18 @@ foreach($legacy in @($false,$true)){
             if(-not $script.Contains($required)){throw "Modern installer contract missing: $required"}
         }
         if($script -match 'OnlyBelowVersion|Excludes:|Win7-x64-Setup|DisableWelcomePage=no|WelcomeLabel2.Caption'){throw 'Legacy installer options leaked into modern build'}
+    }
+}
+if($SharedDesktop){
+    foreach($invalid in @(@('/DSharedDesktop'),@('/DSharedDesktop','/DSharedVersion=0.7.0','/DWin7Compatibility'))){
+        $rejected=$false
+        try{& "$PSScriptRoot/Run-Hidden.ps1" $compiler (@('/O-')+$invalid+@("$root/installer/HardwarePulse.iss")) $root}
+        catch{
+            $expected=if($invalid -contains '/DWin7Compatibility'){'SharedDesktop does not support Win7Compatibility'}else{'SharedDesktop requires SharedVersion'}
+            if(-not $_.Exception.Message.Contains($expected)){throw}
+            $rejected=$true
+        }
+        if(-not $rejected){throw 'Invalid shared installer combination accepted'}
     }
 }
 & "$PSScriptRoot/Run-Hidden.ps1" $compiler @("/O$output","$root/installer/tests/CollectorIdentity.iss") $root | Out-File (Join-Path $output 'identity-build.log') -Encoding utf8

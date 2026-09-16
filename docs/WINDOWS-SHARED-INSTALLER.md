@@ -1,8 +1,40 @@
 # Shared Windows installer readiness
 
-The shipping installer source is still the WPF 0.6.27 variant. A compiled
+## Shared variant contract
+
+Add an explicit `SharedDesktop` compiler variant that reads only
+`build/windows-shared/app`, requires an explicit package version, and invokes
+`worker/HardwarePulse.Collector.exe` for startup registration and removal.
+Keep the AppId, protected installation directory, UI launch path, OS gate,
+driver prerequisite, cooperative shutdown and completed-install guard. Reject
+combining shared with Win7. Existing WPF/Win7 builds remain the defaults.
+
+This change owns only installer source selection and fixed management paths,
+plus opt-in compile checks in `Test-InstallerVariants.ps1 -SharedDesktop`.
+Compile using `/O-`; do not execute this installer, modify installed files/tasks,
+promote preview, bypass the missing package verifier, or claim upgrade rollback.
+The existing local shared payload is development evidence, not a final artifact.
+Acceptance: all three variants compile; expanded shared source uses dedicated
+worker management while both launch entries still use the UI; missing version
+and shared/Win7 combinations fail. Existing validation must still pass.
+Rollback is reverting this source change; no installed state is changed.
+
+<!-- sop-risk-classification: {"facts":{"blast_radius":"shared","change_kind":"implementation","data_boundary":"ordinary","destructive":"no","failure_cost":"material","irreversibility":"reversible","operational_controls":"not_applicable","privilege_boundary":"unchanged","project_policy":"default","rollback":"easy","scope_knowledge":"known","uncertainty":"low","verification":"deterministic"},"formal_review":"not_required","kind":"risk-classification-assessment","reasons":{"formal_review":["routine_no_review"],"risk":["no_high_risk_signal"]},"risk":"routine","schema_version":2} -->
+
+The default shipping installer configuration is still the WPF 0.6.27 variant. A compiled
 collector shutdown guard is an incremental prerequisite, not a shared 0.7.0
 installer or proof of upgrade/rollback acceptance.
+
+The shared variant now compiles separately with `SharedDesktop` and
+`SharedVersion`. Local evidence is `vendor/test-shared-installer-variants.log`
+and `vendor/installer-variants-09f86b0ed2b340d4b34ba99902973104/`.
+Expanded scripts verify all three payload/management selections, unchanged UI
+launch entries, and rejection of missing-version and shared/Win7 combinations.
+All production variants were compiled with `/O-`: no shared installer artifact
+was emitted or executed. This does not validate the existing development payload
+or supply the missing package verifier.
+Repository `scripts/Validate.ps1` also passed under PowerShell 7; local evidence
+is `vendor/validate-shared-installer-variant.log`.
 
 ## Collector shutdown gate
 
