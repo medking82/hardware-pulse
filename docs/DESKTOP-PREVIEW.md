@@ -52,6 +52,16 @@ by CI launch tests. No security settings are changed by the package.
 macOS notices and dependency information are inside Contents/Resources so they
 remain with the App when it is moved. Windows/Linux notices are in licenses/.
 
+## Preparing preview.3
+
+The current source adds macOS CPU model and physical/logical core counts, plus
+per-device GPU utilization and driver-reported GPU core counts. Static identity
+is cached. GPU counters and core counts are unavailable on the CI VMs; physical
+GPU coverage still needs device testing. Read-only AppleSMC temperature/fan
+channels are also connected, with Intel CI readings and explicit unavailable
+state on the Apple Silicon VM. These changes are not in the preview.2 download.
+See [macOS sensor boundaries](MAC-SENSORS.md).
+
 ## Added in preview.2
 
 Linux kernel-exposed temperature/fan channels appear in a dedicated panel. Polling

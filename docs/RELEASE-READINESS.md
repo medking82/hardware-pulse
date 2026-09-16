@@ -3,7 +3,20 @@
 The delivery target is a public stable release with usable, verified packages,
 not merely pushed adapters or a renamed experimental release. Windows WPF
 v0.6.27 is now published and its downloaded installer SHA-256 verified;
-v0.7.0-preview.1 is still experimental.
+v0.7.0-preview.2 is published and remains experimental. Preview.3 is being prepared;
+changing its source version does not establish publication.
+
+## Current hardware evidence (2026-09-16)
+
+Commit `c6eeb31` adds cached macOS CPU model/physical/logical core metadata and
+read-only per-device GPU utilization/core metadata to the shared host. Native
+adapter run 35085436820 reports Apple M1 (Virtual), 3 physical / 3 logical cores
+on ARM64, and Intel Core i7-8700B, 4 / 4 cores on the Intel runner. These are
+OS-visible runner allocations, not a lookup of the physical chip's marketed count.
+Both expose one GPU entry but no utilization/core-count properties: the unavailable
+path is verified; physical GPU telemetry is not. Intel AppleSMC exposes 32 channels
+with 29 valid readings; the ARM64 VM exposes none. Do not claim Apple Silicon
+temperature/fan coverage from these checks. See [adapter boundaries](MAC-SENSORS.md).
 
 Material source correction: Avalonia 12.1.2's NuGet repository commit is
 `d3c867a9e2de379249b03dbeb3495bd7f076a81a`. Its macOS `WindowBaseImpl.mm`
@@ -16,7 +29,8 @@ The first native check failed on Intel and ARM64 in run 35079502215. Inspection
 of pinned `Avalonia.Native/TopLevelImpl.cs` shows that only AcrylicBlur maps to
 the native Blur mode; plain Blur falls through. The host now includes AcrylicBlur
 before Transparent, and the test requires that achieved level plus a visible
-behind-window view. Verification of the fix is pending CI. Source alone does not
+behind-window view. Native Intel and ARM64 checks passed in run 35080805602.
+Source alone does not
 establish visual legibility or adjustable blur-radius support.
 
 Shared floating geometry and Codex quota changes at `73e612f` passed macOS Intel,
