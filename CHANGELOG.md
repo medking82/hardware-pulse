@@ -6,11 +6,14 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 
 ## Unreleased
 
-- Windows Desktop also preserves App icon colors when the chosen palette color happens to equal the text color; Local Contrast no longer mistakes that choice for monochrome mode.
-
 - Shared Desktop embeds pinned Noto Sans CJK SC/TC fonts for Chinese UI on systems without CJK fonts. Build preparation verifies size and SHA-256, packages include the OFL notice, and native smoke fails on missing catalog glyphs. No system font installation or runtime download is needed.
 
 - Shared Desktop supports Auto (System), English and Simplified/Traditional Chinese UI, including Monitor, Settings, sensor status, Codex quota and tray actions. Language switches immediately without restarting sampling or refreshing credentials and is saved in the isolated preview profile. Auto respects Chinese script and region preferences.
+
+## 0.6.26 — 2026-09-16
+
+- Windows Desktop also preserves App icon colors when the chosen palette color happens to equal the text color; Local Contrast no longer mistakes that choice for monochrome mode.
+- Explicit App palette selection stays separate from adaptive monochrome mode, including while Always on top is enabled.
 
 ## 0.6.25 — 2026-09-16
 
