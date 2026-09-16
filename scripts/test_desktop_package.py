@@ -5,6 +5,7 @@ from pathlib import Path
 import tarfile
 import tempfile
 import unittest
+import subprocess
 from unittest.mock import patch
 from io import BytesIO
 import package_desktop as package
@@ -32,6 +33,28 @@ class FontPreparationTests(unittest.TestCase):
                     fonts.ensure()
             self.assertEqual(target.read_bytes(), b"invalid cache", "Rejected download must not replace cache")
             self.assertEqual(list(target.parent.iterdir()), [target], "Failed download cleans temporary data")
+
+
+class BundleLaunchTests(unittest.TestCase):
+    def test_open_exit_alone_does_not_prove_app_success(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            exe = root / "Pulse Preview.app/Contents/MacOS/Pulse.Desktop"
+            with patch.object(package, "run", return_value=subprocess.CompletedProcess([], 0, "", "")):
+                with self.assertRaisesRegex(AssertionError, "did not complete App smoke"):
+                    package.verify_bundle_launch(exe, {}, root)
+
+    def test_app_failure_is_not_hidden_by_success_marker(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            exe = root / "Pulse Preview.app/Contents/MacOS/Pulse.Desktop"
+            def launch(*args, **kwargs):
+                (root / "bundle-stdout.log").write_text("PASS native Desktop UI and live CPU/RAM")
+                (root / "bundle-stderr.log").write_text("FAIL font coverage")
+                return subprocess.CompletedProcess([], 0, "", "")
+            with patch.object(package, "run", side_effect=launch):
+                with self.assertRaisesRegex(AssertionError, "FAIL font coverage"):
+                    package.verify_bundle_launch(exe, {}, root)
 
 
 class PackageTests(unittest.TestCase):

@@ -157,6 +157,24 @@ def build(rid, dotnet, allow_dirty=False):
     return archive
 
 
+def verify_bundle_launch(exe, env, logs):
+    """Exercise Launch Services as well as direct execution; open's exit is not App success."""
+    stdout = logs / "bundle-stdout.log"
+    stderr = logs / "bundle-stderr.log"
+    # These paths are outside the verified package and unique to this extraction.
+    stdout.touch()
+    stderr.touch()
+    result = run(["/usr/bin/open", "-n", "-W", "--stdout", stdout, "--stderr", stderr,
+                  exe.parent.parent.parent, "--args", "--smoke-test"],
+                 env=env, capture_output=True, timeout=45)
+    output = stdout.read_text(encoding="utf-8")
+    errors = stderr.read_text(encoding="utf-8")
+    assert "PASS native Desktop UI and live CPU/RAM" in output and "FAIL" not in output + errors, (
+        "Launch Services did not complete App smoke: " + output + errors + result.stdout + result.stderr)
+    print(output.strip())
+    print("PASS macOS Launch Services bundle launch")
+
+
 def inspect_archive(archive, rid, smoke=False, measure=False):
     archive = archive.resolve()
     workspace = (ROOT / "dist" / "desktop-preview").resolve()
@@ -191,6 +209,8 @@ def inspect_archive(archive, rid, smoke=False, measure=False):
                 rows=[json.loads(line.removeprefix("BENCH_DESKTOP ")) for line in result.stdout.splitlines() if line.startswith("BENCH_DESKTOP ")]
                 assert len(rows)==1 and rows[0]["Seconds"]>=60 and not rows[0]["Demo"], "Missing live steady-state measurement"
             print(result.stdout.strip())
+            if rid.startswith("osx-"):
+                verify_bundle_launch(exe, env, Path(temp))
     print("PASS extracted self-contained package: " + rid)
 
 

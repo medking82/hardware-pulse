@@ -174,3 +174,13 @@ These are Xvfb CI workloads, not physical desktop/game results or a claim of
 zero host overhead. Native session checks are separate processes from measurement.
 No cross-platform stable publication follows automatically from these checks;
 the scope, distribution and feature gates above remain open.
+
+The macOS extracted-package gate now additionally opens the exact `.app` through
+Launch Services (`open -n -W`) with a fresh smoke session. It requires the App's
+live CPU/RAM success marker, not merely a successful `open` exit, and rejects
+reported App failures. Direct executable measurement remains a separate check.
+The two negative output checks pass locally; native Intel/ARM64 bundle results
+are pending CI. This does not establish downloaded-quarantine, signing or
+notarization behavior. A timeout fails the CI job; the ephemeral runner owns
+any remaining launched process and is discarded, rather than terminating an
+unrelated installed App.
