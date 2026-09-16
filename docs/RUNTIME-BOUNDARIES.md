@@ -1256,3 +1256,10 @@ conversion, labels, missing inputs, faults, disabled sensors, recovery and
 explicit rediscovery. Native CI may expose no hwmon channels; that validates
 graceful absence, not physical temperature/fan coverage. The published
 `0.7.0-preview.1` packages do not include this subsequent adapter work.
+
+At `bf1b92108d26f9ecda0f8cf2c93075020dbda73e`,
+[Linux adapter run 35045184089](https://github.com/medking82/hardware-pulse/actions/runs/35045184089)
+passed x64/ARM64 filesystem fixtures and native reads;
+[Desktop run 35045184116](https://github.com/medking82/hardware-pulse/actions/runs/35045184116)
+passed all six native package regressions. Local `Validate.ps1 -ModernCore`
+also passed. Physical hwmon coverage and shared UI integration remain pending.
