@@ -11,9 +11,18 @@ DefaultGroupName=Hardware Pulse
 PrivilegesRequired=admin
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
+#ifdef Win7Compatibility
+MinVersion=6.1sp1
+OnlyBelowVersion=6.2
+#else
 MinVersion=10.0.19045
+#endif
 OutputDir=..\dist
+#ifdef Win7Compatibility
+OutputBaseFilename=HardwarePulse-Win7-x64-Setup
+#else
 OutputBaseFilename=HardwarePulse-0.6.26-Setup
+#endif
 SetupIconFile=..\assets\pulse.ico
 UninstallDisplayIcon={app}\HardwarePulse.exe
 Compression=lzma2
@@ -35,8 +44,12 @@ zhCN.LaunchPulse=启动 Hardware Pulse
 zhTW.LaunchPulse=啟動 Hardware Pulse
 
 [Files]
+#ifdef Win7Compatibility
+Source: "..\build\app\*"; DestDir: "{app}"; Excludes: "tools\PresentMon.exe"; Flags: ignoreversion recursesubdirs createallsubdirs
+#else
 Source: "..\build\app\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\vendor\PawnIO-2.2.0.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall
+#endif
 
 [InstallDelete]
 ; Exact obsolete app-owned files. Preserve settings, Windows components and shared drivers.
@@ -147,21 +160,29 @@ var Release: Cardinal;
 begin
   Result := RegQueryDWordValue(HKLM, 'SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full', 'Release', Release) and (Release >= 528040);
   if not Result then begin
+#ifdef Win7Compatibility
+    MsgBox(LocalText('Hardware Pulse requires Microsoft .NET Framework 4.8. Install it from https://dotnet.microsoft.com/download/dotnet-framework/net48, restart Windows if requested, then run setup again.','Hardware Pulse 需要 Microsoft .NET Framework 4.8。请从 https://dotnet.microsoft.com/download/dotnet-framework/net48 安装，按提示重启 Windows 后重新运行安装程序。','Hardware Pulse 需要 Microsoft .NET Framework 4.8。請從 https://dotnet.microsoft.com/download/dotnet-framework/net48 安裝，依提示重新啟動 Windows 後再執行安裝程式。'), mbError, MB_OK);
+#else
     MsgBox(LocalText('The Windows .NET Framework 4.8 component is missing or damaged. It is included with supported Windows versions. Repair Windows components, then run setup again.','Windows .NET Framework 4.8 组件缺失或损坏。受支持的 Windows 已包含此组件，请修复后重新运行安装程序。','Windows .NET Framework 4.8 元件遺失或損壞。支援的 Windows 已包含此元件，請修復後重新執行安裝程式。'), mbError, MB_OK);
+#endif
     Exit;
   end;
 end;
 
+#ifndef Win7Compatibility
 function PawnIOPresent(): Boolean;
 begin
   Result := FileExists(ExpandConstant('{autopf}\PawnIO\PawnIOLib.dll')) and
     RegKeyExists(HKLM, 'SYSTEM\CurrentControlSet\Services\PawnIO');
 end;
 
+#endif
+
 procedure CurStepChanged(CurStep: TSetupStep);
 var Code: Integer;
 begin
   if CurStep = ssPostInstall then begin
+#ifndef Win7Compatibility
     if not PawnIOPresent() then begin
       if not Exec(ExpandConstant('{tmp}\PawnIO-2.2.0.exe'), '-install', '', SW_HIDE, ewWaitUntilTerminated, Code) then
         RaiseException(LocalText('Could not launch the PawnIO prerequisite installer.','无法启动 PawnIO 依赖安装程序。','無法啟動 PawnIO 相依元件安裝程式。'));
@@ -169,8 +190,13 @@ begin
       if not PawnIOPresent() then
         RaiseException(LocalText('PawnIO setup finished, but its library or driver registration is missing. Hardware Pulse startup was not registered. Check the PawnIO installation and run setup again.','PawnIO 安装结束，但缺少库文件或驱动注册。尚未注册 Hardware Pulse 启动项。请检查 PawnIO 后重新安装。','PawnIO 安裝結束，但缺少程式庫或驅動程式註冊。尚未註冊 Hardware Pulse 啟動項目。請檢查 PawnIO 後重新安裝。'));
     end;
+#endif
     if not Exec(ExpandConstant('{app}\HardwarePulse.exe'), '--install-startup', '', SW_HIDE, ewWaitUntilTerminated, Code) then
       RaiseException(LocalText('Could not register Hardware Pulse startup.','无法注册 Hardware Pulse 启动项。','無法註冊 Hardware Pulse 啟動項目。'));
     if Code <> 0 then RaiseException(LocalText('Startup registration failed. See LocalAppData\HardwarePulse\host-error.txt.','启动项注册失败。请查看 LocalAppData\HardwarePulse\host-error.txt。','啟動項目註冊失敗。請查看 LocalAppData\HardwarePulse\host-error.txt。'));
   end;
 end;
+
+#ifdef ValidationOutput
+#expr SaveToFile(ValidationOutput)
+#endif

@@ -1,7 +1,7 @@
 # Windows 7 compatibility work
 
-Status: assessment in progress; no Windows 7 compatible release has been produced
-or verified. The user prioritized this work over further macOS/Linux expansion
+Status: an unsigned development installer can now be built; no Windows 7 release
+has been published or verified on Windows 7. The user prioritized this work over further macOS/Linux expansion
 on 2026-09-16. Initial target is Windows 7 SP1 x64; physical/VM verification
 availability has been requested and is not yet known.
 
@@ -13,7 +13,7 @@ availability has been requested and is not yet known.
   SP1 as an installation target for that runtime. This does not establish Pulse
   compatibility: native calls, sensors, installation and updates also need checks.
 - The shared Avalonia host targets .NET 10. It is not the Windows 7 delivery path.
-- The current installer unconditionally requires PawnIO 2.2.0. Its upstream
+- The modern Windows installer requires PawnIO 2.2.0. Its upstream
   maintainer reports that PawnIO does not support Windows versions below 10.
   Lowering the installer minimum alone would therefore create a broken install.
 - `LocalContrast.Enable` already rejects builds below 19041 because they cannot
@@ -24,6 +24,35 @@ availability has been requested and is not yet known.
   driver-free counters must be separated before claiming usable Win7 telemetry.
 
 ## Delivery gates
+
+### Development installer
+
+`scripts/Build.ps1 -Installer -Win7Compatibility` compiles the existing WPF
+runtime into `dist/HardwarePulse-Win7-x64-Setup.exe`. It does not publish,
+install or launch it. The package permits Windows 7 SP1 x64 (NT 6.1 SP1), rejects
+NT 6.2 and later, requires .NET Framework 4.8, omits the PawnIO prerequisite
+and excludes the PresentMon executable. LHM managed dependencies remain for
+runtime assembly resolution; the legacy collector does not open its hardware
+backend. CPU/RAM/network availability is verified on the development OS only.
+
+The compiler preprocessor separates these options from the modern installer.
+Both variants preserve the AppId, installation path, cooperative upgrade stop,
+task-registration identity and uninstall behavior. Every installer build now
+compiles and checks both expanded variants with `Test-InstallerVariants.ps1`.
+The modern output alias is not overwritten by a compatibility build.
+The unsigned local installer is development evidence, not a supported download.
+
+Scope: installer compile-time branches, build selection and compiled-variant
+checks. No task permissions, driver registration, installed application or OS
+settings are changed on this workstation. Validation includes both expanded
+compiler branches, a real compatibility EXE build, the modern alias hash guard
+and full repository validation. Rollback: revert these source changes; existing
+published packages are unchanged. Actual install/upgrade/uninstall tests on NT
+6.1 SP1 remain required before release.
+
+Inno's documented [MinVersion](https://jrsoftware.org/ishelp/topic_setup_minversion.htm)
+and [OnlyBelowVersion](https://jrsoftware.org/ishelp/topic_setup_onlybelowversion.htm)
+directives define the OS interval; the pinned 6.7.3 compiler accepts both variants.
 
 The WPF UI uses the Windows adapter's OS capability policy for FPS capture and
 capture exclusion. On legacy Windows the FPS quick switch, tray entry, overlay
@@ -81,8 +110,9 @@ Validation includes a two-sample driver-free collector run in an isolated test
 directory, valid CPU/RAM/throughput mappings, absence of fabricated hardware
 readings and no loaded PawnIO module. Framework and modern counter tests share
 the implementation. These tests run on the development Windows 11 machine and
-do not prove Windows 7 installation or UI compatibility. The installer minimum
-is unchanged until a compatibility package and its dependencies are verified.
+do not prove Windows 7 installation or UI compatibility. The modern installer
+minimum is unchanged; the separate compatibility package remains unverified on
+its target OS.
 
 The bounded change owns the Framework/modern Windows counter source, native
 collector selection and tests. It preserves current Windows 10/11 hardware

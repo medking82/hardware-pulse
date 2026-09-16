@@ -6,6 +6,8 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 
 ## Unreleased
 
+- Add an opt-in Win7 SP1 x64 development installer build with separate OS limits, .NET 4.8 prerequisite messaging and no PawnIO prerequisite or PresentMon executable. Both installer variants compile and are checked independently; actual Win7 installation is not yet verified, and no compatibility release has been published.
+
 - Prepare a separate fixed Win7 x64 update asset identity. Legacy clients reject modern Windows installers and report when no compatible asset exists; existing modern Windows updates retain their asset name and verification rules. No Win7 package is published yet.
 
 - Explain and disable unavailable FPS and Local Contrast controls on older Windows, including Desktop and tray entry points, while retaining saved preferences. Windows 7 compatibility is still under development.
