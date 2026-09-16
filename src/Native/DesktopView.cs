@@ -64,12 +64,9 @@ namespace HardwarePulse {
             row.Icon=icon(row.IconName,lastSize,tint);row.IconHost.Child=row.Icon;row.IconColor=tint;row.IconSize=lastSize;
         }
         string AdaptiveIconTint(Row row){
-            if(!row.IconPalette)return row.IconShade==20?"#141414":"#F5F5F5";
-            var tint=(Color)ColorConverter.ConvertFromString(row.BaseIconColor);
-            double luminance=DesktopContrast.Luminance(tint);
-            if(row.IconShade==20){if(luminance>.035)tint=Color.FromRgb((byte)(tint.R*.2),(byte)(tint.G*.2),(byte)(tint.B*.2));}
-            else if(luminance<.65){tint=Color.FromRgb((byte)(tint.R*.15+255*.85),(byte)(tint.G*.15+255*.85),(byte)(tint.B*.15+255*.85));}
-            return tint.ToString();
+            // Following App colors is an explicit preference; contrast may add an
+            // outline, but must not replace the palette with near-black/white.
+            return row.IconPalette?row.BaseIconColor:row.IconShade==20?"#141414":"#F5F5F5";
         }
         void ResetLocalStyle(){
             foreach(var row in rows.Values){row.Name.Foreground=row.Value.Foreground=foreground;row.Name.Effect=row.Value.Effect=row.IconHost.Effect=null;ApplyIcon(row,row.BaseIconColor);}
@@ -256,9 +253,11 @@ namespace HardwarePulse {
                     var point=row.IconHost.TranslatePoint(new Point(),this);
                     var region=new Int32Rect((int)(point.X*image.PixelWidth/ActualWidth),(int)(point.Y*image.PixelHeight/ActualHeight),Math.Max(1,(int)Math.Ceiling(row.IconHost.ActualWidth*image.PixelWidth/ActualWidth)),Math.Max(1,(int)Math.Ceiling(row.IconHost.ActualHeight*image.PixelHeight/ActualHeight)));
                     double minority;row.IconShade=capture.RegionColor(region,row.IconShade,out minority);ApplyIcon(row,AdaptiveIconTint(row));
-                    bool edge=minority>(row.IconHost.Effect==null?.12:.06);
+                    bool edge=row.IconPalette||minority>(row.IconHost.Effect==null?.12:.06);
                     if(edge){
-                        var effect=row.IconHost.Effect as System.Windows.Media.Effects.DropShadowEffect;var edgeColor=row.IconShade==20?Colors.White:Colors.Black;
+                        var effect=row.IconHost.Effect as System.Windows.Media.Effects.DropShadowEffect;
+                        bool darkIcon=row.IconPalette?DesktopContrast.Luminance((Color)ColorConverter.ConvertFromString(row.BaseIconColor))<.18:row.IconShade==20;
+                        var edgeColor=darkIcon?Colors.White:Colors.Black;
                         if(effect==null||effect.Color!=edgeColor){effect=new System.Windows.Media.Effects.DropShadowEffect{Color=edgeColor,ShadowDepth=0,BlurRadius=1.5,Opacity=.85};effect.Freeze();row.IconHost.Effect=effect;}
                     }else row.IconHost.Effect=null;
                 }

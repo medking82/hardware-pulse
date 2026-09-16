@@ -4,6 +4,11 @@
 
 Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
+## 0.6.25 — 2026-09-16
+
+- Desktop icons now keep the selected App palette when Always on top or Local Contrast is enabled. Local Contrast adds a fine opposite-color outline instead of replacing palette colors with near-black or near-white.
+- Text adaptation and monochrome icons remain available when App icon colors are disabled. Screenshot mode continues to freeze the current appearance.
+
 ## 0.7.0-preview.1 — 2026-09-16
 
 - First experimental shared Desktop prerelease for Windows, Linux and macOS on x64 and ARM64, with six self-contained archives and SHA-256 sidecars.

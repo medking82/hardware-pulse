@@ -51,10 +51,7 @@ namespace HardwarePulse {
                 key=="quotaClaude0"?"Claude · "+language.T("5-hour"):"Claude · "+language.T("Weekly");
         }
         string DesktopIconColor(string icon,string textColor){
-            string color=DesktopPaletteColor(icon,textColor);
-            if(settings.Flag("desktopLocalContrast")||icon=="fps"||!settings.Flag("desktopAlwaysOnTop")||SystemParameters.HighContrast||color==textColor)return color;
-            var tint=(System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(color);
-            return "#"+((byte)(tint.R*.38)).ToString("X2")+((byte)(tint.G*.38)).ToString("X2")+((byte)(tint.B*.38)).ToString("X2");
+            return DesktopPaletteColor(icon,textColor);
         }
         string DesktopPaletteColor(string icon,string textColor){
             if(!settings.Flag("desktopAppIconColors",true)||SystemParameters.HighContrast)return textColor;

@@ -68,9 +68,9 @@ try {
   Assert ($rows['demo'].IconColor -eq '#F5F5F5') 'Icon did not brighten over a dark background'
   $stableIcon=$rows['demo'].Icon;Settle;Assert ([object]::ReferenceEquals($stableIcon,$rows['demo'].Icon)) 'Stable icon was recreated every capture'
   $customPalette=[Func[string,string]]{param($name);return '#112233'};$view.Render($metrics,24,10,'#FFFFFF',$true,1,$customPalette);Settle;Settle
-  $customTint=[Windows.Media.ColorConverter]::ConvertFromString($rows['demo'].IconColor);Assert ([HardwarePulse.DesktopContrast]::Luminance($customTint) -gt .65 -and $customTint.B -gt $customTint.R) 'Dark custom palette was not brightened enough'
+  Assert ($rows['demo'].IconColor -eq '#112233' -and $rows['demo'].IconHost.Effect.Color -eq [Windows.Media.Colors]::White) 'Dark App palette was replaced instead of outlined'
   $palette=[Func[string,string]]{param($name);return '#A5E7D5'};$view.Render($metrics,24,10,'#FFFFFF',$true,1,$palette);Settle;Settle
-  $tint=[Windows.Media.ColorConverter]::ConvertFromString($rows['demo'].IconColor);Assert ($tint.G -gt $tint.R -and [HardwarePulse.DesktopContrast]::Luminance($tint) -gt .6) 'App icon hue or dark-background readability lost'
+  Assert ($rows['demo'].IconColor -eq '#A5E7D5' -and $rows['demo'].IconHost.Effect.Color -eq [Windows.Media.Colors]::Black) 'Light App palette was replaced instead of outlined'
   $timer.Interval=[TimeSpan]::FromSeconds(15);$view.BeginScreenshot();$frozenIcon=$rows['demo'].Icon;$dark.Background=[Windows.Media.Brushes]::White;Settle
   Assert ([object]::ReferenceEquals($frozenIcon,$rows['demo'].Icon)) 'Screenshot mode did not freeze icon appearance'
   $view.SetLocalContrast($false);Assert ($rows['demo'].IconColor -eq '#A5E7D5' -and $null -eq $rows['demo'].IconHost.Effect) 'Disabling contrast did not restore base icon style'

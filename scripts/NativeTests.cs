@@ -71,6 +71,27 @@ internal static class NativeTests {
         settings.Map("cardsVisible")["CPU"]=false;shell.UpdatePanel();Pump();Assert(Tree(desktop).OfType<TextBlock>().Any(t=>t.Text=="CPU"),"Desktop visibility still depends on monitor cards");settings.Map("cardsVisible")["CPU"]=true;shell.UpdatePanel();
         Toggle(shell,"DesktopAppIconColors",true);var color=(string)typeof(Shell).GetMethod("DesktopIconColor",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(shell,new object[]{"gpu","#FFFFFF"});Assert(color!="#FFFFFF","App icon palette ignored");
         Settle();var bitmap=new RenderTargetBitmap((int)Math.Ceiling(desktop.ActualWidth),(int)Math.Ceiling(desktop.ActualHeight),96,96,PixelFormats.Pbgra32);bitmap.Render(desktop);var encoder=new PngBitmapEncoder();encoder.Frames.Add(BitmapFrame.Create(bitmap));using(var file=File.Create(Path.Combine(state,"desktop-two-columns.png")))encoder.Save(file);
+        var paletteMethod=typeof(Shell).GetMethod("DesktopPaletteColor",BindingFlags.Instance|BindingFlags.NonPublic);
+        var iconMethod=typeof(Shell).GetMethod("DesktopIconColor",BindingFlags.Instance|BindingFlags.NonPublic);
+        var rowType=typeof(DesktopView).GetNestedType("Row",BindingFlags.NonPublic);
+        var adaptive=typeof(DesktopView).GetMethod("AdaptiveIconTint",BindingFlags.Instance|BindingFlags.NonPublic);
+        foreach(bool topmost in new[]{false,true})foreach(bool local in new[]{false,true}){
+            settings.Data["desktopAlwaysOnTop"]=topmost;settings.Data["desktopLocalContrast"]=local;
+            foreach(string name in new[]{"cpu","gpu","memory","nvme","airflow","wifi","codex","antigravity","claude","fps"}){
+                string expected=(string)paletteMethod.Invoke(shell,new object[]{name,"#FFFFFF"});
+                string actual=(string)iconMethod.Invoke(shell,new object[]{name,"#FFFFFF"});
+                Assert(actual==expected,"Topmost changed App icon color: "+name);
+                var row=Activator.CreateInstance(rowType,true);rowType.GetField("IconPalette").SetValue(row,true);rowType.GetField("BaseIconColor").SetValue(row,actual);
+                foreach(byte shade in new byte[]{20,245}){
+                    rowType.GetField("IconShade").SetValue(row,shade);
+                    Assert((string)adaptive.Invoke(desktop,new[]{row})==expected,"Local contrast changed App icon color: "+name);
+                    rowType.GetField("IconPalette").SetValue(row,false);
+                    Assert((string)adaptive.Invoke(desktop,new[]{row})==(shade==20?"#141414":"#F5F5F5"),"Adaptive monochrome icons stopped following contrast");
+                    rowType.GetField("IconPalette").SetValue(row,true);
+                }
+            }
+        }
+        settings.Data["desktopAlwaysOnTop"]=false;settings.Data["desktopLocalContrast"]=false;
         Toggle(shell,"DesktopLocked",false);Assert(desktop.ResizeMode==ResizeMode.CanResizeWithGrip,"Desktop editor is not resizable");
         shell.Control<ComboBox>("DesktopColumns").SelectedIndex=0;desktop.SizeToContent=SizeToContent.Manual;desktop.Width=1240;desktop.Height=300;Pump();Settle();
         Assert(Tree(desktop).OfType<ResponsivePanel>().Single().Columns==3,"Desktop auto columns ignore resize");desktop.Width=430;desktop.Height=150;Pump();Settle();
