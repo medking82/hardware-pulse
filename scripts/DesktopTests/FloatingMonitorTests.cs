@@ -24,6 +24,11 @@ static class FloatingMonitorTests {
                 open.Command.Execute(null);Check(!floating.IsLocked&&ReferenceEquals(floating,owner.FloatingMonitor),"Tray did not unlock existing window");
             }
             Check(floating.GetVisualDescendants().OfType<TextBlock>().Any(x=>x.Text=="21.0%"),"Floating window lost existing snapshot");
+            floating.SetBackgroundOpacity(0);Dispatcher.UIThread.RunJobs();
+            var background=(Avalonia.Media.SolidColorBrush)floating.Background!;
+            Check(background.Color.A==(floating.ActualTransparencyLevel==WindowTransparencyLevel.None?255:0)&&floating.Opacity==1,"Transparent background or solid fallback altered text opacity");
+            if(floating.CanLock){Check(floating.SetLocked(true)&&floating.SetLocked(false),"Zero background opacity broke lock/unlock");}
+            floating.SetBackgroundOpacity(100);Check(((Avalonia.Media.SolidColorBrush)floating.Background!).Color.A==255,"Solid background alpha");
             if(output!=null){floating.Width=360;Dispatcher.UIThread.RunJobs();using var frame=floating.CaptureRenderedFrame();frame!.Save(Path.Combine(output,"floating-360.png"),Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);}
             var top=floating.GetVisualDescendants().OfType<CheckBox>().Single();
             top.IsChecked=true;Check(floating.Topmost,"Topmost not applied");top.IsChecked=false;Check(!floating.Topmost,"Topmost not reversible");

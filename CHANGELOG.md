@@ -6,6 +6,8 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 
 ## Unreleased
 
+- Shared Desktop settings add a 0–100% floating background opacity control, saved independently of fully opaque text. Platforms without transparency use a solid background; this is not a blur effect.
+
 - Shared floating monitor shows all windows from the existing enabled Codex quota session, follows language changes and clears readings when disabled, without additional requests or timers.
 
 - Shared floating monitor remembers size, position and Always on top in its isolated profile. Reopening remains editable and recovers off-screen positions onto an available display.

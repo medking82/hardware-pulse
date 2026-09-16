@@ -22,8 +22,10 @@ static class SettingsTests {
             Check(value.Width==360&&value.Height==1600&&value.Theme=="System"&&value.Codex,"Settings normalize known values");
             value.Width=700;value.Height=650;Check(store.Save(value),"Atomic save");
             value.FloatingWidth=620;value.FloatingHeight=730;value.FloatingX=-900;value.FloatingY=80;value.FloatingPositionSet=true;value.FloatingTopmost=true;
+            value.FloatingBackgroundOpacity=35;
             Check(store.Save(value),"Floating settings save");
             var floatingSaved=new PreviewSettingsStore(path).Load();
+            Check(floatingSaved.FloatingBackgroundOpacity==35,"Floating background opacity round trip");
             Check(floatingSaved.FloatingWidth==620&&floatingSaved.FloatingHeight==730&&floatingSaved.FloatingX==-900&&floatingSaved.FloatingY==80&&floatingSaved.FloatingTopmost&&floatingSaved.FloatingPositionSet,"Floating settings round trip");
             using(var doc=JsonDocument.Parse(File.ReadAllText(path)))Check(doc.RootElement.GetProperty("future").GetProperty("keep").GetInt32()==7,"Unknown fields retained");
             if(!OperatingSystem.IsWindows())Check((File.GetUnixFileMode(path)&(UnixFileMode.GroupRead|UnixFileMode.OtherRead|UnixFileMode.GroupWrite|UnixFileMode.OtherWrite))==0,"Settings private permissions");
@@ -61,6 +63,15 @@ static class SettingsTests {
             var theme=window.GetVisualDescendants().OfType<ComboBox>().Single(x=>x.Name=="PreviewTheme");theme.SelectedItem="Dark";
             Check(window.RequestedThemeVariant==ThemeVariant.Dark,"Theme applies immediately");
             Until(()=>new PreviewSettingsStore(path).Load().Theme=="Dark");
+            groups.SelectedIndex=3;Dispatcher.UIThread.RunJobs();window.OpenFloatingMonitor();
+            var opacity=window.GetVisualDescendants().OfType<Slider>().Single(x=>x.Name=="FloatingBackgroundOpacity");
+            if(output!=null){window.Width=360;Dispatcher.UIThread.RunJobs();using var frame=window.CaptureRenderedFrame();frame!.Save(Path.Combine(output,"desktop-settings-360.png"),Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);}
+            Check(opacity.Value==35,"Desktop opacity control did not restore saved preference");
+            opacity.Value=0;Check(window.FloatingMonitor!.BackgroundOpacity==0&&window.FloatingMonitor.Opacity==1,"Background adjustment faded entire window");
+            Until(()=>new PreviewSettingsStore(path).Load().FloatingBackgroundOpacity==0);
+            window.FloatingMonitor.Close();window.OpenFloatingMonitor();
+            Check(window.FloatingMonitor!.BackgroundOpacity==0,"Transparent background not restored on reopen");
+            opacity.Value=100;Check(window.FloatingMonitor.BackgroundOpacity==100,"Solid background not applied live");window.FloatingMonitor.Close();
             groups.SelectedIndex=2;Dispatcher.UIThread.RunJobs();
             var quota=window.GetVisualDescendants().OfType<CheckBox>().Single(x=>x.Name=="EnableCodexQuota");Check(quota.IsChecked==true,"Quota choice restored with explicit demo reader");quota.IsChecked=false;
             if(output!=null){window.Width=360;Dispatcher.UIThread.RunJobs();using var frame=window.CaptureRenderedFrame();frame!.Save(Path.Combine(output,"settings-360.png"),Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);}

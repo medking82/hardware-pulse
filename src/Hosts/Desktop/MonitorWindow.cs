@@ -67,9 +67,20 @@ public sealed class MonitorWindow : Window {
         var languageChoice=new ComboBox{Name="PreviewLanguage",ItemsSource=new[]{"Auto (System)","English","简体中文","繁體中文"},SelectedIndex=settings.Language=="en"?1:settings.Language=="zh-CN"?2:settings.Language=="zh-TW"?3:0,HorizontalAlignment=HorizontalAlignment.Stretch,ItemTemplate=Language.Choices()};
         appearance.Children.Add(languageChoice);
         languageChoice.SelectionChanged+=(_,_)=>{settings.Language=languageChoice.SelectedIndex==1?"en":languageChoice.SelectedIndex==2?"zh-CN":languageChoice.SelectedIndex==3?"zh-TW":"auto";Language.Select(settings.Language);SaveLater();};
+        var desktop=new StackPanel{Spacing=12,Margin=new Thickness(20)};
+        desktop.Children.Add(Language.Set(new TextBlock{FontSize=21,FontWeight=FontWeight.SemiBold},"Floating monitor"));
+        var desktopOpen=Language.Set(new Button(),"Open floating monitor");desktopOpen.Click+=(_,_)=>OpenFloatingMonitor();desktop.Children.Add(desktopOpen);
+        desktop.Children.Add(Language.Set(new TextBlock(),"Background opacity"));
+        var opacityValue=new TextBlock{Text=settings.FloatingBackgroundOpacity.ToString("F0")+"%"};desktop.Children.Add(opacityValue);
+        var opacity=new Slider{Name="FloatingBackgroundOpacity",Minimum=0,Maximum=100,TickFrequency=1,IsSnapToTickEnabled=true,Value=settings.FloatingBackgroundOpacity};
+        Avalonia.Automation.AutomationProperties.SetName(opacity,Language.T("Background opacity"));
+        Language.Changed+=()=>Avalonia.Automation.AutomationProperties.SetName(opacity,Language.T("Background opacity"));
+        opacity.ValueChanged+=(_,_)=>{settings.FloatingBackgroundOpacity=opacity.Value;opacityValue.Text=opacity.Value.ToString("F0")+"%";FloatingMonitor?.SetBackgroundOpacity(opacity.Value);SaveLater();};
+        desktop.Children.Add(opacity);
+        desktop.Children.Add(Language.Set(new TextBlock{TextWrapping=TextWrapping.Wrap},"Only the background changes. Text stays opaque. Unsupported transparency uses a solid background."));
         var settingsTabs=new TabControl{Name="SettingsTabs",ItemsSource=new[]{
             Language.Set(new TabItem{Content=network},"Network"),Language.Set(new TabItem{Content=appearance},"Appearance"),
-            new TabItem{Header="Codex",Content=new Border{Padding=new Thickness(20),Child=quota.SettingsContent}}}};
+            new TabItem{Header="Codex",Content=new Border{Padding=new Thickness(20),Child=quota.SettingsContent}},Language.Set(new TabItem{Content=desktop},"Desktop")}};
         var settingsBody=new StackPanel{Spacing=12,Margin=new Thickness(12)};
         settingsBody.Children.Add(settingsTabs);settingsBody.Children.Add(saveStatus);
         var tabs=new TabControl{Name="MainTabs",ItemsSource=new[]{Language.Set(new TabItem{Content=Scroll(body)},"Monitor"),Language.Set(new TabItem{Content=Scroll(settingsBody)},"Settings")}};

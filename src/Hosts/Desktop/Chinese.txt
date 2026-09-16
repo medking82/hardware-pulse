@@ -74,6 +74,9 @@ Error|错误
 Open Pulse|打开 Pulse
 Quit Pulse|退出 Pulse
 Floating monitor|浮动监控窗口
+Desktop|桌面
+Background opacity|背景不透明度
+Only the background changes. Text stays opaque. Unsupported transparency uses a solid background.|只调整背景，文字保持不透明。不支持透明效果时使用纯色背景。
 Open floating monitor|打开浮动监控窗口
 Always on top|置顶显示
 Lock floating monitor|锁定浮动监控窗口

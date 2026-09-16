@@ -5,6 +5,18 @@ not merely pushed adapters or a renamed experimental release. Windows WPF
 v0.6.27 is now published and its downloaded installer SHA-256 verified;
 v0.7.0-preview.1 is still experimental.
 
+Shared floating geometry and Codex quota changes at `73e612f` passed macOS Intel,
+macOS ARM64, Windows x64 and Linux x64/ARM64 in run 35075180669. Windows ARM64
+failed and remains outside the verified interaction gate. These source changes
+are not yet included in the public preview download.
+
+The next appearance increment adds a Desktop settings tab and persistent 0–100%
+background opacity. Text remains opaque; an unavailable transparency backend uses
+a solid surface. Headless and Windows native checks cover restoration and zero-alpha
+lock/unlock. This does not implement blur, local contrast, or desktop-layer placement;
+physical background legibility and zero-alpha native dragging still need visual/input
+verification on each target platform.
+
 ## Scope decision
 
 Latest priority (2026-09-16, after the Win7 test publication): the user requests
