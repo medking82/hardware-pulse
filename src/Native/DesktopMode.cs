@@ -166,7 +166,8 @@ namespace HardwarePulse {
             bool overlay=settings.Flag("desktopAlwaysOnTop")&&!SystemParameters.HighContrast;
             string effectiveColor=overlay&&Checked("DesktopAutoContrast")?"#101820":desktop.ResolveColor(Checked("DesktopAutoContrast"),DesktopColor());
             desktop.SetEditorLabels(language.T("Drag the center to move. Drag any edge or corner to resize."),language.T("Lock Desktop"),language.T("Return to App"));
-            desktop.Render(DesktopMetrics(),Control<Slider>("DesktopFontSize").Value,Control<Slider>("DesktopSpacing").Value,effectiveColor,settings.Flag("desktopLocked",true),(int)settings.Number("desktopColumns",0,0,3),name=>DesktopIconColor(name,effectiveColor));
+            Func<string,string> iconPalette=settings.Flag("desktopAppIconColors",true)&&!SystemParameters.HighContrast?(Func<string,string>)(name=>DesktopIconColor(name,effectiveColor)):null;
+            desktop.Render(DesktopMetrics(),Control<Slider>("DesktopFontSize").Value,Control<Slider>("DesktopSpacing").Value,effectiveColor,settings.Flag("desktopLocked",true),(int)settings.Number("desktopColumns",0,0,3),iconPalette);
             desktop.SetTextOpacity(Control<Slider>("DesktopTextOpacity").Value,Checked("DesktopAutoContrast"),overlay,Control<Slider>("DesktopOverlayOpacity").Value,Control<Slider>("DesktopBackgroundOpacity").Value);
             if(!desktop.IsVisible)desktop.Show();
             desktop.SetAlwaysOnTop(settings.Flag("desktopAlwaysOnTop"));

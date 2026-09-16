@@ -69,6 +69,8 @@ try {
   $stableIcon=$rows['demo'].Icon;Settle;Assert ([object]::ReferenceEquals($stableIcon,$rows['demo'].Icon)) 'Stable icon was recreated every capture'
   $customPalette=[Func[string,string]]{param($name);return '#112233'};$view.Render($metrics,24,10,'#FFFFFF',$true,1,$customPalette);Settle;Settle
   Assert ($rows['demo'].IconColor -eq '#112233' -and $rows['demo'].IconHost.Effect.Color -eq [Windows.Media.Colors]::White) 'Dark App palette was replaced instead of outlined'
+  $samePalette=[Func[string,string]]{param($name);return '#FFFFFF'};$view.Render($metrics,24,10,'#FFFFFF',$true,1,$samePalette);Settle;Settle
+  Assert ($rows['demo'].IconColor -eq '#FFFFFF' -and $rows['demo'].IconHost.Effect.Color -eq [Windows.Media.Colors]::Black) 'App palette equal to text was incorrectly treated as monochrome'
   $palette=[Func[string,string]]{param($name);return '#A5E7D5'};$view.Render($metrics,24,10,'#FFFFFF',$true,1,$palette);Settle;Settle
   Assert ($rows['demo'].IconColor -eq '#A5E7D5' -and $rows['demo'].IconHost.Effect.Color -eq [Windows.Media.Colors]::Black) 'Light App palette was replaced instead of outlined'
   $timer.Interval=[TimeSpan]::FromSeconds(15);$view.BeginScreenshot();$frozenIcon=$rows['demo'].Icon;$dark.Background=[Windows.Media.Brushes]::White;Settle

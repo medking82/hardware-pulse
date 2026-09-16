@@ -195,7 +195,7 @@ namespace HardwarePulse {
                 row.Name.ToolTip=metric.Title;if(localContrast==null||!LocalContrastAvailable){row.Name.Foreground=row.Value.Foreground=foreground;}row.Border.BorderBrush=line;
                 row.Border.Padding=new Thickness(0,spacing/2,0,spacing/2);row.Border.Visibility=Visibility.Visible;
                 string tint=iconColor==null?color:iconColor(metric.Icon);
-                row.IconName=metric.Icon;row.BaseIconColor=tint;row.IconPalette=iconColor!=null&&tint!=color;
+                row.IconName=metric.Icon;row.BaseIconColor=tint;row.IconPalette=iconColor!=null;
                 if(LocalContrastAvailable){ApplyIcon(row,AdaptiveIconTint(row));continue;}
                 ApplyIcon(row,tint);
             }
