@@ -16,7 +16,7 @@ public sealed class FloatingMonitorWindow : Window {
     MonitorSnapshot? lastSnapshot;
     bool lastPeaks;
     readonly StackPanel quotaRows=new(){Spacing=8,IsVisible=false};
-    QuotaReading? quotaReading;
+    readonly Dictionary<string,QuotaReading> quotaReadings=new();
     readonly TextBlock lockStatus=new(){TextWrapping=TextWrapping.Wrap,IsVisible=false};
     readonly StackPanel toolbar=new(){Spacing=8};
     Action<bool>? input;
@@ -133,18 +133,25 @@ public sealed class FloatingMonitorWindow : Window {
         for(int i=0;i<keys.Length;i++)((TextBlock)((Grid)rows.Children[i+1]).Children[0]).Text=language.T(keys[i]);
         var family=DesktopFonts.ForLanguage(language.EffectiveLanguage);
         if(family is null)ClearValue(FontFamilyProperty);else FontFamily=family;
-        PresentQuota(quotaReading);
+        RenderQuota();
         if(lastSnapshot!=null)Present(lastSnapshot,lastPeaks);
     }
-    public void PresentQuota(QuotaReading? reading) {
-        quotaReading=reading;quotaRows.Children.Clear();quotaRows.IsVisible=reading!=null;
-        if(reading==null)return;
-        quotaRows.Children.Add(new TextBlock{Text="Codex · "+language.T(reading.Status),TextWrapping=TextWrapping.Wrap,FontWeight=FontWeight.SemiBold});
+    public void PresentQuota(QuotaReading? reading,string provider="Codex") {
+        if(provider is not ("Codex" or "Claude"))throw new ArgumentException("Unsupported quota provider",nameof(provider));
+        if(reading==null)quotaReadings.Remove(provider);else quotaReadings[provider]=reading;
+        RenderQuota();
+    }
+    void RenderQuota() {
+        quotaRows.Children.Clear();quotaRows.IsVisible=quotaReadings.Count>0;
+        foreach(var provider in new[]{"Codex","Claude"}) {
+        if(!quotaReadings.TryGetValue(provider,out var reading))continue;
+        quotaRows.Children.Add(new TextBlock{Text=provider+" · "+language.T(reading.Status),TextWrapping=TextWrapping.Wrap,FontWeight=FontWeight.SemiBold});
         var windows=reading.AllWindows.Count>0?reading.AllWindows:reading.Windows;
         foreach(var item in windows){
-            var value=new TextBlock();var row=Row(language.T(item.Label),value,"codex");
+            var value=new TextBlock();var row=Row(language.T(item.Label),value,provider.ToLowerInvariant());
             value.Text=item.Remaining.HasValue?string.Format(language.T("{0}% left"),item.Remaining.Value.ToString("F1")):"—";
             quotaRows.Children.Add(row);
+        }
         }
     }
     public void Present(MonitorSnapshot snapshot,bool peaks=false) {

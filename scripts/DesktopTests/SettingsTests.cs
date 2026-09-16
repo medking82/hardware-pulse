@@ -19,6 +19,7 @@ static class SettingsTests {
             string path=Path.Combine(directory,"settings.json");
             File.WriteAllText(path,"{\"schema\":1,\"width\":-999,\"height\":99999,\"theme\":\"bad\",\"network\":\"missing-interface\",\"codex\":true,\"future\":{\"keep\":7}}");
             var store=new PreviewSettingsStore(path);var value=store.Load();
+            Check(!value.Claude,"Existing settings must not opt into Claude credentials");
             Check(value.Width==360&&value.Height==1600&&value.Theme=="System"&&value.Codex,"Settings normalize known values");
             value.Width=700;value.Height=650;Check(store.Save(value),"Atomic save");
             value.FloatingWidth=620;value.FloatingHeight=730;value.FloatingX=-900;value.FloatingY=80;value.FloatingPositionSet=true;value.FloatingTopmost=true;
@@ -88,9 +89,12 @@ static class SettingsTests {
             opacity.Value=100;Check(window.FloatingMonitor.BackgroundOpacity==100,"Solid background not applied live");window.FloatingMonitor.Close();
             groups.SelectedIndex=2;Dispatcher.UIThread.RunJobs();
             var quota=window.GetVisualDescendants().OfType<CheckBox>().Single(x=>x.Name=="EnableCodexQuota");Check(quota.IsChecked==true,"Quota choice restored with explicit demo reader");quota.IsChecked=false;
+            var claude=window.GetVisualDescendants().OfType<CheckBox>().Single(x=>x.Name=="EnableClaudeQuota");
+            Check(claude.IsChecked==false,"Claude starts disabled independently of Codex");claude.IsChecked=true;
             if(output!=null){window.Width=360;Dispatcher.UIThread.RunJobs();using var frame=window.CaptureRenderedFrame();frame!.Save(Path.Combine(output,"settings-360.png"),Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);}
             window.Close();Until(()=>window.Sampling.IsCompleted);
             var saved=new PreviewSettingsStore(path).Load();Check(saved.Theme=="Dark"&&!saved.Codex&&saved.Network=="missing-interface","Choices survive close");
+            Check(saved.Claude&&!saved.Codex,"Provider opt-ins persist independently");
             var reopened=new MonitorWindow(new MonitorSource(true),start:false,store:new PreviewSettingsStore(path));
             Check(reopened.RequestedThemeVariant==ThemeVariant.Dark&&reopened.Width==saved.Width,"Choices survive reopen");reopened.Show();reopened.Close();
             Console.WriteLine("PASS isolated preview settings: normalization, unknown fields, atomic save, error preservation, theme, quota and missing interface");

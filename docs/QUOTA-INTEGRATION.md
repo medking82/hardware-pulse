@@ -36,4 +36,56 @@ isolated WPF rendering/settings/Desktop tests; full scripts/Validate.ps1. Real
 provider checks are separate from fixtures and must report unavailable logins.
 High-risk frozen diff requires Native Review after deterministic checks.
 
+## Shared Claude adapter in progress
+
+The shared host increment reuses Core `QuotaDecoder` and `QuotaSession`; platform
+login sources supply an access token to `ClaudeQuotaClient`. It sends only a GET
+to the fixed Anthropic usage endpoint, never follows redirects, limits response
+JSON to 1 MiB/depth 32 and sanitizes failures. `QuotaJson` is shared with Codex;
+existing Codex transport fixtures remain part of regression validation.
+
+`ClaudeFileLogin` reads the existing configured file without changes or token
+renewal. `MacClaudeLogin` gives an explicit environment token precedence, then
+queries one Claude Keychain service/account. Only item-not-found permits the
+file fallback; denied/locked access does not silently change source. The custom
+config-directory service hash is isolated from the default service and still
+requires real-device verification. There is no Keychain enumeration.
+
+Legacy Keychain UI suppression uses `SecKeychainGetUserInteractionAllowed` and
+`SecKeychainSetUserInteractionAllowed` under one process-local lock, restores
+the observed state in `finally`, and releases returned native data. The native
+call itself is synchronous; cancellation is checked before and after it, not
+claimed to interrupt Apple's API. No stored ACLs or OS security settings change.
+The copied credential buffer is cleared after parsing; managed token strings
+remain transient and are not persisted or logged.
+
+Sources: [Claude credential storage](https://code.claude.com/docs/en/authentication),
+[Apple legacy API declarations](https://github.com/apple-oss-distributions/Security/blob/main/OSX/libsecurity_keychain/lib/SecKeychain.h),
+[Apple per-query authentication limitations](https://github.com/apple-oss-distributions/Security/blob/main/keychain/headers/SecItem.h),
+[config-directory service naming evidence](https://github.com/alexey-pelykh/sessiometer/issues/100).
+
+The shared Monitor and floating monitor project independent Codex and Claude
+sessions. Settings groups their opt-ins under AI Quota; existing settings leave
+Claude disabled. Disabling a provider clears only its own rows. No credential
+access occurs while disabled, and no token is stored in settings.
+
+Current verification uses synthetic credentials: precedence, exact lookup,
+bounds, cancellation, cleanup, HTTP errors and Codex regression passed. Shared
+UI regression covers independent opt-ins, complete windows, persistence and
+floating rows. The narrow settings render was inspected, localization coverage
+passed, and scripts/Validate.ps1 passed. A macOS SDK ABI check is prepared
+without reading credentials. Native Windows session checks also passed. Actual
+macOS credential compatibility and native CI remain unverified; fixtures are
+not evidence of successful access to a real user's Keychain.
+
+Native Review completed on the frozen increment (packet `f06e6bb0`, linked to
+failed Gemini packet `deed9e1f`). The P2 missing-artwork hypothesis was rejected:
+`assets/claude.svg` is already tracked in HEAD. The P3 restore-cleanup finding was
+accepted: a failing interaction-state restore could replace cancellation and
+abandon a managed credential copy. A failing synthetic cancellation/restore
+fixture reproduced it; the correction preserves the original exception, clears
+copies on exceptional exits and refuses credentials when restore fails. Adapter
+and Desktop regression passed after this bounded correction. No second model
+round was run; the correction does not change the credential trust boundary.
+
 <!-- sop-risk-classification: {"facts":{"blast_radius":"shared","change_kind":"implementation","data_boundary":"sensitive","destructive":"no","failure_cost":"material","irreversibility":"reversible","operational_controls":"not_applicable","privilege_boundary":"changed","project_policy":"default","rollback":"easy","scope_knowledge":"known","uncertainty":"material","verification":"deterministic"},"formal_review":"required","kind":"risk-classification-assessment","reasons":{"formal_review":["high_risk_requires_review"],"risk":["privilege_boundary_change"]},"risk":"high","schema_version":2} -->

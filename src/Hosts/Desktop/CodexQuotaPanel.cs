@@ -16,6 +16,7 @@ public sealed class CodexQuotaPanel : UserControl,IDisposable {
     readonly TextBlock status=new(){Text="Off",TextWrapping=TextWrapping.Wrap};
     readonly StackPanel windows=new(){Spacing=16};
     readonly bool demo;
+    readonly string provider;
     readonly UiLanguage language;
     QuotaReading? shown;
     bool disposed;
@@ -23,33 +24,40 @@ public sealed class CodexQuotaPanel : UserControl,IDisposable {
     public event Action<bool>? EnabledChanged;
     public event Action<QuotaReading?>? ReadingChanged;
     public QuotaReading? CurrentReading=>shown;
+    public string Provider=>provider;
     public bool QuotaEnabled {get=>enabled.IsChecked==true;set=>enabled.IsChecked=value;}
-    public CodexQuotaPanel(bool demo,Func<CancellationToken,QuotaReading>? read=null,bool inlineSettings=true,UiLanguage? language=null) {
+    public CodexQuotaPanel(bool demo,Func<CancellationToken,QuotaReading>? read=null,bool inlineSettings=true,UiLanguage? language=null,string provider="Codex") {
+        if(provider is not ("Codex" or "Claude"))throw new ArgumentException("Unsupported quota provider",nameof(provider));
+        this.provider=provider;enabled.Name="Enable"+provider+"Quota";refresh.Name="Refresh"+provider+"Quota";
         this.demo=demo;
         this.language=language??new UiLanguage();
-        this.language.Set(enabled,"Show Codex quota");this.language.Set(refresh,"Refresh");this.language.Set(status,"Off");
+        this.language.Set(enabled,provider=="Claude"?"Show Claude quota":"Show Codex quota");this.language.Set(refresh,"Refresh");this.language.Set(status,"Off");
         this.language.Changed+=OnLanguageChanged;
-        session=new QuotaSession((_,cancel)=>read!=null?read(cancel):Read(demo,cancel));
+        session=new QuotaSession((_,cancel)=>read!=null?read(cancel):Read(demo,provider,cancel));
         var body=new StackPanel{Spacing=12};
         var header=new StackPanel{Orientation=Orientation.Horizontal,Spacing=10};
-        header.Children.Add(AppIcon.Create("codex"));
-        header.Children.Add(new TextBlock{Text="Codex",FontSize=21,FontWeight=FontWeight.SemiBold});
+        header.Children.Add(AppIcon.Create(provider.ToLowerInvariant()));
+        header.Children.Add(new TextBlock{Text=provider,FontSize=21,FontWeight=FontWeight.SemiBold});
         body.Children.Add(header);
         var settings=new StackPanel{Spacing=12};settings.Children.Add(enabled);
-        settings.Children.Add(this.language.Set(new TextBlock{TextWrapping=TextWrapping.Wrap,Opacity=.75},demo?"Demo · Sample quota only. No account is accessed.":"Uses your existing Codex file login. Refreshes every five minutes while enabled. This choice is remembered. Login and token refresh stay in Codex."));
+        settings.Children.Add(this.language.Set(new TextBlock{TextWrapping=TextWrapping.Wrap,Opacity=.75},demo?"Demo · Sample quota only. No account is accessed.":provider=="Claude"?"Uses your existing Claude Code login, including macOS Keychain. Refreshes every five minutes while enabled. Pulse never signs in or refreshes tokens.":"Uses your existing Codex file login. Refreshes every five minutes while enabled. This choice is remembered. Login and token refresh stay in Codex."));
         SettingsContent=settings;if(inlineSettings)body.Children.Add(settings);
-        if(!inlineSettings)this.language.Set(status,"Off · Enable in Settings → Codex");
+        if(!inlineSettings)this.language.Set(status,"Off · Enable in Settings → AI Quota");
         body.Children.Add(refresh);body.Children.Add(status);body.Children.Add(windows);
         Content=new Border{Child=body,Padding=new Thickness(20),CornerRadius=new CornerRadius(14),BorderBrush=Brushes.Gray,BorderThickness=new Thickness(1)};
         enabled.PropertyChanged+=(_,e)=>{if(e.Property==ToggleButton.IsCheckedProperty)SetEnabled();};
         refresh.Click+=(_,_)=>{if(!disposed&&enabled.IsChecked==true){session.Refresh();Tick();}};
         timer.Tick+=(_,_)=>Tick();
     }
-    static QuotaReading Read(bool demo,CancellationToken cancel) {
+    static QuotaReading Read(bool demo,string provider,CancellationToken cancel) {
         cancel.ThrowIfCancellationRequested();
         if(demo) {
             var rows=new List<QuotaWindow>{new(){Label="5-hour",Remaining=72.5,Reset=DateTimeOffset.UtcNow.AddHours(2)},new(){Label="Weekly",Remaining=54.0,Reset=DateTimeOffset.UtcNow.AddDays(4)}};
-            return new(){Provider="Codex",Status="Live",Observed=DateTimeOffset.UtcNow,Windows=rows,AllWindows=rows};
+            return new(){Provider=provider,Status="Live",Observed=DateTimeOffset.UtcNow,Windows=rows,AllWindows=rows};
+        }
+        if(provider=="Claude") {
+            Func<CancellationToken,string> login=OperatingSystem.IsMacOS()?MacClaudeLogin.Default().Read:ClaudeFileLogin.Default().Read;
+            using var claude=new ClaudeQuotaClient(login);return claude.Read(cancel);
         }
         using FileCodexQuota adapter=OperatingSystem.IsLinux()?new LinuxCodexQuota():OperatingSystem.IsMacOS()?new MacCodexQuota():OperatingSystem.IsWindows()?new WindowsFileCodexQuota():throw new PlatformNotSupportedException();
         return adapter.Read(cancel);
@@ -57,7 +65,7 @@ public sealed class CodexQuotaPanel : UserControl,IDisposable {
     void SetEnabled() {
         if(disposed)return;
         bool on=enabled.IsChecked==true;
-        session.Enable("Codex",on);refresh.IsEnabled=on;shown=null;windows.Children.Clear();
+        session.Enable(provider,on);refresh.IsEnabled=on;shown=null;windows.Children.Clear();
         ReadingChanged?.Invoke(null);
         if(on){timer.Start();Tick();}else{timer.Stop();language.Set(status,"Off");}
         EnabledChanged?.Invoke(on);
@@ -74,7 +82,7 @@ public sealed class CodexQuotaPanel : UserControl,IDisposable {
         shown=reading;windows.Children.Clear();
         status.Text=(demo?language.T("Demo")+" · ":"")+language.T(reading.Status);
         if(reading.Observed!=default)status.Text+=" · "+string.Format(language.T("Updated {0}"),reading.Observed.ToLocalTime().ToString("t"));
-        if(reading.Status=="Login required")status.Text+=" · "+language.T("Sign in through Codex, then refresh here. This preview requires file-based login.");
+        if(reading.Status=="Login required")status.Text+=" · "+language.T(provider=="Claude"?"Sign in through Claude Code, then refresh here.":"Sign in through Codex, then refresh here. This preview requires file-based login.");
         var rows=reading.AllWindows.Count>0?reading.AllWindows:reading.Windows;
         foreach(var row in rows) {
             var item=new StackPanel{Spacing=6};

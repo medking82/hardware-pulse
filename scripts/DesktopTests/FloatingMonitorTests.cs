@@ -45,7 +45,7 @@ static class FloatingMonitorTests {
             owner.Language.Select("zh-CN");
             Check(!floating.GetVisualDescendants().OfType<TextBlock>().Any(x=>x.Text=="54.0% left"),"Floating quota did not follow language change");
             owner.Language.Select("en");
-            var quota=owner.GetVisualDescendants().OfType<CodexQuotaPanel>().Single();quota.QuotaEnabled=true;
+            var quota=owner.GetVisualDescendants().OfType<CodexQuotaPanel>().Single(x=>x.Provider=="Codex");quota.QuotaEnabled=true;
             var quotaDeadline=DateTime.UtcNow.AddSeconds(5);
             while(quota.CurrentReading?.Status!="Live"&&DateTime.UtcNow<quotaDeadline){using var slice=new CancellationTokenSource(TimeSpan.FromMilliseconds(20));Dispatcher.UIThread.MainLoop(slice.Token);}
             Check(quota.CurrentReading?.Status=="Live"&&floating.GetVisualDescendants().OfType<TextBlock>().Any(x=>x.Text=="72.5% left"),"Existing quota session not projected into floating window");

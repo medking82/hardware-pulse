@@ -25,6 +25,7 @@ public sealed class MonitorWindow : Window {
     public FloatingMonitorWindow? FloatingMonitor {get;private set;}
     bool samplingFailed;
     readonly CodexQuotaPanel quota;
+    readonly CodexQuotaPanel claudeQuota;
     readonly HardwareSensorPanel sensors;
     readonly HardwareSensorPanel gpus;
     readonly TextBlock cpuIdentityText=new(){Name="CpuIdentity",Opacity=.75,TextWrapping=TextWrapping.Wrap,IsVisible=false};
@@ -58,6 +59,8 @@ public sealed class MonitorWindow : Window {
         body.Children.Add(gpus);body.Children.Add(sensors);
         quota=new CodexQuotaPanel(source.IsDemo,inlineSettings:false,language:Language);body.Children.Add(quota);
         quota.ReadingChanged+=reading=>FloatingMonitor?.PresentQuota(reading);
+        claudeQuota=new CodexQuotaPanel(source.IsDemo,inlineSettings:false,language:Language,provider:"Claude");body.Children.Add(claudeQuota);
+        claudeQuota.ReadingChanged+=reading=>FloatingMonitor?.PresentQuota(reading,"Claude");
         Language.Changed+=()=>{if(latestSnapshot!=null)Render(latestSnapshot);};
         body.Children.Add(Language.Set(new TextBlock{TextWrapping=TextWrapping.Wrap,Opacity=.75},"Preview · FPS and Desktop overlay are not connected yet. Hardware support depends on the platform and device."));
         var network=new StackPanel{Spacing=12,Margin=new Thickness(20)};
@@ -99,9 +102,10 @@ public sealed class MonitorWindow : Window {
         desktop.Children.Add(blur);desktop.Children.Add(materialStatus);UpdateMaterialStatus();
         desktop.Children.Add(Language.Set(new TextBlock{TextWrapping=TextWrapping.Wrap},"Blur strength is controlled by the system. Lower background opacity to reveal the effect."));
         desktop.Children.Add(Language.Set(new TextBlock{TextWrapping=TextWrapping.Wrap},"Only the background changes. Text stays opaque. Unsupported transparency uses a solid background."));
+        var quotaSettings=new StackPanel{Spacing=24};quotaSettings.Children.Add(quota.SettingsContent);quotaSettings.Children.Add(claudeQuota.SettingsContent);
         var settingsTabs=new TabControl{Name="SettingsTabs",ItemsSource=new[]{
             Language.Set(new TabItem{Content=network},"Network"),Language.Set(new TabItem{Content=appearance},"Appearance"),
-            new TabItem{Header="Codex",Content=new Border{Padding=new Thickness(20),Child=quota.SettingsContent}},Language.Set(new TabItem{Content=desktop},"Desktop")}};
+            Language.Set(new TabItem{Content=new Border{Padding=new Thickness(20),Child=quotaSettings}},"AI Quota"),Language.Set(new TabItem{Content=desktop},"Desktop")}};
         var settingsBody=new StackPanel{Spacing=12,Margin=new Thickness(12)};
         settingsBody.Children.Add(settingsTabs);settingsBody.Children.Add(saveStatus);
         var tabs=new TabControl{Name="MainTabs",ItemsSource=new[]{Language.Set(new TabItem{Content=Scroll(body)},"Monitor"),Language.Set(new TabItem{Content=Scroll(settingsBody)},"Settings")}};
@@ -115,6 +119,8 @@ public sealed class MonitorWindow : Window {
         interfaces.SelectionChanged+=(_,_)=>{if(!loadingNetwork){settings.Network=interfaces.SelectedItem as string;SaveLater();}};
         quota.EnabledChanged+=on=>{settings.Codex=on;SaveLater();};
         quota.QuotaEnabled=settings.Codex;
+        claudeQuota.EnabledChanged+=on=>{settings.Claude=on;SaveLater();};
+        claudeQuota.QuotaEnabled=settings.Claude;
         saveTimer.Tick+=(_,_)=>SaveNow();
         SizeChanged+=(_,_)=>{LayoutCards();if(WindowState==WindowState.Normal){settings.Width=Width;settings.Height=Height;SaveLater();}};LayoutCards();
         Opened+=(_,_)=>{
@@ -122,7 +128,7 @@ public sealed class MonitorWindow : Window {
             if(screen!=null){Width=Math.Max(MinWidth,Math.Min(Width,screen.WorkingArea.Width/screen.Scaling));Height=Math.Max(MinHeight,Math.Min(Height,screen.WorkingArea.Height/screen.Scaling));}
         };
         if(start)Opened+=StartSampling;
-        Closed+=(_,_)=>{stop.Cancel();FloatingMonitor?.Close();quota.Dispose();SaveNow();};
+        Closed+=(_,_)=>{stop.Cancel();FloatingMonitor?.Close();quota.Dispose();claudeQuota.Dispose();SaveNow();};
     }
     void StartSampling(object? sender,EventArgs args) {
         // Hide/Show raises Opened again. A Monitor owns exactly one polling loop.
@@ -138,6 +144,7 @@ public sealed class MonitorWindow : Window {
         }
         if(latestSnapshot!=null)FloatingMonitor.Present(latestSnapshot,readingMode.SelectedIndex==1);
         FloatingMonitor.PresentQuota(quota.CurrentReading);
+        FloatingMonitor.PresentQuota(claudeQuota.CurrentReading,"Claude");
         FloatingMonitor.Show();if(!FloatingMonitor.SetLocked(false))return;
         if(FloatingMonitor.WindowState==WindowState.Minimized)FloatingMonitor.WindowState=WindowState.Normal;
         FloatingMonitor.Activate();

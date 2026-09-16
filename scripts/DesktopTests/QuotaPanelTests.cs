@@ -54,6 +54,17 @@ static class QuotaPanelTests {
         closingWindow.GetVisualDescendants().OfType<CheckBox>().Single().IsChecked=true;
         Until(()=>started.IsSet,"Close test request started");
         closing.Dispose();closingWindow.Close();Until(()=>stopped.IsSet,"Dispose cancels active quota IO");
+        int claudeReads=0;
+        using var claude=new CodexQuotaPanel(false,_=>{claudeReads++;var result=Result();result.Provider="Claude";return result;},provider:"Claude");
+        var claudeWindow=new Window{Width=360,Height=850,Content=claude};claudeWindow.Show();Dispatcher.UIThread.RunJobs();
+        Check(claudeReads==0,"Claude opt-out must not access credentials");claude.QuotaEnabled=true;
+        Until(()=>Text(claudeWindow).Any(x=>x.Text=="72.5% left"),"Claude renders all quota windows");
+        var floating=new FloatingMonitorWindow(new UiLanguage("en"));floating.Show();
+        floating.PresentQuota(Result());floating.PresentQuota(claude.CurrentReading,"Claude");Dispatcher.UIThread.RunJobs();
+        Check(Text(floating).Any(x=>x.Text=="Codex · Live")&&Text(floating).Any(x=>x.Text=="Claude · Live"),"Floating monitor shows both providers");
+        floating.PresentQuota(null,"Claude");Dispatcher.UIThread.RunJobs();
+        Check(Text(floating).Any(x=>x.Text=="Codex · Live")&&!Text(floating).Any(x=>x.Text=="Claude · Live"),"Disabling Claude preserves Codex");
+        floating.Close();claudeWindow.Close();
         Console.WriteLine("PASS Codex UI opt-in, complete windows, missing values, retry, stale result rejection and cancellation; synthetic reader only");
     }
 }
