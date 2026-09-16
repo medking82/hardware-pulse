@@ -15,6 +15,7 @@ public sealed class MonitorSource : IMonitorSource {
     ReadingSession? network;
     string? selected;
     LinuxHwmonReadings? hwmon;
+    MacSmcReadings? smc;
     ReadingSession? sensorSession;
     long hwmonDiscovery;
     public bool IsDemo=>demo;
@@ -44,9 +45,16 @@ public sealed class MonitorSource : IMonitorSource {
         }
         network?.Poll(now);
         var sensors=ReadSensors(now);
-        return MonitorSnapshot.Capture(cpu,memory!,network) with {Sensors=sensors.Current,PeakSensors=sensors.Peaks,SensorsSupported=OperatingSystem.IsLinux()};
+        return MonitorSnapshot.Capture(cpu,memory!,network) with {Sensors=sensors.Current,PeakSensors=sensors.Peaks,SensorsSupported=OperatingSystem.IsLinux()||OperatingSystem.IsMacOS()};
     }
     (HardwareSensorSnapshot[] Current,HardwareSensorSnapshot[] Peaks) ReadSensors(DateTimeOffset now) {
+        if(OperatingSystem.IsMacOS()) {
+            if(smc==null){smc=new MacSmcReadings();sensorSession=new ReadingSession(smc.Read);}
+            sensorSession!.Poll(now);
+            HardwareSensorSnapshot[] FormatMac(IReadOnlyDictionary<string,double> values)=>smc.Channels.Select(channel=>new HardwareSensorSnapshot(channel.Id,channel.Label,
+                values.TryGetValue(channel.Id,out var value)?ReadingFormat.SensorNumber(value,channel.Unit)+" "+channel.Unit:"—")).ToArray();
+            return (FormatMac(sensorSession.Latest.values),FormatMac(sensorSession.Peaks));
+        }
         if(!OperatingSystem.IsLinux())return ([],[]);
         if(hwmon==null) {hwmon=new LinuxHwmonReadings();sensorSession=new ReadingSession(hwmon.Read);hwmonDiscovery=System.Diagnostics.Stopwatch.GetTimestamp();}
         else if(System.Diagnostics.Stopwatch.GetElapsedTime(hwmonDiscovery)>=TimeSpan.FromSeconds(30)) {

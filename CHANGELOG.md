@@ -6,6 +6,8 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 
 ## Unreleased
 
+- Connect a read-only macOS AppleSMC temperature/fan adapter to Monitor, Session Max and the floating monitor. Cache bounded discovery and preserve raw sensor keys; missing/unknown values remain unavailable. Physical device coverage is not yet established; see [sensor limits](docs/MAC-SENSORS.md).
+
 - Shared floating monitor reuses the App's SVG icons and colors for CPU, memory, network and Codex quota.
 
 ## 0.7.0-preview.2 — 2026-09-16

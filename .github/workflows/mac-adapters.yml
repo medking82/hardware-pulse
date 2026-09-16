@@ -63,6 +63,8 @@ jobs:
         run: |
           cc -std=c11 -Wall -Werror scripts/MacAdapterTests/check_memory_abi.c -o "$RUNNER_TEMP/check-memory-abi"
           "$RUNNER_TEMP/check-memory-abi"
+          cc -std=c11 -Wall -Werror scripts/MacAdapterTests/check_smc_abi.c -o "$RUNNER_TEMP/check-smc-abi"
+          "$RUNNER_TEMP/check-smc-abi"
       - name: Run fixtures and live Mach assertions
         run: dotnet run --project scripts/MacAdapterTests/Pulse.Mac.Tests.csproj --configuration Release --disable-build-servers -p:UseSharedCompilation=false -- --live
       - name: Build headless probe

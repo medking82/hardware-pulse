@@ -14,6 +14,7 @@ namespace HardwarePulse {
         });
         [DllImport(LibSystem)] static extern uint mach_host_self();
         [DllImport(LibSystem)] static extern int mach_port_deallocate(uint task,uint port);
+        internal static uint TaskPort=>taskPort.Value!=0?taskPort.Value:throw new IOException("Mach task port unavailable");
         internal static uint AcquireHost(){
             if(taskPort.Value==0)throw new IOException("Mach task port unavailable");
             uint host=mach_host_self();
