@@ -73,8 +73,9 @@ The regular-input fixture now resolves temporary directory ancestors before
 constructing its source path. A separate linked-input case still requires
 refusal, then verifies that the resolved physical path imports successfully.
 No production migration or reparse-point policy changed. The focused Windows
-test passed (`vendor/test-profile-physical-fixture.log`); macOS confirmation
-requires the subsequent CI run. Repository validation passed under PowerShell 7
+test passed (`vendor/test-profile-physical-fixture.log`). Both macOS targets
+subsequently passed in Desktop CI run 35130682952 at `67f28d0`; Windows x64 and
+both Linux targets also passed. Repository validation passed under PowerShell 7
 (`vendor/validate-profile-physical-fixture.log`). This follow-up changes only
 test setup and evidence; it does not reopen the reviewed migration implementation.
 

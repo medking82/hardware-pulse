@@ -28,15 +28,16 @@ unverified or missing behavior as supported to close this table.
 
 ## CPU and memory acceptance
 
-Current-commit CI observation (`3653143`): Windows collector and Windows adapters
-passed. [Desktop run 35127210607](https://github.com/medking82/hardware-pulse/actions/runs/35127210607)
-did not pass Windows x64: the native session reached and passed game overlay
-checks, then failed `LockedLayoutTests.Native` with `Auto columns leave avoidable
-locked overflow`. This is an unresolved Windows release gate, not a passing
-workflow. Both macOS jobs failed the `Read-only BOM legacy import` fixture;
-Linux x64/ARM64 passed. Windows ARM64 failed the overlay foreground fixture and
-remains excluded. Local passing tests do not override these CI observations.
-Failed logs are retained locally in `vendor/ci-desktop-3653143-failed.log`.
+Desktop CI at `67f28d0` passed Windows x64, macOS Intel/ARM64 and Linux x64/ARM64
+in [run 35130682952](https://github.com/medking82/hardware-pulse/actions/runs/35130682952).
+This confirms the locked-layout capacity fixture and physical temporary-path
+corrections following the failures at `3653143`. Production layout and the
+legacy-import reparse guard were not weakened. Windows ARM64 still failed and
+remains outside the x64 release scope. Earlier failed logs remain local in
+`vendor/ci-desktop-3653143-failed.log`; their failure state is superseded for
+the five passing targets. These development-package checks do not establish
+final shared installer or installed acceptance. Windows collector and Windows
+adapter CI previously passed at `3653143`; repeat affected final-commit gates.
 
 The five-minute matched-configuration UI runs in
 [performance evidence](WINDOWS-SHARED-PERFORMANCE.md) completed, but shared used

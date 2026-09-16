@@ -151,6 +151,52 @@ Each directory retains result, sample, readiness, completion and stderr files,
 including Core/adapter/harness hashes. Launch logs are
 `vendor/soak-wpf-dynamic-300.log` and `vendor/soak-shared-dynamic-300.log`.
 
+## Dynamic background attribution: contrast off/on
+
+Four serial runs on the same Windows x64 machine used 440 x 640 DIP
+(660 x 960 physical pixels), 16 logical processors, 10 seconds warmup and
+120 requested measured seconds (60 samples). Each host used identical binary
+hashes for its off/on pair. No builds or UI tests ran concurrently; all four
+processes exited cooperatively. These are existing UI harness binaries, not
+the final installed release.
+
+| Host | Local Contrast | CPU % | Working set MiB | Private MiB | Background updates |
+| --- | --- | ---: | ---: | ---: | ---: |
+| WPF | Off | 0.079 | 124.04 | 108.54 | 2812 |
+| WPF | On | 0.533 | 143.00 | 125.85 | 2813 |
+| Shared | Off | 0.459 | 151.98 | 182.52 | 3243 |
+| Shared | On | 0.866 | 172.70 | 202.74 | 3304 |
+
+The observed CPU increment is 0.454 percentage points for WPF and 0.406 for
+shared; working-set increments are 18.96 and 20.72 MiB. Shared's higher total
+CPU is already present with Local Contrast disabled. This contradicts an
+explanation attributing the entire gap to contrast capture/analysis. It does
+not isolate rendering, allocation or collector costs and is not statistical
+evidence that shared contrast is cheaper. The two frameworks deliver different
+background update counts despite the same requested interval.
+
+Both harnesses render the animated gradient inside the measured process, so
+their counters include test-background rendering as well as Pulse. A common
+background in a separately measured process is the next isolation boundary;
+do not optimize production sampling from these combined counters. Live
+collectors, FPS and quota requests remain excluded.
+
+Raw evidence directories under `vendor/`:
+
+- WPF off: `ui-measure-10a6f457bdc74d6d881f148c2e8f3aac`.
+- WPF on: `ui-measure-079072e163514f638cc4254973420773`.
+- Shared off: `ui-measure-9bb07045b2f94100b381f41a20d3305f`.
+- Shared on: `ui-measure-19c58cc33c3746658918836855c6397a`.
+
+WPF app SHA-256:
+`05C2C949EA60FCE0DB502A4F8D93E4B11330EA43A411D5F3DE5A44D3EABE2049`.
+Shared app SHA-256:
+`12E9B0C0B000A905B8A5F692EFF682AF47C174F50E3E81F51830AB8998B20482`.
+Each directory includes all assembly hashes, raw samples, readiness/completion
+and stderr. Launch logs are `vendor/attribution-{wpf,shared}-dynamic-{off,on}.log`.
+The WPF binary was rebuilt by validation since the five-minute comparison;
+only its new matched pair is used for this increment calculation.
+
 ## Remaining release evidence
 
 - Measure the actual installed UI plus collector and all helper processes,
