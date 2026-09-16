@@ -82,13 +82,16 @@ Type: files; Name: "{app}\PulseUpgrade.exe"
 Name: "{group}\Hardware Pulse"; Filename: "{app}\HardwarePulse.exe"
 
 [Run]
-Filename: "{app}\HardwarePulse.exe"; Description: "{cm:LaunchPulse}"; Flags: postinstall nowait skipifsilent runasoriginaluser; Check: not IsPulseUpdate
-Filename: "{app}\HardwarePulse.exe"; Flags: nowait runasoriginaluser; Check: IsPulseUpdate
+Filename: "{app}\HardwarePulse.exe"; Description: "{cm:LaunchPulse}"; Flags: postinstall nowait skipifsilent runasoriginaluser; Check: IsPulseInstallReady and not IsPulseUpdate
+; Both launch paths must run after ssPostInstall prerequisite/startup work.
+Filename: "{app}\HardwarePulse.exe"; Flags: postinstall nowait runasoriginaluser; Check: IsPulseInstallReady and IsPulseUpdate
 
 [UninstallRun]
 Filename: "{app}\HardwarePulse.exe"; Parameters: "--remove-startup"; Flags: runhidden waituntilterminated; RunOnceId: "RemovePulseStartup"
 
 [Code]
+#include "InstallOutcome.iss"
+
 function LocalText(English, Simplified, Traditional: String): String;
 begin
   if ActiveLanguage = 'zhCN' then Result := Simplified
@@ -98,6 +101,13 @@ end;
 function IsPulseUpdate(): Boolean;
 begin
   Result := ExpandConstant('{param:PULSEUPDATE|0}') = '1';
+end;
+procedure CurPageChanged(CurPageID: Integer);
+begin
+  if (CurPageID = wpFinished) and not IsPulseInstallReady() then begin
+    WizardForm.FinishedHeadingLabel.Caption := LocalText('Hardware Pulse setup is incomplete','Hardware Pulse 安装未完成','Hardware Pulse 安裝未完成');
+    WizardForm.FinishedLabel.Caption := LocalText('Application files may have been updated, but prerequisite or startup setup failed. Hardware Pulse was not launched. Resolve the reported error and run setup again.','应用文件可能已更新，但依赖组件或启动项设置失败。未启动 Hardware Pulse。请解决报告的错误后重新运行安装程序。','應用程式檔案可能已更新，但相依元件或啟動項目設定失敗。未啟動 Hardware Pulse。請解決報告的錯誤後重新執行安裝程式。');
+  end;
 end;
 #ifdef Win7Compatibility
 procedure InitializeWizard();
@@ -212,6 +222,7 @@ begin
     if not Exec(ExpandConstant('{app}\HardwarePulse.exe'), '--install-startup', '', SW_HIDE, ewWaitUntilTerminated, Code) then
       RaiseException(LocalText('Could not register Hardware Pulse startup.','无法注册 Hardware Pulse 启动项。','無法註冊 Hardware Pulse 啟動項目。'));
     if Code <> 0 then RaiseException(LocalText('Startup registration failed. See LocalAppData\HardwarePulse\host-error.txt.','启动项注册失败。请查看 LocalAppData\HardwarePulse\host-error.txt。','啟動項目註冊失敗。請查看 LocalAppData\HardwarePulse\host-error.txt。'));
+    MarkPulseInstallComplete();
   end;
 end;
 

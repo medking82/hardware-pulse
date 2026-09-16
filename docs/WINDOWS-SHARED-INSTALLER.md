@@ -40,6 +40,61 @@ Local evidence: `vendor/test-installer-collector-gate.log`, the referenced
 `vendor/validate-installer-collector-gate.log`. The identity log records the pass
 marker followed by `InitializeSetup returned False; aborting.`.
 
+## Post-install outcome and relaunch
+
+An isolated Inno probe exposed a prerequisite/startup failure-reporting defect:
+an exception raised at `ssPostInstall` can be displayed/logged while setup still
+exits zero, retaining replaced files. The old update `[Run]` entry also lacked
+`postinstall`, so it could launch the application before that startup work.
+The official [installation order](https://jrsoftware.org/ishelp/topic_installorder.htm)
+documents the late no-rollback boundary; the
+[event contract](https://jrsoftware.org/ishelp/topic_scriptevents.htm) provides
+`GetCustomSetupExitCode` for overriding an otherwise successful result.
+
+`InstallOutcome.iss` now holds an initially false completion state. The installer
+marks it complete only after prerequisite checks and startup setup return
+success. Both launch entries run at `postinstall` and require that state. An
+otherwise successful setup exits 10 when it is still false; normal completion
+remains zero and native preflight/error exit codes retain priority. The completed
+wizard page describes incomplete setup instead of claiming success. This does
+not restore replaced binaries, tasks or prerequisites and must not be presented
+as full upgrade rollback.
+
+`Test-InstallerRollback.ps1` builds a lowest-privilege, x64, text-only installer
+in a unique `vendor/installer-rollback-*` directory. It requires a matching fixture
+token, refuses a different install destination, preserves a keeper file, registers
+no application/uninstaller/tasks, and uses only a harmless `whoami.exe` launch
+entry to observe execution ordering. Baseline and `-GuardOutcome` runs cover:
+
+| Injected phase | Old exit / launch | Guarded exit / launch | Files after setup |
+| --- | --- | --- | --- |
+| PrepareToInstall | 7 / no | 7 / no | old payload preserved |
+| After first file callback | 0 / yes | 0 / yes | new payload retained |
+| ssPostInstall | 0 / yes | 10 / no | new payload retained |
+| Success control | 0 / yes | 0 / yes | new payload installed |
+
+The file-callback case is an observation of Inno's exception handling, not a
+failure caught by this post-install completion guard. Shipping setup has no such
+callback. The guard specifically covers its prerequisite/startup work. Expanded
+modern/Win7 scripts must contain both guarded late launch entries and the custom
+exit/completion contract. The harmless probes exercise the actual shared include;
+they do not install either production variant or change the user's application.
+
+Allowed scope is outcome reporting, launch ordering, compiled fixtures and this
+record. File replacement, task XML ownership/migration, driver installation rules,
+user profiles and version/channel selection remain unchanged. Rollback of this
+source change is a Git revert. Final file/task rollback composition still needs
+an explicit transaction design and isolated installed acceptance.
+
+Evidence: `vendor/test-installer-outcome-baseline-final.log`,
+`vendor/test-installer-outcome-guarded-final2.log`, and the per-case setup logs
+they reference. The successful guarded case records post-install completion
+before the actual run entry; the failing case has no run entry and exits 10.
+Both compiled shipping variants passed `Test-InstallerVariants.ps1`
+(`vendor/test-installer-outcome-variants.log`). Full `Validate.ps1 -ModernCore`
+passed (`vendor/validate-installer-outcome.log`). The actual interactive failure
+page and production installation have not been exercised by these silent fixtures.
+
 ## Remaining installer contract
 
 The shared variant must select the verified shared UI/worker payload, invoke the

@@ -11,6 +11,9 @@ foreach($legacy in @($false,$true)){
     if($legacy){$arguments=@('/DWin7Compatibility')+$arguments}
     & "$PSScriptRoot/Run-Hidden.ps1" $compiler $arguments $root | Out-File (Join-Path $output ($name+'.log')) -Encoding utf8
     $script=[IO.File]::ReadAllText($expanded)
+    foreach($required in @('Check: IsPulseInstallReady and not IsPulseUpdate','Flags: postinstall nowait runasoriginaluser; Check: IsPulseInstallReady and IsPulseUpdate','MarkPulseInstallComplete();','GetCustomSetupExitCode','if PulseInstallReady then Result := 0 else Result := 10','Hardware Pulse setup is incomplete')){
+        if(-not $script.Contains($required)){throw "Install outcome guard missing in ${name}: $required"}
+    }
     foreach($required in @('AppId={{75E8FDDA-D799-4D8A-882D-972DC72151C2}','ArchitecturesAllowed=x64compatible','PrivilegesRequired=admin','Release >= 528040','--install-startup','CollectorRunning(Service, ExpectedPath)','IsPulseCollector(Process.ExecutablePath, CommandLine, ExpectedPath)',"OR Name = ''HardwarePulse.Collector.exe''",'\worker\HardwarePulse.Collector.exe')){
         if(-not $script.Contains($required)){throw "Shared installer contract missing in ${name}: $required"}
     }
