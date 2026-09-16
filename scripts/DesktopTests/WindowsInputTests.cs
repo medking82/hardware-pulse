@@ -23,7 +23,9 @@ static class WindowsInputTests {
     static nint HitWindow(Point point)=>GetAncestor(WindowFromPoint(point),2); // GA_ROOT includes native child surfaces.
     static string Describe(nint window) {
         var name=new StringBuilder(256);GetClassName(window,name,name.Capacity);GetWindowThreadProcessId(window,out uint process);GetWindowRect(window,out var rect);
-        return $"hwnd={window} root={GetAncestor(window,2)} class={name} pid={process} rect={rect.Left},{rect.Top},{rect.Right},{rect.Bottom} exStyle={GetWindowLongPtrW(window,-20).ToInt64():X}";
+        string processName="unavailable";
+        try{using var owner=System.Diagnostics.Process.GetProcessById((int)process);processName=owner.ProcessName;}catch(ArgumentException){}catch(System.ComponentModel.Win32Exception){}
+        return $"hwnd={window} root={GetAncestor(window,2)} class={name} pid={process} process={processName} rect={rect.Left},{rect.Top},{rect.Right},{rect.Bottom} exStyle={GetWindowLongPtrW(window,-20).ToInt64():X}";
     }
     static void Pump(){using var slice=new CancellationTokenSource(TimeSpan.FromMilliseconds(150));Dispatcher.UIThread.MainLoop(slice.Token);}
     static void Until(Func<bool> condition,string message) {
@@ -35,7 +37,7 @@ static class WindowsInputTests {
         if(!OperatingSystem.IsWindows())return;
         bool refused=false;try{new WindowsWindowInput(GetDesktopWindow());}catch(InvalidOperationException){refused=true;}
         Check(refused,"Input adapter accepted a foreign window");
-        var below=new Window{Width=300,Height=220,Position=new PixelPoint(160,160),Background=Brushes.Blue};
+        var below=new Window{Width=300,Height=220,Position=new PixelPoint(160,160),Background=Brushes.Blue,Topmost=true};
         var above=new Window{Width=300,Height=220,Position=new PixelPoint(160,160),Background=Brushes.Red,Topmost=true};
         below.Show();above.Show();Pump();
         var handle=above.TryGetPlatformHandle()!.Handle;
@@ -52,7 +54,11 @@ static class WindowsInputTests {
             var sample=Sample();
             long before=GetWindowLongPtrW(handle,-20).ToInt64();
             input.SetPassThrough(true);
-            Until(()=>HitWindow(sample)==below.TryGetPlatformHandle()!.Handle,"Locked window still intercepts native hit testing");
+            try{Until(()=>HitWindow(sample)==below.TryGetPlatformHandle()!.Handle,"Locked native hit target is not the underlying fixture");}
+            finally {
+                Console.WriteLine("INPUT_LOCKED hit "+Describe(WindowFromPoint(sample)));
+                Console.WriteLine("INPUT_LOCKED below "+Describe(below.TryGetPlatformHandle()!.Handle));
+            }
             var dc=GetDC(0);try{Check(GetPixel(dc,sample.X,sample.Y)==0x0000ff,"Locked window lost its visible red content");}finally{ReleaseDC(0,dc);}
             input.SetPassThrough(true);
             input.SetPassThrough(false);
