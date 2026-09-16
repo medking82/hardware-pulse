@@ -16,7 +16,7 @@ $arguments=@("/O$output","/DProbeToken=$token","/DProbePayload=$payload","$root/
 if($GuardOutcome){$arguments=@('/DGuardInstallOutcome')+$arguments}
 & "$PSScriptRoot/Run-Hidden.ps1" $compiler $arguments $root | Out-File "$output/compile.log" -Encoding utf8
 $results=@()
-foreach($phase in @('before','during','after','success')){
+foreach($phase in @('before','prerequisite','during','after','success')){
     $fixture=Join-Path $output $phase
     $installed=Join-Path $fixture 'installed'
     $null=New-Item -ItemType Directory -Path $installed
@@ -35,14 +35,16 @@ foreach($phase in @('before','during','after','success')){
     $content=if(Test-Path -LiteralPath "$installed/replaced.txt"){[IO.File]::ReadAllText("$installed/replaced.txt")}else{'<missing>'}
     $new=Test-Path -LiteralPath "$installed/new.txt"
     if([IO.File]::ReadAllText("$installed/keeper.txt") -ne 'user keeper'){throw "Probe changed a keeper: $phase"}
-    $expected=if($phase -eq 'before'){7}elseif($phase -eq 'after' -and $GuardOutcome){10}else{0}
+    $preflight=$phase -in @('before','prerequisite')
+    $expected=if($preflight){7}elseif($phase -eq 'after' -and $GuardOutcome){10}else{0}
     if($code -ne $expected){throw "Unexpected exit code for ${phase}: $code; inspect $fixture/setup.log"}
     $launch=Test-Path -LiteralPath "$fixture/launch-permitted.txt"
     if($launch -ne ($expected -eq 0)){throw "Launch gate mismatch for $phase"}
-    if($phase -eq 'before' -and ($content -ne 'old payload' -or $new)){throw 'Preflight failure changed payload'}
-    if($phase -ne 'before' -and ($content -ne 'new payload' -or -not $new)){throw 'Observed file replacement behavior changed; inspect the rollback contract'}
+    if($preflight -and ($content -ne 'old payload' -or $new)){throw 'Preflight failure changed payload'}
+    if(-not $preflight -and ($content -ne 'new payload' -or -not $new)){throw 'Observed file replacement behavior changed; inspect the rollback contract'}
     $log=[IO.File]::ReadAllText("$fixture/setup.log")
     if($phase -ne 'success' -and -not $log.Contains('PROBE deliberate failure')){throw "Failure did not reach the intended boundary: $phase"}
+    if($phase -eq 'prerequisite' -and -not $log.Contains('PROBE prerequisite extracted before file replacement')){throw 'Prerequisite probe did not extract its harmless input'}
     $executed=$log.Contains('whoami.exe')
     if($executed -ne $launch){throw "Launch execution mismatch for $phase"}
     if($GuardOutcome -and $executed -and (-not $log.Contains('PROBE post-install completed') -or $log.IndexOf('PROBE post-install completed') -gt $log.IndexOf('whoami.exe'))){throw 'Launch ran without completed post-install work'}

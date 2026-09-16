@@ -127,6 +127,45 @@ Both compiled shipping variants passed `Test-InstallerVariants.ps1`
 passed (`vendor/validate-installer-outcome.log`). The actual interactive failure
 page and production installation have not been exercised by these silent fixtures.
 
+## Prerequisite preflight before file replacement
+
+PawnIO detection/extraction/install now runs in `PrepareToInstall`, after the
+existing collector shutdown check and before application file replacement.
+`PrepareExistingCollector` retains the original process/path/session checks.
+A preflight failure returns an error string and does not reach startup task
+registration or either launch entry. The pinned prerequisite is the first
+modern `[Files]` entry with `dontcopy`, explicitly extracted to `{tmp}` only when
+missing. This also avoids decompressing the whole solid-compressed app payload
+just to reach the prerequisite. Win7 still has no PawnIO payload or execution.
+
+Inno documents [prerequisite preflight](https://jrsoftware.org/ishelp/topic_scriptevents.htm)
+and [temporary extraction](https://jrsoftware.org/ishelp/topic_isxfunc_extracttemporaryfile.htm).
+This moves an existing operation; it does not change the driver version,
+detection, arguments, privilege or success requirements. No installed driver
+was changed during development. If driver installation itself changes system
+state and then fails, this change does not roll that third-party state back.
+An existing collector may already have stopped; the old application files and
+tasks remain, and setup reports the prerequisite error rather than relaunching.
+
+Allowed scope: installer ordering, compiled-variant assertions, one harmless
+preflight probe and this evidence. No application/task migration implementation,
+profile or driver lifecycle redesign. Rollback is a source revert. The existing
+post-install guard remains necessary for startup registration failures.
+
+The lowest-privilege probe now extracts a harmless text prerequisite and then
+deliberately fails in preflight. It exits 7 with the old payload and keeper
+unchanged, no new payload and no launch. Other before/during/after/success cases
+retain their previous observed behavior. This verifies Inno's failure boundary,
+not an actual PawnIO installation or complete production rollback.
+Modern, Win7 and shared variants compile; expanded-script checks require
+preflight extraction/execution and reject PawnIO work at `ssPostInstall`.
+Shared compilation still uses a development payload, not a final verified package.
+
+Evidence: `vendor/test-prerequisite-preflight-variants.log`,
+`vendor/test-prerequisite-preflight-probe.log`, and
+`vendor/installer-rollback-0528716f50504608986834e05d46069c/result.json`.
+Repository validation also passed (`vendor/validate-prerequisite-preflight.log`).
+
 ## Remaining installer contract
 
 The shared variant must select the verified shared UI/worker payload, invoke the

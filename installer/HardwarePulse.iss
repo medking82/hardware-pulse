@@ -67,6 +67,11 @@ zhCN.LaunchPulse=启动 Hardware Pulse
 zhTW.LaunchPulse=啟動 Hardware Pulse
 
 [Files]
+#ifndef Win7Compatibility
+; Extract during prerequisite preflight, before replacing application files.
+; Keep first for bounded extraction cost with solid compression.
+Source: "..\vendor\PawnIO-2.2.0.exe"; Flags: dontcopy
+#endif
 #ifdef Win7Compatibility
 Source: "..\build\app\*"; DestDir: "{app}"; Excludes: "tools\PresentMon.exe"; Flags: ignoreversion recursesubdirs createallsubdirs
 #else
@@ -75,7 +80,6 @@ Source: "..\build\windows-shared\app\*"; DestDir: "{app}"; Flags: ignoreversion 
 #else
 Source: "..\build\app\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 #endif
-Source: "..\vendor\PawnIO-2.2.0.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall
 #endif
 
 [InstallDelete]
@@ -174,7 +178,7 @@ begin
   end;
 end;
 
-function PrepareToInstall(var NeedsRestart: Boolean): String;
+function PrepareExistingCollector(): String;
 var Locator, Service, Owner: Variant;
     Runtime, Sid, ExpectedPath: String;
     Attempt: Integer;
@@ -232,12 +236,15 @@ end;
 
 #endif
 
-procedure CurStepChanged(CurStep: TSetupStep);
+function PrepareToInstall(var NeedsRestart: Boolean): String;
 var Code: Integer;
 begin
-  if CurStep = ssPostInstall then begin
+  Result := PrepareExistingCollector();
+  if Result <> '' then Exit;
+  try
 #ifndef Win7Compatibility
     if not PawnIOPresent() then begin
+      ExtractTemporaryFile('PawnIO-2.2.0.exe');
       if not Exec(ExpandConstant('{tmp}\PawnIO-2.2.0.exe'), '-install', '', SW_HIDE, ewWaitUntilTerminated, Code) then
         RaiseException(LocalText('Could not launch the PawnIO prerequisite installer.','无法启动 PawnIO 依赖安装程序。','無法啟動 PawnIO 相依元件安裝程式。'));
       if Code <> 0 then RaiseException(LocalText('PawnIO installation failed. Exit code: ','PawnIO 安装失败。退出代码：','PawnIO 安裝失敗。結束代碼：') + IntToStr(Code));
@@ -245,6 +252,15 @@ begin
         RaiseException(LocalText('PawnIO setup finished, but its library or driver registration is missing. Hardware Pulse startup was not registered. Check the PawnIO installation and run setup again.','PawnIO 安装结束，但缺少库文件或驱动注册。尚未注册 Hardware Pulse 启动项。请检查 PawnIO 后重新安装。','PawnIO 安裝結束，但缺少程式庫或驅動程式註冊。尚未註冊 Hardware Pulse 啟動項目。請檢查 PawnIO 後重新安裝。'));
     end;
 #endif
+  except
+    Result := LocalText('Hardware Pulse prerequisite setup failed: ','Hardware Pulse 依赖组件设置失败：','Hardware Pulse 相依元件設定失敗：') + GetExceptionMessage + LocalText(' No application files were replaced.',' 尚未替换应用文件。',' 尚未取代應用程式檔案。');
+  end;
+end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+var Code: Integer;
+begin
+  if CurStep = ssPostInstall then begin
     if not Exec(ExpandConstant('{#StartupExecutable}'), '--install-startup', '', SW_HIDE, ewWaitUntilTerminated, Code) then
       RaiseException(LocalText('Could not register Hardware Pulse startup.','无法注册 Hardware Pulse 启动项。','無法註冊 Hardware Pulse 啟動項目。'));
     if Code <> 0 then RaiseException(LocalText('Startup registration failed. See LocalAppData\HardwarePulse\{#StartupErrorFile}.','启动项注册失败。请查看 LocalAppData\HardwarePulse\{#StartupErrorFile}。','啟動項目註冊失敗。請查看 LocalAppData\HardwarePulse\{#StartupErrorFile}。'));

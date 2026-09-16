@@ -22,6 +22,7 @@ RestartApplications=no
 OutputBaseFilename=rollback-probe
 
 [Files]
+Source: "{#ProbePayload}"; DestName: "prerequisite.txt"; Flags: dontcopy
 Source: "{#ProbePayload}"; DestDir: "{app}"; DestName: "replaced.txt"; Flags: ignoreversion; AfterInstall: AfterFirstFile
 Source: "{#ProbePayload}"; DestDir: "{app}"; DestName: "new.txt"; Flags: ignoreversion
 
@@ -53,7 +54,7 @@ function InitializeSetup(): Boolean;
 var Marker: AnsiString;
 begin
   Result := LoadStringFromFile(ExpandConstant('{src}\fixture-owner.txt'), Marker) and (Marker = '{#ProbeToken}');
-  Result := Result and ((Phase() = 'before') or (Phase() = 'during') or (Phase() = 'after') or (Phase() = 'success'));
+  Result := Result and ((Phase() = 'before') or (Phase() = 'prerequisite') or (Phase() = 'during') or (Phase() = 'after') or (Phase() = 'success'));
 end;
 
 function PrepareToInstall(var NeedsRestart: Boolean): String;
@@ -62,7 +63,18 @@ begin
   if CompareText(ExpandConstant('{app}'), ExpandConstant('{src}\installed')) <> 0 then
     Result := 'Probe refuses a different destination'
   else if Phase() = 'before' then
-    Result := 'PROBE deliberate failure before file replacement';
+    Result := 'PROBE deliberate failure before file replacement'
+  else if Phase() = 'prerequisite' then begin
+    try
+      ExtractTemporaryFile('prerequisite.txt');
+      if not FileExists(ExpandConstant('{tmp}\prerequisite.txt')) then
+        RaiseException('Probe prerequisite extraction failed');
+      Log('PROBE prerequisite extracted before file replacement');
+      RaiseException('PROBE deliberate failure after prerequisite extraction');
+    except
+      Result := GetExceptionMessage;
+    end;
+  end;
 end;
 
 procedure AfterFirstFile();

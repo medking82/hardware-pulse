@@ -44,6 +44,11 @@ foreach($name in $variants){
         }
         if($script -match 'PawnIO|MinVersion=10\.0'){throw 'Legacy installer includes incompatible driver or OS gate'}
     }else{
+        $preflight=[regex]::Match($script,'(?s)function PrepareToInstall\(var NeedsRestart: Boolean\): String;.*?(?=procedure CurStepChanged)').Value
+        $postinstall=$script.Substring($script.IndexOf('procedure CurStepChanged'))
+        if(-not $preflight.Contains('Result := PrepareExistingCollector();') -or -not $preflight.Contains("ExtractTemporaryFile('PawnIO-2.2.0.exe')") -or -not $preflight.Contains("'-install'")){throw 'Prerequisite must run after collector preflight and before app replacement'}
+        if($postinstall.Contains('PawnIO')){throw 'Prerequisite must not run after file replacement'}
+        if(-not $script.Contains('Source: "..\vendor\PawnIO-2.2.0.exe"; Flags: dontcopy')){throw 'Prerequisite must be extracted explicitly'}
         foreach($required in @('MinVersion=10.0.19045','PawnIO-2.2.0.exe','if not PawnIOPresent() then begin')){
             if(-not $script.Contains($required)){throw "Modern installer contract missing: $required"}
         }
