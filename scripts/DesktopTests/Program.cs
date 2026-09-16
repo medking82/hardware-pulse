@@ -17,6 +17,7 @@ static class Tests {
             SettingsTests.Run(null);
             LocalizationTests.Run(null,native:true);
             TrayTests.Run(native:true);
+            SamplingRecoveryTests.Reopen();
             FloatingMonitorTests.Run();
             WindowsInputTests.Run();
             MacInputTests.Run();

@@ -6,6 +6,8 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 
 ## Unreleased
 
+- Preserve one shared Monitor sampling worker across hide/show cycles; reopening no longer creates extra polling loops.
+
 - Shared Windows/macOS Monitor close requests hide to an available tray/menu bar, preserving sampling and the floating monitor. Open restores the same window; Quit and OS/application shutdown still close it. Linux retains close-to-exit while tray reachability is not established. Smoke/measurement runs retain their bounded shutdown behavior.
 
 ## 0.7.0-preview.3 — 2026-09-16

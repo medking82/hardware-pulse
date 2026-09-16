@@ -22,7 +22,18 @@ static class SamplingRecoveryTests {
         Check(done(),"Sampling recovery timed out");
     }
     static bool Has(MonitorWindow window,string text)=>window.GetVisualDescendants().OfType<TextBlock>().Any(x=>x.Text==text);
+    public static void Reopen() {
+        var source=new IntermittentSource();var window=new MonitorWindow(source);window.Show();
+        try {
+            Until(()=>Has(window,"21.0%"));
+            var firstWorker=window.Sampling;
+            for(int i=0;i<3;i++){window.Hide();window.Show();}
+            Check(ReferenceEquals(firstWorker,window.Sampling),"Reopening Monitor must retain one sampling worker");
+        } finally {window.Close();Until(()=>window.Sampling.IsCompleted);}
+        Console.WriteLine("PASS Monitor hide/show retains a single sampling worker and closes cleanly");
+    }
     public static void Run() {
+        Reopen();
         var source=new IntermittentSource();var window=new MonitorWindow(source);window.Show();
         try {
             Until(()=>Has(window,"21.0%"));

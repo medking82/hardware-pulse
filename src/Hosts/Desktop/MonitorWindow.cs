@@ -121,8 +121,13 @@ public sealed class MonitorWindow : Window {
             var screen=Screens.ScreenFromWindow(this);
             if(screen!=null){Width=Math.Max(MinWidth,Math.Min(Width,screen.WorkingArea.Width/screen.Scaling));Height=Math.Max(MinHeight,Math.Min(Height,screen.WorkingArea.Height/screen.Scaling));}
         };
-        if(start)Opened+=(_,_)=>Sampling=SampleAsync();
+        if(start)Opened+=StartSampling;
         Closed+=(_,_)=>{stop.Cancel();FloatingMonitor?.Close();quota.Dispose();SaveNow();};
+    }
+    void StartSampling(object? sender,EventArgs args) {
+        // Hide/Show raises Opened again. A Monitor owns exactly one polling loop.
+        Opened-=StartSampling;
+        Sampling=SampleAsync();
     }
     public void OpenFloatingMonitor() {
         if(stop.IsCancellationRequested)return;
