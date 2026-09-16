@@ -132,6 +132,14 @@ requires native client-width acknowledgement before the unchanged overflow check
 Until native CI passes, neither the resize hypothesis nor X11 pointer routing is
 considered verified.
 
+Run `35066793428` retained the Linux failure: requested width 360, actual client
+440 and widest text 408 after three seconds. The wait only ran managed jobs and
+slept; unlike the existing localization/tray fixtures it did not enter Avalonia's
+native event loop. Both the resize wait and X11 pointer fixture now use the same
+bounded `MainLoop` pump as those existing native tests. Original assertions stay
+required. Verification remains pending; no additional Linux product scope is added
+while Windows 7 has priority.
+
 <!-- sop-risk-classification: {"facts":{"blast_radius":"isolated","change_kind":"implementation","data_boundary":"ordinary","destructive":"no","failure_cost":"low","irreversibility":"reversible","operational_controls":"not_applicable","privilege_boundary":"unchanged","project_policy":"default","rollback":"easy","scope_knowledge":"known","uncertainty":"low","verification":"deterministic"},"formal_review":"not_required","kind":"risk-classification-assessment","reasons":{"formal_review":["routine_no_review"],"risk":["no_high_risk_signal"]},"risk":"routine","schema_version":2} -->
 
 | Area | Current evidence | Work before stable delivery |

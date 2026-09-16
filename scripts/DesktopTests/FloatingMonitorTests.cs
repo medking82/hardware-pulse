@@ -32,7 +32,7 @@ static class FloatingMonitorTests {
             // A real window manager acknowledges resize asynchronously, especially
             // after removing/restoring decorations. RunJobs alone is not an acknowledgement.
             var resized=DateTime.UtcNow.AddSeconds(3);
-            while(Math.Abs(floating.ClientSize.Width-360)>1&&DateTime.UtcNow<resized){Dispatcher.UIThread.RunJobs();Thread.Sleep(10);}
+            while(Math.Abs(floating.ClientSize.Width-360)>1&&DateTime.UtcNow<resized){using var slice=new CancellationTokenSource(TimeSpan.FromMilliseconds(20));Dispatcher.UIThread.MainLoop(slice.Token);}
             Dispatcher.UIThread.RunJobs();
             Console.WriteLine($"FLOATING_RESIZE settled client={floating.ClientSize.Width} widest={floating.GetVisualDescendants().OfType<TextBlock>().Max(x=>x.Bounds.Width)}");
             Check(Math.Abs(floating.ClientSize.Width-360)<=1,"Floating native resize was not acknowledged");
