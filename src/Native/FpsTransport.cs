@@ -12,10 +12,18 @@ namespace HardwarePulse {
     // path or arguments for an elevated executable. Disconnect expires capture.
     public static class FpsProtocol {
         public const int RequestSize=20,ResponseSize=44;
-        static SecurityIdentifier CurrentUser(){using(var identity=WindowsIdentity.GetCurrent())return identity.User;}
+        static SecurityIdentifier CurrentUser(){
+#if NET
+            if(!OperatingSystem.IsWindows())throw new PlatformNotSupportedException();
+#endif
+            using(var identity=WindowsIdentity.GetCurrent())return identity.User;}
         public static readonly SecurityIdentifier User=CurrentUser();
         static readonly int Session=Process.GetCurrentProcess().SessionId;
-        public static string PipeName {get{return "HardwarePulse-Fps-v1-"+User.Value+"-"+Session;}}
+        public static string PipeName {get{
+#if NET
+            if(!OperatingSystem.IsWindows())throw new PlatformNotSupportedException();
+#endif
+            return "HardwarePulse-Fps-v1-"+User.Value+"-"+Session;}}
         public static byte[] Request(int pid,long started,long generation){using(var memory=new MemoryStream()){using(var writer=new BinaryWriter(memory)){writer.Write(pid);writer.Write(started);writer.Write(generation);return memory.ToArray();}}}
         public static byte[] Response(FrameMetrics value){using(var memory=new MemoryStream()){using(var writer=new BinaryWriter(memory)){writer.Write(value.Current);writer.Write(value.Average);writer.Write(value.Minimum);writer.Write(value.Low);writer.Write(value.Count);writer.Write(value.Ready?1:0);writer.Write(value.Status=="Live"?1:value.Status=="FPS capture needs administrator"?2:value.Status=="FPS capture failed"?3:0);return memory.ToArray();}}}
         public static FrameMetrics Metrics(byte[] bytes){using(var reader=new BinaryReader(new MemoryStream(bytes))){var value=new FrameMetrics{Current=reader.ReadDouble(),Average=reader.ReadDouble(),Minimum=reader.ReadDouble(),Low=reader.ReadDouble(),Count=reader.ReadInt32(),Ready=reader.ReadInt32()==1};int status=reader.ReadInt32();value.Status=status==1?"Live":status==2?"FPS capture needs administrator":status==3?"FPS capture failed":"Waiting for frames";return value;}}
@@ -32,7 +40,11 @@ namespace HardwarePulse {
         [DllImport("kernel32.dll")] static extern bool CloseHandle(IntPtr handle);
         [DllImport("kernel32.dll",SetLastError=true)] static extern IntPtr OpenProcess(uint access,bool inherit,int pid);
         [DllImport("kernel32.dll",CharSet=CharSet.Unicode,SetLastError=true)] static extern bool QueryFullProcessImageName(IntPtr process,int flags,System.Text.StringBuilder name,ref int size);
-        public static bool OwnProcess(Process process){IntPtr token=IntPtr.Zero,handle=IntPtr.Zero;try{handle=OpenProcess(0x1000,false,process.Id);if(process.SessionId!=Session||handle==IntPtr.Zero||!OpenProcessToken(handle,8,out token))return false;using(var identity=new WindowsIdentity(token))return identity.User==User;}catch{return false;}finally{if(token!=IntPtr.Zero)CloseHandle(token);if(handle!=IntPtr.Zero)CloseHandle(handle);}}
+        public static bool OwnProcess(Process process){
+#if NET
+            if(!OperatingSystem.IsWindows())return false;
+#endif
+            IntPtr token=IntPtr.Zero,handle=IntPtr.Zero;try{handle=OpenProcess(0x1000,false,process.Id);if(process.SessionId!=Session||handle==IntPtr.Zero||!OpenProcessToken(handle,8,out token))return false;using(var identity=new WindowsIdentity(token))return identity.User==User;}catch{return false;}finally{if(token!=IntPtr.Zero)CloseHandle(token);if(handle!=IntPtr.Zero)CloseHandle(handle);}}
         public sealed class TargetLease : IDisposable {
             IntPtr handle;
             public TargetLease(int pid,long started){handle=OpenProcess(0x1000,false,pid);if(handle==IntPtr.Zero||!Target(pid,started)){Dispose();throw new IOException("FPS target no longer available");}}
@@ -49,6 +61,7 @@ namespace HardwarePulse {
             return true;
         }
     }
+#if !NET
     public sealed class FpsServer : IDisposable {
         readonly PulsePaths paths;readonly Thread worker;readonly object gate=new object();NamedPipeServerStream pipe;volatile bool stopped;
         [DllImport("kernel32.dll",SetLastError=true)] static extern bool GetNamedPipeClientProcessId(Microsoft.Win32.SafeHandles.SafePipeHandle pipe,out uint pid);
@@ -79,6 +92,7 @@ namespace HardwarePulse {
         }
         public void Dispose(){stopped=true;lock(gate){if(pipe!=null)pipe.Dispose();}if(Thread.CurrentThread!=worker)worker.Join(7000);}
     }
+#endif
     public sealed class FpsClient : IDisposable {
         readonly string exe;readonly object gate=new object();Thread worker;NamedPipeClientStream pipe;bool stopped;int target;long birth,generation;FrameMetrics latest=new FrameMetrics{Status="Waiting for FPS collector"};
         [DllImport("kernel32.dll",SetLastError=true)] static extern bool GetNamedPipeServerProcessId(Microsoft.Win32.SafeHandles.SafePipeHandle pipe,out uint pid);

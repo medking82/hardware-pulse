@@ -9,6 +9,7 @@
     <PackageReference Include="System.Management" Version="10.0.0" />
     <Compile Include="../AntigravityQuota.cs;../QuotaProviders.cs" />
     <Compile Include="../Models.cs;../SensorProfile.cs" />
+    <Compile Include="../../../Native/FpsTransport.cs;../../../Native/OverlayTarget.cs" />
     <Compile Include="../../Common/Modern/QuotaJson.cs" Link="QuotaJson.cs" />
     <Compile Include="../WindowsSystemReadings.cs" Link="WindowsSystemReadings.cs" />
     <ProjectReference Include="../../../Core/Pulse.Core.csproj" />

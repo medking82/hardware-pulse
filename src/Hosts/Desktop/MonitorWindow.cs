@@ -30,6 +30,7 @@ public sealed class MonitorWindow : Window {
     readonly HardwareSensorPanel sensors;
     readonly HardwareSensorPanel gpus;
     readonly HardwareSensorPanel windowsHardware;
+    readonly FpsPanel fps;
     readonly TextBlock cpuIdentityText=new(){Name="CpuIdentity",Opacity=.75,TextWrapping=TextWrapping.Wrap,IsVisible=false};
     public UiLanguage Language {get;}
     readonly PreviewSettingsStore? store;
@@ -66,8 +67,13 @@ public sealed class MonitorWindow : Window {
         claudeQuota.ReadingChanged+=reading=>FloatingMonitor?.PresentQuota(reading,"Claude");
         antigravityQuota=new CodexQuotaPanel(source.IsDemo,cancel=>DesktopQuotaReaders.Read(source.IsDemo,"Antigravity",cancel),inlineSettings:false,language:Language,provider:"Antigravity");body.Children.Add(antigravityQuota);
         antigravityQuota.ReadingChanged+=reading=>FloatingMonitor?.PresentQuota(reading,"Antigravity");
+        fps=new FpsPanel(Language,source.IsDemo);body.Children.Add(fps);
+        fps.Target=settings.FpsTarget;
+        fps.ReadingChanged+=snapshot=>FloatingMonitor?.PresentFps(snapshot);
+        fps.PreferenceChanged+=(on,target)=>{settings.Fps=on;settings.FpsTarget=target;SaveLater();};
+        fps.Enabled=settings.Fps;
         Language.Changed+=()=>{if(latestSnapshot!=null)Render(latestSnapshot);};
-        body.Children.Add(Language.Set(new TextBlock{TextWrapping=TextWrapping.Wrap,Opacity=.75},"Preview · FPS and Desktop overlay are not connected yet. Hardware support depends on the platform and device."));
+        body.Children.Add(Language.Set(new TextBlock{TextWrapping=TextWrapping.Wrap,Opacity=.75},"Preview · Windows FPS requires the matching installed collector. Hardware support depends on the platform and device."));
         var network=new StackPanel{Spacing=12,Margin=new Thickness(20)};
         network.Children.Add(Language.Set(new TextBlock{FontSize=21,FontWeight=FontWeight.SemiBold},"Network interface"));network.Children.Add(interfaces);
         network.Children.Add(refreshInterfaces);network.Children.Add(networkStatus);
@@ -155,7 +161,7 @@ public sealed class MonitorWindow : Window {
             if(screen!=null){Width=Math.Max(MinWidth,Math.Min(Width,screen.WorkingArea.Width/screen.Scaling));Height=Math.Max(MinHeight,Math.Min(Height,screen.WorkingArea.Height/screen.Scaling));}
         };
         if(start)Opened+=StartSampling;
-        Closed+=(_,_)=>{stop.Cancel();FloatingMonitor?.Close();quota.Dispose();claudeQuota.Dispose();antigravityQuota.Dispose();SaveNow();};
+        Closed+=(_,_)=>{stop.Cancel();FloatingMonitor?.Close();quota.Dispose();claudeQuota.Dispose();antigravityQuota.Dispose();fps.Dispose();SaveNow();};
     }
     void StartSampling(object? sender,EventArgs args) {
         // Hide/Show raises Opened again. A Monitor owns exactly one polling loop.
@@ -173,6 +179,7 @@ public sealed class MonitorWindow : Window {
         FloatingMonitor.PresentQuota(quota.CurrentReading);
         FloatingMonitor.PresentQuota(claudeQuota.CurrentReading,"Claude");
         FloatingMonitor.PresentQuota(antigravityQuota.CurrentReading,"Antigravity");
+        FloatingMonitor.PresentFps(fps.Current);
         FloatingMonitor.Show();if(!FloatingMonitor.SetLocked(false))return;
         if(FloatingMonitor.WindowState==WindowState.Minimized)FloatingMonitor.WindowState=WindowState.Normal;
         FloatingMonitor.Activate();

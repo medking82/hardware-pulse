@@ -15,6 +15,8 @@ public sealed class FloatingMonitorWindow : Window {
     readonly StackPanel sensors=new(){Spacing=8};
     readonly StackPanel gpus=new(){Spacing=8};
     readonly StackPanel windowsHardware=new(){Spacing=8};
+    readonly TextBlock fpsValue=new(){TextWrapping=TextWrapping.Wrap,IsVisible=false};
+    DesktopFpsSnapshot? fpsSnapshot;
     readonly TextBlock windowsStatus=new(){TextWrapping=TextWrapping.Wrap,IsVisible=false};
     MonitorSnapshot? lastSnapshot;
     bool lastPeaks;
@@ -89,7 +91,7 @@ public sealed class FloatingMonitorWindow : Window {
         rows.Children.Add(sensors);
         rows.Children.Add(gpus);
         rows.Children.Add(windowsStatus);rows.Children.Add(windowsHardware);
-        rows.Children.Add(quotaRows);
+        rows.Children.Add(quotaRows);rows.Children.Add(fpsValue);
         ApplyTextAppearance();
         Content=new ScrollViewer{Content=rows,HorizontalScrollBarVisibility=Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled};
         language.Changed+=Localize;Localize();
@@ -127,6 +129,11 @@ public sealed class FloatingMonitorWindow : Window {
             language.Set(lockStatus,"Could not change window lock. Reopen the floating monitor and try again.");return false;
         }
     }
+    public void PresentFps(DesktopFpsSnapshot snapshot) {
+        fpsSnapshot=snapshot;fpsValue.IsVisible=snapshot.Enabled;
+        fpsValue.Text=$"FPS {snapshot.Current} · AVG {snapshot.Average} · MIN {snapshot.Minimum} · 1% LOW {snapshot.Low}\n{language.T(snapshot.Status)}";
+        StyleReading(fpsValue);
+    }
     public void ApplyTextAppearance() {
         rows.Spacing=sensors.Spacing=gpus.Spacing=windowsHardware.Spacing=quotaRows.Spacing=appearance.FloatingRowSpacing;
         foreach(var row in rows.Children.Skip(1))StyleReading(row);
@@ -155,6 +162,7 @@ public sealed class FloatingMonitorWindow : Window {
         var family=DesktopFonts.ForLanguage(language.EffectiveLanguage);
         if(family is null)ClearValue(FontFamilyProperty);else FontFamily=family;
         RenderQuota();
+        if(fpsSnapshot!=null)PresentFps(fpsSnapshot);
         if(lastSnapshot!=null)Present(lastSnapshot,lastPeaks);
     }
     public void PresentQuota(QuotaReading? reading,string provider="Codex") {

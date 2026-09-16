@@ -20,6 +20,7 @@ static class Tests {
             SamplingRecoveryTests.Reopen();
             FloatingMonitorTests.Run();
             WindowsHardwareTests.Run(null);
+            FpsPanelTests.Run();
             WindowsInputTests.Run();
             MacInputTests.Run();
             MacMaterialTests.Run();
@@ -28,6 +29,7 @@ static class Tests {
             return;
         }
         AppBuilder.Configure<PulseApplication>().With(DesktopFonts.Options()).UseSkia().UseHeadless(new(){UseHeadlessDrawing=false}).SetupWithoutStarting();
+        if(args.Length>=1&&args[0]=="--fps"){FpsPanelTests.Run(args.Length==2?args[1]:null);return;}
         if(args.Length>=1&&args[0]=="--windows-hardware") {WindowsHardwareTests.Run(args.Length==2?args[1]:null);return;}
         var source=new MonitorSource(true);
         var window=new MonitorWindow(source,start:false);
@@ -73,6 +75,7 @@ static class Tests {
         NetworkAdapterTests.Run();
         HardwareSensorTests.Run(args.Length==1?args[0]:null);
         WindowsHardwareTests.Run(args.Length==1?args[0]:null);
+        FpsPanelTests.Run();
         GpuPresentationTests.Run(args.Length==1?args[0]:null);
         SessionMaxTests.Run();
         SamplingRecoveryTests.Run();

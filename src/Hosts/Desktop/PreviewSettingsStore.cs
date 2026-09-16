@@ -8,6 +8,8 @@ public sealed class PreviewSettings {
     public string Language="auto";
     public string? Network;
     public bool Codex,Claude,Antigravity;
+    public bool Fps;
+    public string FpsTarget="";
     public double FloatingWidth=440,FloatingHeight=420;
     public int FloatingX,FloatingY;
     public bool FloatingPositionSet,FloatingTopmost;
@@ -62,6 +64,8 @@ public sealed class PreviewSettingsStore {
             settings.Codex=values.Flag("codex");
             settings.Claude=values.Flag("claude");
             settings.Antigravity=values.Flag("antigravity");
+            settings.Fps=values.Flag("fps");
+            string fpsTarget=values.Text("fpsTarget");settings.FpsTarget=fpsTarget.Length<=256&&!fpsTarget.Any(char.IsControl)&&fpsTarget.IndexOfAny(['/', '\\', ':'])<0?fpsTarget:"";
             string language=values.Text("language","auto");settings.Language=language is "en" or "zh-CN" or "zh-TW"?language:"auto";
         }catch(Exception e) when(e is IOException or InvalidDataException or UnauthorizedAccessException or JsonException or InvalidOperationException) {
             blocked=true;Error="Settings unavailable. Changes apply to this session; the original file is preserved.";
@@ -80,6 +84,7 @@ public sealed class PreviewSettingsStore {
                 ["network"]=JsonSerializer.SerializeToElement(settings.Network),["codex"]=JsonSerializer.SerializeToElement(settings.Codex),
                 ["claude"]=JsonSerializer.SerializeToElement(settings.Claude),
                 ["antigravity"]=JsonSerializer.SerializeToElement(settings.Antigravity),
+                ["fps"]=JsonSerializer.SerializeToElement(settings.Fps),["fpsTarget"]=JsonSerializer.SerializeToElement(settings.FpsTarget),
                 ["floatingWidth"]=JsonSerializer.SerializeToElement(settings.FloatingWidth),["floatingHeight"]=JsonSerializer.SerializeToElement(settings.FloatingHeight),
                 ["floatingX"]=JsonSerializer.SerializeToElement(settings.FloatingX),["floatingY"]=JsonSerializer.SerializeToElement(settings.FloatingY),
                 ["floatingPositionSet"]=JsonSerializer.SerializeToElement(settings.FloatingPositionSet),["floatingTopmost"]=JsonSerializer.SerializeToElement(settings.FloatingTopmost),

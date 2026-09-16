@@ -20,6 +20,12 @@ Desktop share each provider snapshot. These additions are not in the published
 preview.3 packages. Windows 0.7.0 stable now targets the shared host only after
 the [Windows release gates](WINDOWS-070-READINESS.md) pass.
 
+Current source also reads an existing Windows collector's hardware snapshot and
+adds a Windows FPS client shared by Monitor and floating Desktop. FPS requires
+the matching dedicated worker and final AppHost identity; current preview
+archives do not install or register it. These are ongoing source changes, not
+features delivered in the preview.3 download. See the [FPS boundary](WINDOWS-SHARED-FPS.md).
+
 - Live CPU utilization, physical RAM and download/upload rates for one selected
   network interface, refreshed once per second. Windows CPU currently requires
   a single processor group; macOS RAM is a documented used-memory estimate.
