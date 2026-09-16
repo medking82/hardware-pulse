@@ -16,7 +16,7 @@ static class Tests {
             HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();
             SettingsTests.Run(null);
             LocalizationTests.Run(null,native:true);
-            TrayTests.Run();
+            TrayTests.Run(native:true);
             Console.WriteLine("PASS native Desktop session: isolated settings, language, theme, restore, tray commands and shutdown");
             return;
         }

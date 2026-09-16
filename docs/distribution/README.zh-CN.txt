@@ -9,6 +9,12 @@ Windows：运行 Pulse.Desktop.exe；不会替换现有的 WPF 稳定版。
 Linux：在图形桌面中运行 ./Pulse.Desktop。已验证 X11，尚未验证原生 Wayland 交互。
 macOS：打开 Pulse Preview.app；移动应用时须保持内部 Contents 目录完整。
 软件包自带 .NET 运行环境，但仍需要操作系统提供图形和字体库。
+Linux 压缩包使用 glibc，不适用于 Alpine/musl；中文界面字体已内嵌。
+基于 .NET 10 的跨平台桌面应用不面向 Windows 7 或 Windows 8.1。
+原生持续集成覆盖 Windows Server 2022 x64、Windows 11 ARM64、Ubuntu 24.04 x64/ARM64 和 macOS 15 x64/ARM64。
+框架支持其他系统版本，并不代表 Pulse 的设备读取或桌面交互已经在该系统验证。
+运行环境支持列表：https://github.com/dotnet/core/blob/main/release-notes/10.0/supported-os.md
+界面后端要求：https://docs.avaloniaui.net/docs/supported-platforms
 
 功能
 每秒刷新 CPU、内存，以及所选网卡的下载和上传速率。

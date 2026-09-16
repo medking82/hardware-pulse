@@ -9,6 +9,12 @@ Windows: run Pulse.Desktop.exe. This does not replace the stable WPF installer.
 Linux: run ./Pulse.Desktop in a graphical desktop. X11 is tested; Wayland-native interaction is not verified.
 macOS: open Pulse Preview.app. Keep its Contents directory intact when moving the App.
 The .NET runtime is included; native OS graphics and font libraries are still required.
+These Linux archives use glibc; they are not Alpine/musl packages. Chinese UI fonts are embedded.
+The shared .NET 10 host does not target Windows 7 or Windows 8.1.
+Native CI covers Windows Server 2022 x64, Windows 11 ARM64, Ubuntu 24.04 x64/ARM64 and macOS 15 x64/ARM64.
+Framework support for another OS version does not establish Pulse device or desktop compatibility.
+Current runtime OS matrix: https://github.com/dotnet/core/blob/main/release-notes/10.0/supported-os.md
+UI backend requirements: https://docs.avaloniaui.net/docs/supported-platforms
 
 Features
 Live CPU/RAM and download/upload rates for the selected interface refresh once per second.

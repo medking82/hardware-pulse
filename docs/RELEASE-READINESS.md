@@ -151,3 +151,10 @@ the EWMH window-manager readiness property before testing native window state.
 This changes CI setup only; it neither installs a window manager for users nor
 weakens the maximize/restore assertion. The earlier timeout remains recorded;
 phase logging alone does not establish a fix for intermittent hangs.
+
+Run `35054885669` with Openbox isolated the Tray assertion further: both before
+and after Open the reported state was Normal, because the test did not await
+the requested native maximize transition. The next revision requires activation,
+minimize and maximize acknowledgements before testing Tray behavior, with bounded
+timeouts and unchanged final state assertions. This fixes test sequencing; it is
+not evidence of a production Tray repair until the native run confirms it.
