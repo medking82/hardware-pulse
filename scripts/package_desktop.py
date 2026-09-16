@@ -10,12 +10,19 @@ import shutil
 import subprocess
 import tarfile
 import tempfile
+import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[1]
 RIDS = ("win-x64", "win-arm64", "linux-x64", "linux-arm64", "osx-x64", "osx-arm64")
 REQUIRED_NOTICES = ("Avalonia-MIT.txt", "Avalonia-NOTICE.md", "Avalonia-ANGLE-LICENSE.txt", "DotNet-MIT.txt", "DotNet-NOTICES.txt",
                     "MicroCom-MIT.txt", "SkiaSharp-MIT.txt", "HarfBuzzSharp-MIT.txt",
                     "SkiaSharp-HarfBuzzSharp-NOTICES.txt", "LobeIcons-MIT.txt", "TokenMonitor.txt", "SOURCES.md")
+
+
+def app_version():
+    value = ET.parse(ROOT / "src/Hosts/Desktop/Pulse.Desktop.csproj").findtext("./PropertyGroup/Version")
+    assert value, "Missing shared App version"
+    return value
 
 
 def run(args, **kwargs):
@@ -48,6 +55,7 @@ def verify_notices(folder, rid):
 def verify(folder, rid):
     manifest = json.loads((folder / "manifest.json").read_text())
     assert manifest["rid"] == rid and manifest["kind"] == "development-preview"
+    assert manifest["version"] == app_version(), "Wrong shared App version"
     expected = manifest["files"]
     actual = {p.relative_to(folder).as_posix() for p in folder.rglob("*") if p.is_file()} - {"manifest.json"}
     assert actual == set(expected), "Package file inventory changed"
@@ -73,6 +81,7 @@ def verify(folder, rid):
         assert int.from_bytes(header[4:8], "little") == (0x100000c if rid.endswith("arm64") else 0x1000007)
         info = plistlib.loads((exe.parent.parent / "Info.plist").read_bytes())
         assert info["CFBundleExecutable"] == exe.name and info["CFBundlePackageType"] == "APPL"
+        assert info["CFBundleShortVersionString"] == app_version().split("-")[0]
     options = json.loads((exe.parent / "Pulse.Desktop.runtimeconfig.json").read_text())["runtimeOptions"]
     assert "framework" not in options and "frameworks" not in options
     assert options["includedFrameworks"] == [{"name": "Microsoft.NETCore.App", "version": "10.0.12"}]
@@ -113,7 +122,8 @@ def build(rid, dotnet, allow_dirty=False):
             (binary.parent.parent / "Info.plist").write_bytes(plistlib.dumps({
                 "CFBundleName": "Pulse Preview", "CFBundleDisplayName": "Pulse Preview",
                 "CFBundleIdentifier": "io.github.medking82.pulse.preview", "CFBundleExecutable": "Pulse.Desktop",
-                "CFBundlePackageType": "APPL", "CFBundleVersion": "1", "NSHighResolutionCapable": True}))
+                "CFBundlePackageType": "APPL", "CFBundleVersion": app_version().split("-")[0],
+                "CFBundleShortVersionString": app_version().split("-")[0], "NSHighResolutionCapable": True}))
         resources = package / resources_path(rid)
         resources.mkdir(parents=True, exist_ok=True)
         shutil.copy2(ROOT / "LICENSE", resources / "LICENSE")
@@ -131,10 +141,10 @@ def build(rid, dotnet, allow_dirty=False):
             "Desktop overlay, FPS and other quota providers are not connected.\n"
             "No installation, startup registration or automatic updates are performed.\n"
             "Upstream notices are in licenses/ on Windows/Linux, or inside the macOS App's Contents/Resources/licenses/.\n"
-            "This CI artifact is for validation; public release remains pending.\n", encoding="utf-8")
+            "Experimental preview for evaluation; this is not the stable Windows product.\n", encoding="utf-8")
         files = {p.relative_to(package).as_posix(): digest(p) for p in sorted(package.rglob("*")) if p.is_file()}
         (package / "manifest.json").write_text(json.dumps({"schema": 1, "kind": "development-preview",
-            "commit": commit, "dirty": dirty, "rid": rid, "files": files}, indent=2) + "\n", encoding="utf-8")
+            "version": app_version(), "commit": commit, "dirty": dirty, "rid": rid, "files": files}, indent=2) + "\n", encoding="utf-8")
         verify(package, rid)
         archive = dest / f"Pulse-Preview-{rid}-{commit[:12]}{'-dirty' if dirty else ''}.tar.gz"
         def permissions(info):

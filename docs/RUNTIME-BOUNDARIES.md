@@ -1204,6 +1204,13 @@ ARM64 must pass its native CI package launch before execution support is claimed
 All six native package jobs retain development archives; public release,
 installation integration and full feature coverage remain outstanding.
 
+At `d8cef19e8cae63f4f1275f8b6fa2781351d5ce8e`,
+[run 35043301825](https://github.com/medking82/hardware-pulse/actions/runs/35043301825)
+passed all six extracted package native launches, including Windows ARM64.
+The shared App now has explicit `0.7.0-preview.1` version metadata; package
+manifest and macOS bundle version are derived from that csproj owner and verified.
+See [preview scope and launch guide](DESKTOP-PREVIEW.md) for delivery limitations.
+
 Live host wiring at `04c5536474a01918f995dc2a10ca816bbe8639bc` passed
 [run 35042812321](https://github.com/medking82/hardware-pulse/actions/runs/35042812321),
 including Windows x64/ARM64 live UI smoke and macOS network regression checks.

@@ -33,7 +33,7 @@ class PackageTests(unittest.TestCase):
         self.manifest()
 
     def manifest(self, rid="linux-x64"):
-        (self.folder / "manifest.json").write_text(json.dumps({"kind": "development-preview", "rid": rid,
+        (self.folder / "manifest.json").write_text(json.dumps({"kind": "development-preview", "rid": rid,"version": package.app_version(),
             "files": {p.relative_to(self.folder).as_posix(): package.digest(p)
                       for p in self.folder.rglob("*") if p.is_file() and p.name != "manifest.json"}}))
 
@@ -72,6 +72,14 @@ class PackageTests(unittest.TestCase):
         notice.write_text("")
         self.manifest()
         with self.assertRaisesRegex(AssertionError, "Missing distribution notice"):
+            package.verify(self.folder, "linux-x64")
+
+    def test_version_mismatch(self):
+        path = self.folder / "manifest.json"
+        manifest = json.loads(path.read_text())
+        manifest["version"] = "0.0.0-wrong"
+        path.write_text(json.dumps(manifest))
+        with self.assertRaisesRegex(AssertionError, "Wrong shared App version"):
             package.verify(self.folder, "linux-x64")
 
     def test_mac_notices_travel_with_app(self):
