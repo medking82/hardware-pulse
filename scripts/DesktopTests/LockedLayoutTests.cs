@@ -46,6 +46,8 @@ static class LockedLayoutTests {
             settings.DesktopColumns=0;window.ApplyTextAppearance();window.Width=440;window.Height=240;
             int count=(int)(screen.WorkingArea.Height/screen.Scaling/20)+10;
             window.Present(snapshot with {WindowsHardware=Enumerable.Range(0,count).Select(i=>new HardwareSensorSnapshot("fan"+i,"Fixture fan "+i,"1200 RPM")).ToArray()});Pump();window.SetLocked(true);Pump();
+            var panel=window.GetVisualDescendants().OfType<AdaptiveReadingsPanel>().Single();
+            Console.WriteLine($"LOCKED_AUTO screen={screen.WorkingArea} scale={screen.Scaling} font={window.FontSize} width={window.Width} height={window.Height} client={window.ClientSize} frame={window.FrameSize} columns={panel.Columns} minColumn={panel.MinimumColumnWidth} rows={panel.Children.Count} panel={panel.Bounds} extent={scroll.Extent} viewport={scroll.Viewport}");
             if(screen.WorkingArea.Width/screen.Scaling>=820) {
                 Check(window.Width>440,"Auto columns did not widen to recover overflow");
                 Check(scroll.Extent.Height<=scroll.Viewport.Height+1,"Auto columns leave avoidable locked overflow");
