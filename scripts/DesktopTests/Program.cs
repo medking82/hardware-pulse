@@ -14,6 +14,7 @@ static class Tests {
         Check(expected==null||expected==System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture.ToString(),"Architecture mismatch");
         if(args.Length==2&&args[0]=="--startup-fixture"){Environment.ExitCode=StartupModeTests.Child(args[1]);return;}
         if(args.SequenceEqual(new[]{"--startup-native"})){StartupModeTests.Native();return;}
+        if(args.SequenceEqual(new[]{"--layer-native"})){HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();WindowsLayerTests.Native();return;}
         if(args.Length==2&&args[0]=="--instance-secondary"){Environment.ExitCode=WindowsInstanceTests.Secondary(args[1]);return;}
         if(args.Length==2&&args[0]=="--instance-owner"){Environment.ExitCode=WindowsInstanceTests.Hold(args[1]);return;}
         if(args.SequenceEqual(new[]{"--instance-native"})){HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();WindowsInstanceTests.Native();return;}
@@ -34,6 +35,7 @@ static class Tests {
             LockedLayoutTests.Native();
             WindowsInstanceTests.Native();
             StartupModeTests.Native();
+            WindowsLayerTests.Native();
             WindowsInputTests.Run();
             MacInputTests.Run();
             MacMaterialTests.Run();

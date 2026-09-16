@@ -23,6 +23,8 @@ public sealed class FloatingMonitorWindow : Window {
     bool fitQueued;
     Action<bool>? input;
     IDisposable? inputLifetime;
+    WindowsDesktopLayer? desktopLayer;
+    public bool DesktopLayerAvailable=>desktopLayer?.Attached==true;
     double backgroundOpacity=100;
     public double BackgroundOpacity=>backgroundOpacity;
     public bool BackgroundBlur {get;private set;}
@@ -52,7 +54,7 @@ public sealed class FloatingMonitorWindow : Window {
         var topmost=language.Set(new CheckBox{Name="FloatingTopmost"},"Always on top");
         topmost.IsChecked=Topmost;
         topmost.IsCheckedChanged+=(_,_)=>{Topmost=topmost.IsChecked==true;Remember();};
-        PropertyChanged+=(_,e)=>{if(e.Property==TopmostProperty){topmost.IsChecked=Topmost;Remember();}};
+        PropertyChanged+=(_,e)=>{if(e.Property==TopmostProperty){topmost.IsChecked=Topmost;Remember();desktopLayer?.Refresh();}};
         var lockButton=language.Set(new Button{Name="LockFloatingMonitor",IsVisible=false},"Lock floating monitor");
         lockButton.Click+=(_,_)=>SetLocked(true);
         toolbar.Name="FloatingEditControls";toolbar.Children.Add(topmost);toolbar.Children.Add(lockButton);toolbar.Children.Add(lockStatus);
@@ -71,6 +73,7 @@ public sealed class FloatingMonitorWindow : Window {
             var handle=TryGetPlatformHandle();
             if(OperatingSystem.IsWindows()&&handle?.HandleDescriptor=="HWND") {
                 input??=new WindowsWindowInput(handle.Handle).SetPassThrough;
+                desktopLayer??=new WindowsDesktopLayer(this,()=>IsLocked);
             }
             else if(OperatingSystem.IsMacOS()&&handle?.HandleDescriptor=="NSWindow"&&input==null) {
                 var adapter=new MacWindowInput(handle.Handle);input=adapter.SetPassThrough;inputLifetime=adapter;
@@ -81,13 +84,14 @@ public sealed class FloatingMonitorWindow : Window {
             }
             lockButton.IsVisible=lockStatus.IsVisible=input!=null;
             QueueLockedFit();
+            desktopLayer?.Refresh();
         };
         rows.Children.Add(readings);
         ApplyTextAppearance();
         scroll.Content=rows;Content=scroll;
         scroll.PropertyChanged+=(_,e)=>{if(e.Property==ScrollViewer.ExtentProperty||e.Property==ScrollViewer.ViewportProperty)QueueLockedFit();};
         language.Changed+=Localize;Localize();
-        Closed+=(_,_)=>{language.Changed-=Localize;input=null;inputLifetime?.Dispose();inputLifetime=null;};
+        Closed+=(_,_)=>{language.Changed-=Localize;desktopLayer?.Dispose();desktopLayer=null;input=null;inputLifetime?.Dispose();inputLifetime=null;};
     }
     public static PixelPoint ConstrainPosition(PixelPoint requested,PixelRect area,int width,int height)=>new(
         Math.Clamp(requested.X,area.X,Math.Max(area.X,area.Right-width)),
@@ -114,6 +118,7 @@ public sealed class FloatingMonitorWindow : Window {
         if(IsLocked==locked)return true;
         try {
             input(locked);IsLocked=locked;
+            desktopLayer?.Refresh();
             toolbar.IsVisible=!locked;
             language.Set(lockStatus,locked?"Locked · Reopen from Monitor or the tray to unlock.":"Reopen from Monitor or the tray to unlock.");
             QueueLockedFit();
@@ -186,7 +191,7 @@ public sealed class FloatingMonitorWindow : Window {
         if(reading==null)quotaReadings.Remove(provider);else quotaReadings[provider]=reading;
         RenderReadings();
     }
-    public void Present(MonitorSnapshot snapshot,bool peaks=false){lastSnapshot=snapshot;lastPeaks=peaks;RenderReadings();}
+    public void Present(MonitorSnapshot snapshot,bool peaks=false){lastSnapshot=snapshot;lastPeaks=peaks;RenderReadings();desktopLayer?.Refresh();}
     void RenderReadings() {
         var current=DesktopRows.Capture(lastSnapshot,lastPeaks,language,quotaReadings,fpsSnapshot);
         var ids=current.Select(x=>x.Id).ToHashSet();
