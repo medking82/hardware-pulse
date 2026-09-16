@@ -6,6 +6,13 @@ stable Windows WPF installer. Platform feature parity is not complete.
 
 ## Available
 
+Source after preview.3 adds close-to-tray on Windows/macOS when a native tray menu
+exporter is available. User window-close hides Monitor; sampling and the floating
+monitor continue. Open Pulse restores the same window, and Quit Pulse exits even
+while hidden. Programmatic close and OS/application shutdown are never intercepted.
+Linux retains close-to-exit until tray reachability can be established. This source
+change is not in the preview.3 download.
+
 - Live CPU utilization, physical RAM and download/upload rates for one selected
   network interface, refreshed once per second. Windows CPU currently requires
   a single processor group; macOS RAM is a documented used-memory estimate.

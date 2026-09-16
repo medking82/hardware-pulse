@@ -45,7 +45,8 @@ public sealed class PulseApplication : Application {
                 var coverage=FontCoverage.Capture();Console.WriteLine("FONT_COVERAGE "+System.Text.Json.JsonSerializer.Serialize(coverage));
                 if(coverage.Any(x=>x.Missing.Length!=0)){Environment.ExitCode=3;desktop.Shutdown(3);}
             };
-            if(!Program.Measure)tray=new DesktopTray(desktop.MainWindow);
+            if(!Program.Measure)tray=new DesktopTray(desktop.MainWindow,
+                closeToTray:!Program.Smoke&&(OperatingSystem.IsWindows()||OperatingSystem.IsMacOS()));
             desktop.Exit+=(_,_)=>tray?.Dispose();
         }
         base.OnFrameworkInitializationCompleted();

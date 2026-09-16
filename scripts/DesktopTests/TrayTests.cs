@@ -3,6 +3,15 @@ using Avalonia.Threading;
 using HardwarePulse.Desktop;
 
 static class TrayTests {
+    sealed class CloseFixture : Window {
+        public bool RequestClose(WindowCloseReason reason,bool programmatic=false) {
+            var args=(WindowClosingEventArgs)Activator.CreateInstance(typeof(WindowClosingEventArgs),
+                System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic,null,new object[]{reason,programmatic},null)!;
+            OnClosing(args);
+            if(!args.Cancel)Close();
+            return args.Cancel;
+        }
+    }
     static void Until(Func<bool> done,string failure) {
         var end=DateTime.UtcNow.AddSeconds(5);
         while(!done()&&DateTime.UtcNow<end){using var slice=new CancellationTokenSource(TimeSpan.FromMilliseconds(20));Dispatcher.UIThread.MainLoop(slice.Token);}
@@ -29,6 +38,24 @@ static class TrayTests {
         if(!closed||open.Command.CanExecute(null)||quit.Command.CanExecute(null))throw new Exception("Tray quit/lifetime failed");
         open.Command.Execute(null); // A stale menu callback cannot reopen a closed window.
         tray.Dispose();
+        var background=new CloseFixture();background.Show();
+        using(var hiddenTray=new DesktopTray(background,closeToTray:true,trayAvailable:()=>true)) {
+            bool ended=false;background.Closed+=(_,_)=>ended=true;
+            if(!background.RequestClose(WindowCloseReason.WindowClosing)||background.IsVisible||ended)throw new Exception("User close must hide without ending lifetime");
+            ((NativeMenuItem)hiddenTray.Menu.Items[0]).Command!.Execute(null);
+            if(!background.IsVisible||ended)throw new Exception("Hidden window must reopen");
+            background.RequestClose(WindowCloseReason.WindowClosing);
+            ((NativeMenuItem)hiddenTray.Menu.Items[1]).Command!.Execute(null);
+            if(!ended)throw new Exception("Quit must close a hidden window");
+        }
+        foreach(var reason in new[]{WindowCloseReason.ApplicationShutdown,WindowCloseReason.OSShutdown,WindowCloseReason.OwnerWindowClosing}) {
+            var shutdown=new CloseFixture();shutdown.Show();
+            using var shutdownTray=new DesktopTray(shutdown,closeToTray:true,trayAvailable:()=>true);
+            if(shutdown.RequestClose(reason))throw new Exception("Shutdown must not be cancelled");
+        }
+        var unavailable=new CloseFixture();unavailable.Show();
+        using(var noTray=new DesktopTray(unavailable,closeToTray:true,trayAvailable:()=>false))if(unavailable.RequestClose(WindowCloseReason.WindowClosing))throw new Exception("Unsupported tray must retain close behavior");
+        Console.WriteLine("PASS close-to-tray: hide/reopen, hidden quit, shutdown and unavailable fallback");
         Console.WriteLine("PASS tray commands: restore existing window, preserve maximized state, quit and stale callback rejection");
     }
 }

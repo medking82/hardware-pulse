@@ -6,6 +6,8 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 
 ## Unreleased
 
+- Shared Windows/macOS Monitor close requests hide to an available tray/menu bar, preserving sampling and the floating monitor. Open restores the same window; Quit and OS/application shutdown still close it. Linux retains close-to-exit while tray reachability is not established. Smoke/measurement runs retain their bounded shutdown behavior.
+
 ## 0.7.0-preview.3 — 2026-09-16
 
 Published for Windows x64, macOS Intel/Apple Silicon and Linux x64/ARM64. Five native package checks passed; Windows ARM64 remains excluded. This is a development preview, not stable feature parity.
