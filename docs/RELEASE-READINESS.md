@@ -13,6 +13,11 @@ assessment. Windows releases need not wait for multi-platform feature parity.
 The full multi-platform objective remains open; this changes order, not completion.
 See [Windows 7 compatibility](WINDOWS7-COMPATIBILITY.md).
 
+Accepted Win7 scope (2026-09-16): FPS is explicitly unsupported and is not a
+Win7 release gate. Clearly document that limitation, disable FPS controls and
+omit PresentMon. Actual Win7 installation and telemetry verification remain
+required; modern Windows FPS support is unchanged.
+
 CI run 35068158569 at cf6e82e completed: Linux x64/ARM64, macOS Intel/ARM64
 and Windows x64 passed. Linux native X11 checks now confirm pointer delivery
 to the underlying window while visible, restored input/frame and closed lifetime.

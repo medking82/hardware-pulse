@@ -14,7 +14,7 @@
 
 - 旧版 Windows 缺少 `GetDpiForWindow` 时，窗口吸附使用 WPF DPI，保留缩放后的吸附距离，避免拖动时反复触发缺失 API 异常。Windows 7 安装验证尚未完成。
 
-- 为旧版 Windows 准备无需驱动的 CPU、内存和网络采集路径，并兼容旧版内存信息字段；Framework 与新版桌面程序共用读数转换实现。此项尚不代表已支持 Windows 7，安装程序最低系统版本未降低，温度、风扇、GPU 和 FPS 兼容性仍待解决。
+- 为旧版 Windows 准备无需驱动的 CPU、内存和网络采集路径，并兼容旧版内存信息字段；Framework 与新版桌面程序共用读数转换实现。此项尚不代表已支持 Windows 7，现代 Windows 安装程序的最低系统版本未降低，温度、风扇和 GPU 兼容性仍待解决。Windows 7 明确不支持 FPS，相关入口不可用，安装包不包含 PresentMon。
 
 - Linux X11 浮动窗口新增基于 XFixes 的鼠标穿透锁定，解锁时恢复默认输入区域及窗口边框。x64/ARM64 原生检查已通过，尚未实现原生 Wayland 锁定。
 

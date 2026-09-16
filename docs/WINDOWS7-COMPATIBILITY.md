@@ -5,6 +5,12 @@ has been published or verified on Windows 7. The user prioritized this work over
 on 2026-09-16. Initial target is Windows 7 SP1 x64; physical/VM verification
 availability has been requested and is not yet known.
 
+Accepted scope (2026-09-16): the user explicitly accepts **no FPS support on
+Windows 7**, provided this is clearly documented. FPS implementation/parity is
+not a Win7 release gate. Keep its UI/tray/Desktop controls unavailable and omit
+PresentMon. Modern Windows FPS support and the wider multi-platform objective
+are unchanged; this does not waive target-OS installation and telemetry checks.
+
 ## Current evidence
 
 - Latest stable Windows x64 release is v0.6.26. The installer explicitly sets
@@ -24,6 +30,39 @@ availability has been requested and is not yet known.
   driver-free counters must be separated before claiming usable Win7 telemetry.
 
 ## Delivery gates
+
+### Runtime audit and GPU investigation
+
+- Startup uses Task Scheduler XML schema 1.2 and existing COM registration;
+  no Win8-only task settings were found. Actual Win7 registration still needs
+  verification with the installer and its interactive/elevated task split.
+- Window snapping now guards the newer DPI export. DWM attributes can return
+  unsupported HRESULTs; material policy already falls back to an opaque surface.
+  Aero-disabled and remote-session behavior remain target-OS tests.
+- Network requests explicitly offer TLS 1.2/1.3. Win7 Schannel does not supply
+  TLS 1.3; handshake behavior and current endpoint cipher/certificate compatibility
+  remain unverified. Do not claim connectivity from a successful Windows 11 test
+  or weaken endpoint certificate validation to make an older system connect.
+- In pinned LHM 0.9.6, `Computer.AddGroups` creates AMD/NVIDIA GPU groups when
+  only `IsGpuEnabled` is set. Intel GPU enumeration additionally requires CPU
+  enumeration; its integrated GPU implementation references PawnIO. Therefore a
+  GPU-only path must not be presented as universal Intel/AMD/NVIDIA support.
+- `scripts/Probe-LegacyGpu.ps1` runs an isolated, development-only live probe with
+  transient default settings. It confirms only AMD/NVIDIA hardware groups,
+  undefined hardware control modes and absence of a loaded PawnIO module. The
+  current Windows 11 probe returned real GPU temperature/fan telemetry. No Win7
+  or old vendor-driver compatibility is established by that observation.
+- Before production integration, resolve partial-open cleanup: upstream
+  `Computer.Open` sets `_open` after `AddGroups`, while `Close` returns immediately
+  when `_open` is false. An exception during group creation can leave earlier
+  groups unclosed. The probe owns a short-lived process so that this investigation
+  does not put that incomplete lifetime into the long-running collector. A future
+  adapter must preserve basic CPU/RAM/network readings on optional GPU failure,
+  avoid repeated initialization attempts, and verify both failure and close paths.
+
+Evidence: pinned [Computer.cs](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor/blob/v0.9.6/LibreHardwareMonitorLib/Hardware/Computer.cs),
+[Control.cs](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor/blob/v0.9.6/LibreHardwareMonitorLib/Hardware/Control.cs),
+and [Microsoft .NET Framework TLS guidance](https://learn.microsoft.com/en-us/dotnet/framework/network-programming/tls).
 
 ### Development installer
 
@@ -103,7 +142,8 @@ path on Windows versions before 10, leaves the hardware library unopened, does
 not create the FPS server, and publishes CPU load, physical RAM and per-interface
 throughput/link readings through the existing snapshot/presentation schema.
 Temperature/fan/GPU readings are unavailable in this path; this is preparation
-for compatibility, not an accepted reduction of the complete product target.
+for compatibility. Their compatibility work remains open. FPS is explicitly
+unsupported on Win7 by the user's accepted scope above.
 Memory metadata accepts older WMI schemas and falls back to Speed/MemoryType.
 
 Validation includes a two-sample driver-free collector run in an isolated test
@@ -124,7 +164,8 @@ to roll back; installed settings and release assets are untouched.
 <!-- sop-risk-classification: {"facts":{"blast_radius":"shared","change_kind":"implementation","data_boundary":"ordinary","destructive":"no","failure_cost":"low","irreversibility":"reversible","operational_controls":"not_applicable","privilege_boundary":"unchanged","project_policy":"default","rollback":"easy","scope_knowledge":"known","uncertainty":"low","verification":"deterministic"},"formal_review":"not_required","kind":"risk-classification-assessment","reasons":{"formal_review":["routine_no_review"],"risk":["no_high_risk_signal"]},"risk":"routine","schema_version":2} -->
 
 1. Audit WPF startup, native window/material APIs, task registration, tray,
-   network, quota transport and PresentMon against Windows 7 SP1.
+   network and quota transport against Windows 7 SP1. Verify FPS stays disabled
+   and PresentMon is absent from the compatibility package.
 2. Establish an explicit capability/fallback policy. Do not invent missing
    temperatures/fan speeds or silently install an incompatible driver. Any
    alternative sensor backend needs its own compatibility and security evidence.
