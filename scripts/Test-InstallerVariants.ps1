@@ -11,7 +11,7 @@ foreach($legacy in @($false,$true)){
     if($legacy){$arguments=@('/DWin7Compatibility')+$arguments}
     & "$PSScriptRoot/Run-Hidden.ps1" $compiler $arguments $root | Out-File (Join-Path $output ($name+'.log')) -Encoding utf8
     $script=[IO.File]::ReadAllText($expanded)
-    foreach($required in @('AppId={{75E8FDDA-D799-4D8A-882D-972DC72151C2}','ArchitecturesAllowed=x64compatible','PrivilegesRequired=admin','Release >= 528040','--install-startup','CollectorRunning(Service, ExpectedPath)')){
+    foreach($required in @('AppId={{75E8FDDA-D799-4D8A-882D-972DC72151C2}','ArchitecturesAllowed=x64compatible','PrivilegesRequired=admin','Release >= 528040','--install-startup','CollectorRunning(Service, ExpectedPath)','IsPulseCollector(Process.ExecutablePath, CommandLine, ExpectedPath)',"OR Name = ''HardwarePulse.Collector.exe''",'\worker\HardwarePulse.Collector.exe')){
         if(-not $script.Contains($required)){throw "Shared installer contract missing in ${name}: $required"}
     }
     if($legacy){
@@ -26,4 +26,10 @@ foreach($legacy in @($false,$true)){
         if($script -match 'OnlyBelowVersion|Excludes:|Win7-x64-Setup|DisableWelcomePage=no|WelcomeLabel2.Caption'){throw 'Legacy installer options leaked into modern build'}
     }
 }
+& "$PSScriptRoot/Run-Hidden.ps1" $compiler @("/O$output","$root/installer/tests/CollectorIdentity.iss") $root | Out-File (Join-Path $output 'identity-build.log') -Encoding utf8
+$identityLog=Join-Path $output 'identity-run.log'
+$rejected=$false
+try{& "$PSScriptRoot/Run-Hidden.ps1" (Join-Path $output 'collector-identity.exe') @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',"/LOG=$identityLog") $root}
+catch{if($_.Exception.Message -notmatch 'failed with exit code 1:'){throw};$rejected=$true}
+if(-not $rejected -or -not(Test-Path $identityLog) -or -not([IO.File]::ReadAllText($identityLog).Contains('PASS collector identity:'))){throw 'Collector identity validation did not finish before rejecting setup'}
 "PASS compiled installer variants: OS gates, prerequisite isolation, PresentMon exclusion, stable AppId and startup/upgrade contracts. Evidence: $output"

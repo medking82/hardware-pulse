@@ -117,21 +117,23 @@ end;
 function GetCurrentProcessId(): Cardinal;
   external 'GetCurrentProcessId@kernel32.dll stdcall';
 
+#include "CollectorIdentity.iss"
+
 function CollectorRunning(Service: Variant; ExpectedPath: String): Boolean;
 var Processes, Process: Variant;
     I: Integer;
     CommandLine: String;
 begin
   Result := False;
-  Processes := Service.ExecQuery('SELECT ExecutablePath, CommandLine FROM Win32_Process WHERE Name = ''HardwarePulse.exe''');
+  Processes := Service.ExecQuery('SELECT ExecutablePath, CommandLine FROM Win32_Process WHERE Name = ''HardwarePulse.exe'' OR Name = ''HardwarePulse.Collector.exe''');
   for I := 0 to Processes.Count - 1 do begin
     Process := Processes.ItemIndex(I);
     if not VarIsNull(Process.ExecutablePath) then
-      if CompareText(Process.ExecutablePath, ExpectedPath) = 0 then begin
+      if IsPulseCollectorPath(Process.ExecutablePath, ExpectedPath) then begin
         if VarIsNull(Process.CommandLine) then
           RaiseException(LocalText('Cannot inspect the previous Hardware Pulse session.','无法检查先前的 Hardware Pulse 会话。','無法檢查先前的 Hardware Pulse 工作階段。'));
         CommandLine := Process.CommandLine;
-        if Pos('--collector', CommandLine) > 0 then Result := True;
+        if IsPulseCollector(Process.ExecutablePath, CommandLine, ExpectedPath) then Result := True;
       end;
   end;
 end;
@@ -143,7 +145,7 @@ var Locator, Service, Owner: Variant;
 begin
   Result := '';
   ExpectedPath := ExpandConstant('{app}\HardwarePulse.exe');
-  if not FileExists(ExpectedPath) then Exit;
+  if not FileExists(ExpectedPath) and not FileExists(ExpandConstant('{app}\worker\HardwarePulse.Collector.exe')) then Exit;
   try
     Locator := CreateOleObject('WbemScripting.SWbemLocator');
     Service := Locator.ConnectServer('', 'root\CIMV2');
