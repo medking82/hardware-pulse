@@ -5,6 +5,16 @@ not merely pushed adapters or a renamed experimental release. Windows WPF
 v0.6.27 is now published and its downloaded installer SHA-256 verified;
 v0.7.0-preview.1 is still experimental.
 
+Material source correction: Avalonia 12.1.2's NuGet repository commit is
+`d3c867a9e2de379249b03dbeb3495bd7f076a81a`. Its macOS `WindowBaseImpl.mm`
+calls `AutoFitContentView.ShowBlur`, which displays a behind-window
+`NSVisualEffectView`. This contradicts the generic documentation table listing
+only Transparent for macOS. Reuse the backend rather than add a duplicate native
+adapter. `MacMaterialTests` now inspects only its own test window's native view
+hierarchy, checks enable/disable and lock round trips, and requires actual Blur.
+Native Intel/ARM64 results for this new check are pending; the source alone does
+not establish visual legibility or adjustable blur-radius support.
+
 Shared floating geometry and Codex quota changes at `73e612f` passed macOS Intel,
 macOS ARM64, Windows x64 and Linux x64/ARM64 in run 35075180669. Windows ARM64
 failed and remains outside the verified interaction gate. These source changes

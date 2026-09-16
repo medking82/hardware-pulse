@@ -6,7 +6,7 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 
 ## Unreleased
 
-- Shared Desktop adds an opt-in system background blur control with saved preferences and actual-backend status. Unsupported backends retain the supported background; this does not implement a native macOS blur adapter or adjustable blur radius.
+- Shared Desktop adds an opt-in system background blur control with saved preferences and actual-backend status. Unsupported backends retain the supported background. The pinned Avalonia macOS backend supplies native blur; dedicated native-view verification is being added. Adjustable blur radius is not implemented.
 
 - Locked shared floating monitors hide inactive editing controls. Reopening from Monitor or the tray restores the controls without changing the window dimensions.
 
