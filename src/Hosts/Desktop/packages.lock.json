@@ -208,6 +208,13 @@
           "Pulse.Core": "[1.0.0, )"
         }
       },
+      "pulse.adapters.windows.modern": {
+        "type": "Project",
+        "dependencies": {
+          "Pulse.Adapters.Common": "[1.0.0, )",
+          "Pulse.Core": "[1.0.0, )"
+        }
+      },
       "pulse.core": {
         "type": "Project"
       }

@@ -228,6 +228,7 @@
       "pulse.adapters.windows.modern": {
         "type": "Project",
         "dependencies": {
+          "Pulse.Adapters.Common": "[1.0.0, )",
           "Pulse.Core": "[1.0.0, )"
         }
       },
@@ -240,7 +241,8 @@
           "Avalonia.Desktop": "[12.1.2, )",
           "Avalonia.Themes.Fluent": "[12.1.2, )",
           "Pulse.Adapters.Linux": "[1.0.0, )",
-          "Pulse.Adapters.Mac": "[1.0.0, )"
+          "Pulse.Adapters.Mac": "[1.0.0, )",
+          "Pulse.Adapters.Windows.Modern": "[1.0.0, )"
         }
       }
     }

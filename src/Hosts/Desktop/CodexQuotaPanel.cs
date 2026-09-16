@@ -45,7 +45,7 @@ public sealed class CodexQuotaPanel : UserControl,IDisposable {
             var rows=new List<QuotaWindow>{new(){Label="5-hour",Remaining=72.5,Reset=DateTimeOffset.UtcNow.AddHours(2)},new(){Label="Weekly",Remaining=54.0,Reset=DateTimeOffset.UtcNow.AddDays(4)}};
             return new(){Provider="Codex",Status="Live",Observed=DateTimeOffset.UtcNow,Windows=rows,AllWindows=rows};
         }
-        using FileCodexQuota adapter=OperatingSystem.IsLinux()?new LinuxCodexQuota():OperatingSystem.IsMacOS()?new MacCodexQuota():throw new PlatformNotSupportedException();
+        using FileCodexQuota adapter=OperatingSystem.IsLinux()?new LinuxCodexQuota():OperatingSystem.IsMacOS()?new MacCodexQuota():OperatingSystem.IsWindows()?new WindowsFileCodexQuota():throw new PlatformNotSupportedException();
         return adapter.Read(cancel);
     }
     void SetEnabled() {

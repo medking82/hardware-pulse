@@ -1145,9 +1145,9 @@ live smoke windows. This does not prove physical shell interaction on every DE.
 `Adapters/Windows/Modern` is a separate .NET 10 library referencing Core; the
 existing .NET Framework Windows adapter and installed WPF runtime are unchanged.
 WindowsSystemReadings exposes physical RAM and interval CPU through Reading,
-without elevation, driver, WMI, process launch or an internal timer. It is not yet
-wired into the shared host: selected-network and quota platform wiring must be
-completed before replacing Windows demo mode with a coherent live host.
+without elevation, driver, WMI, process launch or an internal timer. The shared
+host now consumes it for Windows CPU/RAM, alongside selected network and explicit
+Codex opt-in. Demo remains available as an explicitly labeled fixture mode.
 
 GetSystemTimes kernel ticks include idle, so busy is kernel + user - idle.
 First/zero/reset/failing intervals remain unavailable. Native CPU collection is
@@ -1165,3 +1165,30 @@ This establishes system-counter capability, not temperature/fan/FPS support.
 
 References: [GetSystemTimes](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getsystemtimes)
 and [GlobalMemoryStatusEx](https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-globalmemorystatusex).
+
+### Windows live host wiring and shared network reader
+
+The former macOS BCL network reader now lives in Common/Modern/BclNetworkReadings.
+It owns exact-name selection, one cached interface reader, fresh statistics per
+poll, invalidation on failure and Core NetworkInterval rate/reset behavior.
+MacNetworkReadings preserves its public fixture constructors and name validation;
+WindowsNetworkReadings accepts normal Windows names containing spaces. Linux
+keeps its procfs reader. The extraction introduces no polling timer or process.
+
+MonitorSource selects the modern Windows adapters in normal Windows launches.
+WindowsFileCodexQuota uses the existing bounded, read-only FileCodexQuota flow,
+fixed endpoint and default login location only after explicit opt-in. Defaults,
+smoke and measurement runs do not access credentials. Shared-host settings remain
+separate from installed WPF settings. No driver, FPS, temperature or fan capability
+is inferred from these system counters.
+
+Local Windows native UI smoke, CPU/RAM and selected-interface reads passed;
+cross-platform fixtures cover spaces in names, cached resolution, counter reset
+and failure/recovery. Existing macOS network and synthetic file/HTTP quota tests
+also pass. Windows native CI smoke now uses live adapters; the existing Windows
+measurement still explicitly uses demo so its historical baseline stays comparable.
+Windows self-contained shared-host distribution remains separate release work.
+
+System adapter validation at `a610c1fa6ce55aab8125787ee73378df6e664a2f`:
+[run 35042377337](https://github.com/medking82/hardware-pulse/actions/runs/35042377337)
+passed all six jobs, including actual CPU/RAM reads in Windows x64 and ARM64.

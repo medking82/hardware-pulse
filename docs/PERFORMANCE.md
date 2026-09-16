@@ -402,7 +402,7 @@ The preview host accepts `--measure-session` (mutually exclusive with
 warm-up, then observes at least sixty seconds of its ordinary one-second polling.
 It prints one `BENCH_DESKTOP` JSON record and exits. Personal settings are not
 loaded, Codex remains disabled, no forced GC occurs, and no interface name or
-account data is emitted. Windows requires `--demo`; those results represent
+account data is emitted. The original Windows baseline uses `--demo`; those results represent
 static demo rendering and must not be compared as live Windows telemetry costs.
 
 The observer captures process CPU, working set, managed allocation/heap and GC

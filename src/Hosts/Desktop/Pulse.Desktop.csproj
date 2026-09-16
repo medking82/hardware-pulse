@@ -16,5 +16,6 @@
     <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.2" />
     <ProjectReference Include="../../Adapters/Linux/Pulse.Adapters.Linux.csproj" />
     <ProjectReference Include="../../Adapters/Mac/Pulse.Adapters.Mac.csproj" />
+    <ProjectReference Include="../../Adapters/Windows/Modern/Pulse.Adapters.Windows.Modern.csproj" />
   </ItemGroup>
 </Project>

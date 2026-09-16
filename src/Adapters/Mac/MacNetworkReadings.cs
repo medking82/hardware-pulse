@@ -1,75 +1,29 @@
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Globalization;
-using System.IO;
-using System.Net.NetworkInformation;
 
 namespace HardwarePulse {
-    public struct MacNetworkCounters {
-        public long Received,Sent;
-    }
-
-    // Exact interface selection; no aggregation, timer, shell or invented link speed.
+    public struct MacNetworkCounters {public long Received,Sent;}
     public sealed class MacNetworkReadings {
-        readonly string name,source=Guid.NewGuid().ToString("N");
-        readonly Func<MacNetworkCounters> read;
-        readonly Func<double> seconds;
-        readonly NetworkInterval interval=new NetworkInterval();
-        long sequence;
-        public MacNetworkReadings(string interfaceName)
-            :this(interfaceName,()=>ResolveNative(interfaceName),()=>Stopwatch.GetTimestamp()/(double)Stopwatch.Frequency){
+        readonly BclNetworkReadings inner;
+        public MacNetworkReadings(string name) {
             if(!OperatingSystem.IsMacOS())throw new PlatformNotSupportedException("macOS network statistics are required");
+            inner=new BclNetworkReadings(Validate(name));
         }
-        // Resolve once; the returned reader must acquire fresh counters on every call.
-        public MacNetworkReadings(string interfaceName,Func<Func<MacNetworkCounters>> resolve,Func<double> monotonicSeconds)
-            :this(interfaceName,CachedReader(resolve),monotonicSeconds){}
-        static Func<MacNetworkCounters> CachedReader(Func<Func<MacNetworkCounters>> resolve){
+        public MacNetworkReadings(string name,Func<MacNetworkCounters> read,Func<double> seconds) {
+            if(read==null)throw new ArgumentNullException("read");
+            inner=new BclNetworkReadings(Validate(name),()=>Convert(read()),seconds);
+        }
+        public MacNetworkReadings(string name,Func<Func<MacNetworkCounters>> resolve,Func<double> seconds) {
             if(resolve==null)throw new ArgumentNullException("resolve");
-            Func<MacNetworkCounters> selected=null;
-            return ()=>{
-                try{
-                    if(selected==null)selected=resolve()??throw new IOException("Network interface unavailable");
-                    return selected();
-                }catch(Exception e) when(e is IOException||e is NetworkInformationException||e is UnauthorizedAccessException||e is FormatException){
-                    selected=null;throw;
-                }
-            };
+            inner=new BclNetworkReadings(Validate(name),()=>{
+                var selected=resolve();return selected==null?null:new Func<BclNetworkCounters>(()=>Convert(selected()));
+            },seconds);
         }
-        public MacNetworkReadings(string interfaceName,Func<MacNetworkCounters> read,Func<double> monotonicSeconds){
-            if(string.IsNullOrWhiteSpace(interfaceName)||interfaceName.IndexOfAny(new[]{':','\r','\n',' ','\t'})>=0)
+        static string Validate(string name) {
+            if(string.IsNullOrWhiteSpace(name)||name.IndexOfAny(new[]{':','\r','\n',' ','\t'})>=0)
                 throw new ArgumentException("An exact network interface name is required","interfaceName");
-            name=interfaceName;this.read=read??throw new ArgumentNullException("read");
-            seconds=monotonicSeconds??throw new ArgumentNullException("monotonicSeconds");
+            return name;
         }
-        public Reading Read(DateTimeOffset now){
-            var result=new Reading {time=now,identity=source+":"+(++sequence).ToString(CultureInfo.InvariantCulture),
-                available=new Dictionary<string,bool>{{"netDown",false},{"netUp",false}}};
-            result.names["Network"]=name;
-            try{
-                var counters=read();double current=seconds();
-                if(counters.Received<0||counters.Sent<0)throw new FormatException("Invalid network byte counters");
-                if(!double.IsFinite(current))throw new FormatException("Invalid monotonic clock");
-                if(interval.Update((ulong)counters.Received,(ulong)counters.Sent,current,out double down,out double up)){
-                    result.values["netDown"]=down;result.values["netUp"]=up;
-                    result.available["netDown"]=result.available["netUp"]=true;result.state="LIVE";
-                }
-            }catch(Exception e) when(e is IOException||e is NetworkInformationException||e is UnauthorizedAccessException||e is FormatException){
-                interval.Reset();result.error=e.Message;
-            }
-            return result;
-        }
-        static Func<MacNetworkCounters> ResolveNative(string name){
-            foreach(var network in NetworkInterface.GetAllNetworkInterfaces()){
-                if(network.Name!=name)continue;
-                // BSD GetIPStatistics reads by Name each time. Do not reuse the stats
-                // object or cached interface metadata (speed/status/address properties).
-                return ()=>{
-                    var stats=network.GetIPStatistics();
-                    return new MacNetworkCounters {Received=stats.BytesReceived,Sent=stats.BytesSent};
-                };
-            }
-            throw new IOException("Network interface unavailable");
-        }
+        static BclNetworkCounters Convert(MacNetworkCounters value)=>new BclNetworkCounters {Received=value.Received,Sent=value.Sent};
+        public Reading Read(DateTimeOffset now)=>inner.Read(now);
     }
 }

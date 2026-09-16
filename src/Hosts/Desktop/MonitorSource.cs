@@ -15,6 +15,7 @@ public sealed class MonitorSource {
         this.demo=demo;
         if(demo)return;
         if(OperatingSystem.IsLinux())cpu=memory=new ReadingSession(new LinuxReadings().Read);
+        else if(OperatingSystem.IsWindows())cpu=memory=new ReadingSession(new WindowsSystemReadings().Read);
         else if(OperatingSystem.IsMacOS()) {
             cpu=new ReadingSession(new MacCpuReadings().Read);
             memory=new ReadingSession(new MacMemoryReadings().Read);
@@ -32,7 +33,7 @@ public sealed class MonitorSource {
         if(selected!=name) {
             selected=name;
             network=string.IsNullOrEmpty(name)?null:new ReadingSession(OperatingSystem.IsLinux()
-                ?new LinuxNetworkReadings(name).Read:new MacNetworkReadings(name).Read);
+                ?new LinuxNetworkReadings(name).Read:OperatingSystem.IsWindows()?new WindowsNetworkReadings(name).Read:new MacNetworkReadings(name).Read);
         }
         network?.Poll(now);
         bool c=cpu.Latest.values.TryGetValue("cpuLoad",out var load);

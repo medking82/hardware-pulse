@@ -12,7 +12,7 @@ public static class Program {
     [STAThread]
     public static int Main(string[] args) {
         if(args.Length==1&&args[0]=="--help") {
-            Console.WriteLine("Pulse Desktop preview: [--demo] [--smoke-test | --measure-session [--diagnose-gc [--transient-framebuffer]]]. Measurement warms up for 10 seconds, then measures 60 seconds without personal settings. Optional GC diagnostics include startup and add observer overhead; transient framebuffer is a Linux-only diagnostic control. Linux/macOS live CPU, RAM and selected network. Windows requires --demo; use the existing WPF App for live Windows monitoring.");return 0;
+            Console.WriteLine("Pulse Desktop preview: [--demo] [--smoke-test | --measure-session [--diagnose-gc [--transient-framebuffer]]]. Measurement warms up for 10 seconds, then measures 60 seconds without personal settings. Optional GC diagnostics include startup and add observer overhead; transient framebuffer is a Linux-only diagnostic control. Windows/Linux/macOS live CPU, RAM and selected network. Temperature, fans and FPS remain available only in the existing Windows WPF App.");return 0;
         }
         if(args.Any(a=>a!="--demo"&&a!="--smoke-test"&&a!="--measure-session"&&a!="--diagnose-gc"&&a!="--transient-framebuffer")||args.Distinct().Count()!=args.Length)return 2;
         Demo=args.Contains("--demo");Smoke=args.Contains("--smoke-test");Measure=args.Contains("--measure-session");
@@ -21,7 +21,7 @@ public static class Program {
         if(diagnose&&!Measure)return 2;
         transientFramebuffer=args.Contains("--transient-framebuffer");
         if(transientFramebuffer&&(!diagnose||!OperatingSystem.IsLinux()))return 2;
-        if(!Demo&&!OperatingSystem.IsLinux()&&!OperatingSystem.IsMacOS())return 4;
+        if(!Demo&&!OperatingSystem.IsLinux()&&!OperatingSystem.IsMacOS()&&!OperatingSystem.IsWindows())return 4;
         using var gc=diagnose?new GcDiagnostics():null;
         int result=BuildApp().StartWithClassicDesktopLifetime(args);
         if(gc!=null)Console.WriteLine("DIAG_GC "+gc.Report());
