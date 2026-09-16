@@ -22,6 +22,7 @@ public sealed class MonitorWindow : Window {
     readonly CheckBox pause=new(){Name="PauseHardware",Content="Pause hardware monitoring"};
     readonly ComboBox readingMode=new(){Name="ReadingMode",ItemsSource=new[]{"Live","Session Max"},SelectedIndex=0,MinWidth=160};
     MonitorSnapshot? latestSnapshot;
+    public FloatingMonitorWindow? FloatingMonitor {get;private set;}
     bool samplingFailed;
     readonly CodexQuotaPanel quota;
     readonly HardwareSensorPanel sensors;
@@ -45,6 +46,8 @@ public sealed class MonitorWindow : Window {
         foreach(var panel in panels)cards.Children.Add(panel);
         var body=new StackPanel{Spacing=16,Margin=new Thickness(24)};
         body.Children.Add(readingMode);body.Children.Add(status);body.Children.Add(cards);body.Children.Add(pause);
+        var floating=Language.Set(new Button{Name="OpenFloatingMonitor"},"Open floating monitor");
+        floating.Click+=(_,_)=>OpenFloatingMonitor();body.Children.Add(floating);
         readingMode.SelectionChanged+=(_,_)=>{if(latestSnapshot!=null)Render(latestSnapshot);};
         body.Children.Add(sensors);
         quota=new CodexQuotaPanel(source.IsDemo,inlineSettings:false,language:Language);body.Children.Add(quota);
@@ -86,10 +89,20 @@ public sealed class MonitorWindow : Window {
             if(screen!=null){Width=Math.Max(MinWidth,Math.Min(Width,screen.WorkingArea.Width/screen.Scaling));Height=Math.Max(MinHeight,Math.Min(Height,screen.WorkingArea.Height/screen.Scaling));}
         };
         if(start)Opened+=(_,_)=>Sampling=SampleAsync();
-        Closed+=(_,_)=>{stop.Cancel();quota.Dispose();SaveNow();};
+        Closed+=(_,_)=>{stop.Cancel();FloatingMonitor?.Close();quota.Dispose();SaveNow();};
+    }
+    public void OpenFloatingMonitor() {
+        if(stop.IsCancellationRequested)return;
+        if(FloatingMonitor==null) {
+            FloatingMonitor=new FloatingMonitorWindow(Language){RequestedThemeVariant=RequestedThemeVariant};
+            FloatingMonitor.Closed+=(_,_)=>FloatingMonitor=null;
+        }
+        if(latestSnapshot!=null)FloatingMonitor.Present(latestSnapshot,readingMode.SelectedIndex==1);
+        FloatingMonitor.Show();if(FloatingMonitor.WindowState==WindowState.Minimized)FloatingMonitor.WindowState=WindowState.Normal;
+        FloatingMonitor.Activate();
     }
     static ScrollViewer Scroll(Control content)=>new(){Content=content,HorizontalScrollBarVisibility=Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled};
-    void ApplyTheme()=>RequestedThemeVariant=settings.Theme=="Dark"?ThemeVariant.Dark:settings.Theme=="Light"?ThemeVariant.Light:ThemeVariant.Default;
+    void ApplyTheme(){RequestedThemeVariant=settings.Theme=="Dark"?ThemeVariant.Dark:settings.Theme=="Light"?ThemeVariant.Light:ThemeVariant.Default;if(FloatingMonitor!=null)FloatingMonitor.RequestedThemeVariant=RequestedThemeVariant;}
     void SaveLater(){if(store==null)return;saveTimer.Stop();saveTimer.Start();}
     void SaveNow(){saveTimer.Stop();if(store!=null)Language.Set(saveStatus,store.Save(settings)?"Changes saved.":store.Error);}
     static TextBlock Value()=>new(){Text="—",FontSize=23,FontWeight=FontWeight.SemiBold,TextWrapping=TextWrapping.Wrap};
@@ -116,6 +129,7 @@ public sealed class MonitorWindow : Window {
         cpu.Text=max?snapshot.PeakCpu:snapshot.Cpu;ram.Text=snapshot.Memory;
         down.Text=max?snapshot.PeakDownload:snapshot.Download;up.Text=max?snapshot.PeakUpload:snapshot.Upload;
         sensors.Present(max?snapshot.PeakSensors:snapshot.Sensors,snapshot.SensorsSupported);
+        FloatingMonitor?.Present(snapshot,max);
         Language.Set(status,samplingFailed?"Monitoring unavailable. Retrying…":max?(source.IsDemo?"Demo · ":"")+"Session Max · Memory and quota remain current":source.IsDemo?"Demo · Sample values":snapshot.CpuReady&&snapshot.MemoryReady?"Live · Refreshes every second":"Waiting for available readings…");
     }
     public void PresentInterfaces(string[] names) {

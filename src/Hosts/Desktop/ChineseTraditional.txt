@@ -73,3 +73,6 @@ Loading|正在載入
 Error|錯誤
 Open Pulse|開啟 Pulse
 Quit Pulse|結束 Pulse
+Floating monitor|浮動監控視窗
+Open floating monitor|開啟浮動監控視窗
+Always on top|置頂顯示

@@ -73,3 +73,6 @@ Loading|正在加载
 Error|错误
 Open Pulse|打开 Pulse
 Quit Pulse|退出 Pulse
+Floating monitor|浮动监控窗口
+Open floating monitor|打开浮动监控窗口
+Always on top|置顶显示

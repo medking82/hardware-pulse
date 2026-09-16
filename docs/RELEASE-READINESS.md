@@ -6,11 +6,21 @@ WPF v0.6.26 remains stable; v0.7.0-preview.1 is still experimental.
 
 ## Scope decision
 
-The user has requested the final stable release. The outstanding product choice
-is whether the first cross-platform stable release may declare platform-specific
-capabilities, or must match the existing Windows application completely. That
-choice has been requested; no response has been recorded yet. Do not silently
-interpret a successful launch as full feature parity.
+The user selected option 2: complete the main Windows features before the final
+multi-platform stable release. Platform-specific capability lists alone do not
+satisfy this scope. FPS, Desktop overlay and its interaction/appearance controls,
+remaining hardware and quota integrations, and host lifecycle/distribution must
+be implemented and verified where applicable. Report actual OS limitations rather
+than inventing readings or silently omitting a required feature. A successful
+launch or a renamed preview does not establish completion.
+
+The first overlay increment owns presentation only: one floating window consumes
+the existing Monitor snapshot, uses native move/resize, and supports optional
+topmost display. It must not start another collector, quota reader or timer.
+Closing it leaves Monitor running; closing Monitor closes the floating window.
+Click-through locking, desktop-layer placement, materials/local contrast, FPS
+and persistent layout remain explicit later parity work. This increment does not
+claim a completed Desktop mode or exclusive-fullscreen compatibility.
 
 ## Acceptance evidence
 
