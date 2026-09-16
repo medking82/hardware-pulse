@@ -164,6 +164,22 @@ FPS is unavailable on this platform.|此平台暂不支持 FPS。
 FPS capture stopped|FPS capture 已停止
 Local Contrast|局部对比度
 Start with Windows|随 Windows 启动
+Updates|更新
+Automatically check for updates|自动检查更新
+Automatically download verified updates|自动下载已验证的更新
+Check for updates|检查更新
+Download update|下载更新
+Install and restart|安装并重新启动
+Installing update…|正在安装更新…
+Updates require the installed stable Windows version.|更新需要已安装的 Windows 正式版。
+Checking for updates…|正在检查更新…
+Update available|有可用更新
+You are up to date|已是最新版本
+Update check failed; try again|检查更新失败；请重试
+Downloading update|正在下载更新
+Update ready to install|更新已准备好安装
+Update download failed; try again|下载更新失败；请重试
+Installation canceled or failed; try again|安装已取消或失败；请重试
 Refresh startup status|刷新启动状态
 Start hardware collector|启动硬件 collector
 Checking startup status…|正在检查启动状态…

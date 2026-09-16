@@ -14,6 +14,7 @@ public interface IDesktopStartupManagement {
 // Only the matching installed worker may manage tasks. Ownership/rollback stays
 // in Startup.Shared inside that worker; the UI never constructs task XML.
 public sealed class WindowsStartupManagement : IDesktopStartupManagement {
+    public static bool IsInstalled=>Worker()!=null;
     static string? Worker() {
         if(!OperatingSystem.IsWindows())return null;
         try {

@@ -10,6 +10,7 @@ public sealed class PreviewSettings {
     public string? Network;
     public bool Codex,Claude,Antigravity;
     public bool Fps;
+    public bool AutoUpdates,AutoDownload;
     public bool DesktopShortcutEnabled=true;
     public string DesktopShortcut="Ctrl+Alt+F10";
     public string FpsTarget="";
@@ -73,6 +74,7 @@ public sealed class PreviewSettingsStore {
             settings.Claude=values.Flag("claude");
             settings.Antigravity=values.Flag("antigravity");
             settings.Fps=values.Flag("fps");
+            settings.AutoUpdates=values.Flag("autoUpdates");settings.AutoDownload=values.Flag("autoDownload");
             settings.CardColumns=(int)values.Number("cardColumns",0,0,3);settings.DesktopColumns=(int)values.Number("desktopColumns",0,0,3);
             if(fields.TryGetValue("cardLayout",out var cardLayout))settings.Cards=ReadingLayout.Read(cardLayout);
             if(fields.TryGetValue("desktopLayout",out var desktopLayout))settings.DesktopRows=ReadingLayout.Read(desktopLayout);
@@ -97,6 +99,7 @@ public sealed class PreviewSettingsStore {
                 ["height"]=JsonSerializer.SerializeToElement(settings.Height),["theme"]=JsonSerializer.SerializeToElement(settings.Theme),
                 ["startupMode"]=JsonSerializer.SerializeToElement(settings.StartupMode),
                 ["floatingLocalContrast"]=JsonSerializer.SerializeToElement(settings.FloatingLocalContrast),
+                ["autoUpdates"]=JsonSerializer.SerializeToElement(settings.AutoUpdates),["autoDownload"]=JsonSerializer.SerializeToElement(settings.AutoDownload),
                 ["network"]=JsonSerializer.SerializeToElement(settings.Network),["codex"]=JsonSerializer.SerializeToElement(settings.Codex),
                 ["claude"]=JsonSerializer.SerializeToElement(settings.Claude),
                 ["antigravity"]=JsonSerializer.SerializeToElement(settings.Antigravity),

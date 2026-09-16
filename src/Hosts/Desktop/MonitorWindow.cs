@@ -43,6 +43,7 @@ public sealed class MonitorWindow : Window {
     readonly TextBlock saveStatus=new(){TextWrapping=TextWrapping.Wrap};
     readonly TextBlock materialStatus=new(){TextWrapping=TextWrapping.Wrap};
     readonly TextBlock contrastStatus=new(){TextWrapping=TextWrapping.Wrap};
+    readonly DesktopUpdatePanel updates;
     readonly CheckBox desktopTopmost=new(){Name="DesktopTopmost"};
     bool loadingNetwork;
     public Task Sampling {get;private set;}=Task.CompletedTask;
@@ -175,9 +176,10 @@ public sealed class MonitorWindow : Window {
         layoutSettings.Children.Add(Language.Set(new TextBlock{FontWeight=FontWeight.SemiBold},"Monitor cards"));layoutSettings.Children.Add(cardEditor);
         layoutSettings.Children.Add(Language.Set(new TextBlock{FontWeight=FontWeight.SemiBold},"Desktop readings"));layoutSettings.Children.Add(desktopEditor);
         RefreshLayoutEditors();
+        updates=new DesktopUpdatePanel(Language,settings,SaveLater,source.IsDemo||smoke||measure);Closed+=(_,_)=>updates.Dispose();
         var settingsTabs=new TabControl{Name="SettingsTabs",ItemsSource=new[]{
             Language.Set(new TabItem{Content=network},"Network"),Language.Set(new TabItem{Content=appearance},"Appearance"),
-            Language.Set(new TabItem{Content=new Border{Padding=new Thickness(20),Child=quotaSettings}},"AI Quota"),Language.Set(new TabItem{Content=desktop},"Desktop"),Language.Set(new TabItem{Content=layoutSettings},"Layout")}};
+            Language.Set(new TabItem{Content=new Border{Padding=new Thickness(20),Child=quotaSettings}},"AI Quota"),Language.Set(new TabItem{Content=desktop},"Desktop"),Language.Set(new TabItem{Content=layoutSettings},"Layout"),Language.Set(new TabItem{Content=updates},"Updates")}};
         var settingsBody=new StackPanel{Spacing=12,Margin=new Thickness(12)};
         settingsBody.Children.Add(settingsTabs);settingsBody.Children.Add(saveStatus);
         var tabs=new TabControl{Name="MainTabs",ItemsSource=new[]{Language.Set(new TabItem{Content=Scroll(body)},"Monitor"),Language.Set(new TabItem{Content=Scroll(settingsBody)},"Settings")}};
@@ -326,6 +328,7 @@ public sealed class MonitorWindow : Window {
             var measurement=measure?new AppMeasurement(source.IsDemo):null;
             using var timer=new PeriodicTimer(TimeSpan.FromSeconds(1));
             do {
+                updates.Poll(DateTime.UtcNow);
                 if(pause.IsChecked==true){Language.Set(status,"Paused");continue;}
                 string? name=interfaces.SelectedItem as string;
                 MonitorSnapshot snapshot;

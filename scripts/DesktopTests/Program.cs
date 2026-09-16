@@ -14,6 +14,7 @@ static class Tests {
         Check(expected==null||expected==System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture.ToString(),"Architecture mismatch");
         if(args.Length==2&&args[0]=="--startup-fixture"){Environment.ExitCode=StartupModeTests.Child(args[1]);return;}
         if(args.SequenceEqual(new[]{"--startup-native"})){StartupModeTests.Native();return;}
+        if(args.SequenceEqual(new[]{"--update-live-metadata"})){DesktopUpdateTests.LiveMetadata();return;}
         if(args.SequenceEqual(new[]{"--layer-native"})){HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();WindowsLayerTests.Native();return;}
         if(args.SequenceEqual(new[]{"--capture-native"})){HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();WindowsCaptureTests.Native();return;}
         if(args.SequenceEqual(new[]{"--contrast-native"})){HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();LocalContrastTests.Native();return;}
@@ -38,6 +39,7 @@ static class Tests {
             WindowsInstanceTests.Native();
             StartupModeTests.Native();
             DesktopStartupTests.Run();
+            DesktopUpdateTests.Run();
             WindowsLayerTests.Native();
             WindowsCaptureTests.Native();
             LocalContrastTests.Native();
@@ -51,6 +53,7 @@ static class Tests {
         AppBuilder.Configure<PulseApplication>().With(DesktopFonts.Options()).UseSkia().UseHeadless(new(){UseHeadlessDrawing=false}).SetupWithoutStarting();
         if(args.SequenceEqual(new[]{"--startup-settings"})){StartupModeTests.Settings();return;}
         if(args.SequenceEqual(new[]{"--startup-controls"})){DesktopStartupTests.Run();return;}
+        if(args.SequenceEqual(new[]{"--update-controls"})){DesktopUpdateTests.Run();return;}
         if(args.Length>=1&&args[0]=="--compact-fps"){LockedLayoutTests.Fps(args.Length==2?args[1]:null);return;}
         if(args.Length>=1&&args[0]=="--layouts"){ReadingLayoutTests.Run(args.Length==2?args[1]:null);return;}
         if(args.Length>=1&&args[0]=="--columns"){AdaptiveReadingsTests.Run(args.Length==2?args[1]:null);return;}
@@ -97,6 +100,7 @@ static class Tests {
         StartupModeTests.Settings();
         LocalContrastTests.Settings();
         DesktopStartupTests.Run();
+        DesktopUpdateTests.Run();
         MeasurementTests.Run();
         TrayTests.Run();
         FloatingMonitorTests.Run(args.Length==1?args[0]:null);
