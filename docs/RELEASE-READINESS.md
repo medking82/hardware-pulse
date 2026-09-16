@@ -129,6 +129,17 @@ hit-test assertions or modify the installed user's desktop/security settings.
 
 ## Acceptance evidence
 
+Floating geometry commit `1316e18` passed macOS Intel/ARM64, Windows x64 and
+Linux x64/ARM64 native/package jobs in run `35074167757`. Windows ARM64 passed
+the new floating tests, then failed the existing pre-lock hit-test because a
+foreign full-screen WWAHost covered the fixture. That result remains failed.
+
+The next shared-host increment projects the already-enabled Codex quota session
+into the floating monitor. It uses all quota windows, follows language changes,
+clears on opt-out, and reuses the current reading on reopen. No new credentials,
+requests, timer or quota provider is introduced. UI integration tests use demo
+readings only; macOS native verification is required before claiming that platform.
+
 The shared floating monitor now stores its own normal size, physical position
 and topmost preference in the existing isolated settings profile. Monitor owns
 the same debounced save path; no sampling, timer, Core or native input ownership

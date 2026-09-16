@@ -11,6 +11,8 @@ public sealed class FloatingMonitorWindow : Window {
     readonly StackPanel rows=new(){Spacing=8,Margin=new Thickness(16)};
     readonly TextBlock cpu=new(),memory=new(),download=new(),upload=new();
     readonly StackPanel sensors=new(){Spacing=8};
+    readonly StackPanel quotaRows=new(){Spacing=8,IsVisible=false};
+    QuotaReading? quotaReading;
     readonly TextBlock lockStatus=new(){TextWrapping=TextWrapping.Wrap,IsVisible=false};
     Action<bool>? input;
     IDisposable? inputLifetime;
@@ -66,6 +68,7 @@ public sealed class FloatingMonitorWindow : Window {
         rows.Children.Add(Row(language.T("Download"),download));
         rows.Children.Add(Row(language.T("Upload"),upload));
         rows.Children.Add(sensors);
+        rows.Children.Add(quotaRows);
         Content=new ScrollViewer{Content=rows,HorizontalScrollBarVisibility=Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled};
         language.Changed+=Localize;Localize();
         Closed+=(_,_)=>{language.Changed-=Localize;input=null;inputLifetime?.Dispose();inputLifetime=null;};
@@ -95,6 +98,18 @@ public sealed class FloatingMonitorWindow : Window {
         for(int i=0;i<keys.Length;i++)((TextBlock)((Grid)rows.Children[i+1]).Children[0]).Text=language.T(keys[i]);
         var family=DesktopFonts.ForLanguage(language.EffectiveLanguage);
         if(family is null)ClearValue(FontFamilyProperty);else FontFamily=family;
+        PresentQuota(quotaReading);
+    }
+    public void PresentQuota(QuotaReading? reading) {
+        quotaReading=reading;quotaRows.Children.Clear();quotaRows.IsVisible=reading!=null;
+        if(reading==null)return;
+        quotaRows.Children.Add(new TextBlock{Text="Codex · "+language.T(reading.Status),TextWrapping=TextWrapping.Wrap,FontWeight=FontWeight.SemiBold});
+        var windows=reading.AllWindows.Count>0?reading.AllWindows:reading.Windows;
+        foreach(var item in windows){
+            var value=new TextBlock();var row=Row(language.T(item.Label),value);
+            value.Text=item.Remaining.HasValue?string.Format(language.T("{0}% left"),item.Remaining.Value.ToString("F1")):"—";
+            quotaRows.Children.Add(row);
+        }
     }
     public void Present(MonitorSnapshot snapshot,bool peaks=false) {
         cpu.Text=peaks?snapshot.PeakCpu:snapshot.Cpu;memory.Text=snapshot.Memory;

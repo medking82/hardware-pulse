@@ -3,6 +3,7 @@ using Avalonia.Threading;
 using Avalonia.Headless;
 using Avalonia.VisualTree;
 using HardwarePulse.Desktop;
+using HardwarePulse;
 
 static class FloatingMonitorTests {
     static void Check(bool ok,string reason){if(!ok)throw new Exception(reason);}
@@ -26,6 +27,18 @@ static class FloatingMonitorTests {
             if(output!=null){floating.Width=360;Dispatcher.UIThread.RunJobs();using var frame=floating.CaptureRenderedFrame();frame!.Save(Path.Combine(output,"floating-360.png"),Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);}
             var top=floating.GetVisualDescendants().OfType<CheckBox>().Single();
             top.IsChecked=true;Check(floating.Topmost,"Topmost not applied");top.IsChecked=false;Check(!floating.Topmost,"Topmost not reversible");
+            var allQuota=new List<QuotaWindow>{new(){Label="5-hour",Remaining=72.5},new(){Label="Weekly",Remaining=54},new(){Label="Extra",Remaining=null}};
+            floating.PresentQuota(new QuotaReading{Provider="Codex",Status="Live",Windows=[allQuota[0]],AllWindows=allQuota});
+            Check(floating.GetVisualDescendants().OfType<TextBlock>().Any(x=>x.Text=="54.0% left")&&floating.GetVisualDescendants().OfType<TextBlock>().Any(x=>x.Text=="Extra"),"Floating quota must include all windows, not only selected ones");
+            owner.Language.Select("zh-CN");
+            Check(!floating.GetVisualDescendants().OfType<TextBlock>().Any(x=>x.Text=="54.0% left"),"Floating quota did not follow language change");
+            owner.Language.Select("en");
+            var quota=owner.GetVisualDescendants().OfType<CodexQuotaPanel>().Single();quota.QuotaEnabled=true;
+            var quotaDeadline=DateTime.UtcNow.AddSeconds(5);
+            while(quota.CurrentReading?.Status!="Live"&&DateTime.UtcNow<quotaDeadline){using var slice=new CancellationTokenSource(TimeSpan.FromMilliseconds(20));Dispatcher.UIThread.MainLoop(slice.Token);}
+            Check(quota.CurrentReading?.Status=="Live"&&floating.GetVisualDescendants().OfType<TextBlock>().Any(x=>x.Text=="72.5% left"),"Existing quota session not projected into floating window");
+            quota.QuotaEnabled=false;
+            Check(!floating.GetVisualDescendants().OfType<TextBlock>().Any(x=>x.Text=="72.5% left"),"Disabled quota remains visible in floating window");
             owner.Present(new("—","—","—","—",false,false));
             Check(!floating.GetVisualDescendants().OfType<TextBlock>().Any(x=>x.Text=="21.0%"),"Floating window retained unavailable live data");
             owner.Language.Select("zh-CN");Check(floating.Title=="浮动监控窗口"&&open.Header=="打开浮动监控窗口","Floating/tray entry not localized");

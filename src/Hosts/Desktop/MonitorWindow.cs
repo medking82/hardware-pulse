@@ -51,6 +51,7 @@ public sealed class MonitorWindow : Window {
         readingMode.SelectionChanged+=(_,_)=>{if(latestSnapshot!=null)Render(latestSnapshot);};
         body.Children.Add(sensors);
         quota=new CodexQuotaPanel(source.IsDemo,inlineSettings:false,language:Language);body.Children.Add(quota);
+        quota.ReadingChanged+=reading=>FloatingMonitor?.PresentQuota(reading);
         body.Children.Add(Language.Set(new TextBlock{TextWrapping=TextWrapping.Wrap,Opacity=.75},"Preview · FPS and Desktop overlay are not connected yet. Hardware support depends on the platform and device."));
         var network=new StackPanel{Spacing=12,Margin=new Thickness(20)};
         network.Children.Add(Language.Set(new TextBlock{FontSize=21,FontWeight=FontWeight.SemiBold},"Network interface"));network.Children.Add(interfaces);
@@ -98,6 +99,7 @@ public sealed class MonitorWindow : Window {
             FloatingMonitor.Closed+=(_,_)=>FloatingMonitor=null;
         }
         if(latestSnapshot!=null)FloatingMonitor.Present(latestSnapshot,readingMode.SelectedIndex==1);
+        FloatingMonitor.PresentQuota(quota.CurrentReading);
         FloatingMonitor.Show();if(!FloatingMonitor.SetLocked(false))return;
         if(FloatingMonitor.WindowState==WindowState.Minimized)FloatingMonitor.WindowState=WindowState.Normal;
         FloatingMonitor.Activate();
