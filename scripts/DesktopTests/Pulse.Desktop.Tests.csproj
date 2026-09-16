@@ -10,5 +10,6 @@
   <ItemGroup>
     <PackageReference Include="Avalonia.Headless" Version="12.1.2" />
     <ProjectReference Include="../../src/Hosts/Desktop/Pulse.Desktop.csproj" />
+    <ProjectReference Include="../../src/Adapters/Windows/Modern/Pulse.Adapters.Windows.Modern.csproj" />
   </ItemGroup>
 </Project>

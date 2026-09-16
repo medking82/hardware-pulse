@@ -225,6 +225,12 @@
           "Pulse.Core": "[1.0.0, )"
         }
       },
+      "pulse.adapters.windows.modern": {
+        "type": "Project",
+        "dependencies": {
+          "Pulse.Core": "[1.0.0, )"
+        }
+      },
       "pulse.core": {
         "type": "Project"
       },

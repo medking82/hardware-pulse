@@ -1134,3 +1134,34 @@ interaction remain environment-dependent. Headless tests cover commands, window
 state and stale callbacks after disposal, not shell visibility. Native smoke runs
 create/dispose the icon; measurement mode excludes it to preserve the earlier
 baseline scenario. No personal settings or real quota credentials are used by tests.
+
+Tray native smoke validation at `2b0e22d5d73ff0e14dbfed88f6245f2606cc2359`:
+[run 35041936825](https://github.com/medking82/hardware-pulse/actions/runs/35041936825)
+passed all six jobs, including creation/disposal in Windows demo and Linux/macOS
+live smoke windows. This does not prove physical shell interaction on every DE.
+
+## Modern Windows system adapter
+
+`Adapters/Windows/Modern` is a separate .NET 10 library referencing Core; the
+existing .NET Framework Windows adapter and installed WPF runtime are unchanged.
+WindowsSystemReadings exposes physical RAM and interval CPU through Reading,
+without elevation, driver, WMI, process launch or an internal timer. It is not yet
+wired into the shared host: selected-network and quota platform wiring must be
+completed before replacing Windows demo mode with a coherent live host.
+
+GetSystemTimes kernel ticks include idle, so busy is kernel + user - idle.
+First/zero/reset/failing intervals remain unavailable. Native CPU collection is
+limited to single processor-group machines: multi-group results must not be
+misrepresented as whole-machine utilization. RAM uses total minus available
+physical bytes from GlobalMemoryStatusEx, across all NUMA nodes, with fractional
+percentage computed from bytes rather than the integer load field. CPU and RAM
+availability are independent; unknown sensors are not fabricated.
+
+Synthetic fixtures exercise idle accounting, resets, failure recovery, invalid
+RAM and GiB conversion on all CI architectures. Windows additionally reads actual
+CPU/RAM with a bounded interval, including native ARM64 through the existing
+architecture-checked DesktopTests matrix. Local native Windows tests passed.
+This establishes system-counter capability, not temperature/fan/FPS support.
+
+References: [GetSystemTimes](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getsystemtimes)
+and [GlobalMemoryStatusEx](https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-globalmemorystatusex).

@@ -46,6 +46,7 @@ static class Tests {
         SettingsTests.Run(args.Length==1?args[0]:null);
         MeasurementTests.Run();
         TrayTests.Run();
+        WindowsSystemTests.Run();
         Console.WriteLine("PASS Desktop rendering, responsive cards, unavailable state, keyboard and worker shutdown");
     }
 }
