@@ -81,6 +81,13 @@ compiles and checks both expanded variants with `Test-InstallerVariants.ps1`.
 The modern output alias is not overwritten by a compatibility build.
 The unsigned local installer is development evidence, not a supported download.
 
+The compatibility installer explicitly shows its welcome page, with English,
+Simplified Chinese or Traditional Chinese text selected by the installer language.
+It states that FPS and Local Contrast are unsupported and that the current build
+provides CPU usage, memory and network data, with temperature/fan/GPU readings
+unavailable. Modern installer pages are unchanged. Compiled variant checks cover
+the notice and its isolation; target-OS visual verification remains outstanding.
+
 Scope: installer compile-time branches, build selection and compiled-variant
 checks. No task permissions, driver registration, installed application or OS
 settings are changed on this workstation. Validation includes both expanded

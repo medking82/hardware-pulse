@@ -15,7 +15,7 @@ foreach($legacy in @($false,$true)){
         if(-not $script.Contains($required)){throw "Shared installer contract missing in ${name}: $required"}
     }
     if($legacy){
-        foreach($required in @('MinVersion=6.1sp1','OnlyBelowVersion=6.2','OutputBaseFilename=HardwarePulse-Win7-x64-Setup','Excludes: "tools\PresentMon.exe"','https://dotnet.microsoft.com/download/dotnet-framework/net48')){
+        foreach($required in @('MinVersion=6.1sp1','OnlyBelowVersion=6.2','OutputBaseFilename=HardwarePulse-Win7-x64-Setup','Excludes: "tools\PresentMon.exe"','https://dotnet.microsoft.com/download/dotnet-framework/net48','DisableWelcomePage=no','WizardForm.WelcomeLabel2.Caption','FPS and Local Contrast are not supported.','不支持 FPS 和局部对比度。','不支援 FPS 和局部對比度。')){
             if(-not $script.Contains($required)){throw "Legacy installer contract missing: $required"}
         }
         if($script -match 'PawnIO|MinVersion=10\.0'){throw 'Legacy installer includes incompatible driver or OS gate'}
@@ -23,7 +23,7 @@ foreach($legacy in @($false,$true)){
         foreach($required in @('MinVersion=10.0.19045','PawnIO-2.2.0.exe','if not PawnIOPresent() then begin')){
             if(-not $script.Contains($required)){throw "Modern installer contract missing: $required"}
         }
-        if($script -match 'OnlyBelowVersion|Excludes:|Win7-x64-Setup'){throw 'Legacy installer options leaked into modern build'}
+        if($script -match 'OnlyBelowVersion|Excludes:|Win7-x64-Setup|DisableWelcomePage=no|WelcomeLabel2.Caption'){throw 'Legacy installer options leaked into modern build'}
     }
 }
 "PASS compiled installer variants: OS gates, prerequisite isolation, PresentMon exclusion, stable AppId and startup/upgrade contracts. Evidence: $output"

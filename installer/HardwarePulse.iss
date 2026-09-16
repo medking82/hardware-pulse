@@ -14,6 +14,7 @@ ArchitecturesInstallIn64BitMode=x64compatible
 #ifdef Win7Compatibility
 MinVersion=6.1sp1
 OnlyBelowVersion=6.2
+DisableWelcomePage=no
 #else
 MinVersion=10.0.19045
 #endif
@@ -98,6 +99,21 @@ function IsPulseUpdate(): Boolean;
 begin
   Result := ExpandConstant('{param:PULSEUPDATE|0}') = '1';
 end;
+#ifdef Win7Compatibility
+procedure InitializeWizard();
+begin
+  WizardForm.WelcomeLabel2.Caption := LocalText(
+    'Windows 7 SP1 (64-bit) compatibility edition.' + #13#10#13#10 +
+    'FPS and Local Contrast are not supported.' + #13#10#13#10 +
+    'This build reads CPU usage, memory and network data. Temperature, fan speed and GPU readings are currently unavailable.',
+    'Windows 7 SP1（64 位）兼容版。' + #13#10#13#10 +
+    '不支持 FPS 和局部对比度。' + #13#10#13#10 +
+    '此版本读取 CPU 使用率、内存和网络数据。目前无法读取温度、风扇转速和 GPU 数据。',
+    'Windows 7 SP1（64 位）相容版。' + #13#10#13#10 +
+    '不支援 FPS 和局部對比度。' + #13#10#13#10 +
+    '此版本讀取 CPU 使用率、記憶體與網路資料。目前無法讀取溫度、風扇轉速與 GPU 資料。');
+end;
+#endif
 function GetCurrentProcessId(): Cardinal;
   external 'GetCurrentProcessId@kernel32.dll stdcall';
 
