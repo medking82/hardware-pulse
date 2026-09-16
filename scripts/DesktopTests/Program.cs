@@ -29,6 +29,11 @@ static class Tests {
                 frame!.Save(System.IO.Path.Combine(args[0],$"desktop-{width}.png"),Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
             }
         }
+        var mode=window.GetVisualDescendants().OfType<ComboBox>().Single(x=>x.Name=="ReadingMode");
+        mode.SelectedIndex=1;
+        Check(window.GetVisualDescendants().OfType<TextBlock>().Any(x=>x.Text=="42.0%"),"Session Max switches immediately without polling");
+        mode.SelectedIndex=0;
+        Check(window.GetVisualDescendants().OfType<TextBlock>().Any(x=>x.Text=="24.0%"),"Live restores current snapshot");
         var pause=window.GetVisualDescendants().OfType<CheckBox>().Single(x=>x.Name=="PauseHardware");
         pause.Focus();window.KeyPress(Key.Space,RawInputModifiers.None,PhysicalKey.Space," ");window.KeyRelease(Key.Space,RawInputModifiers.None,PhysicalKey.Space," ");
         Check(pause.IsChecked==true,"Pause keyboard interaction");
@@ -49,6 +54,7 @@ static class Tests {
         WindowsSystemTests.Run();
         NetworkAdapterTests.Run();
         HardwareSensorTests.Run(args.Length==1?args[0]:null);
+        SessionMaxTests.Run();
         Console.WriteLine("PASS Desktop rendering, responsive cards, unavailable state, keyboard and worker shutdown");
     }
 }

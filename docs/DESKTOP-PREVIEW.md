@@ -56,6 +56,13 @@ Temperature/fan sensors, GPU telemetry, FPS capture, Desktop overlay and
 click-through, blur/local contrast, global shortcuts, startup registration,
 cross-process single-instance restoration, automatic updates, additional quota
 providers and complete localization are not connected in this shared host.
+Development also adds Live / Session Max selection using Core ReadingSession
+history. CPU, selected-interface byte rates and exposed Linux sensor values
+support peaks; RAM usage and quota remain current, as labelled in the UI.
+Changing mode does not poll again. Network selection starts a fresh network
+session; detected hwmon topology/label changes reset sensor peaks because hwmon
+ids are not permanent identities. Closing the App ends the session. These changes
+are not in the published `0.7.0-preview.1` archive.
 It does not infer hardware support from a successful UI launch. The existing
 stable Windows App remains the feature-complete choice for its supported hardware.
 
