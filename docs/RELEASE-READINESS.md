@@ -31,3 +31,10 @@ Unsupported hardware must stay unavailable; absence cannot be represented as a
 fabricated zero. Existing user settings and the Windows stable installation must
 remain untouched by preview development. No new stable release has been made
 by this readiness document.
+
+Linux sensor UI integration at `ada4f306c36ef70e32f5975d79be74e7167c44a7`
+passed local Desktop render/interaction tests and `Validate.ps1 -ModernCore`.
+[Native run 35046006965](https://github.com/medking82/hardware-pulse/actions/runs/35046006965)
+passed all six packaged application jobs. This closes integrated native startup
+validation for this change, not the remaining release scope decision or physical
+sensor coverage.
