@@ -47,6 +47,15 @@ screen point, window position, client size, scaling and activation. Local native
 tests pass; the ARM64 result must still establish whether this was timing or a
 different desktop/environment condition. The failed run does not verify ARM64 lock.
 
+Run `35063101437` again passed five platforms but failed the same ARM64 pre-lock
+fixture even after the bounded wait: the window was active at scale 1 and client
+300x220, yet point (288,291) hit a different HWND. This rules out assuming a
+150 ms startup delay was the sole cause. The next diagnostic records class,
+process, native rectangle and root HWND, and compares top-level targets so a
+native child surface is not mistaken for a foreign window. Original lock,
+visible-content and unlock assertions remain required. macOS adapter work is
+held locally until this diagnosis is isolated; it is not part of these CI runs.
+
 ## Acceptance evidence
 
 | Area | Current evidence | Work before stable delivery |
