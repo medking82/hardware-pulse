@@ -6,6 +6,8 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 
 ## Unreleased
 
+- Shared floating monitor remembers size, position and Always on top in its isolated profile. Reopening remains editable and recovers off-screen positions onto an available display.
+
 - Shared Linux X11 floating monitor adds mouse-through locking with XFixes. Unlock restores the default input region and window frame; native x64/ARM64 checks pass. Native Wayland locking is not implemented.
 
 - Shared macOS floating monitor adds AppKit mouse-through locking and reuses the Monitor/tray unlock action. Native Intel/ARM64 lifecycle and package checks pass.

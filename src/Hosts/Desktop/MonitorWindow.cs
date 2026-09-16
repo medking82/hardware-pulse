@@ -94,7 +94,7 @@ public sealed class MonitorWindow : Window {
     public void OpenFloatingMonitor() {
         if(stop.IsCancellationRequested)return;
         if(FloatingMonitor==null) {
-            FloatingMonitor=new FloatingMonitorWindow(Language){RequestedThemeVariant=RequestedThemeVariant};
+            FloatingMonitor=new FloatingMonitorWindow(Language,settings,SaveLater){RequestedThemeVariant=RequestedThemeVariant};
             FloatingMonitor.Closed+=(_,_)=>FloatingMonitor=null;
         }
         if(latestSnapshot!=null)FloatingMonitor.Present(latestSnapshot,readingMode.SelectedIndex==1);

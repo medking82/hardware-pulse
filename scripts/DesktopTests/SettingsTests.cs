@@ -21,6 +21,10 @@ static class SettingsTests {
             var store=new PreviewSettingsStore(path);var value=store.Load();
             Check(value.Width==360&&value.Height==1600&&value.Theme=="System"&&value.Codex,"Settings normalize known values");
             value.Width=700;value.Height=650;Check(store.Save(value),"Atomic save");
+            value.FloatingWidth=620;value.FloatingHeight=730;value.FloatingX=-900;value.FloatingY=80;value.FloatingPositionSet=true;value.FloatingTopmost=true;
+            Check(store.Save(value),"Floating settings save");
+            var floatingSaved=new PreviewSettingsStore(path).Load();
+            Check(floatingSaved.FloatingWidth==620&&floatingSaved.FloatingHeight==730&&floatingSaved.FloatingX==-900&&floatingSaved.FloatingY==80&&floatingSaved.FloatingTopmost&&floatingSaved.FloatingPositionSet,"Floating settings round trip");
             using(var doc=JsonDocument.Parse(File.ReadAllText(path)))Check(doc.RootElement.GetProperty("future").GetProperty("keep").GetInt32()==7,"Unknown fields retained");
             if(!OperatingSystem.IsWindows())Check((File.GetUnixFileMode(path)&(UnixFileMode.GroupRead|UnixFileMode.OtherRead|UnixFileMode.GroupWrite|UnixFileMode.OtherWrite))==0,"Settings private permissions");
             foreach(string bad in new[]{"{broken","{\"schema\":2,\"codex\":true}","{\"schema\":\"invalid\"}",new string(' ',65537)}) {

@@ -7,6 +7,8 @@ using HardwarePulse.Desktop;
 static class FloatingMonitorTests {
     static void Check(bool ok,string reason){if(!ok)throw new Exception(reason);}
     public static void Run(string? output=null) {
+        Check(FloatingMonitorWindow.ConstrainPosition(new(-4000,5000),new(-1920,40,1920,1040),440,420)==new Avalonia.PixelPoint(-1920,660),"Removed monitor/negative desktop recovery");
+        Check(FloatingMonitorWindow.ConstrainPosition(new(100,100),new(0,0,300,200),440,420)==new Avalonia.PixelPoint(0,0),"Small work area recovery");
         var owner=new MonitorWindow(new MonitorSource(true),start:false);
         owner.Show();owner.Present(new("21.0%","4.0 / 16.0 GiB · 25.0%","1.0 KiB/s","2.0 KiB/s",true,true));
         using var tray=new DesktopTray(owner);
@@ -37,8 +39,11 @@ static class FloatingMonitorTests {
             Console.WriteLine($"FLOATING_RESIZE settled client={floating.ClientSize.Width} widest={floating.GetVisualDescendants().OfType<TextBlock>().Max(x=>x.Bounds.Width)}");
             Check(Math.Abs(floating.ClientSize.Width-360)<=1,"Floating native resize was not acknowledged");
             Check(floating.GetVisualDescendants().OfType<TextBlock>().All(x=>x.Bounds.Width<=360),"Floating text overflow");
+            top.IsChecked=true;double savedWidth=floating.Width,savedHeight=floating.Height;
             floating.Close();Check(owner.FloatingMonitor==null&&owner.IsVisible,"Floating close ended Monitor");
             owner.OpenFloatingMonitor();floating=owner.FloatingMonitor!;
+            Check(floating.Topmost&&floating.Width==savedWidth&&floating.Height==savedHeight,"Floating geometry/topmost lost on reopen");
+            Check(floating.GetVisualDescendants().OfType<CheckBox>().Single().IsChecked==true,"Restored topmost checkbox disagrees with window");
             owner.Close();Check(!floating.IsVisible&&owner.FloatingMonitor==null,"Owner close left floating window alive");
             Check(!open.Command.CanExecute(null),"Disposed tray still offers floating action");open.Command.Execute(null);
             owner.OpenFloatingMonitor();Check(owner.FloatingMonitor==null,"Closed owner reopened floating window");

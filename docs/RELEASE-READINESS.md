@@ -1,8 +1,9 @@
 # Multi-platform stable release readiness
 
 The delivery target is a public stable release with usable, verified packages,
-not merely pushed adapters or a renamed experimental release. Existing Windows
-WPF v0.6.26 remains stable; v0.7.0-preview.1 is still experimental.
+not merely pushed adapters or a renamed experimental release. Windows WPF
+v0.6.27 is now published and its downloaded installer SHA-256 verified;
+v0.7.0-preview.1 is still experimental.
 
 ## Scope decision
 
@@ -127,6 +128,17 @@ desktop initialization as a separate CI change, not a reason to weaken the nativ
 hit-test assertions or modify the installed user's desktop/security settings.
 
 ## Acceptance evidence
+
+The shared floating monitor now stores its own normal size, physical position
+and topmost preference in the existing isolated settings profile. Monitor owns
+the same debounced save path; no sampling, timer, Core or native input ownership
+changes. Reopen restores the window and checkbox state; disconnected-display
+coordinates are constrained to an available working area, including negative
+desktop coordinates. Lock remains transient so a reopened window is editable.
+Settings round-trip, clamp and reopen tests precede native session and full
+repository validation. macOS Intel/ARM64 CI must verify native restoration;
+physical mixed-DPI hotplug remains a separate manual test. Rollback is limited
+to these optional profile fields and the shared window integration.
 
 The X11 input increment is owned by the shared host's `X11WindowInput`: it borrows
 the live Avalonia window, checks XFixes/Shape capability, shapes only the owned

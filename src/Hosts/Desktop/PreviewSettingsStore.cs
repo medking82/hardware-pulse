@@ -8,6 +8,9 @@ public sealed class PreviewSettings {
     public string Language="auto";
     public string? Network;
     public bool Codex;
+    public double FloatingWidth=440,FloatingHeight=420;
+    public int FloatingX,FloatingY;
+    public bool FloatingPositionSet,FloatingTopmost;
 }
 
 // Host-specific persistence. No credentials or installed WPF settings are stored here.
@@ -37,6 +40,9 @@ public sealed class PreviewSettingsStore {
             }
             var values=new SettingsValues(map);
             settings.Width=values.Number("width",800,360,2400);settings.Height=values.Number("height",560,400,1600);
+            settings.FloatingWidth=values.Number("floatingWidth",440,360,2400);settings.FloatingHeight=values.Number("floatingHeight",420,240,1600);
+            settings.FloatingX=(int)values.Number("floatingX",0,-100000,100000);settings.FloatingY=(int)values.Number("floatingY",0,-100000,100000);
+            settings.FloatingPositionSet=values.Flag("floatingPositionSet");settings.FloatingTopmost=values.Flag("floatingTopmost");
             string theme=values.Text("theme","System");settings.Theme=theme is "Light" or "Dark"?theme:"System";
             string network=values.Text("network");settings.Network=network.Length>0&&network.Length<=256&&!network.Any(char.IsControl)?network:null;
             settings.Codex=values.Flag("codex");
@@ -56,6 +62,9 @@ public sealed class PreviewSettingsStore {
                 ["schema"]=JsonSerializer.SerializeToElement(1),["width"]=JsonSerializer.SerializeToElement(settings.Width),
                 ["height"]=JsonSerializer.SerializeToElement(settings.Height),["theme"]=JsonSerializer.SerializeToElement(settings.Theme),
                 ["network"]=JsonSerializer.SerializeToElement(settings.Network),["codex"]=JsonSerializer.SerializeToElement(settings.Codex),
+                ["floatingWidth"]=JsonSerializer.SerializeToElement(settings.FloatingWidth),["floatingHeight"]=JsonSerializer.SerializeToElement(settings.FloatingHeight),
+                ["floatingX"]=JsonSerializer.SerializeToElement(settings.FloatingX),["floatingY"]=JsonSerializer.SerializeToElement(settings.FloatingY),
+                ["floatingPositionSet"]=JsonSerializer.SerializeToElement(settings.FloatingPositionSet),["floatingTopmost"]=JsonSerializer.SerializeToElement(settings.FloatingTopmost),
                 ["language"]=JsonSerializer.SerializeToElement(settings.Language)};
             var bytes=JsonSerializer.SerializeToUtf8Bytes(updated);
             if(bytes.Length>65536)throw new InvalidDataException();

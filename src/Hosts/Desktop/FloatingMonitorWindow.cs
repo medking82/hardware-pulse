@@ -16,18 +16,38 @@ public sealed class FloatingMonitorWindow : Window {
     IDisposable? inputLifetime;
     public bool IsLocked {get;private set;}
     public bool CanLock=>input!=null;
-    public FloatingMonitorWindow(UiLanguage language) {
+    public FloatingMonitorWindow(UiLanguage language,PreviewSettings? saved=null,Action? changed=null) {
         this.language=language;
-        Width=440;Height=420;MinWidth=360;MinHeight=240;FontSize=15;
+        saved??=new PreviewSettings();
+        Width=saved.FloatingWidth;Height=saved.FloatingHeight;MinWidth=360;MinHeight=240;FontSize=15;
+        Topmost=saved.FloatingTopmost;
+        bool restored=false;
+        void Remember(){
+            if(!restored||WindowState!=WindowState.Normal)return;
+            saved.FloatingWidth=Width;saved.FloatingHeight=Height;
+            saved.FloatingX=Position.X;saved.FloatingY=Position.Y;saved.FloatingPositionSet=true;
+            saved.FloatingTopmost=Topmost;changed?.Invoke();
+        }
+        SizeChanged+=(_,_)=>Remember();PositionChanged+=(_,_)=>Remember();
         language.Set(this,"Floating monitor");
         var topmost=language.Set(new CheckBox{Name="FloatingTopmost"},"Always on top");
-        topmost.IsCheckedChanged+=(_,_)=>Topmost=topmost.IsChecked==true;
+        topmost.IsChecked=Topmost;
+        topmost.IsCheckedChanged+=(_,_)=>{Topmost=topmost.IsChecked==true;Remember();};
         var lockButton=language.Set(new Button{Name="LockFloatingMonitor",IsVisible=false},"Lock floating monitor");
         lockButton.Click+=(_,_)=>SetLocked(true);
         var toolbar=new StackPanel{Spacing=8};toolbar.Children.Add(topmost);toolbar.Children.Add(lockButton);toolbar.Children.Add(lockStatus);
         language.Set(lockStatus,"Reopen from Monitor or the tray to unlock.");
         rows.Children.Add(toolbar);
         Opened+=(_,_)=>{
+            var requested=saved.FloatingPositionSet?new PixelPoint(saved.FloatingX,saved.FloatingY):Position;
+            var screen=Screens.ScreenFromPoint(requested)??Screens.Primary;
+            if(screen!=null){
+                var area=screen.WorkingArea;
+                Width=Math.Max(MinWidth,Math.Min(Width,area.Width/screen.Scaling));
+                Height=Math.Max(MinHeight,Math.Min(Height,area.Height/screen.Scaling));
+                Position=ConstrainPosition(requested,area,(int)Math.Ceiling(Width*screen.Scaling),(int)Math.Ceiling(Height*screen.Scaling));
+            }
+            restored=true;Remember();
             var handle=TryGetPlatformHandle();
             if(OperatingSystem.IsWindows()&&handle?.HandleDescriptor=="HWND") {
                 input??=new WindowsWindowInput(handle.Handle).SetPassThrough;
@@ -50,6 +70,9 @@ public sealed class FloatingMonitorWindow : Window {
         language.Changed+=Localize;Localize();
         Closed+=(_,_)=>{language.Changed-=Localize;input=null;inputLifetime?.Dispose();inputLifetime=null;};
     }
+    public static PixelPoint ConstrainPosition(PixelPoint requested,PixelRect area,int width,int height)=>new(
+        Math.Clamp(requested.X,area.X,Math.Max(area.X,area.Right-width)),
+        Math.Clamp(requested.Y,area.Y,Math.Max(area.Y,area.Bottom-height)));
     public bool SetLocked(bool locked) {
         if(input==null)return !locked;
         if(IsLocked==locked)return true;
