@@ -44,15 +44,29 @@ static class LockedLayoutTests {
             Check(window.Position.Y+total<=screen.WorkingArea.Bottom+2,"Expanded Desktop exceeds work area");
             Check(window.SetLocked(false),"Expanded Desktop cannot unlock");
             settings.DesktopColumns=0;window.ApplyTextAppearance();window.Width=440;window.Height=240;
-            int count=(int)(screen.WorkingArea.Height/screen.Scaling/20)+10;
-            window.Present(snapshot with {WindowsHardware=Enumerable.Range(0,count).Select(i=>new HardwareSensorSnapshot("fan"+i,"Fixture fan "+i,"1200 RPM")).ToArray()});Pump();window.SetLocked(true);Pump();
             var panel=window.GetVisualDescendants().OfType<AdaptiveReadingsPanel>().Single();
+            double rowStride=panel.Children.Single(x=>Equals(x.Tag,"hardware/fan0")).DesiredSize.Height+panel.Spacing;
+            // One screen of measured rows plus the four basic metrics requires
+            // widening, but can fit in two columns even on the 1024x728 CI desktop.
+            int count=(int)Math.Ceiling(screen.WorkingArea.Height/screen.Scaling/rowStride);
+            MonitorSnapshot WithRows(int number)=>snapshot with {WindowsHardware=Enumerable.Range(0,number).Select(i=>new HardwareSensorSnapshot("fan"+i,"Fixture fan "+i,"1200 RPM")).ToArray()};
+            window.Present(WithRows(count));Pump();
+            Check(scroll.Extent.Height>screen.WorkingArea.Height/screen.Scaling,"Auto-column fixture must exceed a full-height single column");
+            window.SetLocked(true);Pump();
             Console.WriteLine($"LOCKED_AUTO screen={screen.WorkingArea} scale={screen.Scaling} font={window.FontSize} width={window.Width} height={window.Height} client={window.ClientSize} frame={window.FrameSize} columns={panel.Columns} minColumn={panel.MinimumColumnWidth} rows={panel.Children.Count} panel={panel.Bounds} extent={scroll.Extent} viewport={scroll.Viewport}");
             if(screen.WorkingArea.Width/screen.Scaling>=820) {
                 Check(window.Width>440,"Auto columns did not widen to recover overflow");
                 Check(scroll.Extent.Height<=scroll.Viewport.Height+1,"Auto columns leave avoidable locked overflow");
             }
             Check((window.FrameSize?.Width??window.Width)*screen.Scaling<=screen.WorkingArea.Width+2,"Auto fit exceeds work area width");
+            Check(window.SetLocked(false),"Auto-fit window cannot unlock");
+            window.Present(WithRows(count*4));Pump();window.SetLocked(true);Pump();
+            Check(scroll.Extent.Height>scroll.Viewport.Height+1,"Over-capacity fixture unexpectedly fits");
+            Check((window.FrameSize?.Width??window.Width)*screen.Scaling<=screen.WorkingArea.Width+2&&(window.FrameSize?.Height??window.Height)*screen.Scaling<=screen.WorkingArea.Height+2,"Over-capacity layout exceeds work area");
+            Check(panel.Children.Count==count*4+4&&window.FontSize==15,"Over-capacity layout discarded readings or reduced font size");
+            Check(window.SetLocked(false),"Over-capacity window cannot unlock for scrolling");
+            scroll.Offset=new Avalonia.Vector(0,scroll.Extent.Height);Pump();
+            Check(scroll.Offset.Y>0,"Unlocked over-capacity readings cannot be scrolled");
         }finally{window.SetLocked(false);window.Close();}
         Console.WriteLine("PASS locked Desktop: short-height recovery, work-area bounds, no sample shrink and unlock");
     }

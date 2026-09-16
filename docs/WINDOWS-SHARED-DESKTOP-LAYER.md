@@ -56,6 +56,34 @@ Final validation passed: full native suite (`vendor/test-lock-frame-native-final
 headless suite (`vendor/test-lock-frame-headless.log`), and
 `Validate.ps1 -ModernCore` (`vendor/validate-lock-frame.log`).
 
+## Native Auto-column fixture capacity
+
+Windows x64 CI run `35128982728` reproduced the overflow at commit `59be0e9`
+with geometry diagnostics: work area 1024 x 728 at scale 1, window/client/frame
+1008 x 712, two columns with minimum width 360, 50 readings, panel height 700,
+extent 732 and viewport 712. Requested and achieved dimensions match. The
+window has reached the permitted work-area size; a third minimum-width column
+cannot fit. This disproves both an unacknowledged resize and unused available
+column capacity as the cause of this failure.
+
+The fixture incorrectly called that 20-DIP overflow avoidable: its row count
+assumed a 20-DIP row without spacing and margins. It now derives the repeated
+fan-row stride from actual measurement, supplies one screen of those rows plus
+the four basic metrics, and requires that the single-column fixture overflows
+before locking. It retains the original widening and zero-overflow assertions
+where two columns fit. A separate over-capacity case requires all readings and
+font size to survive, locked dimensions to stay inside the work area, and
+unlock/scroll to recover the hidden rows. Production layout is unchanged.
+
+Local diagnostic evidence: `vendor/ci-locked-59be0e9-job.log` and
+`vendor/diagnose-locked-layout-local.log`. The earlier local pass used a
+3840 x 2088 work area at scale 1.5, explaining why it did not reveal the smaller
+CI fixture's impossible capacity requirement. The corrected focused native
+test is recorded in `vendor/test-locked-capacity-local.log`; CI verification of
+the correction remains separate.
+The corrected build had zero warnings/errors, and repository
+`scripts/Validate.ps1` passed (`vendor/validate-locked-capacity.log`).
+
 ## Intermittent pixel observation
 
 The previously observed plain input-fixture red-pixel failure remains an open
