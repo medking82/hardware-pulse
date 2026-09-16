@@ -6,6 +6,8 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 
 ## Unreleased
 
+- Explain and disable unavailable FPS and Local Contrast controls on older Windows, including Desktop and tray entry points, while retaining saved preferences. Windows 7 compatibility is still under development.
+
 - Window snapping falls back to WPF DPI on older Windows versions that lack `GetDpiForWindow`, preserving scaled snap distances without repeated missing-API exceptions. Windows 7 installation remains unverified.
 
 - Prepare the Windows WPF collector for legacy Windows with driver-free CPU/RAM/network counters and older memory-metadata fields. The Framework and modern hosts share counter mapping. This does not add verified Windows 7 support or lower the installer minimum; temperature/fan/GPU and FPS compatibility remain unresolved.

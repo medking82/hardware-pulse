@@ -20,9 +20,10 @@ namespace HardwarePulse {
             SyncFpsSwitches();
         }
         void SetFpsEnabled(bool enabled){
+            if(!FpsSupported)return;
             if(enabled){Control<CheckBox>("OverlayFps").IsChecked=true;settings.Map("overlay")["fps"]=true;}
             var main=Control<CheckBox>("OverlayEnabled");main.IsChecked=enabled;main.RaiseEvent(new RoutedEventArgs(CheckBox.ClickEvent));
         }
-        void SyncFpsSwitches(){bool enabled=Checked("OverlayEnabled")&&Checked("OverlayFps");Control<CheckBox>("FpsQuick").IsChecked=enabled;if(trayFps!=null)trayFps.Checked=enabled;}
+        void SyncFpsSwitches(){bool enabled=FpsSupported&&Checked("OverlayEnabled")&&Checked("OverlayFps");var quick=Control<CheckBox>("FpsQuick");quick.IsChecked=enabled;quick.IsEnabled=FpsSupported;Control<CheckBox>("OverlayFps").IsEnabled=FpsSupported;if(!FpsSupported){quick.ToolTip=language.T("FPS capture is unavailable on this Windows version.");Control<CheckBox>("OverlayFps").IsChecked=false;Text("OverlayStatus",language.T("FPS capture is unavailable on this Windows version."));}if(trayFps!=null){trayFps.Checked=enabled;trayFps.Enabled=FpsSupported;}}
     }
 }

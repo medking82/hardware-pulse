@@ -75,12 +75,12 @@ namespace HardwarePulse {
             }finally{refreshingGames=false;}
         }
         void StopOverlay(){overlayTimer.Stop();if(frames!=null)frames.Dispose();frames=null;overlay.Hide();if(target!=null)target.Dispose();target=null;}
-        void StartOverlay(){SyncFpsSwitches();StopOverlay();desktopFpsValue=desktopFpsAverage=desktopFpsMinimum="—";if(!Checked("OverlayEnabled")&&!DesktopFpsActive){Text("OverlayStatus",language.T("FPS capture stopped"));return;}if(isolated)return;if(Checked("OverlayEnabled")&&Checked("OverlayFps")||DesktopFpsActive)frames=new FpsClient(paths.Exe);overlayTimer.Start();UpdateOverlay();}
+        void StartOverlay(){SyncFpsSwitches();StopOverlay();desktopFpsValue=desktopFpsAverage=desktopFpsMinimum="—";if(!Checked("OverlayEnabled")&&!DesktopFpsActive){Text("OverlayStatus",language.T(FpsSupported?"FPS capture stopped":"FPS capture is unavailable on this Windows version."));return;}if(isolated)return;if(FpsSupported&&(Checked("OverlayEnabled")&&Checked("OverlayFps")||DesktopFpsActive))frames=new FpsClient(paths.Exe);overlayTimer.Start();UpdateOverlay();}
         static string OverlayValue(Reading data,string key,string unit){double value;return data.values.TryGetValue(key,out value)?ReadingFormat.SensorNumber(value,unit,true)+unit:"—";}
         void UpdateOverlay(){desktopFpsValue=desktopFpsAverage=desktopFpsMinimum="—";desktopFpsStatus="Waiting for target app";if((!Checked("OverlayEnabled")&&!DesktopFpsActive)||isolated){overlay.Hide();return;}
             var choice=Control<ComboBox>("GamePicker").SelectedItem as ComboBoxItem;string name=choice==null?"":(string)choice.Tag;
             var next=OverlayTarget.Resolve(name,target);if(!object.ReferenceEquals(next,target)){if(target!=null)target.Dispose();target=next;}
-            if(target==null){if(frames!=null)frames.Select(0,0);overlay.Hide();Text("OverlayStatus",language.T("Waiting for target app"));return;}
+            if(target==null){if(frames!=null)frames.Select(0,0);overlay.Hide();Text("OverlayStatus",language.T(FpsSupported?"Waiting for target app":"FPS capture is unavailable on this Windows version."));return;}
             string processName;IntPtr targetWindow;
             try{target.Refresh();processName=target.ProcessName;targetWindow=target.MainWindowHandle;if(frames!=null)frames.Select(target.Id,target.StartTime.ToUniversalTime().Ticks);}catch{target.Dispose();target=null;if(frames!=null)frames.Select(0,0);overlay.Hide();return;}
             if(frames!=null)SetDesktopFps(frames.Read());

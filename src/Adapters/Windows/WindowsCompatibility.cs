@@ -4,6 +4,8 @@ using Microsoft.Win32;
 namespace HardwarePulse {
     public static class WindowsCompatibility {
         public static bool RequiresDriverFreeCollector(Version version){return version!=null&&version.Major<10;}
+        public static bool SupportsFpsCapture(Version version){return version!=null&&version.Major>=10;}
+        public static bool SupportsCaptureExclusion(Version version){return version!=null&&(version.Major>10||(version.Major==10&&version.Build>=19041));}
         public static Version CurrentVersion() {
             // An unmanifested Framework process can report 6.2 on newer Windows.
             // Read the OS-owned version metadata instead of downgrading modern machines.

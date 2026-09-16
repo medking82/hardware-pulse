@@ -20,9 +20,7 @@ namespace HardwarePulse {
         public bool Enable(){
             if(excluded)return true;
             // Older Windows accepts 0x11 but substitutes a black rectangle.
-            using(var key=Microsoft.Win32.Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion")){
-                int build;if(key==null||!int.TryParse(Convert.ToString(key.GetValue("CurrentBuildNumber")),out build)||build<19041)return false;
-            }
+            if(!WindowsCompatibility.SupportsCaptureExclusion(WindowsCompatibility.CurrentVersion()))return false;
             handle=new WindowInteropHelper(window).Handle;
             excluded=handle!=IntPtr.Zero&&SetWindowDisplayAffinity(handle,0x11);return excluded;
         }

@@ -23,7 +23,8 @@ namespace HardwarePulse {
         void WireDesktop(){
             Click("DesktopScreenshot",BeginDesktopScreenshot);
             WireDesktopShortcut();
-            Control<CheckBox>("DesktopLocalContrast").IsChecked=settings.Flag("desktopLocalContrast");
+            Control<CheckBox>("DesktopLocalContrast").IsChecked=LocalContrastSupported&&settings.Flag("desktopLocalContrast");
+            Control<CheckBox>("DesktopLocalContrast").IsEnabled=LocalContrastSupported;
             Control<CheckBox>("DesktopLocalContrast").Click+=delegate{settings.Data["desktopLocalContrast"]=Checked("DesktopLocalContrast");UpdateDesktop();QueueSave();};
             Click("DesktopRecommended",delegate{
                 settings.Data["desktopAutoContrast"]=true;Control<CheckBox>("DesktopAutoContrast").IsChecked=true;
@@ -85,6 +86,7 @@ namespace HardwarePulse {
             menu.Opening+=delegate{trayDesktop.Checked=DesktopEnabled;trayDesktopLock.Visible=DesktopEnabled&&!settings.Flag("desktopLocked",true);trayDesktopEdit.Enabled=DesktopEnabled;};
         }
         void UpdateDesktopLabels(){
+            if(!LocalContrastSupported)Text("DesktopLocalContrastStatus",language.T("Local Contrast requires Windows 10 version 2004 or later."));
             Control<Button>("DesktopScreenshot").IsEnabled=DesktopEnabled;
             var desktopBackground=Control<Slider>("DesktopBackgroundOpacity");
             syncingDesktopOpacity=true;try{desktopBackground.Value=settings.Number("desktopBackgroundOpacity",Checked("DesktopAutoContrast")?86:0,0,100);}finally{syncingDesktopOpacity=false;}
@@ -172,8 +174,8 @@ namespace HardwarePulse {
             if(!desktop.IsVisible)desktop.Show();
             desktop.SetAlwaysOnTop(settings.Flag("desktopAlwaysOnTop"));
             desktop.RefreshLayer();
-            desktop.SetLocalContrast(Checked("DesktopLocalContrast"));
-            Text("DesktopLocalContrastStatus",!Checked("DesktopLocalContrast")?"":language.T(desktop.LocalContrastAvailable?"Local contrast active":"Local contrast unavailable; using standard text color"));
+            desktop.SetLocalContrast(LocalContrastSupported&&Checked("DesktopLocalContrast"));
+            Text("DesktopLocalContrastStatus",!LocalContrastSupported?language.T("Local Contrast requires Windows 10 version 2004 or later."):!Checked("DesktopLocalContrast")?"":language.T(desktop.LocalContrastAvailable?"Local contrast active":"Local contrast unavailable; using standard text color"));
             Text("DesktopStatus",language.T(desktop.LayerAvailable?"Use the system tray to edit or exit Desktop Mode.":"Waiting for Windows desktop"));
         }
     }

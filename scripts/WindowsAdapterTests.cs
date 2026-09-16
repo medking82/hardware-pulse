@@ -8,6 +8,10 @@ class WindowsAdapterTests {
         Check(WindowsCompatibility.RequiresDriverFreeCollector(new Version(6,1,7601)),"Win7 must not load PawnIO path");
         Check(WindowsCompatibility.RequiresDriverFreeCollector(new Version(6,3,9600)),"Win8.1 must not load PawnIO path");
         Check(!WindowsCompatibility.RequiresDriverFreeCollector(new Version(10,0,19045)),"Modern Windows lost hardware path");
+        Check(!WindowsCompatibility.SupportsFpsCapture(new Version(6,1,7601)),"Win7 FPS capture must be unavailable");
+        Check(WindowsCompatibility.SupportsFpsCapture(new Version(10,0,19045)),"Modern FPS capture gate regressed");
+        Check(!WindowsCompatibility.SupportsCaptureExclusion(new Version(6,1,7601))&&!WindowsCompatibility.SupportsCaptureExclusion(new Version(10,0,18363)),"Legacy capture exclusion must not be enabled");
+        Check(WindowsCompatibility.SupportsCaptureExclusion(new Version(10,0,19041)),"Capture exclusion boundary regressed");
         var systemSample=new WindowsSystemSample(true,100,200,100,true,16UL<<30,4UL<<30);
         var system=new WindowsSystemReadings(delegate{return systemSample;});
         Check(!system.Read(DateTimeOffset.UtcNow).values.ContainsKey("cpuLoad"),"Initial CPU baseline fabricated load");

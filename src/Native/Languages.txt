@@ -1,5 +1,8 @@
 ﻿Live|实时|即時
 Link Speed|连接速率|連線速率
+Unavailable on this Windows version|此 Windows 版本不支持|此 Windows 版本不支援
+FPS capture is unavailable on this Windows version.|此 Windows 版本不支持 FPS 采集。|此 Windows 版本不支援 FPS 擷取。
+Local Contrast requires Windows 10 version 2004 or later.|局部对比度需要 Windows 10 2004 或更高版本。|局部對比度需要 Windows 10 2004 或更新版本。
 Disconnected|未连接|未連線
 AI Quota|AI 额度|AI 額度
 Read remaining quota from existing local logins. Refreshes every 5 minutes.|使用本机已有登录读取剩余额度，每 5 分钟刷新。|使用本機已有登入讀取剩餘額度，每 5 分鐘更新。

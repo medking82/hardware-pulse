@@ -25,6 +25,22 @@ availability has been requested and is not yet known.
 
 ## Delivery gates
 
+The WPF UI uses the Windows adapter's OS capability policy for FPS capture and
+capture exclusion. On legacy Windows the FPS quick switch, tray entry, overlay
+FPS selection and Desktop FPS selection are disabled with an explanation;
+Local Contrast is also disabled below Windows 10 build 19041. Existing saved
+preferences are retained rather than migrated to false. The collector and runtime
+guards remain in place; disabled controls are not the sole enforcement boundary.
+The isolated native UI test injects a Win7 version to exercise these states,
+without changing the workstation OS or installed user settings. This remains
+simulated capability coverage, not an actual Win7 runtime test.
+
+This increment is limited to the Windows capability policy, WPF consumers,
+translations and regression tests. Preserve modern Windows behavior, ordinary
+Desktop monitoring, stored preferences and installer/update contracts. Validation:
+Framework adapter tests, native WPF tests and `Validate.ps1 -ModernCore`.
+Rollback is a source revert; no installed state or release assets are changed.
+
 Window snapping now retains per-monitor `GetDpiForWindow` on modern Windows
 and falls back to the window's WPF device transform when the export is absent
 or returns zero. A missing export is remembered per attached window, avoiding

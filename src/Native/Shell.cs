@@ -29,6 +29,9 @@ namespace HardwarePulse {
         Forms.NotifyIcon tray;Forms.ToolStripMenuItem trayShow,traySettings,trayPin,trayLock,trayExit;
         bool exit,loaded,settingsVisible,maximum,locked,measuring,light,collectorFailed,disposed;long ignoredStop;
         readonly bool isolated;
+        readonly Version windowsVersion;
+        bool FpsSupported {get{return WindowsCompatibility.SupportsFpsCapture(windowsVersion);}}
+        bool LocalContrastSupported {get{return WindowsCompatibility.SupportsCaptureExclusion(windowsVersion);}}
         public T Control<T>(string name) where T:class{return Window.FindName(name) as T;}
         bool Checked(string name){return Control<CheckBox>(name).IsChecked==true;}
         void Text(string name,string value){Control<TextBlock>(name).Text=value;}
@@ -37,7 +40,9 @@ namespace HardwarePulse {
         static IEnumerable<DependencyObject> Tree(DependencyObject node){yield return node;foreach(object child in LogicalTreeHelper.GetChildren(node)){var d=child as DependencyObject;if(d!=null)foreach(var item in Tree(d))yield return item;}}
         void Catalog(DependencyObject root){foreach(var node in Tree(root)){if(node is TextBox)continue;foreach(string name in new[]{"Text","Content","Header","ToolTip"}){var prop=node.GetType().GetProperty(name);if(prop!=null&&prop.CanWrite){var value=prop.GetValue(node,null) as string;if(value!=null&&language.Contains(value))localized.Add(Tuple.Create((object)node,prop,value));}}}}
         void ThemeCatalog(){foreach(var node in Tree(Window)){if(node is ComboBox||node is ComboBoxItem||object.ReferenceEquals(node,Control<TextBlock>("OverlayPreviewText")))continue;var prop=node.GetType().GetProperty("Foreground");if(prop!=null){var brush=prop.GetValue(node,null) as Brush;if(brush!=null)themed.Add(Tuple.Create((object)node,prop,brush));}}}
-        public Shell(PulsePaths paths,bool isolated=false){
+        public Shell(PulsePaths paths,bool isolated=false,Version platformVersion=null){
+            if(platformVersion!=null&&!isolated)throw new ArgumentException("Platform override requires isolated mode");
+            windowsVersion=platformVersion??WindowsCompatibility.CurrentVersion();
             this.paths=paths;this.isolated=isolated;Directory.CreateDirectory(paths.State);
             readings=new ReadingSession(now=>SensorProfile.Read(paths.Snapshot,now));
             settings=new Settings(Path.Combine(paths.State,"widget-settings.json"));language=new Languages(Path.Combine(paths.Root,"Languages.txt"));language.Preference=settings.Text("language","auto");
@@ -90,7 +95,7 @@ namespace HardwarePulse {
             bool filled=node.Attributes["fill"]!=null&&node.Attributes["fill"].Value=="currentColor";
             var path=new System.Windows.Shapes.Path {Data=Geometry.Parse(node.Attributes["d"].Value),Fill=filled?Brush(color):null,Stroke=filled?null:Brush(color),StrokeThickness=1.7,StrokeStartLineCap=PenLineCap.Round,StrokeEndLineCap=PenLineCap.Round,StrokeLineJoin=PenLineJoin.Round};var canvas=new Canvas {Width=24,Height=24};canvas.Children.Add(path);return new Viewbox {Width=size,Height=size,Child=canvas,IsHitTestVisible=false};
         }
-        void Localize(){UpdateDesktopLabels();foreach(var entry in localized)entry.Item2.SetValue(entry.Item1,language.T(entry.Item3),null);trayShow.Text=language.T("Show Pulse");traySettings.Text=language.T("Settings");trayPin.Text=language.T("Always on Top");trayLock.Text=language.T("Lock Position and Size");trayExit.Text=language.T("Exit");foreach(var view in views.Values)UpdateCard(view);if(loaded)RenderPanel();RenderUpdate();var games=Control<ComboBox>("GamePicker");if(games.Items.Count>0)((ComboBoxItem)games.Items[0]).Content=language.T("Auto (foreground app)");ApplyDensity();}
+        void Localize(){UpdateDesktopLabels();foreach(var entry in localized)entry.Item2.SetValue(entry.Item1,language.T(entry.Item3),null);trayShow.Text=language.T("Show Pulse");traySettings.Text=language.T("Settings");trayPin.Text=language.T("Always on Top");trayLock.Text=language.T("Lock Position and Size");trayExit.Text=language.T("Exit");foreach(var view in views.Values)UpdateCard(view);if(loaded)RenderPanel();RenderUpdate();var games=Control<ComboBox>("GamePicker");if(games.Items.Count>0)((ComboBoxItem)games.Items[0]).Content=language.T("Auto (foreground app)");SyncFpsSwitches();ApplyDensity();}
         void BuildTray(){tray=new Forms.NotifyIcon {Icon=new System.Drawing.Icon(Path.Combine(paths.Root,"assets","pulse.ico")),Text="Hardware Pulse",Visible=!isolated};var menu=new Forms.ContextMenuStrip();trayShow=(Forms.ToolStripMenuItem)menu.Items.Add("Show Pulse",null,delegate{ShowHome();});traySettings=(Forms.ToolStripMenuItem)menu.Items.Add("Settings",null,delegate{Show();ShowSettings(true);});menu.Items.Add(new Forms.ToolStripSeparator());trayPin=(Forms.ToolStripMenuItem)menu.Items.Add("Always on Top",null,delegate{Window.Topmost=!Window.Topmost;Control<CheckBox>("Pin").IsChecked=Window.Topmost;Save();});trayLock=(Forms.ToolStripMenuItem)menu.Items.Add("Lock Position and Size",null,delegate{locked=!locked;ApplyLock();Save();});menu.Items.Add(new Forms.ToolStripSeparator());BuildDesktopTray(menu);menu.Items.Add(new Forms.ToolStripSeparator());trayExit=(Forms.ToolStripMenuItem)menu.Items.Add("Exit",null,delegate{Exit();});menu.Opening+=delegate{trayPin.Checked=Window.Topmost;trayLock.Checked=locked;};tray.DoubleClick+=delegate{ShowHome();};tray.ContextMenuStrip=menu;}
         public void ShowHome(){ShowSettings(false);Show();}
         public void Show(){Window.Show();Window.WindowState=WindowState.Normal;Window.Activate();}

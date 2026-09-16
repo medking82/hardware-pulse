@@ -158,6 +158,27 @@ internal static class NativeTests {
             string root=AppDomain.CurrentDomain.BaseDirectory,state=Path.GetFullPath(args[0]);Directory.CreateDirectory(state);
             var paths=new PulsePaths(root,state,Path.Combine(state,"runtime"));Json.WriteAtomic(paths.Snapshot,Snapshot());
             var app=new Application {ShutdownMode=ShutdownMode.OnExplicitShutdown};
+            if(args.Length==1){
+                string legacyState=Path.Combine(state,"legacy-capabilities");Directory.CreateDirectory(legacyState);
+                var legacyPaths=new PulsePaths(root,legacyState,Path.Combine(legacyState,"runtime"));
+                string legacySettings=Path.Combine(legacyState,"widget-settings.json");
+                File.WriteAllText(legacySettings,"{\"language\":\"en\",\"desktopLocalContrast\":true,\"desktopVisible\":{\"fps\":true},\"overlay\":{\"fps\":true}}");
+                using(var legacy=new Shell(legacyPaths,true,new Version(6,1,7601))){
+                    Assert(!legacy.Control<CheckBox>("FpsQuick").IsEnabled&&!legacy.Control<CheckBox>("OverlayFps").IsEnabled,"Legacy FPS controls enabled");
+                    Assert(!legacy.Control<CheckBox>("DesktopLocalContrast").IsEnabled&&legacy.Control<CheckBox>("DesktopLocalContrast").IsChecked==false,"Legacy Local Contrast enabled from saved preference");
+                    Assert(legacy.Control<TextBlock>("OverlayStatus").Text.Contains("unavailable")&&legacy.Control<TextBlock>("DesktopLocalContrastStatus").Text.Contains("2004"),"Legacy capability explanation missing");
+                    var fpsRow=legacy.Control<StackPanel>("DesktopOrderList").Children.Cast<Border>().Single(b=>(string)b.Tag=="fps");
+                    Assert(!Tree(fpsRow).OfType<CheckBox>().Single().IsEnabled,"Legacy Desktop FPS option enabled");
+                    Assert(Field<FpsClient>(legacy,"frames")==null,"Legacy UI created FPS client");
+                    var saved=Field<Settings>(legacy,"settings");
+                    Assert(saved.Flag("desktopLocalContrast")&&(bool)saved.Map("overlay")["fps"]&&(bool)saved.Map("desktopVisible")["fps"],"Capability gates erased saved preferences");
+                    Assert(!Field<System.Windows.Forms.ToolStripMenuItem>(legacy,"trayFps").Enabled,"Legacy tray FPS entry enabled");
+                    foreach(ComboBoxItem item in legacy.Control<ComboBox>("LanguagePicker").Items)if((string)item.Tag=="zh-CN")legacy.Control<ComboBox>("LanguagePicker").SelectedItem=item;
+                    Assert(legacy.Control<TextBlock>("OverlayStatus").Text.Contains("不支持")&&legacy.Control<TextBlock>("DesktopLocalContrastStatus").Text.Contains("需要"),"Capability explanations did not follow language switch");
+                    legacy.Exit();
+                }
+                Console.WriteLine("PASS legacy capability UI: FPS/Local Contrast unavailable, saved preferences retained, no FPS client");
+            }
             if(args.Length>1&&args[1]=="perf"){
                 AppDomain.MonitoringIsEnabled=true;
                 using(var shell=new Shell(paths,true)){
