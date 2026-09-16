@@ -1,8 +1,9 @@
 # Shared adaptive layout
 
-P03 remains incomplete. This slice connects the existing `Core.ColumnLayout`
-policy to basic Monitor cards and floating CPU/memory/network/hardware groups.
-It does not establish visibility/order, quota/FPS layout or locked-height parity.
+The shared views use the existing `Core.ColumnLayout` policy. Subsequent P03
+work adds visibility/order and puts hardware/quota/FPS in one ordered Desktop
+panel; see [reading layouts](SHARED-READING-LAYOUT.md). Final installed-build,
+compact FPS and locked-height acceptance remain open.
 
 `AdaptiveReadingsPanel` owns Avalonia child measurement and arrangement. Core
 continues to own the 1–3 column calculation, minimum width and Auto hysteresis.

@@ -13,6 +13,7 @@ static class Tests {
         var expected=Environment.GetEnvironmentVariable("PULSE_TEST_ARCH");
         Check(expected==null||expected==System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture.ToString(),"Architecture mismatch");
         if(args.SequenceEqual(new[]{"--shortcuts-native"})) {HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();DesktopShortcutTests.Native();return;}
+        if(args.SequenceEqual(new[]{"--layouts-native"})) {HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();ReadingLayoutTests.Run(native:true);return;}
         if(args.SequenceEqual(new[]{"--native-session"})) {
             HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();
             SettingsTests.Run(null);
@@ -23,6 +24,7 @@ static class Tests {
             WindowsHardwareTests.Run(null);
             FpsPanelTests.Run();
             DesktopShortcutTests.Native();
+            ReadingLayoutTests.Run(native:true);
             WindowsInputTests.Run();
             MacInputTests.Run();
             MacMaterialTests.Run();
@@ -31,6 +33,7 @@ static class Tests {
             return;
         }
         AppBuilder.Configure<PulseApplication>().With(DesktopFonts.Options()).UseSkia().UseHeadless(new(){UseHeadlessDrawing=false}).SetupWithoutStarting();
+        if(args.Length>=1&&args[0]=="--layouts"){ReadingLayoutTests.Run(args.Length==2?args[1]:null);return;}
         if(args.Length>=1&&args[0]=="--columns"){AdaptiveReadingsTests.Run(args.Length==2?args[1]:null);return;}
         if(args.Length>=1&&args[0]=="--shortcuts"){DesktopShortcutTests.Run(args.Length==2?args[1]:null);return;}
         if(args.Length>=1&&args[0]=="--fps"){FpsPanelTests.Run(args.Length==2?args[1]:null);return;}
@@ -82,6 +85,7 @@ static class Tests {
         FpsPanelTests.Run();
         DesktopShortcutTests.Run();
         AdaptiveReadingsTests.Run();
+        ReadingLayoutTests.Run(args.Length==1?args[0]:null);
         GpuPresentationTests.Run(args.Length==1?args[0]:null);
         SessionMaxTests.Run();
         SamplingRecoveryTests.Run();

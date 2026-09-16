@@ -26,7 +26,7 @@ static class AdaptiveReadingsTests {
         var readings=Enumerable.Range(0,9).Select(i=>new HardwareSensorSnapshot("fan"+i,"Long fan label · 系统进风风扇",i+" RPM")).ToArray();
         var snapshot=new MonitorSnapshot("24.0%","27.6 / 61.4 GiB · 45%","1.0 KiB/s","2.0 KiB/s",true,true){WindowsHardwareSupported=true,WindowsHardware=readings};
         floating.Present(snapshot);
-        var hardware=floating.GetVisualDescendants().OfType<AdaptiveReadingsPanel>().Single(x=>x.Name=="DesktopHardwareReadings");
+        var hardware=floating.GetVisualDescendants().OfType<AdaptiveReadingsPanel>().Single(x=>x.Name=="DesktopReadings");
         var retained=hardware.Children.ToArray();
         foreach(int width in new[]{360,960,1400}) {
             floating.Width=width;Dispatcher.UIThread.RunJobs();

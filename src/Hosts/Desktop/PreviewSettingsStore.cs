@@ -13,6 +13,7 @@ public sealed class PreviewSettings {
     public string DesktopShortcut="Ctrl+Alt+F10";
     public string FpsTarget="";
     public int CardColumns,DesktopColumns;
+    public ReadingLayout Cards=new(),DesktopRows=new();
     public double FloatingWidth=440,FloatingHeight=420;
     public int FloatingX,FloatingY;
     public bool FloatingPositionSet,FloatingTopmost;
@@ -69,6 +70,8 @@ public sealed class PreviewSettingsStore {
             settings.Antigravity=values.Flag("antigravity");
             settings.Fps=values.Flag("fps");
             settings.CardColumns=(int)values.Number("cardColumns",0,0,3);settings.DesktopColumns=(int)values.Number("desktopColumns",0,0,3);
+            if(fields.TryGetValue("cardLayout",out var cardLayout))settings.Cards=ReadingLayout.Read(cardLayout);
+            if(fields.TryGetValue("desktopLayout",out var desktopLayout))settings.DesktopRows=ReadingLayout.Read(desktopLayout);
             settings.DesktopShortcutEnabled=values.Flag("desktopShortcutEnabled",true);
             string shortcut=values.Text("desktopShortcut","Ctrl+Alt+F10");
             if(WindowsDesktopShortcut.TryParse(shortcut,out _,out _,out _))settings.DesktopShortcut=shortcut;
@@ -93,6 +96,7 @@ public sealed class PreviewSettingsStore {
                 ["antigravity"]=JsonSerializer.SerializeToElement(settings.Antigravity),
                 ["fps"]=JsonSerializer.SerializeToElement(settings.Fps),["fpsTarget"]=JsonSerializer.SerializeToElement(settings.FpsTarget),
                 ["cardColumns"]=JsonSerializer.SerializeToElement(settings.CardColumns),["desktopColumns"]=JsonSerializer.SerializeToElement(settings.DesktopColumns),
+                ["cardLayout"]=JsonSerializer.SerializeToElement(settings.Cards),["desktopLayout"]=JsonSerializer.SerializeToElement(settings.DesktopRows),
                 ["desktopShortcutEnabled"]=JsonSerializer.SerializeToElement(settings.DesktopShortcutEnabled),
                 ["desktopShortcut"]=JsonSerializer.SerializeToElement(settings.DesktopShortcut),
                 ["floatingWidth"]=JsonSerializer.SerializeToElement(settings.FloatingWidth),["floatingHeight"]=JsonSerializer.SerializeToElement(settings.FloatingHeight),

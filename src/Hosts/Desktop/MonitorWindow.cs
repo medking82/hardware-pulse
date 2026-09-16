@@ -16,6 +16,8 @@ public sealed class MonitorWindow : Window {
     readonly TextBlock status=new(){Text="Starting…",TextWrapping=TextWrapping.Wrap};
     readonly AdaptiveReadingsPanel cards=new(){Name="MonitorCards",Spacing=12};
     readonly Border[] panels;
+    readonly Dictionary<string,Control> cardEntries=new();
+    ReadingLayoutEditor? cardEditor,desktopEditor;
     readonly ComboBox interfaces=new(){HorizontalAlignment=HorizontalAlignment.Stretch,PlaceholderText="Select network interface"};
     readonly Button refreshInterfaces=new(){Name="RefreshInterfaces",Content="Refresh interfaces"};
     readonly TextBlock networkStatus=new(){Name="NetworkStatus",TextWrapping=TextWrapping.Wrap};
@@ -61,19 +63,23 @@ public sealed class MonitorWindow : Window {
         var floating=Language.Set(new Button{Name="OpenFloatingMonitor"},"Open floating monitor");
         floating.Click+=(_,_)=>OpenFloatingMonitor();body.Children.Add(floating);
         readingMode.SelectionChanged+=(_,_)=>{if(latestSnapshot!=null)Render(latestSnapshot);};
-        body.Children.Add(gpus);body.Children.Add(sensors);body.Children.Add(windowsHardware);
-        quota=new CodexQuotaPanel(source.IsDemo,cancel=>DesktopQuotaReaders.Read(source.IsDemo,"Codex",cancel),inlineSettings:false,language:Language);body.Children.Add(quota);
-        quota.ReadingChanged+=reading=>FloatingMonitor?.PresentQuota(reading);
-        claudeQuota=new CodexQuotaPanel(source.IsDemo,cancel=>DesktopQuotaReaders.Read(source.IsDemo,"Claude",cancel),inlineSettings:false,language:Language,provider:"Claude");body.Children.Add(claudeQuota);
-        claudeQuota.ReadingChanged+=reading=>FloatingMonitor?.PresentQuota(reading,"Claude");
-        antigravityQuota=new CodexQuotaPanel(source.IsDemo,cancel=>DesktopQuotaReaders.Read(source.IsDemo,"Antigravity",cancel),inlineSettings:false,language:Language,provider:"Antigravity");body.Children.Add(antigravityQuota);
-        antigravityQuota.ReadingChanged+=reading=>FloatingMonitor?.PresentQuota(reading,"Antigravity");
-        fps=new FpsPanel(Language,source.IsDemo);body.Children.Add(fps);
+        quota=new CodexQuotaPanel(source.IsDemo,cancel=>DesktopQuotaReaders.Read(source.IsDemo,"Codex",cancel),inlineSettings:false,language:Language);
+        quota.ReadingChanged+=reading=>{FloatingMonitor?.PresentQuota(reading);RefreshLayoutEditors();};
+        claudeQuota=new CodexQuotaPanel(source.IsDemo,cancel=>DesktopQuotaReaders.Read(source.IsDemo,"Claude",cancel),inlineSettings:false,language:Language,provider:"Claude");
+        claudeQuota.ReadingChanged+=reading=>{FloatingMonitor?.PresentQuota(reading,"Claude");RefreshLayoutEditors();};
+        antigravityQuota=new CodexQuotaPanel(source.IsDemo,cancel=>DesktopQuotaReaders.Read(source.IsDemo,"Antigravity",cancel),inlineSettings:false,language:Language,provider:"Antigravity");
+        antigravityQuota.ReadingChanged+=reading=>{FloatingMonitor?.PresentQuota(reading,"Antigravity");RefreshLayoutEditors();};
+        fps=new FpsPanel(Language,source.IsDemo);
+        string[] basicKeys=["CPU","Memory","Download","Upload"];
+        for(int i=0;i<panels.Length;i++)cardEntries.Add(basicKeys[i],panels[i]);
+        cardEntries.Add("GPU",gpus);cardEntries.Add("Temperature & fans",sensors);cardEntries.Add("Windows hardware",windowsHardware);
+        cardEntries.Add("Codex",quota);cardEntries.Add("Claude",claudeQuota);cardEntries.Add("Antigravity",antigravityQuota);cardEntries.Add("FPS",fps);
+        ApplyCardLayout();
         fps.Target=settings.FpsTarget;
-        fps.ReadingChanged+=snapshot=>FloatingMonitor?.PresentFps(snapshot);
+        fps.ReadingChanged+=snapshot=>{FloatingMonitor?.PresentFps(snapshot);RefreshLayoutEditors();};
         fps.PreferenceChanged+=(on,target)=>{settings.Fps=on;settings.FpsTarget=target;SaveLater();};
         fps.Enabled=settings.Fps;
-        Language.Changed+=()=>{if(latestSnapshot!=null)Render(latestSnapshot);};
+        Language.Changed+=()=>{if(latestSnapshot!=null)Render(latestSnapshot);else RefreshLayoutEditors();};
         body.Children.Add(Language.Set(new TextBlock{TextWrapping=TextWrapping.Wrap,Opacity=.75},"Preview · Windows FPS requires the matching installed collector. Hardware support depends on the platform and device."));
         var network=new StackPanel{Spacing=12,Margin=new Thickness(20)};
         network.Children.Add(Language.Set(new TextBlock{FontSize=21,FontWeight=FontWeight.SemiBold},"Network interface"));network.Children.Add(interfaces);
@@ -148,9 +154,16 @@ public sealed class MonitorWindow : Window {
         var follow=Language.Set(new CheckBox{Name="FloatingIconsFollowApp",IsChecked=settings.FloatingIconsFollowApp},"Icons follow App colors");
         follow.IsCheckedChanged+=(_,_)=>{settings.FloatingIconsFollowApp=follow.IsChecked==true;AppearanceChanged();};desktop.Children.Add(follow);
         var quotaSettings=new StackPanel{Spacing=24};quotaSettings.Children.Add(quota.SettingsContent);quotaSettings.Children.Add(claudeQuota.SettingsContent);quotaSettings.Children.Add(antigravityQuota.SettingsContent);
+        cardEditor=new ReadingLayoutEditor(settings.Cards,Language,()=>{ApplyCardLayout();SaveLater();}){Name="CardLayoutEditor"};
+        desktopEditor=new ReadingLayoutEditor(settings.DesktopRows,Language,()=>{FloatingMonitor?.ApplyReadingLayout();SaveLater();}){Name="DesktopLayoutEditor"};
+        var layoutSettings=new StackPanel{Spacing=12,Margin=new Thickness(20)};
+        layoutSettings.Children.Add(Language.Set(new TextBlock{TextWrapping=TextWrapping.Wrap},"Visibility only changes presentation. Sampling and quota/FPS switches remain independent."));
+        layoutSettings.Children.Add(Language.Set(new TextBlock{FontWeight=FontWeight.SemiBold},"Monitor cards"));layoutSettings.Children.Add(cardEditor);
+        layoutSettings.Children.Add(Language.Set(new TextBlock{FontWeight=FontWeight.SemiBold},"Desktop readings"));layoutSettings.Children.Add(desktopEditor);
+        RefreshLayoutEditors();
         var settingsTabs=new TabControl{Name="SettingsTabs",ItemsSource=new[]{
             Language.Set(new TabItem{Content=network},"Network"),Language.Set(new TabItem{Content=appearance},"Appearance"),
-            Language.Set(new TabItem{Content=new Border{Padding=new Thickness(20),Child=quotaSettings}},"AI Quota"),Language.Set(new TabItem{Content=desktop},"Desktop")}};
+            Language.Set(new TabItem{Content=new Border{Padding=new Thickness(20),Child=quotaSettings}},"AI Quota"),Language.Set(new TabItem{Content=desktop},"Desktop"),Language.Set(new TabItem{Content=layoutSettings},"Layout")}};
         var settingsBody=new StackPanel{Spacing=12,Margin=new Thickness(12)};
         settingsBody.Children.Add(settingsTabs);settingsBody.Children.Add(saveStatus);
         var tabs=new TabControl{Name="MainTabs",ItemsSource=new[]{Language.Set(new TabItem{Content=Scroll(body)},"Monitor"),Language.Set(new TabItem{Content=Scroll(settingsBody)},"Settings")}};
@@ -208,6 +221,18 @@ public sealed class MonitorWindow : Window {
         FloatingMonitor?.SetLocked(true);
     }
     void UpdateMaterialStatus()=>Language.Set(materialStatus,FloatingMonitor?.MaterialStatus??"Open the floating monitor to check background effects.");
+    void ApplyCardLayout()=>settings.Cards.Apply(cards,cardEntries,id=>id switch {
+        "GPU"=>latestSnapshot?.GpusSupported==true,
+        "Windows hardware"=>latestSnapshot?.WindowsHardwareSupported==true,
+        "Temperature & fans"=>latestSnapshot?.WindowsHardwareSupported!=true,
+        _=>true});
+    void RefreshLayoutEditors() {
+        cardEditor?.Present(cardEntries.Keys.Select(id=>(id,Language.T(id))));
+        if(desktopEditor==null)return;
+        var readings=new Dictionary<string,QuotaReading>();
+        foreach(var panel in new[]{quota,claudeQuota,antigravityQuota})if(panel?.CurrentReading is {} value)readings[panel.Provider]=value;
+        desktopEditor.Present(DesktopRows.Capture(latestSnapshot,readingMode.SelectedIndex==1,Language,readings,fps?.Current).Select(x=>(x.Id,x.EditorLabel)));
+    }
     static ScrollViewer Scroll(Control content)=>new(){Content=content,HorizontalScrollBarVisibility=Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled};
     void ApplyTheme(){RequestedThemeVariant=settings.Theme=="Dark"?ThemeVariant.Dark:settings.Theme=="Light"?ThemeVariant.Light:ThemeVariant.Default;if(FloatingMonitor!=null)FloatingMonitor.RequestedThemeVariant=RequestedThemeVariant;}
     void SaveLater(){if(store==null)return;saveTimer.Stop();saveTimer.Start();}
@@ -238,6 +263,7 @@ public sealed class MonitorWindow : Window {
         cpuIdentityText.IsVisible=snapshot.CpuModel!=null||snapshot.CpuPhysicalCores.HasValue||snapshot.CpuLogicalCores.HasValue;
         cpuIdentityText.Text=(snapshot.CpuModel??"—")+(snapshot.CpuPhysicalCores.HasValue||snapshot.CpuLogicalCores.HasValue?"\n"+string.Format(Language.T("{0} physical cores · {1} logical cores"),snapshot.CpuPhysicalCores?.ToString()??"—",snapshot.CpuLogicalCores?.ToString()??"—"):"");
         FloatingMonitor?.Present(snapshot,max);
+        ApplyCardLayout();RefreshLayoutEditors();
         Language.Set(status,samplingFailed?"Monitoring unavailable. Retrying…":max?(source.IsDemo?"Demo · ":"")+"Session Max · Memory and quota remain current":source.IsDemo?"Demo · Sample values":snapshot.CpuReady&&snapshot.MemoryReady?"Live · Refreshes every second":"Waiting for available readings…");
     }
     public void PresentInterfaces(string[] names) {

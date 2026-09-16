@@ -139,6 +139,13 @@ Disconnected|未連線
 Enable FPS|啟用 FPS
 Refresh apps|重新整理 App
 Auto|自動
+Move up|上移
+Move down|下移
+Show reading|顯示 reading
+Monitor cards|Monitor cards
+Desktop readings|Desktop readings
+Layout|Layout
+Visibility only changes presentation. Sampling and quota/FPS switches remain independent.|顯示選擇僅影響 presentation；採樣和 quota/FPS 開關保持獨立。
 Card columns|Card 欄數
 Desktop columns|Desktop 欄數
 Enable Desktop shortcut|啟用 Desktop shortcut
