@@ -7,11 +7,12 @@ static class UpdateCoordinatorTests {
     sealed class Client : IUpdateClient {
         public Task<string> CheckResult,DownloadResult;
         public int Checks,Downloads,Installs,Cancels;public bool FailInstall,ReadyValue;
+        public string DownloadUrl,DownloadTag,DownloadDigest;public long DownloadSize;
         public bool Ready {get{return ReadyValue;}}
         public bool Installing {get;set;}
         public int Progress {get{return 50;}}
         public Task<string> CheckAsync(){Checks++;return CheckResult;}
-        public Task<string> DownloadAsync(string url,string tag,string digest,long size){Downloads++;return DownloadResult;}
+        public Task<string> DownloadAsync(string url,string tag,string digest,long size){Downloads++;DownloadUrl=url;DownloadTag=tag;DownloadDigest=digest;DownloadSize=size;return DownloadResult;}
         public void Install(){Installs++;if(FailInstall)throw new IOException("Canceled");Installing=true;}
         public void CancelDownload(){Cancels++;}
     }
@@ -23,6 +24,31 @@ static class UpdateCoordinatorTests {
     static int Main(){
         try{
             var now=new DateTime(2026,9,14,12,0,0);var version=new Version("0.5.2.0");
+            // Mixed release assets must never route an installed WPF user to a shared host.
+            var mixed=Json.Serializer().Deserialize<System.Collections.Generic.Dictionary<string,object>>(Release("v0.7.0"));
+            var installer=new {name="HardwarePulse-Setup.exe",browser_download_url="https://github.com/medking82/hardware-pulse/releases/download/v0.7.0/HardwarePulse-Setup.exe",digest="sha256:"+new string('b',64),size=123};
+            var archives=new System.Collections.Generic.List<object>();
+            foreach(string rid in new[]{"win-x64","win-arm64","linux-x64","linux-arm64","osx-x64","osx-arm64"}){
+                foreach(string suffix in new[]{".tar.gz",".tar.gz.sha256"})archives.Add(new {name="Pulse-"+rid+suffix,browser_download_url="https://example.invalid/never-download",digest="",size=1});
+            }
+            foreach(int position in new[]{0,6,12}){
+                var assets=new System.Collections.Generic.List<object>(archives);assets.Insert(position,installer);mixed["assets"]=assets;
+                var target=new Client {CheckResult=Task.FromResult(Json.Serializer().Serialize(mixed)),DownloadResult=Task.FromResult("verified")};
+                using(var c=new UpdateCoordinator(target,version)){
+                    c.CheckAsync(now,true).GetAwaiter().GetResult();
+                    Check(target.Downloads==1&&target.DownloadUrl==installer.browser_download_url&&target.DownloadTag=="v0.7.0"&&target.DownloadDigest==installer.digest&&target.DownloadSize==123,"Mixed assets changed Windows installer selection");
+                }
+            }
+            foreach(bool duplicate in new[]{false,true}){
+                var assets=new System.Collections.Generic.List<object>(archives);
+                if(duplicate){assets.Add(installer);assets.Add(installer);}mixed["assets"]=assets;
+                var target=new Client {CheckResult=Task.FromResult(Json.Serializer().Serialize(mixed))};
+                using(var c=new UpdateCoordinator(target,version)){
+                    c.CheckAsync(now,true).GetAwaiter().GetResult();
+                    Check(target.Downloads==0&&!c.CanDownload&&c.StatusKey=="Update check failed; try again","Missing/duplicate installer admitted among platform assets");
+                }
+            }
+            Console.WriteLine("PASS mixed-platform release assets: exact Windows installer at any position; absent/duplicate rejected");
             var client=new Client();var pending=new TaskCompletionSource<string>();client.CheckResult=pending.Task;
             using(var coordinator=new UpdateCoordinator(client,version)){
                 Check(coordinator.ShouldCheck(now),"Initial auto check");

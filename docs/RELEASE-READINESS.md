@@ -32,6 +32,28 @@ fabricated zero. Existing user settings and the Windows stable installation must
 remain untouched by preview development. No new stable release has been made
 by this readiness document.
 
+## Existing Windows update-channel contract
+
+Installed WPF builds query GitHub's `releases/latest`. Their coordinator selects
+exactly one asset named `HardwarePulse-Setup.exe`, verifies its repository/tag
+URL, size and SHA-256 metadata, and rejects draft/prerelease metadata. A release
+containing only shared-host archives is therefore not a valid WPF update target.
+Keep shared-only releases out of GitHub's latest selection. Do not reuse an older
+WPF installer under a newer stable tag: its installed version would not match the
+offered version and users could be offered the same update again.
+
+Before a combined latest release, include a freshly built WPF installer matching
+that stable tag and validate it independently of the six shared-host packages.
+Shared Windows archives must not replace that installer asset. Existing installed
+versions retain this contract; a future channel change requires an explicit
+migration rather than merely changing the current source.
+
+`UpdateCoordinatorTests` exercises a stable release with all six architecture
+archives and checksum sidecars, placing the installer first, middle and last.
+It verifies exact URL/tag/digest/size forwarding and refuses automatic download
+when the installer is missing or duplicated. These tests use a fake downloader;
+they do not run an installer or establish an installed upgrade result.
+
 Linux sensor UI integration at `ada4f306c36ef70e32f5975d79be74e7167c44a7`
 passed local Desktop render/interaction tests and `Validate.ps1 -ModernCore`.
 [Native run 35046006965](https://github.com/medking82/hardware-pulse/actions/runs/35046006965)
