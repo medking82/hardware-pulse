@@ -13,6 +13,12 @@ assessment. Windows releases need not wait for multi-platform feature parity.
 The full multi-platform objective remains open; this changes order, not completion.
 See [Windows 7 compatibility](WINDOWS7-COMPATIBILITY.md).
 
+CI run 35068158569 at cf6e82e completed: Linux x64/ARM64, macOS Intel/ARM64
+and Windows x64 passed. Linux native X11 checks now confirm pointer delivery
+to the underlying window while visible, restored input/frame and closed lifetime.
+Windows ARM64 still fails before locking: its fixture is covered by a full-screen
+WWAHost window (job 104703135000). This is not a passed interaction gate.
+
 The user selected option 2: complete the main Windows features before the final
 multi-platform stable release. Platform-specific capability lists alone do not
 satisfy this scope. FPS, Desktop overlay and its interaction/appearance controls,

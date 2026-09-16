@@ -25,6 +25,19 @@ availability has been requested and is not yet known.
 
 ## Delivery gates
 
+Window snapping now retains per-monitor `GetDpiForWindow` on modern Windows
+and falls back to the window's WPF device transform when the export is absent
+or returns zero. A missing export is remembered per attached window, avoiding
+exceptions on every drag event. Deterministic tests cover missing exports,
+96/144 DPI, WPF scaling and the existing snap/release geometry. These checks
+do not replace drag/resize testing on Windows 7 itself.
+
+Package names must distinguish OS compatibility from architecture: `Win7-x64`
+means Windows 7 SP1 64-bit, while `x86` would mean a separate 32-bit build.
+No x86 build is implemented. Preserve the current stable updater's
+`HardwarePulse-Setup.exe` contract until an explicit compatibility channel is
+implemented and tested.
+
 The first implementation shares the driver-free `WindowsSystemReadings` source
 between the Framework and modern hosts. The existing collector selects this
 path on Windows versions before 10, leaves the hardware library unopened, does

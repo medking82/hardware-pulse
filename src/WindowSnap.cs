@@ -30,6 +30,15 @@ public static class WindowSnap {
     [DllImport("dwmapi.dll")] static extern int DwmGetWindowAttribute(IntPtr hwnd,int attribute,out int value,int size);
     [DllImport("dwmapi.dll",EntryPoint="DwmGetWindowAttribute")] static extern int DwmGetFrame(IntPtr hwnd,int attribute,out Rect value,int size);
 
+    internal static double ResolveDpiScale(Func<uint> readDpi,double wpfScale,ref bool nativeAvailable) {
+        uint dpi=0;
+        try{if(nativeAvailable)dpi=readDpi();}
+        catch(EntryPointNotFoundException){nativeAvailable=false;}
+        catch(DllNotFoundException){nativeAvailable=false;}
+        if(dpi>0)return Math.Max(96,dpi)/96.0;
+        return Double.IsNaN(wpfScale)||Double.IsInfinity(wpfScale)?1.0:Math.Max(1.0,wpfScale);
+    }
+
     public static Rect Snap(Rect rect,Rect work,IEnumerable<Rect> windows,int threshold) {
         int dx=threshold+1,dy=threshold+1;
         Action<int> x=delegate(int delta){if(Math.Abs(delta)<=threshold && Math.Abs(delta)<Math.Abs(dx))dx=delta;};
@@ -62,7 +71,10 @@ public static class WindowSnap {
         Rect dragOrigin=new Rect();CursorPoint dragStart=new CursorPoint();bool tracking=false;
         var targets=new List<Rect>();bool targetsReady=false;
 
-        HwndSource.FromHwnd(own).AddHook(delegate(IntPtr hwnd,int message,IntPtr w,IntPtr l,ref bool handled){
+        var source=HwndSource.FromHwnd(own);
+        bool nativeDpiAvailable=true;
+        Func<uint> readDpi=delegate{return GetDpiForWindow(own);};
+        source.AddHook(delegate(IntPtr hwnd,int message,IntPtr w,IntPtr l,ref bool handled){
             if(message==0x0231){targetsReady=false;tracking=GetWindowRect(own,out dragOrigin) && GetCursorPos(out dragStart);return IntPtr.Zero;}
             if(message==0x0232){tracking=false;}
             if((bool)window.GetValue(PositionLockedProperty)) {
@@ -92,7 +104,8 @@ public static class WindowSnap {
                 if(found && other.Right>other.Left && other.Bottom>other.Top)targets.Add(other);
                 return true;
             },IntPtr.Zero);targetsReady=true;}
-            double scale=Math.Max(96,GetDpiForWindow(own))/96.0;
+            // Win7 has system DPI through WPF, but no GetDpiForWindow export.
+            double scale=ResolveDpiScale(readDpi,source.CompositionTarget==null?1.0:source.CompositionTarget.TransformToDevice.M11,ref nativeDpiAvailable);
             int threshold=(int)Math.Round((moving?24.0:4.0)*scale);
             int padding=(int)Math.Round(Math.Max(0,edgePadding)*scale);
             int insetX=Math.Min(padding,Math.Max(0,(monitor.Work.Right-monitor.Work.Left-(rect.Right-rect.Left))/2));

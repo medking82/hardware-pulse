@@ -1,6 +1,8 @@
 ﻿$ErrorActionPreference='Stop'
 Add-Type -AssemblyName PresentationFramework,PresentationCore,WindowsBase
-Add-Type -Path "$PSScriptRoot\..\src\WindowSnap.cs" -ReferencedAssemblies @('PresentationFramework','PresentationCore','WindowsBase','System.Xaml')
+Add-Type -Path @("$PSScriptRoot\..\src\WindowSnap.cs","$PSScriptRoot/WindowSnapDpiTests.cs") -ReferencedAssemblies @('PresentationFramework','PresentationCore','WindowsBase','System.Xaml')
+[WindowSnapDpiTests]::Run()
+'PASS: native per-monitor DPI and legacy WPF DPI fallback'
 function Rect($l,$t,$r,$b){$v=[WindowSnap+Rect]::new();$v.Left=$l;$v.Top=$t;$v.Right=$r;$v.Bottom=$b;return $v}
 $work=Rect -1920 0 0 1080
 $none=[WindowSnap+Rect[]]@()
