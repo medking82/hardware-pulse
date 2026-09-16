@@ -24,6 +24,10 @@ public sealed class FloatingMonitorWindow : Window {
     Action<bool>? input;
     IDisposable? inputLifetime;
     WindowsDesktopLayer? desktopLayer;
+    WindowsLocalContrast? localContrast;
+    public string ContrastStatus=>localContrast?.ScreenshotActive==true?"Screenshot mode: visible to capture for 15 seconds.":!appearance.FloatingLocalContrast?"Local Contrast is off.":localContrast?.Available==true?"Local contrast active":"Local contrast unavailable; using standard text color";
+    public void UpdateLocalContrast(){localContrast?.Update();MaterialChanged?.Invoke();}
+    public void BeginScreenshot(){localContrast?.BeginScreenshot();}
     public bool DesktopLayerAvailable=>desktopLayer?.Attached==true;
     double backgroundOpacity=100;
     public double BackgroundOpacity=>backgroundOpacity;
@@ -74,6 +78,8 @@ public sealed class FloatingMonitorWindow : Window {
             if(OperatingSystem.IsWindows()&&handle?.HandleDescriptor=="HWND") {
                 input??=new WindowsWindowInput(handle.Handle).SetPassThrough;
                 desktopLayer??=new WindowsDesktopLayer(this,()=>IsLocked);
+                if(localContrast==null){localContrast=new WindowsLocalContrast(this,readings,appearance,ApplyTextAppearance);localContrast.Changed+=()=>MaterialChanged?.Invoke();}
+                localContrast.Update();
             }
             else if(OperatingSystem.IsMacOS()&&handle?.HandleDescriptor=="NSWindow"&&input==null) {
                 var adapter=new MacWindowInput(handle.Handle);input=adapter.SetPassThrough;inputLifetime=adapter;
@@ -91,7 +97,8 @@ public sealed class FloatingMonitorWindow : Window {
         scroll.Content=rows;Content=scroll;
         scroll.PropertyChanged+=(_,e)=>{if(e.Property==ScrollViewer.ExtentProperty||e.Property==ScrollViewer.ViewportProperty)QueueLockedFit();};
         language.Changed+=Localize;Localize();
-        Closed+=(_,_)=>{language.Changed-=Localize;desktopLayer?.Dispose();desktopLayer=null;input=null;inputLifetime?.Dispose();inputLifetime=null;};
+        PropertyChanged+=(_,e)=>{if(e.Property==IsVisibleProperty)localContrast?.Update();};
+        Closed+=(_,_)=>{language.Changed-=Localize;localContrast?.Dispose();localContrast=null;desktopLayer?.Dispose();desktopLayer=null;input=null;inputLifetime?.Dispose();inputLifetime=null;};
     }
     public static PixelPoint ConstrainPosition(PixelPoint requested,PixelRect area,int width,int height)=>new(
         Math.Clamp(requested.X,area.X,Math.Max(area.X,area.Right-width)),
@@ -163,6 +170,7 @@ public sealed class FloatingMonitorWindow : Window {
     }
     public void ApplyReadingLayout()=>appearance.DesktopRows.Apply(readings,readingControls);
     void StyleReading(Control control) {
+        control.Effect=null;
         Color color=appearance.FloatingTextColor.Length>0?Color.Parse(appearance.FloatingTextColor):
             ActualThemeVariant==ThemeVariant.Dark?Color.Parse("#F4F6F8"):Color.Parse("#202830");
         var brush=new SolidColorBrush(Color.FromArgb((byte)Math.Round(appearance.FloatingTextOpacity*2.55),color.R,color.G,color.B));
@@ -191,7 +199,7 @@ public sealed class FloatingMonitorWindow : Window {
         if(reading==null)quotaReadings.Remove(provider);else quotaReadings[provider]=reading;
         RenderReadings();
     }
-    public void Present(MonitorSnapshot snapshot,bool peaks=false){lastSnapshot=snapshot;lastPeaks=peaks;RenderReadings();desktopLayer?.Refresh();}
+    public void Present(MonitorSnapshot snapshot,bool peaks=false){lastSnapshot=snapshot;lastPeaks=peaks;RenderReadings();desktopLayer?.Refresh();if(appearance.FloatingLocalContrast)localContrast?.Update();}
     void RenderReadings() {
         var current=DesktopRows.Capture(lastSnapshot,lastPeaks,language,quotaReadings,fpsSnapshot);
         var ids=current.Select(x=>x.Id).ToHashSet();

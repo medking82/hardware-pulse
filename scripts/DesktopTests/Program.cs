@@ -15,6 +15,8 @@ static class Tests {
         if(args.Length==2&&args[0]=="--startup-fixture"){Environment.ExitCode=StartupModeTests.Child(args[1]);return;}
         if(args.SequenceEqual(new[]{"--startup-native"})){StartupModeTests.Native();return;}
         if(args.SequenceEqual(new[]{"--layer-native"})){HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();WindowsLayerTests.Native();return;}
+        if(args.SequenceEqual(new[]{"--capture-native"})){HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();WindowsCaptureTests.Native();return;}
+        if(args.SequenceEqual(new[]{"--contrast-native"})){HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();LocalContrastTests.Native();return;}
         if(args.Length==2&&args[0]=="--instance-secondary"){Environment.ExitCode=WindowsInstanceTests.Secondary(args[1]);return;}
         if(args.Length==2&&args[0]=="--instance-owner"){Environment.ExitCode=WindowsInstanceTests.Hold(args[1]);return;}
         if(args.SequenceEqual(new[]{"--instance-native"})){HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();WindowsInstanceTests.Native();return;}
@@ -36,6 +38,8 @@ static class Tests {
             WindowsInstanceTests.Native();
             StartupModeTests.Native();
             WindowsLayerTests.Native();
+            WindowsCaptureTests.Native();
+            LocalContrastTests.Native();
             WindowsInputTests.Run();
             MacInputTests.Run();
             MacMaterialTests.Run();
@@ -89,6 +93,7 @@ static class Tests {
         WindowsQuotaTests.Run();
         SettingsTests.Run(args.Length==1?args[0]:null);
         StartupModeTests.Settings();
+        LocalContrastTests.Settings();
         MeasurementTests.Run();
         TrayTests.Run();
         FloatingMonitorTests.Run(args.Length==1?args[0]:null);

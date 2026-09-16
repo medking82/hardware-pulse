@@ -162,6 +162,13 @@ Auto (foreground app)|自動（前景 App）
 Could not refresh apps.|無法重新整理 App。
 FPS is unavailable on this platform.|此平台暫不支援 FPS。
 FPS capture stopped|FPS capture 已停止
+Local Contrast|局部對比度
+Local Contrast is off.|局部對比度已關閉。
+Local contrast active|局部對比度已啟用
+Local contrast unavailable; using standard text color|局部對比度無法使用；使用標準文字顏色
+Show in screenshots for 15 seconds|在擷取畫面中顯示 15 秒
+Screenshot mode: visible to capture for 15 seconds.|擷取畫面模式：在擷取畫面中顯示 15 秒。
+Open the floating monitor to check Local Contrast.|開啟浮動監控以檢查局部對比度。
 Waiting for frames|正在等待畫面幀
 Waiting for target app|正在等待目標 App
 Waiting for FPS collector|正在等待 FPS collector

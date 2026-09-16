@@ -42,6 +42,7 @@ public sealed class MonitorWindow : Window {
     readonly DispatcherTimer saveTimer=new(){Interval=TimeSpan.FromMilliseconds(500)};
     readonly TextBlock saveStatus=new(){TextWrapping=TextWrapping.Wrap};
     readonly TextBlock materialStatus=new(){TextWrapping=TextWrapping.Wrap};
+    readonly TextBlock contrastStatus=new(){TextWrapping=TextWrapping.Wrap};
     readonly CheckBox desktopTopmost=new(){Name="DesktopTopmost"};
     bool loadingNetwork;
     public Task Sampling {get;private set;}=Task.CompletedTask;
@@ -138,6 +139,11 @@ public sealed class MonitorWindow : Window {
         var blur=Language.Set(new CheckBox{Name="FloatingBackgroundBlur",IsChecked=settings.FloatingBackgroundBlur},"Background blur");
         blur.IsCheckedChanged+=(_,_)=>{settings.FloatingBackgroundBlur=blur.IsChecked==true;FloatingMonitor?.SetBackgroundBlur(settings.FloatingBackgroundBlur);UpdateMaterialStatus();SaveLater();};
         desktop.Children.Add(blur);desktop.Children.Add(materialStatus);UpdateMaterialStatus();
+        var contrast=Language.Set(new CheckBox{Name="FloatingLocalContrast",IsChecked=settings.FloatingLocalContrast,IsEnabled=WindowsBackgroundCapture.Supported},"Local Contrast");
+        contrast.IsCheckedChanged+=(_,_)=>{settings.FloatingLocalContrast=contrast.IsChecked==true;FloatingMonitor?.UpdateLocalContrast();UpdateMaterialStatus();SaveLater();};
+        desktop.Children.Add(contrast);desktop.Children.Add(contrastStatus);
+        var screenshot=Language.Set(new Button{Name="DesktopScreenshot",IsEnabled=WindowsBackgroundCapture.Supported},"Show in screenshots for 15 seconds");
+        screenshot.Click+=(_,_)=>{FloatingMonitor?.BeginScreenshot();UpdateMaterialStatus();};desktop.Children.Add(screenshot);
         desktop.Children.Add(Language.Set(new TextBlock{TextWrapping=TextWrapping.Wrap},"Blur strength is controlled by the system. Lower background opacity to reveal the effect."));
         desktop.Children.Add(Language.Set(new TextBlock{TextWrapping=TextWrapping.Wrap},"Background and text opacity are independent. Unsupported transparency uses a solid background."));
         void AppearanceChanged(){FloatingMonitor?.ApplyTextAppearance();SaveLater();}
@@ -242,7 +248,7 @@ public sealed class MonitorWindow : Window {
         if(FloatingMonitor?.WindowState==WindowState.Minimized)FloatingMonitor.WindowState=WindowState.Normal;
         FloatingMonitor?.SetLocked(true);
     }
-    void UpdateMaterialStatus()=>Language.Set(materialStatus,FloatingMonitor?.MaterialStatus??"Open the floating monitor to check background effects.");
+    void UpdateMaterialStatus(){Language.Set(materialStatus,FloatingMonitor?.MaterialStatus??"Open the floating monitor to check background effects.");Language.Set(contrastStatus,FloatingMonitor?.ContrastStatus??"Open the floating monitor to check Local Contrast.");}
     void ApplyCardLayout()=>settings.Cards.Apply(cards,cardEntries,id=>id switch {
         "GPU"=>latestSnapshot?.GpusSupported==true,
         "Windows hardware"=>latestSnapshot?.WindowsHardwareSupported==true,

@@ -21,6 +21,7 @@ public sealed class PreviewSettings {
     public double FloatingBackgroundOpacity=100;
     public double FloatingFontSize=15;
     public bool FloatingBackgroundBlur;
+    public bool FloatingLocalContrast;
     public double FloatingTextOpacity=100,FloatingRowSpacing=8;
     public string FloatingTextColor="";
     public bool FloatingIconsFollowApp=true;
@@ -60,6 +61,7 @@ public sealed class PreviewSettingsStore {
             settings.FloatingBackgroundOpacity=values.Number("floatingBackgroundOpacity",100,0,100);
             settings.FloatingFontSize=values.Number("floatingFontSize",15,10,32);
             settings.FloatingBackgroundBlur=values.Flag("floatingBackgroundBlur");
+            settings.FloatingLocalContrast=values.Flag("floatingLocalContrast");
             settings.FloatingTextOpacity=values.Number("floatingTextOpacity",100,0,100);
             settings.FloatingRowSpacing=values.Number("floatingRowSpacing",8,0,24);
             string textColor=values.Text("floatingTextColor");settings.FloatingTextColor=PreviewSettings.IsTextColor(textColor)?textColor:"";
@@ -94,6 +96,7 @@ public sealed class PreviewSettingsStore {
                 ["schema"]=JsonSerializer.SerializeToElement(1),["width"]=JsonSerializer.SerializeToElement(settings.Width),
                 ["height"]=JsonSerializer.SerializeToElement(settings.Height),["theme"]=JsonSerializer.SerializeToElement(settings.Theme),
                 ["startupMode"]=JsonSerializer.SerializeToElement(settings.StartupMode),
+                ["floatingLocalContrast"]=JsonSerializer.SerializeToElement(settings.FloatingLocalContrast),
                 ["network"]=JsonSerializer.SerializeToElement(settings.Network),["codex"]=JsonSerializer.SerializeToElement(settings.Codex),
                 ["claude"]=JsonSerializer.SerializeToElement(settings.Claude),
                 ["antigravity"]=JsonSerializer.SerializeToElement(settings.Antigravity),
