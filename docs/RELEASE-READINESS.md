@@ -3,8 +3,8 @@
 The delivery target is a public stable release with usable, verified packages,
 not merely pushed adapters or a renamed experimental release. Windows WPF
 v0.6.27 is now published and its downloaded installer SHA-256 verified;
-v0.7.0-preview.2 is published and remains experimental. Preview.3 is being prepared;
-changing its source version does not establish publication.
+v0.7.0-preview.3 is published and remains experimental;
+five native package jobs passed in run 35085997550. All ten release assets were verified against local SHA-256 and size. Windows ARM64 remains excluded.
 
 ## Current hardware evidence (2026-09-16)
 

@@ -10,7 +10,7 @@
 
 **[下载 Windows 稳定版 0.6.27](https://github.com/medking82/hardware-pulse/releases/download/v0.6.27/HardwarePulse-Setup.exe)**
 
-另有面向 Windows x64、Linux x64／ARM64、macOS Intel／Apple Silicon [实验性跨平台预发布版 0.7.0-preview.2](https://github.com/medking82/hardware-pulse/releases/tag/v0.7.0-preview.2)，功能尚未与 Windows 稳定版对等，不替代现有安装程序。
+另有面向 Windows x64、Linux x64／ARM64、macOS Intel／Apple Silicon [实验性跨平台预发布版 0.7.0-preview.3](https://github.com/medking82/hardware-pulse/releases/tag/v0.7.0-preview.3)，功能尚未与 Windows 稳定版对等，不替代现有安装程序。
 
 ### 更新与桌面位置
 

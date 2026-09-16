@@ -1,7 +1,7 @@
 # Shared Desktop preview
 
 The 0.7.0 preview is the new shared host for Windows, Linux and macOS, on x64
-and ARM64. The current [preview.2 release](https://github.com/medking82/hardware-pulse/releases/tag/v0.7.0-preview.2) excludes Windows ARM64 while its native input verification remains incomplete. It is an experimental, separate App rather than a replacement for the
+and ARM64. The current [preview.3 release](https://github.com/medking82/hardware-pulse/releases/tag/v0.7.0-preview.3) excludes Windows ARM64 while its native input verification remains incomplete. It is an experimental, separate App rather than a replacement for the
 stable Windows WPF installer. Platform feature parity is not complete.
 
 ## Available
@@ -36,7 +36,7 @@ remain available when the App is moved out of the extracted archive folder.
 | Package | Native CI environment | Launch |
 | --- | --- | --- |
 | win-x64 | Windows Server 2022 x64 | Pulse.Desktop.exe |
-| win-arm64 | Windows 11 ARM64 input check incomplete | Not included in preview.2 |
+| win-arm64 | Windows 11 ARM64 input check incomplete | Not included in preview.3 |
 | linux-x64 | Ubuntu 24.04 x64, X11/Xvfb | ./Pulse.Desktop |
 | linux-arm64 | Ubuntu 24.04 ARM64, X11/Xvfb | ./Pulse.Desktop |
 | osx-x64 | macOS 15 Intel | Pulse Preview.app |
@@ -52,14 +52,14 @@ by CI launch tests. No security settings are changed by the package.
 macOS notices and dependency information are inside Contents/Resources so they
 remain with the App when it is moved. Windows/Linux notices are in licenses/.
 
-## Preparing preview.3
+## Added in preview.3
 
 The current source adds macOS CPU model and physical/logical core counts, plus
 per-device GPU utilization and driver-reported GPU core counts. Static identity
 is cached. GPU counters and core counts are unavailable on the CI VMs; physical
 GPU coverage still needs device testing. Read-only AppleSMC temperature/fan
 channels are also connected, with Intel CI readings and explicit unavailable
-state on the Apple Silicon VM. These changes are not in the preview.2 download.
+state on the Apple Silicon VM. These changes are included in the preview.3 download.
 See [macOS sensor boundaries](MAC-SENSORS.md).
 
 ## Added in preview.2

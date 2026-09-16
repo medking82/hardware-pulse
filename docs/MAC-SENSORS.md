@@ -31,7 +31,7 @@ stopped fans, discovery bounds, caching and connection disposal. The native C ch
 verifies compiler alignment and IOKit argument widths; it cannot prove firmware
 compatibility. macOS CI prints actual channel/read counts. A VM without AppleSMC
 reports unavailable and does not establish physical Intel/Apple Silicon coverage.
-Current development is not included in the published preview.2 package.
+The adapter is included in the published preview.3 package.
 
 ## CPU identity and GPU statistics
 

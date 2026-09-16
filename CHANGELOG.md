@@ -6,6 +6,10 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 
 ## Unreleased
 
+## 0.7.0-preview.3 — 2026-09-16
+
+Published for Windows x64, macOS Intel/Apple Silicon and Linux x64/ARM64. Five native package checks passed; Windows ARM64 remains excluded. This is a development preview, not stable feature parity.
+
 - macOS CPU cards show the OS-reported model and physical/logical core counts. Add per-device IOAccelerator GPU utilization and Session Max to Monitor and floating monitor, with driver-reported GPU core counts; missing metadata remains unavailable. CPU identity and GPU core counts are cached rather than repeatedly queried.
 
 - Connect a read-only macOS AppleSMC temperature/fan adapter to Monitor, Session Max and the floating monitor. Cache bounded discovery and preserve raw sensor keys; missing/unknown values remain unavailable. Physical device coverage is not yet established; see [sensor limits](docs/MAC-SENSORS.md).
