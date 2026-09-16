@@ -3,9 +3,9 @@ name: Desktop preview
 on:
   push:
     branches: [main]
-    paths: ['src/Hosts/Desktop/**', 'src/Core/**', 'src/Adapters/**', 'scripts/DesktopTests/**', 'scripts/package_desktop.py', 'scripts/test_desktop_package.py', 'licenses/**', 'assets/*.svg', '.github/workflows/desktop-preview.yml']
+    paths: ['src/Hosts/Desktop/**', 'src/Core/**', 'src/Adapters/**', 'scripts/DesktopTests/**', 'scripts/package_desktop.py', 'scripts/test_desktop_package.py', 'licenses/**', 'docs/distribution/**', 'assets/*.svg', '.github/workflows/desktop-preview.yml']
   pull_request:
-    paths: ['src/Hosts/Desktop/**', 'src/Core/**', 'src/Adapters/**', 'scripts/DesktopTests/**', 'scripts/package_desktop.py', 'scripts/test_desktop_package.py', 'licenses/**', 'assets/*.svg', '.github/workflows/desktop-preview.yml']
+    paths: ['src/Hosts/Desktop/**', 'src/Core/**', 'src/Adapters/**', 'scripts/DesktopTests/**', 'scripts/package_desktop.py', 'scripts/test_desktop_package.py', 'licenses/**', 'docs/distribution/**', 'assets/*.svg', '.github/workflows/desktop-preview.yml']
   workflow_dispatch:
 
 permissions:

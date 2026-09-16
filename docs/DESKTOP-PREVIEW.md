@@ -23,6 +23,9 @@ Choose the archive matching your OS and CPU architecture. Extract the entire
 archive into its own folder; do not copy just the executable or mix versions.
 The .NET runtime is included. Each archive has a SHA-256 sidecar and an internal
 manifest listing the source commit, preview version and file hashes.
+Development packages also include separate English (`README.txt`) and Simplified
+Chinese (`README.zh-CN.txt`) launch guides. Copies inside macOS Contents/Resources
+remain available when the App is moved out of the extracted archive folder.
 
 | Package | Native CI environment | Launch |
 | --- | --- | --- |
@@ -63,6 +66,9 @@ Changing mode does not poll again. Network selection starts a fresh network
 session; detected hwmon topology/label changes reset sensor peaks because hwmon
 ids are not permanent identities. Closing the App ends the session. These changes
 are not in the published `0.7.0-preview.1` archive.
+Development Network settings also provide **Refresh interfaces** for newly
+connected devices. A missing saved interface stays unselected; reconnecting it
+and refreshing restores the selection without switching silently to another.
 It does not infer hardware support from a successful UI launch. The existing
 stable Windows App remains the feature-complete choice for its supported hardware.
 

@@ -52,6 +52,12 @@ def verify_notices(folder, rid):
         assert notice.is_file() and notice.stat().st_size > 0, "Missing distribution notice: " + name
 
 
+def verify_guides(folder, rid):
+    for name in ("README.txt", "README.zh-CN.txt"):
+        for guide in {folder / name, folder / resources_path(rid) / name}:
+            assert guide.is_file() and guide.read_text(encoding="utf-8").strip(), "Missing launch guide: " + name
+
+
 def verify(folder, rid):
     manifest = json.loads((folder / "manifest.json").read_text())
     assert manifest["rid"] == rid and manifest["kind"] == "development-preview"
@@ -62,6 +68,7 @@ def verify(folder, rid):
     for name, value in expected.items():
         assert digest(folder / name) == value, "Package digest mismatch: " + name
     verify_notices(folder, rid)
+    verify_guides(folder, rid)
     exe = folder / executable_path(rid)
     assert exe.is_file(), "Missing executable"
     if os.name != "nt" and not rid.startswith("win-"):
@@ -129,19 +136,10 @@ def build(rid, dotnet, allow_dirty=False):
         shutil.copy2(ROOT / "LICENSE", resources / "LICENSE")
         shutil.copytree(ROOT / "licenses", resources / "licenses")
         shutil.copy2(ROOT / "src/Hosts/Desktop/packages.lock.json", resources / "packages.lock.json")
-        (package / "README.txt").write_text(
-            "Pulse Desktop development preview\n\n"
-            "Windows: extract the entire archive, then run Pulse.Desktop.exe. This does not replace the WPF installer.\n"
-            "Linux: run ./Pulse.Desktop in a graphical desktop (X11 tested).\n"
-            "macOS: Pulse Preview.app is a development bundle, not Developer ID signed or notarized.\n"
-            "The .NET runtime is included; native OS graphics/font dependencies are still required.\n"
-            "Live CPU/RAM, selected network and opt-in Codex file-login quota are available.\n"
-            "Settings remember window size, theme, network choice and explicit Codex opt-in.\n"
-            "Tray/menu bar offers Open Pulse and Quit Pulse where the desktop supports it. Closing the window quits.\n"
-            "Desktop overlay, FPS and other quota providers are not connected.\n"
-            "No installation, startup registration or automatic updates are performed.\n"
-            "Upstream notices are in licenses/ on Windows/Linux, or inside the macOS App's Contents/Resources/licenses/.\n"
-            "Experimental preview for evaluation; this is not the stable Windows product.\n", encoding="utf-8")
+        for name in ("README.txt", "README.zh-CN.txt"):
+            shutil.copy2(ROOT / "docs/distribution" / name, package / name)
+            if resources != package:
+                shutil.copy2(ROOT / "docs/distribution" / name, resources / name)
         files = {p.relative_to(package).as_posix(): digest(p) for p in sorted(package.rglob("*")) if p.is_file()}
         (package / "manifest.json").write_text(json.dumps({"schema": 1, "kind": "development-preview",
             "version": app_version(), "commit": commit, "dirty": dirty, "rid": rid, "files": files}, indent=2) + "\n", encoding="utf-8")

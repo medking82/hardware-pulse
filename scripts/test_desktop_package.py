@@ -30,7 +30,37 @@ class PackageTests(unittest.TestCase):
         (self.folder / "licenses").mkdir()
         for name in package.REQUIRED_NOTICES:
             shutil.copy2(package.ROOT / "licenses" / name, self.folder / "licenses" / name)
+        for name in ("README.txt", "README.zh-CN.txt"):
+            shutil.copy2(package.ROOT / "docs/distribution" / name, self.folder / name)
         self.manifest()
+
+    def test_missing_launch_guides_even_with_matching_manifest(self):
+        for name in ("README.txt", "README.zh-CN.txt"):
+            with self.subTest(name=name):
+                guide = self.folder / name
+                original = guide.read_bytes()
+                guide.unlink()
+                self.manifest()
+                with self.assertRaisesRegex(AssertionError, "Missing launch guide"):
+                    package.verify(self.folder, "linux-x64")
+                guide.write_text("", encoding="utf-8")
+                self.manifest()
+                with self.assertRaisesRegex(AssertionError, "Missing launch guide"):
+                    package.verify(self.folder, "linux-x64")
+                guide.write_bytes(original)
+                self.manifest()
+
+    def test_mac_guides_inside_bundle(self):
+        with self.assertRaisesRegex(AssertionError, "Missing launch guide"):
+            package.verify_guides(self.folder, "osx-arm64")
+        resources = self.folder / package.resources_path("osx-arm64")
+        resources.mkdir(parents=True)
+        for name in ("README.txt", "README.zh-CN.txt"):
+            shutil.copy2(self.folder / name, resources / name)
+        package.verify_guides(self.folder, "osx-arm64")
+        (resources / "README.zh-CN.txt").unlink()
+        with self.assertRaisesRegex(AssertionError, "Missing launch guide"):
+            package.verify_guides(self.folder, "osx-arm64")
 
     def manifest(self, rid="linux-x64"):
         (self.folder / "manifest.json").write_text(json.dumps({"kind": "development-preview", "rid": rid,"version": package.app_version(),

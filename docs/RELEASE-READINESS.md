@@ -53,3 +53,13 @@ restored when it reappears. Enumeration runs off the UI thread only at startup
 or on request, with no additional sampling timer. Headless interaction tests cover
 removal, reconnection, empty lists, refresh and selection persistence. Physical
 USB/VPN hotplug across all platforms remains a separate device validation step.
+The exact Network refresh commit `50d2ebc6c6b8ffeb9ea1ff024bd0333db5dc8f89`
+passed all six native package jobs in
+[run 35049167172](https://github.com/medking82/hardware-pulse/actions/runs/35049167172).
+
+Development distribution now carries separate English and Simplified Chinese
+launch guides, also retained inside the movable macOS bundle. The package
+verifier rejects missing or empty guides even with an updated manifest; nine
+package contract tests and an extracted Windows x64 live CPU/RAM smoke passed.
+CLI help now accurately describes Linux hwmon and shared Session Max support.
+These are source/package improvements, not a new stable cross-platform release.
