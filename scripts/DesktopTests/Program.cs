@@ -31,6 +31,7 @@ static class Tests {
             return;
         }
         AppBuilder.Configure<PulseApplication>().With(DesktopFonts.Options()).UseSkia().UseHeadless(new(){UseHeadlessDrawing=false}).SetupWithoutStarting();
+        if(args.Length>=1&&args[0]=="--columns"){AdaptiveReadingsTests.Run(args.Length==2?args[1]:null);return;}
         if(args.Length>=1&&args[0]=="--shortcuts"){DesktopShortcutTests.Run(args.Length==2?args[1]:null);return;}
         if(args.Length>=1&&args[0]=="--fps"){FpsPanelTests.Run(args.Length==2?args[1]:null);return;}
         if(args.Length>=1&&args[0]=="--windows-hardware") {WindowsHardwareTests.Run(args.Length==2?args[1]:null);return;}
@@ -40,8 +41,8 @@ static class Tests {
         foreach(int width in new[]{800,360,1200}) {
             window.Width=width;window.Height=700;Dispatcher.UIThread.RunJobs();
             AvaloniaHeadlessPlatform.ForceRenderTimerTick();
-            var cards=window.GetVisualDescendants().OfType<Grid>().First(x=>x.Children.OfType<Border>().Count()==4);
-            Check(cards.ColumnDefinitions.Count==(width>=660?2:1),"Responsive columns");
+            var cards=window.GetVisualDescendants().OfType<AdaptiveReadingsPanel>().Single(x=>x.Name=="MonitorCards");
+            Check(cards.Columns==(width>=1000?3:width>=660?2:1),"Responsive columns");
             foreach(var value in window.GetVisualDescendants().OfType<TextBlock>())
                 Check(value.Bounds.Width<=width,"Text exceeds window width");
             Check(window.GetVisualDescendants().OfType<TextBlock>().Any(x=>x.Text=="24.0%"),"CPU value preserved");
@@ -80,6 +81,7 @@ static class Tests {
         WindowsHardwareTests.Run(args.Length==1?args[0]:null);
         FpsPanelTests.Run();
         DesktopShortcutTests.Run();
+        AdaptiveReadingsTests.Run();
         GpuPresentationTests.Run(args.Length==1?args[0]:null);
         SessionMaxTests.Run();
         SamplingRecoveryTests.Run();

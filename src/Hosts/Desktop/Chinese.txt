@@ -138,6 +138,9 @@ Windows collector unavailable. Waiting for hardware readings.|Windows collector 
 Disconnected|未连接
 Enable FPS|启用 FPS
 Refresh apps|刷新 App
+Auto|自动
+Card columns|Card 列数
+Desktop columns|Desktop 列数
 Enable Desktop shortcut|启用 Desktop shortcut
 Global shortcut is unavailable in this session.|此 session 无法使用 global shortcut。
 Press a shortcut; Esc cancels|按下 shortcut；Esc 取消

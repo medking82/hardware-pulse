@@ -14,7 +14,7 @@ public sealed class MonitorWindow : Window {
     readonly CancellationTokenSource stop=new();
     readonly TextBlock cpu=Value(),ram=Value(),down=Value(),up=Value();
     readonly TextBlock status=new(){Text="Starting…",TextWrapping=TextWrapping.Wrap};
-    readonly Grid cards=new(){ColumnDefinitions=new("*,*"),RowDefinitions=new("Auto,Auto")};
+    readonly AdaptiveReadingsPanel cards=new(){Name="MonitorCards",Spacing=12};
     readonly Border[] panels;
     readonly ComboBox interfaces=new(){HorizontalAlignment=HorizontalAlignment.Stretch,PlaceholderText="Select network interface"};
     readonly Button refreshInterfaces=new(){Name="RefreshInterfaces",Content="Refresh interfaces"};
@@ -55,6 +55,7 @@ public sealed class MonitorWindow : Window {
         panels=[Card("CPU",cpu,"System load","cpu"),Card("Memory",ram,OperatingSystem.IsMacOS()?"Used memory estimate":"Host memory","memory"),Card("Download",down,"Selected interface","down"),Card("Upload",up,"Selected interface","up")];
         ((StackPanel)panels[0].Child!).Children.Add(cpuIdentityText);
         foreach(var panel in panels)cards.Children.Add(panel);
+        cards.RequestedColumns=settings.CardColumns;
         var body=new StackPanel{Spacing=16,Margin=new Thickness(24)};
         body.Children.Add(readingMode);body.Children.Add(status);body.Children.Add(cards);body.Children.Add(pause);
         var floating=Language.Set(new Button{Name="OpenFloatingMonitor"},"Open floating monitor");
@@ -81,6 +82,12 @@ public sealed class MonitorWindow : Window {
         network.Children.Add(Language.Set(new TextBlock{TextWrapping=TextWrapping.Wrap},"Download and upload show the selected interface. A missing saved interface stays unselected until you choose another."));
         var appearance=new StackPanel{Spacing=12,Margin=new Thickness(20)};
         appearance.Children.Add(Language.Set(new TextBlock{FontSize=21,FontWeight=FontWeight.SemiBold},"Appearance"));
+        void ColumnsChoice(StackPanel parent,string label,string name,int selected,Action<int> changed) {
+            parent.Children.Add(Language.Set(new TextBlock(),label));
+            var choice=new ComboBox{Name=name,ItemsSource=new[]{"Auto","1","2","3"},SelectedIndex=selected,HorizontalAlignment=HorizontalAlignment.Stretch,ItemTemplate=Language.Choices()};
+            choice.SelectionChanged+=(_,_)=>{changed(Math.Max(0,choice.SelectedIndex));SaveLater();};parent.Children.Add(choice);
+        }
+        ColumnsChoice(appearance,"Card columns","CardColumns",settings.CardColumns,value=>{settings.CardColumns=value;cards.RequestedColumns=value;});
         var theme=new ComboBox{Name="PreviewTheme",ItemsSource=new[]{"System","Light","Dark"},SelectedItem=settings.Theme,HorizontalAlignment=HorizontalAlignment.Stretch};
         appearance.Children.Add(Language.Set(new TextBlock{},"Theme"));appearance.Children.Add(theme);
         appearance.Children.Add(Language.Set(new TextBlock{TextWrapping=TextWrapping.Wrap},"System follows your desktop theme. Window size is remembered automatically."));
@@ -95,6 +102,7 @@ public sealed class MonitorWindow : Window {
         Opened+=(_,_)=>{if(shortcutSupported&&!shortcutAttached){shortcut.Attach(new WindowsDesktopShortcut(this,()=>{if(!shortcut.CancelCapture())ToggleFloatingMonitor();}));shortcutAttached=true;}};
         Closed+=(_,_)=>shortcut.Dispose();
         desktop.Children.Add(Language.Set(new TextBlock{FontSize=21,FontWeight=FontWeight.SemiBold},"Floating monitor"));
+        ColumnsChoice(desktop,"Desktop columns","DesktopColumns",settings.DesktopColumns,value=>{settings.DesktopColumns=value;FloatingMonitor?.ApplyTextAppearance();});
         desktop.Children.Add(shortcut);
         var desktopOpen=Language.Set(new Button(),"Open floating monitor");desktopOpen.Click+=(_,_)=>OpenFloatingMonitor();desktop.Children.Add(desktopOpen);
         desktopTopmost.IsChecked=settings.FloatingTopmost;
@@ -105,7 +113,7 @@ public sealed class MonitorWindow : Window {
         var fontSize=new Slider{Name="FloatingFontSize",Minimum=10,Maximum=32,TickFrequency=1,IsSnapToTickEnabled=true,Value=settings.FloatingFontSize};
         Avalonia.Automation.AutomationProperties.SetName(fontSize,Language.T("Font size"));
         Language.Changed+=()=>Avalonia.Automation.AutomationProperties.SetName(fontSize,Language.T("Font size"));
-        fontSize.ValueChanged+=(_,_)=>{settings.FloatingFontSize=fontSize.Value;fontValue.Text=fontSize.Value.ToString("F0");if(FloatingMonitor!=null)FloatingMonitor.FontSize=fontSize.Value;SaveLater();};
+        fontSize.ValueChanged+=(_,_)=>{settings.FloatingFontSize=fontSize.Value;fontValue.Text=fontSize.Value.ToString("F0");if(FloatingMonitor!=null){FloatingMonitor.FontSize=fontSize.Value;FloatingMonitor.ApplyTextAppearance();}SaveLater();};
         desktop.Children.Add(fontSize);
         desktop.Children.Add(Language.Set(new TextBlock(),"Background opacity"));
         var opacityValue=new TextBlock{Text=settings.FloatingBackgroundOpacity.ToString("F0")+"%"};desktop.Children.Add(opacityValue);
@@ -161,7 +169,7 @@ public sealed class MonitorWindow : Window {
         antigravityQuota.EnabledChanged+=on=>{settings.Antigravity=on;SaveLater();};
         antigravityQuota.QuotaEnabled=settings.Antigravity;
         saveTimer.Tick+=(_,_)=>SaveNow();
-        SizeChanged+=(_,_)=>{LayoutCards();if(WindowState==WindowState.Normal){settings.Width=Width;settings.Height=Height;SaveLater();}};LayoutCards();
+        SizeChanged+=(_,_)=>{if(WindowState==WindowState.Normal){settings.Width=Width;settings.Height=Height;SaveLater();}};
         Opened+=(_,_)=>{
             var screen=Screens.ScreenFromWindow(this);
             if(screen!=null){Width=Math.Max(MinWidth,Math.Min(Width,screen.WorkingArea.Width/screen.Scaling));Height=Math.Max(MinHeight,Math.Min(Height,screen.WorkingArea.Height/screen.Scaling));}
@@ -212,13 +220,7 @@ public sealed class MonitorWindow : Window {
         header.Children.Add(Language.Set(new TextBlock{FontWeight=FontWeight.SemiBold,VerticalAlignment=VerticalAlignment.Center},title));
         stack.Children.Add(header);stack.Children.Add(value);
         stack.Children.Add(Language.Set(new TextBlock{Opacity=.75,TextWrapping=TextWrapping.Wrap},detail));
-        return new Border{Child=stack,Padding=new Thickness(20),Margin=new Thickness(0,0,12,12),CornerRadius=new CornerRadius(14),BorderThickness=new Thickness(1),BorderBrush=Brushes.Gray};
-    }
-    void LayoutCards() {
-        int count=ClientSize.Width>=660?2:1;
-        cards.ColumnDefinitions=new(count==2?"*,*":"*");
-        cards.RowDefinitions=new(count==2?"Auto,Auto":"Auto,Auto,Auto,Auto");
-        for(int i=0;i<panels.Length;i++){Grid.SetRow(panels[i],i/count);Grid.SetColumn(panels[i],i%count);}
+        return new Border{Child=stack,Padding=new Thickness(20),CornerRadius=new CornerRadius(14),BorderThickness=new Thickness(1),BorderBrush=Brushes.Gray};
     }
     public void Present(MonitorSnapshot snapshot) {
         latestSnapshot=snapshot;Render(snapshot);

@@ -12,6 +12,7 @@ public sealed class PreviewSettings {
     public bool DesktopShortcutEnabled=true;
     public string DesktopShortcut="Ctrl+Alt+F10";
     public string FpsTarget="";
+    public int CardColumns,DesktopColumns;
     public double FloatingWidth=440,FloatingHeight=420;
     public int FloatingX,FloatingY;
     public bool FloatingPositionSet,FloatingTopmost;
@@ -67,6 +68,7 @@ public sealed class PreviewSettingsStore {
             settings.Claude=values.Flag("claude");
             settings.Antigravity=values.Flag("antigravity");
             settings.Fps=values.Flag("fps");
+            settings.CardColumns=(int)values.Number("cardColumns",0,0,3);settings.DesktopColumns=(int)values.Number("desktopColumns",0,0,3);
             settings.DesktopShortcutEnabled=values.Flag("desktopShortcutEnabled",true);
             string shortcut=values.Text("desktopShortcut","Ctrl+Alt+F10");
             if(WindowsDesktopShortcut.TryParse(shortcut,out _,out _,out _))settings.DesktopShortcut=shortcut;
@@ -90,6 +92,7 @@ public sealed class PreviewSettingsStore {
                 ["claude"]=JsonSerializer.SerializeToElement(settings.Claude),
                 ["antigravity"]=JsonSerializer.SerializeToElement(settings.Antigravity),
                 ["fps"]=JsonSerializer.SerializeToElement(settings.Fps),["fpsTarget"]=JsonSerializer.SerializeToElement(settings.FpsTarget),
+                ["cardColumns"]=JsonSerializer.SerializeToElement(settings.CardColumns),["desktopColumns"]=JsonSerializer.SerializeToElement(settings.DesktopColumns),
                 ["desktopShortcutEnabled"]=JsonSerializer.SerializeToElement(settings.DesktopShortcutEnabled),
                 ["desktopShortcut"]=JsonSerializer.SerializeToElement(settings.DesktopShortcut),
                 ["floatingWidth"]=JsonSerializer.SerializeToElement(settings.FloatingWidth),["floatingHeight"]=JsonSerializer.SerializeToElement(settings.FloatingHeight),

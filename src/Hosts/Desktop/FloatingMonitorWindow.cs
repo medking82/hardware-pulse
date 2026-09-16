@@ -12,9 +12,10 @@ public sealed class FloatingMonitorWindow : Window {
     readonly PreviewSettings appearance;
     readonly StackPanel rows=new(){Spacing=8,Margin=new Thickness(16)};
     readonly TextBlock cpu=new(),memory=new(),download=new(),upload=new();
-    readonly StackPanel sensors=new(){Spacing=8};
-    readonly StackPanel gpus=new(){Spacing=8};
-    readonly StackPanel windowsHardware=new(){Spacing=8};
+    readonly AdaptiveReadingsPanel basic=new(){Name="DesktopBasicReadings",Spacing=8};
+    readonly AdaptiveReadingsPanel sensors=new(){Spacing=8,IsVisible=false};
+    readonly AdaptiveReadingsPanel gpus=new(){Spacing=8,IsVisible=false};
+    readonly AdaptiveReadingsPanel windowsHardware=new(){Name="DesktopHardwareReadings",Spacing=8,IsVisible=false};
     readonly TextBlock fpsValue=new(){TextWrapping=TextWrapping.Wrap,IsVisible=false};
     DesktopFpsSnapshot? fpsSnapshot;
     readonly TextBlock windowsStatus=new(){TextWrapping=TextWrapping.Wrap,IsVisible=false};
@@ -84,10 +85,10 @@ public sealed class FloatingMonitorWindow : Window {
             }
             lockButton.IsVisible=lockStatus.IsVisible=input!=null;
         };
-        rows.Children.Add(Row(language.T("CPU"),cpu,"cpu"));
-        rows.Children.Add(Row(language.T("Memory"),memory,"memory"));
-        rows.Children.Add(Row(language.T("Download"),download,"down"));
-        rows.Children.Add(Row(language.T("Upload"),upload,"up"));
+        basic.Children.Add(Row(language.T("CPU"),cpu,"cpu"));
+        basic.Children.Add(Row(language.T("Memory"),memory,"memory"));
+        basic.Children.Add(Row(language.T("Download"),download,"down"));
+        basic.Children.Add(Row(language.T("Upload"),upload,"up"));rows.Children.Add(basic);
         rows.Children.Add(sensors);
         rows.Children.Add(gpus);
         rows.Children.Add(windowsStatus);rows.Children.Add(windowsHardware);
@@ -136,6 +137,10 @@ public sealed class FloatingMonitorWindow : Window {
     }
     public void ApplyTextAppearance() {
         rows.Spacing=sensors.Spacing=gpus.Spacing=windowsHardware.Spacing=quotaRows.Spacing=appearance.FloatingRowSpacing;
+        foreach(var panel in new[]{basic,sensors,gpus,windowsHardware}) {
+            panel.Spacing=appearance.FloatingRowSpacing;panel.RequestedColumns=appearance.DesktopColumns;
+            panel.MinimumColumnWidth=Math.Max(280,24*FontSize);
+        }
         foreach(var row in rows.Children.Skip(1))StyleReading(row);
     }
     void StyleReading(Control control) {
@@ -150,15 +155,15 @@ public sealed class FloatingMonitorWindow : Window {
         if(control is Panel panel)foreach(var child in panel.Children)StyleReading(child);
     }
     Grid Row(string label,TextBlock value,string? icon=null) {
-        var grid=new Grid{ColumnDefinitions=new("*,2*"),ColumnSpacing=12};
+        var grid=new Grid{ColumnDefinitions=new("*,Auto"),ColumnSpacing=12};
         grid.Children.Add(new TextBlock{Text=label,TextWrapping=TextWrapping.Wrap,VerticalAlignment=VerticalAlignment.Center,Margin=new Thickness(icon==null?0:32,0,0,0)});
-        value.Text="—";value.TextWrapping=TextWrapping.Wrap;value.TextAlignment=TextAlignment.Right;value.VerticalAlignment=VerticalAlignment.Center;Grid.SetColumn(value,1);grid.Children.Add(value);
+        value.Text="—";value.TextWrapping=TextWrapping.Wrap;value.MaxWidth=180;value.TextAlignment=TextAlignment.Right;value.VerticalAlignment=VerticalAlignment.Center;Grid.SetColumn(value,1);grid.Children.Add(value);
         if(icon!=null){var artwork=AppIcon.Create(icon);artwork.HorizontalAlignment=HorizontalAlignment.Left;artwork.VerticalAlignment=VerticalAlignment.Center;artwork.IsHitTestVisible=false;grid.Children.Add(artwork);}
         StyleReading(grid);return grid;
     }
     void Localize() {
         string[] keys=["CPU","Memory","Download","Upload"];
-        for(int i=0;i<keys.Length;i++)((TextBlock)((Grid)rows.Children[i+1]).Children[0]).Text=language.T(keys[i]);
+        for(int i=0;i<keys.Length;i++)((TextBlock)((Grid)basic.Children[i]).Children[0]).Text=language.T(keys[i]);
         var family=DesktopFonts.ForLanguage(language.EffectiveLanguage);
         if(family is null)ClearValue(FontFamilyProperty);else FontFamily=family;
         RenderQuota();
@@ -188,19 +193,22 @@ public sealed class FloatingMonitorWindow : Window {
         lastSnapshot=snapshot;lastPeaks=peaks;
         cpu.Text=peaks?snapshot.PeakCpu:snapshot.Cpu;memory.Text=snapshot.Memory;
         download.Text=peaks?snapshot.PeakDownload:snapshot.Download;upload.Text=peaks?snapshot.PeakUpload:snapshot.Upload;
-        windowsStatus.IsVisible=snapshot.WindowsHardwareSupported;language.Set(windowsStatus,snapshot.WindowsHardwareStatus);
+        windowsStatus.IsVisible=snapshot.WindowsHardwareSupported&&snapshot.WindowsHardwareStatus.Length>0;language.Set(windowsStatus,snapshot.WindowsHardwareStatus);
         var hardware=peaks?snapshot.PeakWindowsHardware:snapshot.WindowsHardware;
+        windowsHardware.IsVisible=hardware.Count>0;
         if(windowsHardware.Children.Count!=hardware.Count){windowsHardware.Children.Clear();foreach(var item in hardware)windowsHardware.Children.Add(Row(item.DisplayLabel(language),new TextBlock()));}
         for(int i=0;i<hardware.Count;i++) {
             var row=(Grid)windowsHardware.Children[i];((TextBlock)row.Children[0]).Text=hardware[i].DisplayLabel(language);((TextBlock)row.Children[1]).Text=language.T(hardware[i].Value);
         }
         var readings=peaks?snapshot.PeakSensors:snapshot.Sensors;
+        sensors.IsVisible=readings.Count>0;
         // Reuse controls across samples; only device-count changes require layout creation.
         if(sensors.Children.Count!=readings.Count){sensors.Children.Clear();foreach(var item in readings)sensors.Children.Add(Row(item.Label,new TextBlock()));}
         for(int i=0;i<readings.Count;i++) {
             var row=(Grid)sensors.Children[i];((TextBlock)row.Children[0]).Text=readings[i].Label;((TextBlock)row.Children[1]).Text=readings[i].Value;
         }
         var graphics=peaks?snapshot.PeakGpus:snapshot.Gpus;
+        gpus.IsVisible=graphics.Count>0;
         if(gpus.Children.Count!=graphics.Count){gpus.Children.Clear();foreach(var item in graphics)gpus.Children.Add(Row(item.GpuLabel(language),new TextBlock()));}
         for(int i=0;i<graphics.Count;i++) {
             var row=(Grid)gpus.Children[i];((TextBlock)row.Children[0]).Text=graphics[i].GpuLabel(language);((TextBlock)row.Children[1]).Text=graphics[i].Value;
