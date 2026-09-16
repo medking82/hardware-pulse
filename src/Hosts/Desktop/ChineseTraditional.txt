@@ -76,3 +76,7 @@ Quit Pulse|結束 Pulse
 Floating monitor|浮動監控視窗
 Open floating monitor|開啟浮動監控視窗
 Always on top|置頂顯示
+Lock floating monitor|鎖定浮動監控視窗
+Reopen from Monitor or the tray to unlock.|從主介面或系統匣重新開啟即可解鎖。
+Locked · Reopen from Monitor or the tray to unlock.|已鎖定 · 從主介面或系統匣重新開啟即可解鎖。
+Could not change window lock. Reopen the floating monitor and try again.|無法變更視窗鎖定狀態，請重新開啟浮動監控視窗後重試。

@@ -6,6 +6,8 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 
 ## Unreleased
 
+- Shared Windows floating monitor supports native click-through locking. Reopening it from Monitor or the tray unlocks the same window. This implementation is Windows-only; Linux/macOS adapters remain pending.
+
 - The shared tray/menu bar can reopen the existing floating monitor. The entry follows the App language and cannot reopen a window after quit.
 
 - Shared Desktop adds a floating monitor with optional Always on top, using the existing CPU/RAM/network/sensor snapshots without additional sampling. One window is reused, language/theme follow Monitor, and closing Monitor closes it. This is the first Desktop-mode increment; click-through locking, desktop-layer placement and FPS are not implemented in the shared host yet.

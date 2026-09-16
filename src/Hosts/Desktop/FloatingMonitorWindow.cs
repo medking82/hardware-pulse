@@ -11,13 +11,27 @@ public sealed class FloatingMonitorWindow : Window {
     readonly StackPanel rows=new(){Spacing=8,Margin=new Thickness(16)};
     readonly TextBlock cpu=new(),memory=new(),download=new(),upload=new();
     readonly StackPanel sensors=new(){Spacing=8};
+    readonly TextBlock lockStatus=new(){TextWrapping=TextWrapping.Wrap,IsVisible=false};
+    WindowsWindowInput? input;
+    public bool IsLocked {get;private set;}
+    public bool CanLock=>input!=null;
     public FloatingMonitorWindow(UiLanguage language) {
         this.language=language;
         Width=440;Height=420;MinWidth=360;MinHeight=240;FontSize=15;
         language.Set(this,"Floating monitor");
         var topmost=language.Set(new CheckBox{Name="FloatingTopmost"},"Always on top");
         topmost.IsCheckedChanged+=(_,_)=>Topmost=topmost.IsChecked==true;
-        rows.Children.Add(topmost);
+        var lockButton=language.Set(new Button{Name="LockFloatingMonitor",IsVisible=false},"Lock floating monitor");
+        lockButton.Click+=(_,_)=>SetLocked(true);
+        var toolbar=new StackPanel{Spacing=8};toolbar.Children.Add(topmost);toolbar.Children.Add(lockButton);toolbar.Children.Add(lockStatus);
+        language.Set(lockStatus,"Reopen from Monitor or the tray to unlock.");
+        rows.Children.Add(toolbar);
+        Opened+=(_,_)=>{
+            var handle=TryGetPlatformHandle();
+            if(OperatingSystem.IsWindows()&&handle?.HandleDescriptor=="HWND") {
+                input??=new WindowsWindowInput(handle.Handle);lockButton.IsVisible=true;lockStatus.IsVisible=true;
+            }
+        };
         rows.Children.Add(Row(language.T("CPU"),cpu));
         rows.Children.Add(Row(language.T("Memory"),memory));
         rows.Children.Add(Row(language.T("Download"),download));
@@ -26,6 +40,17 @@ public sealed class FloatingMonitorWindow : Window {
         Content=new ScrollViewer{Content=rows,HorizontalScrollBarVisibility=Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled};
         language.Changed+=Localize;Localize();
         Closed+=(_,_)=>language.Changed-=Localize;
+    }
+    public bool SetLocked(bool locked) {
+        if(input==null)return !locked;
+        if(IsLocked==locked)return true;
+        try {
+            input.SetPassThrough(locked);IsLocked=locked;
+            language.Set(lockStatus,locked?"Locked · Reopen from Monitor or the tray to unlock.":"Reopen from Monitor or the tray to unlock.");
+            return true;
+        } catch(Exception e) when(e is System.ComponentModel.Win32Exception or InvalidOperationException) {
+            language.Set(lockStatus,"Could not change window lock. Reopen the floating monitor and try again.");return false;
+        }
     }
     static Grid Row(string label,TextBlock value) {
         var grid=new Grid{ColumnDefinitions=new("*,2*"),ColumnSpacing=12};

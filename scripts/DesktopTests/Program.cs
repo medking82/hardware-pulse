@@ -18,6 +18,7 @@ static class Tests {
             LocalizationTests.Run(null,native:true);
             TrayTests.Run(native:true);
             FloatingMonitorTests.Run();
+            WindowsInputTests.Run();
             Console.WriteLine("PASS native Desktop session: isolated settings, language, theme, restore, tray commands and shutdown");
             return;
         }

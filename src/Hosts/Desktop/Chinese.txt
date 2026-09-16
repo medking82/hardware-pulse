@@ -76,3 +76,7 @@ Quit Pulse|退出 Pulse
 Floating monitor|浮动监控窗口
 Open floating monitor|打开浮动监控窗口
 Always on top|置顶显示
+Lock floating monitor|锁定浮动监控窗口
+Reopen from Monitor or the tray to unlock.|从主界面或托盘重新打开即可解锁。
+Locked · Reopen from Monitor or the tray to unlock.|已锁定 · 从主界面或托盘重新打开即可解锁。
+Could not change window lock. Reopen the floating monitor and try again.|无法更改窗口锁定状态，请重新打开浮动监控窗口后重试。

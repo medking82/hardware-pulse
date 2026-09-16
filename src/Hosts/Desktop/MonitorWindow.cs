@@ -98,7 +98,8 @@ public sealed class MonitorWindow : Window {
             FloatingMonitor.Closed+=(_,_)=>FloatingMonitor=null;
         }
         if(latestSnapshot!=null)FloatingMonitor.Present(latestSnapshot,readingMode.SelectedIndex==1);
-        FloatingMonitor.Show();if(FloatingMonitor.WindowState==WindowState.Minimized)FloatingMonitor.WindowState=WindowState.Normal;
+        FloatingMonitor.Show();if(!FloatingMonitor.SetLocked(false))return;
+        if(FloatingMonitor.WindowState==WindowState.Minimized)FloatingMonitor.WindowState=WindowState.Normal;
         FloatingMonitor.Activate();
     }
     static ScrollViewer Scroll(Control content)=>new(){Content=content,HorizontalScrollBarVisibility=Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled};

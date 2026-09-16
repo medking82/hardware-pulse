@@ -30,6 +30,15 @@ floating window and rejects callbacks after App exit. Headless and Windows nativ
 tests cover command behavior; shell menu interaction and native click-through
 are still unverified/unimplemented respectively.
 
+Tray increment `9c382f8ec7dabcc28fb7d92a0e8f967e0982450e` passed all six jobs in
+[run 35062008040](https://github.com/medking82/hardware-pulse/actions/runs/35062008040).
+The next Windows-only increment introduces an own-process HWND input adapter.
+Native tests confirm underlying-window hit testing while locked, visible content,
+idempotence, exact style restoration and tray unlock of the existing floating
+window. It refuses foreign HWNDs and an existing layered rendering policy.
+This is not evidence for exclusive-fullscreen games, Linux/macOS click-through,
+or desktop-layer placement. Other platforms do not expose the Lock button yet.
+
 ## Acceptance evidence
 
 | Area | Current evidence | Work before stable delivery |
