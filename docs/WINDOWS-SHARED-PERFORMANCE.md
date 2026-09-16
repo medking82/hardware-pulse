@@ -110,6 +110,47 @@ cause remains unproven; a passing rerun does not establish that it was fixed.
 Final shared headless and `Validate.ps1 -ModernCore` passed as recorded in
 `vendor/test-hidden-monitor-headless-final.log` and `vendor/validate-hidden-monitor.log`.
 
+## Five-minute dynamic Local Contrast comparison
+
+Source: `36531437695e998dd88c0183180b70cc3343a334`, Windows x64, 16 logical
+processors. Release harness build passed without warnings. Both runs requested
+440 x 640 DIP, a 2-second synthetic reading cadence, 33 ms animated-gradient
+timer and enabled Local Contrast. They ran serially with 10 seconds warmup and
+150 measured samples each. No builds or UI tests ran concurrently. Both
+completed their cooperative shutdown successfully; no forced GC or trimming
+was used.
+
+| Observation | WPF | Shared |
+| --- | ---: | ---: |
+| Measured seconds | 302.96 | 302.89 |
+| Whole-machine CPU average | 0.556% | 0.812% |
+| Working set average | 143.38 MiB | 175.28 MiB |
+| Private bytes average | 127.45 MiB | 203.83 MiB |
+| Private bytes, first 30 s average | 124.62 MiB | 197.40 MiB |
+| Private bytes, last 30 s average | 127.66 MiB | 201.99 MiB |
+| Private bytes peak | 134.29 MiB | 212.03 MiB |
+| Background updates, entire harness lifetime | 6688 | 7761 |
+
+The shared run consumed more CPU and memory in this scene. It also delivered
+more background updates despite the same requested timer interval, so this is
+not a fixed-throughput comparison or a causal attribution of the difference.
+First-to-last private-byte averages rose by about 3.04 MiB and 4.59 MiB. Five
+minutes and these process counters do not prove leak freedom, a leak, or
+long-term stability. Do not describe shared as inherently lighter than WPF.
+The extra memory and dynamic-scene CPU still need attribution before claiming
+final resource acceptance. Live collectors, quota and FPS remain excluded.
+
+Local raw evidence:
+
+- WPF: `vendor/ui-measure-7935d48d0aec4c7a99fb78ae75973199/`;
+  app SHA-256 `628F8433260483CA5F57E15011AA7260EC9469C0C34C175F354CFB124C162C34`.
+- Shared: `vendor/ui-measure-498c7ab04d04427cac56d7f62e014a0e/`;
+  app SHA-256 `12E9B0C0B000A905B8A5F692EFF682AF47C174F50E3E81F51830AB8998B20482`.
+
+Each directory retains result, sample, readiness, completion and stderr files,
+including Core/adapter/harness hashes. Launch logs are
+`vendor/soak-wpf-dynamic-300.log` and `vendor/soak-shared-dynamic-300.log`.
+
 ## Remaining release evidence
 
 - Measure the actual installed UI plus collector and all helper processes,

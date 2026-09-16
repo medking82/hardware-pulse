@@ -28,6 +28,22 @@ unverified or missing behavior as supported to close this table.
 
 ## CPU and memory acceptance
 
+Current-commit CI observation (`3653143`): Windows collector and Windows adapters
+passed. [Desktop run 35127210607](https://github.com/medking82/hardware-pulse/actions/runs/35127210607)
+did not pass Windows x64: the native session reached and passed game overlay
+checks, then failed `LockedLayoutTests.Native` with `Auto columns leave avoidable
+locked overflow`. This is an unresolved Windows release gate, not a passing
+workflow. Both macOS jobs failed the `Read-only BOM legacy import` fixture;
+Linux x64/ARM64 passed. Windows ARM64 failed the overlay foreground fixture and
+remains excluded. Local passing tests do not override these CI observations.
+Failed logs are retained locally in `vendor/ci-desktop-3653143-failed.log`.
+
+The five-minute matched-configuration UI runs in
+[performance evidence](WINDOWS-SHARED-PERFORMANCE.md) completed, but shared used
+more memory/CPU in the dynamic Local Contrast scene. Actual background-update
+counts differed; attribution and final installed total-resource acceptance
+remain open.
+
 The user explicitly requires lightweight CPU/RAM behavior. Compare the final
 shared host against the WPF baseline on the same Windows hardware, window size,
 refresh cadence and enabled features. Measure Monitor, floating Desktop and
