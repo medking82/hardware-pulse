@@ -64,4 +64,18 @@ The initial PowerShell 5.1 invocation could not run the existing hidden runner;
 no validation assertions were changed. Actual protected installed stable admission
 and upgrade acceptance remain release-package checks, not claims from these fixtures.
 
+## Portable fixture paths
+
+Desktop CI run 35129749374 passed Windows x64 but macOS stopped at the
+read-only BOM import assertion. macOS temporary directories can traverse the
+`/var` symlink, which the production legacy reader deliberately refuses.
+The regular-input fixture now resolves temporary directory ancestors before
+constructing its source path. A separate linked-input case still requires
+refusal, then verifies that the resolved physical path imports successfully.
+No production migration or reparse-point policy changed. The focused Windows
+test passed (`vendor/test-profile-physical-fixture.log`); macOS confirmation
+requires the subsequent CI run. Repository validation passed under PowerShell 7
+(`vendor/validate-profile-physical-fixture.log`). This follow-up changes only
+test setup and evidence; it does not reopen the reviewed migration implementation.
+
 <!-- sop-risk-classification: {"facts":{"blast_radius":"shared","change_kind":"schema_or_data_migration","data_boundary":"ordinary","destructive":"no","failure_cost":"material","irreversibility":"reversible","operational_controls":"not_applicable","privilege_boundary":"unchanged","project_policy":"default","rollback":"easy","scope_knowledge":"known","uncertainty":"low","verification":"deterministic"},"formal_review":"required","kind":"risk-classification-assessment","reasons":{"formal_review":["high_risk_requires_review"],"risk":["schema_or_data_migration"]},"risk":"high","schema_version":2} -->

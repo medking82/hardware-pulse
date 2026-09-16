@@ -80,7 +80,9 @@ Local diagnostic evidence: `vendor/ci-locked-59be0e9-job.log` and
 3840 x 2088 work area at scale 1.5, explaining why it did not reveal the smaller
 CI fixture's impossible capacity requirement. The corrected focused native
 test is recorded in `vendor/test-locked-capacity-local.log`; CI verification of
-the correction remains separate.
+the correction passed in Windows x64 job 104907509224 of Desktop CI run
+35129749374 at commit 6c9a5f6. This verifies the CI layout fixture, not installed
+release acceptance.
 The corrected build had zero warnings/errors, and repository
 `scripts/Validate.ps1` passed (`vendor/validate-locked-capacity.log`).
 

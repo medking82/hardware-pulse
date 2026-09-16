@@ -7,11 +7,22 @@ using HardwarePulse.Desktop;
 
 static class ProfileMigrationTests {
     static void Check(bool ok,string message){if(!ok)throw new Exception(message);}
+    // macOS temporary paths may traverse /var -> /private/var. The normal-input
+    // fixture must be regular; production deliberately rejects linked ancestors.
+    static string PhysicalDirectory(string path) {
+        path=Path.GetFullPath(path);
+        string current=Path.GetPathRoot(path)!;
+        foreach(string part in path[current.Length..].Split([Path.DirectorySeparatorChar,Path.AltDirectorySeparatorChar],StringSplitOptions.RemoveEmptyEntries)) {
+            string next=Path.Combine(current,part);
+            current=new DirectoryInfo(next).ResolveLinkTarget(true)?.FullName??next;
+        }
+        return current;
+    }
     public static void Run() {
         foreach(string version in new[]{"0.7.0","0.7.0+abc-123"})Check(DesktopProfile.IsStableVersion(version),"Stable version rejected");
         foreach(string version in new[]{"","0.7.0-preview.3","0.7.0.0","0.7","0.7.0+","999999999999.0.0"})Check(!DesktopProfile.IsStableVersion(version),"Unstable version admitted");
         Check(DesktopProfile.CreateStore("","",true)==null,"Empty root must not use current directory");
-        string directory=Directory.CreateTempSubdirectory("pulse-profile-migration-").FullName;
+        string directory=PhysicalDirectory(Directory.CreateTempSubdirectory("pulse-profile-migration-").FullName);
         try {
             string local=Path.Combine(directory,"local"),roaming=Path.Combine(directory,"roaming");
             string target=Path.Combine(local,"HardwarePulse","shared-settings.json"),legacy=Path.Combine(local,"HardwarePulse","widget-settings.json");
@@ -71,6 +82,8 @@ static class ProfileMigrationTests {
             try {
                 var linked=new PreviewSettingsStore(target,Path.Combine(link,"widget-settings.json"));var linkedValue=linked.Load();
                 Check(linked.Error!=null&&!linked.Save(linkedValue)&&!File.Exists(target),"Linked legacy source must be refused");
+                var physical=new PreviewSettingsStore(target,Path.Combine(PhysicalDirectory(link),"widget-settings.json"));
+                physical.Load();Check(physical.Error==null&&physical.LegacyImported&&!File.Exists(target),"Regular fixture path must resolve linked temporary ancestors");
             }finally{Directory.Delete(link);}
             File.WriteAllText(legacy,"{\"language\":\"en\"}");
             var window=new MonitorWindow(new MonitorSource(true),start:false,store:new(target,legacy));
