@@ -96,21 +96,33 @@ namespace HardwarePulse {
         Dictionary<string,string> OwnedTasks(bool required,bool migration=false){
             var result=new Dictionary<string,string>();foreach(string name in new[]{Widget,CollectorTask}){string xml=store.Get(name);if(xml==null&&required)throw new InvalidDataException("Startup task missing");if(xml!=null)ValidateOwned(name,xml,migration);result[name]=xml;}return result;
         }
-        void Commit(Dictionary<string,string> before,Dictionary<string,string> after,bool migration=false){
-            var changed=new List<string>();
-            try{foreach(var entry in after){if(store.Get(entry.Key)!=before[entry.Key])throw new IOException("Startup task changed during registration");changed.Add(entry.Key);store.Put(entry.Key,entry.Value);string actual=store.Get(entry.Key);Validate(entry.Key,actual);if(Enabled(actual)!=Enabled(entry.Value))throw new IOException("Startup state did not change");}}
+        void Commit(Dictionary<string,string> before,Dictionary<string,string> after,bool migration=false,bool startCollector=false){
+            var changed=new List<string>();bool launchAttempted=false;
+            try{
+                foreach(var entry in after){if(store.Get(entry.Key)!=before[entry.Key])throw new IOException("Startup task changed during registration");changed.Add(entry.Key);store.Put(entry.Key,entry.Value);string actual=store.Get(entry.Key);Validate(entry.Key,actual);if(Enabled(actual)!=Enabled(entry.Value))throw new IOException("Startup state did not change");}
+                if(startCollector){launchAttempted=true;StartCollector();}
+            }
             catch(Exception original){
                 var failures=new List<Exception>();failures.Add(original);
+                // A failed COM Run can have an uncertain outcome. Stop only the
+                // validated new collector task before restoring prior definitions.
+                if(launchAttempted){try{Validate(CollectorTask,store.Get(CollectorTask));store.Stop(CollectorTask);}catch(Exception cleanup){failures.Add(cleanup);}}
                 for(int i=changed.Count-1;i>=0;i--){string name=changed[i];try{string current=store.Get(name);if(current!=null)ValidateOwned(name,current,migration);if(before[name]==null){if(current!=null)store.Delete(name);if(store.Get(name)!=null)throw new IOException("Startup rollback did not remove new task");}else{store.Put(name,before[name]);string restored=store.Get(name);ValidateOwned(name,restored,migration);if(Enabled(restored)!=Enabled(before[name]))throw new IOException("Startup rollback did not restore preference");}}catch(Exception rollback){failures.Add(rollback);}}
                 if(failures.Count>1)throw new AggregateException("Startup change and rollback failed",failures);throw;
             }
         }
         public void SetEnabled(bool enabled){var before=OwnedTasks(true);var after=new Dictionary<string,string>();foreach(var entry in before){var doc=Parse(entry.Value);Set(doc,"/t:Task/t:Settings/t:Enabled","true");Set(doc,"/t:Task/t:Triggers/t:LogonTrigger/t:Enabled",enabled?"true":"false");after[entry.Key]=doc.OuterXml;}Commit(before,after);}
-        public void Install(){
+        public void Install(){Install(false);}
+        public void InstallAndStartCollector(){Install(true);}
+        public void ValidateInstall(){InstallationPreimage();}
+        Dictionary<string,string> InstallationPreimage(){
             string prefix=Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles).TrimEnd('\\')+"\\";
             if(!exe.StartsWith(prefix,StringComparison.OrdinalIgnoreCase))throw new InvalidOperationException("Startup registration requires a Program Files installation.");
+            return OwnedTasks(false,collectorExe!=exe);
+        }
+        void Install(bool startCollector){
             bool migration=collectorExe!=exe;
-            var before=OwnedTasks(false,migration);var after=new Dictionary<string,string>();foreach(var entry in before)after[entry.Key]=NewXml(entry.Key,entry.Value==null||Enabled(entry.Value));Commit(before,after,migration);
+            var before=InstallationPreimage();var after=new Dictionary<string,string>();foreach(var entry in before)after[entry.Key]=NewXml(entry.Key,entry.Value==null||Enabled(entry.Value));Commit(before,after,migration,startCollector);
         }
         public void Remove(){var before=OwnedTasks(false);foreach(var entry in before)if(entry.Value!=null){store.Stop(entry.Key);store.Delete(entry.Key);}}
     }

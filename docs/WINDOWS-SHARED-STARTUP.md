@@ -31,11 +31,16 @@ this increment. No development test may change the user's scheduled tasks.
 4. On registration failure, restore prior XML in reverse order, or remove a newly
    created task. Rollback refuses foreign ownership and reports incomplete
    rollback rather than overwriting it. Read back restored ownership/preferences.
-5. Only after installation registration succeeds may the worker clear STOP and
-   request an on-demand collector start. This start is a separate operational
-   effect: a launch failure reports an error but retains valid registration.
-   Enable/disable and remove require the new exact collector action; they do not
-   silently migrate legacy tasks.
+5. The shared worker first performs read-only installation ownership admission,
+   then creates its runtime directory and clears STOP before task mutation.
+   `InstallAndStartCollector` re-reads and admits tasks, captures the preimage,
+   registers and reads back both definitions, then requests collector launch inside
+   the same task transaction. A launch failure validates the current new
+   collector task before requesting Stop, then restores prior definitions in
+   reverse order. Failure to stop or restore is reported alongside the original
+   error; a foreign replacement is neither stopped nor overwritten. Successful
+   on-demand launch preserves the independent logon preferences. Enable/disable
+   and remove still require the new exact collector action; they do not migrate.
 
 Tests use in-memory stores for clean install, mixed/legacy migration, disabled
 preferences, pre-write and post-write failures, unchanged state after preflight
@@ -53,5 +58,28 @@ Logs: `vendor/validate-shared-startup.log` and
 Rollback of this source increment is a Git revert only. It is not authorization
 to downgrade installed tasks or reinstall the user's app. The previous installed
 UI, collector, settings and credentials are keepers throughout development.
+
+## Launch failure transaction follow-up
+
+The previous shared worker called Install, runtime preparation and StartCollector
+as separate operations. An injected Run failure reproduced committed new tasks
+after the command failed (`vendor/test-startup-launch-red.log`). The follow-up
+extends the existing task transaction through launch and admits filesystem work
+before registration. WPF callers of `Install()` retain registration-only behavior;
+task names, action paths, SID/logon/privilege rules and management arguments are
+unchanged. The added failure-path Stop of an elevated collector requires the
+high-risk frozen-diff review below. No test modifies installed scheduled tasks.
+
+Focused fake-store checks cover fresh-install removal, exact disabled legacy XML
+restoration, no launch after registration failure, successful launch with disabled
+logon, an uncertain launch plus failed Stop, and a foreign task substituted during
+Run. The latter remains untouched and produces incomplete-rollback evidence.
+The task transaction does not restore installer files or the runtime STOP marker,
+and does not claim to recover a killed installer/process or power loss. A failed
+Stop is an explicit unresolved runtime effect, not a successful rollback claim.
+The final installer file/task transaction remains a release gate.
+Focused regression passed in `vendor/test-startup-launch-final.log`; final
+repository validation, including the added read-only ownership admission check,
+passed in `vendor/validate-startup-launch-final.log`.
 
 <!-- sop-risk-classification: {"facts":{"blast_radius":"shared","change_kind":"implementation","data_boundary":"ordinary","destructive":"no","failure_cost":"material","irreversibility":"reversible","operational_controls":"not_applicable","privilege_boundary":"changed","project_policy":"default","rollback":"easy","scope_knowledge":"known","uncertainty":"low","verification":"deterministic"},"formal_review":"required","kind":"risk-classification-assessment","reasons":{"formal_review":["high_risk_requires_review"],"risk":["privilege_boundary_change"]},"risk":"high","schema_version":2} -->

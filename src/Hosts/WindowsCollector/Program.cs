@@ -30,9 +30,11 @@ namespace HardwarePulse {
                     var startup=Startup.Shared(store,paths.Exe,WindowsIdentity.GetCurrent().User.Value);
                     if(command=="--startup-enabled")return startup.IsEnabled()?0:3;
                     if(command=="--install-startup"){
-                        startup.Install();Directory.CreateDirectory(paths.Runtime);
+                        // Filesystem admission must finish before task mutation.
+                        startup.ValidateInstall();
+                        Directory.CreateDirectory(paths.Runtime);
                         if(File.Exists(paths.Stop))File.Delete(paths.Stop);
-                        startup.StartCollector();
+                        startup.InstallAndStartCollector();
                     }else if(command=="--remove-startup")startup.Remove();
                     else if(command=="--start-collector")startup.StartCollector();
                     else startup.SetEnabled(command=="--enable-startup");
