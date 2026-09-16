@@ -13,6 +13,7 @@ public sealed class FloatingMonitorWindow : Window {
     readonly StackPanel sensors=new(){Spacing=8};
     readonly TextBlock lockStatus=new(){TextWrapping=TextWrapping.Wrap,IsVisible=false};
     Action<bool>? input;
+    IDisposable? inputLifetime;
     public bool IsLocked {get;private set;}
     public bool CanLock=>input!=null;
     public FloatingMonitorWindow(UiLanguage language) {
@@ -31,7 +32,9 @@ public sealed class FloatingMonitorWindow : Window {
             if(OperatingSystem.IsWindows()&&handle?.HandleDescriptor=="HWND") {
                 input??=new WindowsWindowInput(handle.Handle).SetPassThrough;
             }
-            else if(OperatingSystem.IsMacOS()&&handle?.HandleDescriptor=="NSWindow")input??=new MacWindowInput(handle.Handle).SetPassThrough;
+            else if(OperatingSystem.IsMacOS()&&handle?.HandleDescriptor=="NSWindow"&&input==null) {
+                var adapter=new MacWindowInput(handle.Handle);input=adapter.SetPassThrough;inputLifetime=adapter;
+            }
             lockButton.IsVisible=lockStatus.IsVisible=input!=null;
         };
         rows.Children.Add(Row(language.T("CPU"),cpu));
@@ -41,7 +44,7 @@ public sealed class FloatingMonitorWindow : Window {
         rows.Children.Add(sensors);
         Content=new ScrollViewer{Content=rows,HorizontalScrollBarVisibility=Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled};
         language.Changed+=Localize;Localize();
-        Closed+=(_,_)=>language.Changed-=Localize;
+        Closed+=(_,_)=>{language.Changed-=Localize;input=null;inputLifetime?.Dispose();inputLifetime=null;};
     }
     public bool SetLocked(bool locked) {
         if(input==null)return !locked;

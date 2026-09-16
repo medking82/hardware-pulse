@@ -15,7 +15,8 @@ static class MacInputTests {
         var handle=window.TryGetPlatformHandle()!;
         try {
             Check(handle.HandleDescriptor=="NSWindow","Expected borrowed NSWindow handle");
-            var input=new MacWindowInput(handle.Handle);
+            using var input=new MacWindowInput(handle.Handle);
+            window.Closed+=(_,_)=>input.Dispose();
             var getter=sel_registerName("ignoresMouseEvents");
             Check(!ReadBool(handle.Handle,getter),"New window unexpectedly ignores input");
             input.SetPassThrough(true);input.SetPassThrough(true);

@@ -76,6 +76,15 @@ cannot establish macOS behavior; both native architectures remain required.
 The API contract is documented by
 [Apple](https://developer.apple.com/documentation/appkit/nswindow/ignoresmouseevents).
 
+Run `35064156631` passed Windows x64 and both Linux jobs. Both macOS jobs failed
+the closed-window guard after the input-property round trip: AppKit can leave a
+closed NSWindow in its windows list. The host now explicitly disposes its borrowed
+input adapter on Closed, before any further native operation is allowed. The
+closed-window assertion remains required; native verification of this fix is pending.
+The Windows ARM64 pre-lock obstruction was identified as a foreign full-screen,
+topmost `WWAHost` window. It is left untouched; this job remains failed and does
+not establish ARM64 click-through behavior.
+
 ## Acceptance evidence
 
 | Area | Current evidence | Work before stable delivery |

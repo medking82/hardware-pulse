@@ -3,14 +3,16 @@ using System.Runtime.InteropServices;
 
 namespace HardwarePulse {
     // NSWindow is borrowed from the host; never retain, release or modify foreign windows.
-    public sealed class MacWindowInput {
+    public sealed class MacWindowInput : IDisposable {
         const string ObjC="/usr/lib/libobjc.A.dylib";
         readonly IntPtr window;
+        bool disposed;
         public MacWindowInput(IntPtr window) {
             if(!OperatingSystem.IsMacOS())throw new PlatformNotSupportedException();
             this.window=window;CheckOwner();
         }
         void CheckOwner() {
+            if(disposed)throw new ObjectDisposedException(nameof(MacWindowInput));
             if(!BoolMessage(objc_getClass("NSThread"),sel_registerName("isMainThread")))
                 throw new InvalidOperationException("Window input changes require the main thread");
             var app=Message(objc_getClass("NSApplication"),sel_registerName("sharedApplication"));
@@ -25,6 +27,9 @@ namespace HardwarePulse {
             if(BoolMessage(window,sel_registerName("ignoresMouseEvents"))!=enabled)
                 throw new InvalidOperationException("Native window did not apply mouse transparency");
         }
+        // AppKit can retain a closed NSWindow in its list. The host's Closed event
+        // ends the borrowed-handle lifetime; invalidation must precede another message.
+        public void Dispose(){disposed=true;}
         [DllImport(ObjC)] static extern IntPtr objc_getClass(string name);
         [DllImport(ObjC)] static extern IntPtr sel_registerName(string name);
         [DllImport(ObjC,EntryPoint="objc_msgSend")] static extern IntPtr Message(IntPtr receiver,IntPtr selector);
