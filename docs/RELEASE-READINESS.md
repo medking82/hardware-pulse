@@ -56,6 +56,26 @@ native child surface is not mistaken for a foreign window. Original lock,
 visible-content and unlock assertions remain required. macOS adapter work is
 held locally until this diagnosis is isolated; it is not part of these CI runs.
 
+Run `35063617065` isolated the ARM64 obstruction: the hit target was a foreign
+`Windows.UI.Core.CoreWindow` with a different PID, full-screen 1024x768 bounds
+and topmost style. The Pulse fixture itself was active, topmost and at the
+expected (160,160) bounds. This is evidence of external occlusion before locking,
+not a failed pass-through transition or child-surface mismatch. The next log also
+identifies that process by name; no system window is dismissed or modified.
+ARM64 interactive lock verification remains open. Independent macOS adapter
+verification may proceed without treating this Windows job as passed.
+
+The macOS implementation borrows Avalonia's NSWindow handle and changes only
+AppKit `ignoresMouseEvents`. It requires the main thread and membership in the
+current NSApplication windows list before sending a window message, verifies
+the property after each change, and neither retains nor releases the host's
+window. Shared Lock/tray actions use the existing presentation lifecycle.
+Native tests cover the property round trip, visibility, off-thread rejection,
+closed-window rejection and tray unlock. Local Windows compilation/regression
+cannot establish macOS behavior; both native architectures remain required.
+The API contract is documented by
+[Apple](https://developer.apple.com/documentation/appkit/nswindow/ignoresmouseevents).
+
 ## Acceptance evidence
 
 | Area | Current evidence | Work before stable delivery |

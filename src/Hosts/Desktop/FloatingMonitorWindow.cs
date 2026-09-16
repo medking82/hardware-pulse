@@ -12,7 +12,7 @@ public sealed class FloatingMonitorWindow : Window {
     readonly TextBlock cpu=new(),memory=new(),download=new(),upload=new();
     readonly StackPanel sensors=new(){Spacing=8};
     readonly TextBlock lockStatus=new(){TextWrapping=TextWrapping.Wrap,IsVisible=false};
-    WindowsWindowInput? input;
+    Action<bool>? input;
     public bool IsLocked {get;private set;}
     public bool CanLock=>input!=null;
     public FloatingMonitorWindow(UiLanguage language) {
@@ -29,8 +29,10 @@ public sealed class FloatingMonitorWindow : Window {
         Opened+=(_,_)=>{
             var handle=TryGetPlatformHandle();
             if(OperatingSystem.IsWindows()&&handle?.HandleDescriptor=="HWND") {
-                input??=new WindowsWindowInput(handle.Handle);lockButton.IsVisible=true;lockStatus.IsVisible=true;
+                input??=new WindowsWindowInput(handle.Handle).SetPassThrough;
             }
+            else if(OperatingSystem.IsMacOS()&&handle?.HandleDescriptor=="NSWindow")input??=new MacWindowInput(handle.Handle).SetPassThrough;
+            lockButton.IsVisible=lockStatus.IsVisible=input!=null;
         };
         rows.Children.Add(Row(language.T("CPU"),cpu));
         rows.Children.Add(Row(language.T("Memory"),memory));
@@ -45,7 +47,7 @@ public sealed class FloatingMonitorWindow : Window {
         if(input==null)return !locked;
         if(IsLocked==locked)return true;
         try {
-            input.SetPassThrough(locked);IsLocked=locked;
+            input(locked);IsLocked=locked;
             language.Set(lockStatus,locked?"Locked · Reopen from Monitor or the tray to unlock.":"Reopen from Monitor or the tray to unlock.");
             return true;
         } catch(Exception e) when(e is System.ComponentModel.Win32Exception or InvalidOperationException) {

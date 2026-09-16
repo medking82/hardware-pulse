@@ -28,7 +28,7 @@ Settings > Appearance > Language offers Auto (System), English, Simplified Chine
 Tray/menu bar offers Open Pulse and Quit Pulse where supported. Closing the window quits.
 Open floating monitor is available from Monitor and the tray/menu bar. Both reuse the same window and readings.
 The floating monitor supports Always on top and native move/resize. Closing it leaves Monitor running; quitting Monitor closes both.
-On Windows, Lock floating monitor passes mouse input through to the window underneath. Reopen it from Monitor or the tray to unlock. Linux/macOS locking is not implemented yet.
+On Windows/macOS, Lock floating monitor requests native mouse input pass-through. Reopen it from Monitor or the tray/menu bar to unlock. Linux locking is not implemented yet. macOS native validation and Windows ARM64 interactive validation are still pending; this remains a development build.
 
 Limits
 This is an experimental preview, not feature parity with the stable Windows App.

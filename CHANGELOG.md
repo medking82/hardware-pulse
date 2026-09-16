@@ -6,6 +6,8 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 
 ## Unreleased
 
+- Shared macOS floating monitor adds AppKit mouse-through locking and reuses the Monitor/tray unlock action. Native Intel/ARM64 verification is pending; Linux locking remains unimplemented.
+
 - Shared Windows floating monitor supports native click-through locking. Reopening it from Monitor or the tray unlocks the same window. This implementation is Windows-only; Linux/macOS adapters remain pending.
 
 - The shared tray/menu bar can reopen the existing floating monitor. The entry follows the App language and cannot reopen a window after quit.
