@@ -29,24 +29,31 @@ public sealed class PreviewSettings {
     public static bool IsTextColor(string value)=>value.Length==0||(value.Length==7&&value[0]=='#'&&value.Skip(1).All(Uri.IsHexDigit));
 }
 
-// Host-specific persistence. No credentials or installed WPF settings are stored here.
+// Host-specific persistence. Legacy import is a read-only, explicit projection.
 public sealed class PreviewSettingsStore {
     readonly string path;
+    readonly string? legacyPath;
+    bool createImportedFile;
     Dictionary<string,JsonElement> fields=new();
     bool blocked;
     public string? Error {get;private set;}
-    public PreviewSettingsStore(string path){this.path=Path.GetFullPath(path);}
+    public bool LegacyImported {get;private set;}
+    public PreviewSettingsStore(string path,string? legacyPath=null){this.path=Path.GetFullPath(path);this.legacyPath=legacyPath==null?null:Path.GetFullPath(legacyPath);if(string.Equals(this.path,this.legacyPath,OperatingSystem.IsWindows()?StringComparison.OrdinalIgnoreCase:StringComparison.Ordinal))throw new ArgumentException("Profiles must have different paths");}
     public static PreviewSettingsStore? Default() {
-        string root=Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-        return Path.IsPathFullyQualified(root)?new(Path.Combine(root,"HardwarePulse.Preview","settings.json")):null;
+        return DesktopProfile.CreateStore(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),DesktopProfile.IsInstalledStable);
     }
     public PreviewSettings Load() {
         var settings=new PreviewSettings();
+        fields=new();blocked=false;Error=null;LegacyImported=false;createImportedFile=false;
         try {
-            if(!File.Exists(path))return settings;
-            using var stream=File.OpenRead(path);
-            if(stream.Length>65536)throw new InvalidDataException();
-            fields=JsonSerializer.Deserialize<Dictionary<string,JsonElement>>(stream)??throw new InvalidDataException();
+            if(!Exists(path)) {
+                if(legacyPath==null||!Exists(legacyPath))return settings;
+                fields=LegacyWindowsSettings.Read(legacyPath);LegacyImported=createImportedFile=true;
+            } else {
+                using var stream=File.OpenRead(path);
+                if(stream.Length>65536)throw new InvalidDataException();
+                fields=JsonSerializer.Deserialize<Dictionary<string,JsonElement>>(stream)??throw new InvalidDataException();
+            }
             if(fields.TryGetValue("schema",out var schema)&&(!schema.TryGetInt32(out var version)||version!=1))throw new InvalidDataException();
             var map=new Dictionary<string,object>();
             foreach(var field in fields) {
@@ -89,6 +96,11 @@ public sealed class PreviewSettingsStore {
         }
         return settings;
     }
+    static bool Exists(string file) {
+        try {File.GetAttributes(file);return true;}
+        catch(FileNotFoundException){return false;}
+        catch(DirectoryNotFoundException){return false;}
+    }
     public bool Save(PreviewSettings settings) {
         if(blocked)return false;
         string? temp=null;
@@ -125,7 +137,7 @@ public sealed class PreviewSettingsStore {
             var options=new FileStreamOptions{Mode=FileMode.CreateNew,Access=FileAccess.Write,Share=FileShare.None};
             if(!OperatingSystem.IsWindows())options.UnixCreateMode=UnixFileMode.UserRead|UnixFileMode.UserWrite;
             using(var stream=new FileStream(temp,options)){stream.Write(bytes);stream.Flush(true);}
-            File.Move(temp,path,true);temp=null;fields=updated;Error=null;return true;
+            File.Move(temp,path,!createImportedFile);temp=null;createImportedFile=false;fields=updated;Error=null;return true;
         }catch(Exception e) when(e is IOException or InvalidDataException or UnauthorizedAccessException or JsonException or ArgumentException) {
             Error="Could not save settings. Changes apply to this session.";return false;
         }finally {if(temp!=null)try{File.Delete(temp);}catch(IOException){}catch(UnauthorizedAccessException){}}

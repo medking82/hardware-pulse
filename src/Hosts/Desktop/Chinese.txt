@@ -197,6 +197,7 @@ Show in screenshots for 15 seconds|在截图中显示 15 秒
 Screenshot mode: visible to capture for 15 seconds.|截图模式：在截图中显示 15 秒。
 Open the floating monitor to check Local Contrast.|打开悬浮监控以检查局部对比度。
 Waiting for frames|正在等待画面帧
+Compatible preferences were imported. Review layout and window placement. Your original settings are preserved.|已导入兼容的偏好设置。请检查布局和窗口位置。原有设置已保留。
 Waiting for target app|正在等待目标 App
 Waiting for FPS collector|正在等待 FPS collector
 FPS capture failed|FPS capture 失败

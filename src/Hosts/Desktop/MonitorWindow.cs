@@ -55,7 +55,7 @@ public sealed class MonitorWindow : Window {
         windowsHardware=new HardwareSensorPanel(Language,"Windows hardware"){Name="WindowsHardware",IsVisible=false};
         void ApplyLanguageFont(){var family=DesktopFonts.ForLanguage(Language.EffectiveLanguage);if(family is null)ClearValue(FontFamilyProperty);else FontFamily=family;}
         Language.Changed+=ApplyLanguageFont;ApplyLanguageFont();
-        Title="Pulse · Desktop preview";Width=settings.Width;Height=settings.Height;MinWidth=360;MinHeight=400;
+        Title=DesktopProfile.DisplayName;Width=settings.Width;Height=settings.Height;MinWidth=360;MinHeight=400;
         FontSize=15;
         var heading=Language.Set(new TextBlock{FontSize=32,FontWeight=FontWeight.SemiBold},"Pulse");
         panels=[Card("CPU",cpu,"System load","cpu"),Card("Memory",ram,OperatingSystem.IsMacOS()?"Used memory estimate":"Host memory","memory"),Card("Download",down,"Selected interface","down"),Card("Upload",up,"Selected interface","up")];
@@ -182,9 +182,10 @@ public sealed class MonitorWindow : Window {
             Language.Set(new TabItem{Content=new Border{Padding=new Thickness(20),Child=quotaSettings}},"AI Quota"),Language.Set(new TabItem{Content=desktop},"Desktop"),Language.Set(new TabItem{Content=layoutSettings},"Layout"),Language.Set(new TabItem{Content=updates},"Updates")}};
         var settingsBody=new StackPanel{Spacing=12,Margin=new Thickness(12)};
         settingsBody.Children.Add(settingsTabs);settingsBody.Children.Add(saveStatus);
+        if(store?.LegacyImported==true)settingsBody.Children.Add(Language.Set(new TextBlock{Name="ImportedSettingsNotice",TextWrapping=TextWrapping.Wrap},"Compatible preferences were imported. Review layout and window placement. Your original settings are preserved."));
         var tabs=new TabControl{Name="MainTabs",ItemsSource=new[]{Language.Set(new TabItem{Content=Scroll(body)},"Monitor"),Language.Set(new TabItem{Content=Scroll(settingsBody)},"Settings")}};
         var root=new DockPanel();DockPanel.SetDock(heading,Dock.Top);heading.Margin=new Thickness(24,20,24,12);root.Children.Add(heading);root.Children.Add(tabs);Content=root;
-        Language.Set(this,"Pulse · Desktop preview");Language.Set(status,"Starting…");Language.Set(pause,"Pause hardware monitoring");Language.Set(refreshInterfaces,"Refresh interfaces");
+        Language.Set(this,DesktopProfile.DisplayName);Language.Set(status,"Starting…");Language.Set(pause,"Pause hardware monitoring");Language.Set(refreshInterfaces,"Refresh interfaces");
         theme.ItemTemplate=Language.Choices();readingMode.ItemTemplate=Language.Choices();
         void Placeholder()=>interfaces.PlaceholderText=Language.T("Select network interface");
         Language.Changed+=Placeholder;Placeholder();

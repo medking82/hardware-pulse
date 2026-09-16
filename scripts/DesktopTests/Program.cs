@@ -29,6 +29,7 @@ static class Tests {
         if(args.SequenceEqual(new[]{"--native-session"})) {
             HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();
             SamplingRecoveryTests.Visibility();
+            ProfileMigrationTests.Run();
             SettingsTests.Run(null);
             LocalizationTests.Run(null,native:true);
             TrayTests.Run(native:true);
@@ -55,6 +56,7 @@ static class Tests {
         }
         AppBuilder.Configure<PulseApplication>().With(DesktopFonts.Options()).UseSkia().UseHeadless(new(){UseHeadlessDrawing=false}).SetupWithoutStarting();
         if(args.SequenceEqual(new[]{"--startup-settings"})){StartupModeTests.Settings();return;}
+        if(args.SequenceEqual(new[]{"--profile-migration"})){ProfileMigrationTests.Run();return;}
         if(args.SequenceEqual(new[]{"--startup-controls"})){DesktopStartupTests.Run();return;}
         if(args.SequenceEqual(new[]{"--update-controls"})){DesktopUpdateTests.Run();return;}
         if(args.Length>=1&&args[0]=="--compact-fps"){LockedLayoutTests.Fps(args.Length==2?args[1]:null);return;}
@@ -101,6 +103,7 @@ static class Tests {
         WindowsQuotaTests.Run();
         SettingsTests.Run(args.Length==1?args[0]:null);
         StartupModeTests.Settings();
+        ProfileMigrationTests.Run();
         LocalContrastTests.Settings();
         DesktopStartupTests.Run();
         DesktopUpdateTests.Run();

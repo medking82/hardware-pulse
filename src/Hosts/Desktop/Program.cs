@@ -23,7 +23,7 @@ public static class Program {
         transientFramebuffer=args.Contains("--transient-framebuffer");
         if(transientFramebuffer&&(!diagnose||!OperatingSystem.IsLinux()))return 2;
         if(!Demo&&!OperatingSystem.IsLinux()&&!OperatingSystem.IsMacOS()&&!OperatingSystem.IsWindows())return 4;
-        using var instance=OperatingSystem.IsWindows()&&!Demo&&!Smoke&&!Measure?new WindowsInstanceSession("Shared.Preview"):null;
+        using var instance=OperatingSystem.IsWindows()&&!Demo&&!Smoke&&!Measure?new WindowsInstanceSession(DesktopProfile.InstanceScope):null;
         if(instance?.IsPrimary==false){instance.Notify();return 0;}
         Instance=instance;
         using var gc=diagnose?new GcDiagnostics():null;

@@ -1,4 +1,3 @@
-using System.Reflection;
 using Avalonia.Controls;
 using Avalonia.Threading;
 
@@ -21,8 +20,7 @@ public sealed class DesktopUpdatePanel : StackPanel,IDisposable {
     public DesktopUpdatePanel(UiLanguage language,PreviewSettings settings,Action changed,bool demo=false,IUpdateClient? client=null,Version? version=null) {
         this.language=language;this.settings=settings;this.changed=changed;
         var assembly=typeof(DesktopUpdatePanel).Assembly;
-        string informational=assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion??"";
-        supported=client!=null||!demo&&WindowsStartupManagement.IsInstalled&&informational.Length>0&&!informational.Contains('-');
+        supported=client!=null||!demo&&DesktopProfile.IsInstalledStable;
         coordinator=new UpdateCoordinator(client??new UpdateClient(),version??assembly.GetName().Version??new Version(0,0,0));
         Name="DesktopUpdatePanel";Spacing=12;Margin=new Avalonia.Thickness(20);
         Children.Add(language.Set(automatic,"Automatically check for updates"));Children.Add(language.Set(downloadAutomatically,"Automatically download verified updates"));
