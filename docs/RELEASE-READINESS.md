@@ -39,6 +39,14 @@ window. It refuses foreign HWNDs and an existing layered rendering policy.
 This is not evidence for exclusive-fullscreen games, Linux/macOS click-through,
 or desktop-layer placement. Other platforms do not expose the Lock button yet.
 
+Run `35062598077` passed Windows x64, both Linux and both macOS jobs, but Windows
+ARM64 failed the new input fixture's pre-lock hit-test assertion. No lock had
+been applied at that point. The diagnostic correction waits for the real native
+hit-test target rather than assuming readiness after 150 ms, and records handles,
+screen point, window position, client size, scaling and activation. Local native
+tests pass; the ARM64 result must still establish whether this was timing or a
+different desktop/environment condition. The failed run does not verify ARM64 lock.
+
 ## Acceptance evidence
 
 | Area | Current evidence | Work before stable delivery |

@@ -15,6 +15,11 @@ static class WindowsInputTests {
     [DllImport("gdi32.dll")] static extern uint GetPixel(nint dc,int x,int y);
     static void Check(bool ok,string message){if(!ok)throw new Exception(message);}
     static void Pump(){using var slice=new CancellationTokenSource(TimeSpan.FromMilliseconds(150));Dispatcher.UIThread.MainLoop(slice.Token);}
+    static void Until(Func<bool> condition,string message) {
+        var deadline=DateTime.UtcNow.AddSeconds(5);
+        while(!condition()&&DateTime.UtcNow<deadline)Pump();
+        Check(condition(),message);
+    }
     public static void Run() {
         if(!OperatingSystem.IsWindows())return;
         bool refused=false;try{new WindowsWindowInput(GetDesktopWindow());}catch(InvalidOperationException){refused=true;}
@@ -25,15 +30,20 @@ static class WindowsInputTests {
         var handle=above.TryGetPlatformHandle()!.Handle;
         var input=new WindowsWindowInput(handle);
         try {
-            var point=above.PointToScreen(new Avalonia.Point(120,100));var sample=new Point{X=point.X,Y=point.Y};
-            Check(WindowFromPoint(sample)==handle,"Native fixture is not above the underlying window");
+            Point Sample(){var point=above.PointToScreen(new Avalonia.Point(120,100));return new Point{X=point.X,Y=point.Y};}
+            above.Activate();
+            try {Until(()=>WindowFromPoint(Sample())==handle,"Native fixture is not above the underlying window");}
+            finally {
+                var p=Sample();Console.WriteLine($"INPUT_FIXTURE above={handle} below={below.TryGetPlatformHandle()!.Handle} hit={WindowFromPoint(p)} point={p.X},{p.Y} position={above.Position} client={above.ClientSize} scale={above.RenderScaling} active={above.IsActive}");
+            }
+            var sample=Sample();
             long before=GetWindowLongPtrW(handle,-20).ToInt64();
-            input.SetPassThrough(true);Pump();
-            Check(WindowFromPoint(sample)==below.TryGetPlatformHandle()!.Handle,"Locked window still intercepts native hit testing");
+            input.SetPassThrough(true);
+            Until(()=>WindowFromPoint(sample)==below.TryGetPlatformHandle()!.Handle,"Locked window still intercepts native hit testing");
             var dc=GetDC(0);try{Check(GetPixel(dc,sample.X,sample.Y)==0x0000ff,"Locked window lost its visible red content");}finally{ReleaseDC(0,dc);}
             input.SetPassThrough(true);
-            input.SetPassThrough(false);Pump();
-            Check(WindowFromPoint(sample)==handle,"Unlock did not restore native hit testing");
+            input.SetPassThrough(false);
+            Until(()=>WindowFromPoint(sample)==handle,"Unlock did not restore native hit testing");
             Check(GetWindowLongPtrW(handle,-20).ToInt64()==before,"Unlock changed unrelated styles");
             Console.WriteLine("PASS Windows input adapter: own-window boundary, native pass-through, idempotence and unlock restoration");
         } finally {above.Close();below.Close();}
