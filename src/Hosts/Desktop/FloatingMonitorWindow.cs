@@ -15,6 +15,7 @@ public sealed class FloatingMonitorWindow : Window {
     readonly StackPanel quotaRows=new(){Spacing=8,IsVisible=false};
     QuotaReading? quotaReading;
     readonly TextBlock lockStatus=new(){TextWrapping=TextWrapping.Wrap,IsVisible=false};
+    readonly StackPanel toolbar=new(){Spacing=8};
     Action<bool>? input;
     IDisposable? inputLifetime;
     double backgroundOpacity=100;
@@ -43,7 +44,7 @@ public sealed class FloatingMonitorWindow : Window {
         topmost.IsCheckedChanged+=(_,_)=>{Topmost=topmost.IsChecked==true;Remember();};
         var lockButton=language.Set(new Button{Name="LockFloatingMonitor",IsVisible=false},"Lock floating monitor");
         lockButton.Click+=(_,_)=>SetLocked(true);
-        var toolbar=new StackPanel{Spacing=8};toolbar.Children.Add(topmost);toolbar.Children.Add(lockButton);toolbar.Children.Add(lockStatus);
+        toolbar.Name="FloatingEditControls";toolbar.Children.Add(topmost);toolbar.Children.Add(lockButton);toolbar.Children.Add(lockStatus);
         language.Set(lockStatus,"Reopen from Monitor or the tray to unlock.");
         rows.Children.Add(toolbar);
         Opened+=(_,_)=>{
@@ -96,6 +97,7 @@ public sealed class FloatingMonitorWindow : Window {
         if(IsLocked==locked)return true;
         try {
             input(locked);IsLocked=locked;
+            toolbar.IsVisible=!locked;
             language.Set(lockStatus,locked?"Locked · Reopen from Monitor or the tray to unlock.":"Reopen from Monitor or the tray to unlock.");
             return true;
         } catch(Exception e) when(e is System.ComponentModel.Win32Exception or InvalidOperationException) {

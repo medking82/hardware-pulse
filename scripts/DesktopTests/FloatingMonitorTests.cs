@@ -20,8 +20,11 @@ static class FloatingMonitorTests {
             floating.Hide();open.Command.Execute(null);Check(ReferenceEquals(floating,owner.FloatingMonitor)&&floating.IsVisible,"Tray did not restore same floating window");
             if(floating.CanLock) {
                 Check(floating.SetLocked(true)&&floating.IsLocked,"Native floating lock failed");
+                double lockedWidth=floating.Width,lockedHeight=floating.Height;
+                Check(!floating.GetVisualDescendants().OfType<StackPanel>().Single(x=>x.Name=="FloatingEditControls").IsVisible,"Locked overlay still shows inactive edit controls");
                 floating.Hide();
                 open.Command.Execute(null);Check(!floating.IsLocked&&ReferenceEquals(floating,owner.FloatingMonitor),"Tray did not unlock existing window");
+                Check(floating.GetVisualDescendants().OfType<StackPanel>().Single(x=>x.Name=="FloatingEditControls").IsVisible&&floating.Width==lockedWidth&&floating.Height==lockedHeight,"Unlock lost edit controls or changed window dimensions");
             }
             Check(floating.GetVisualDescendants().OfType<TextBlock>().Any(x=>x.Text=="21.0%"),"Floating window lost existing snapshot");
             floating.SetBackgroundOpacity(0);Dispatcher.UIThread.RunJobs();
