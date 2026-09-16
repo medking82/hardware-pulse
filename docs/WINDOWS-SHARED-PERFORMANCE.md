@@ -60,8 +60,8 @@ and 660 x 960 physical pixels. CPU percentages represent the whole machine.
 These single runs do not establish statistical equivalence. Shared uses more
 memory in these scenes; there is no measured basis to market it as inherently
 lighter than WPF. Monitor and Local Contrast CPU are close in absolute terms.
-The higher shared Tray CPU warrants checking its hidden Monitor rendering:
-`MonitorWindow.Present` currently always calls `Render`, whereas WPF
+The higher shared Tray CPU warranted checking its hidden Monitor rendering.
+At this baseline, `MonitorWindow.Present` always called `Render`, whereas WPF
 `Shell.UpdatePanel` skips hidden/minimized Monitor rendering while retaining
 readings and Desktop updates. This is a code-grounded optimization candidate,
 not a measured causal attribution or permission to stop background sampling.
@@ -78,6 +78,37 @@ shared headless suite (`vendor/test-benchmark-shared.log`), and repository
 two-second shared dynamic-contrast smoke completed 356 backdrop updates after
 warmup (`vendor/benchmark-shared-dynamic-smoke.log`); it verifies execution and
 cleanup, not sustained dynamic-background performance.
+
+## Hidden Monitor rendering
+
+`MonitorWindow` now retains each incoming snapshot and updates the floating
+consumer before skipping its own controls when hidden or minimized. Visibility
+and window-state restoration render the latest snapshot immediately. The
+sampling loop, session peaks, provider lifecycles, cadence and settings remain
+unchanged; no background collection is suspended to improve benchmark numbers.
+
+`SamplingRecoveryTests.Visibility` checks pre-show data, hidden/minimized control
+deferral, current floating readings, Session Max, unavailable values and restore.
+The existing reopen check now also waits through background polling while hidden
+and verifies the same sampling worker survives reopening. These checks run in
+both headless and native suites.
+
+The same 60-second Tray harness after this change measured 0.029% CPU,
+145.0 MiB working set and 120.9 MiB private bytes (previously 0.063%,
+144.9 MiB and 120.8 MiB). This is a single-run UI comparison, not a promise
+of a proportional improvement in the installed application's total load.
+Local evidence: `vendor/ui-measure-70fb639ea17f4eb0a972c60bfc79eae3`,
+shared application SHA-256
+`C8E7BEC3F7E7DD4CABE6F6A90F432A650FDEC854DC7E7D1C56F238D040ACF271`.
+
+The first native suite passed the affected visibility and sampling checks but
+failed the independent input fixture's red-pixel assertion. The final build's
+full native suite passed without changing that assertion or its adapter.
+Both logs are retained (`vendor/test-hidden-monitor-native.log` and
+`vendor/test-hidden-monitor-native-final.log`). The intermittent pixel failure's
+cause remains unproven; a passing rerun does not establish that it was fixed.
+Final shared headless and `Validate.ps1 -ModernCore` passed as recorded in
+`vendor/test-hidden-monitor-headless-final.log` and `vendor/validate-hidden-monitor.log`.
 
 ## Remaining release evidence
 

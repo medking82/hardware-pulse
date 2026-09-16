@@ -203,6 +203,10 @@ public sealed class MonitorWindow : Window {
             var screen=Screens.ScreenFromWindow(this);
             if(screen!=null){Width=Math.Max(MinWidth,Math.Min(Width,screen.WorkingArea.Width/screen.Scaling));Height=Math.Max(MinHeight,Math.Min(Height,screen.WorkingArea.Height/screen.Scaling));}
         };
+        PropertyChanged+=(_,e)=>{
+            if((e.Property==IsVisibleProperty||e.Property==WindowStateProperty)&&IsVisible&&WindowState!=WindowState.Minimized&&latestSnapshot!=null)
+                Render(latestSnapshot);
+        };
         if(start)Opened+=StartSampling;
         Closed+=(_,_)=>{stop.Cancel();FloatingMonitor?.Close();quota.Dispose();claudeQuota.Dispose();antigravityQuota.Dispose();fps.Dispose();SaveNow();};
     }
@@ -283,6 +287,10 @@ public sealed class MonitorWindow : Window {
     }
     void Render(MonitorSnapshot snapshot) {
         bool max=readingMode.SelectedIndex==1;
+        // Keep the shared snapshot and floating consumer live while the Monitor
+        // is hidden. Visibility restoration renders the most recent snapshot.
+        FloatingMonitor?.Present(snapshot,max);
+        if(!IsVisible||WindowState==WindowState.Minimized)return;
         cpu.Text=max?snapshot.PeakCpu:snapshot.Cpu;ram.Text=snapshot.Memory;
         down.Text=max?snapshot.PeakDownload:snapshot.Download;up.Text=max?snapshot.PeakUpload:snapshot.Upload;
         sensors.Present(max?snapshot.PeakSensors:snapshot.Sensors,snapshot.SensorsSupported);
@@ -293,7 +301,6 @@ public sealed class MonitorWindow : Window {
         sensors.IsVisible=!snapshot.WindowsHardwareSupported;
         cpuIdentityText.IsVisible=snapshot.CpuModel!=null||snapshot.CpuPhysicalCores.HasValue||snapshot.CpuLogicalCores.HasValue;
         cpuIdentityText.Text=(snapshot.CpuModel??"—")+(snapshot.CpuPhysicalCores.HasValue||snapshot.CpuLogicalCores.HasValue?"\n"+string.Format(Language.T("{0} physical cores · {1} logical cores"),snapshot.CpuPhysicalCores?.ToString()??"—",snapshot.CpuLogicalCores?.ToString()??"—"):"");
-        FloatingMonitor?.Present(snapshot,max);
         ApplyCardLayout();RefreshLayoutEditors();
         Language.Set(status,samplingFailed?"Monitoring unavailable. Retrying…":max?(source.IsDemo?"Demo · ":"")+"Session Max · Memory and quota remain current":source.IsDemo?"Demo · Sample values":snapshot.CpuReady&&snapshot.MemoryReady?"Live · Refreshes every second":"Waiting for available readings…");
     }

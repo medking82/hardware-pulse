@@ -27,6 +27,7 @@ static class Tests {
         if(args.SequenceEqual(new[]{"--layouts-native"})) {HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();ReadingLayoutTests.Run(native:true);return;}
         if(args.SequenceEqual(new[]{"--native-session"})) {
             HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();
+            SamplingRecoveryTests.Visibility();
             SettingsTests.Run(null);
             LocalizationTests.Run(null,native:true);
             TrayTests.Run(native:true);
