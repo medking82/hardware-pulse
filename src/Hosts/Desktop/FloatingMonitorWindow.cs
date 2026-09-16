@@ -22,6 +22,7 @@ public sealed class FloatingMonitorWindow : Window {
     readonly ScrollViewer scroll=new(){HorizontalScrollBarVisibility=Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled};
     bool fitQueued;
     Action<bool>? input;
+    WindowDecorations windowsEditingDecorations;
     IDisposable? inputLifetime;
     WindowsDesktopLayer? desktopLayer;
     WindowsLocalContrast? localContrast;
@@ -120,17 +121,31 @@ public sealed class FloatingMonitorWindow : Window {
         TransparencyBackgroundFallback=new SolidColorBrush(color);
         MaterialChanged?.Invoke();
     }
+    void SetWindowsDecorations(WindowDecorations decorations) {
+        // Win32 frame changes can resize the client area. Preserve the user's
+        // reading area rather than storing that temporary resize as new geometry.
+        double width=Width,height=Height;
+        WindowDecorations=decorations;Width=width;Height=height;
+    }
     public bool SetLocked(bool locked) {
         if(input==null)return !locked;
         if(IsLocked==locked)return true;
+        var previousDecorations=WindowDecorations;
         try {
-            input(locked);IsLocked=locked;
+            if(OperatingSystem.IsWindows()&&locked)SetWindowsDecorations(WindowDecorations.None);
+            input(locked);
+            if(OperatingSystem.IsWindows()) {
+                if(locked)windowsEditingDecorations=previousDecorations;
+                else SetWindowsDecorations(windowsEditingDecorations);
+            }
+            IsLocked=locked;
             desktopLayer?.Refresh();
             toolbar.IsVisible=!locked;
             language.Set(lockStatus,locked?"Locked · Reopen from Monitor or the tray to unlock.":"Reopen from Monitor or the tray to unlock.");
             QueueLockedFit();
             return true;
         } catch(Exception e) when(e is System.ComponentModel.Win32Exception or InvalidOperationException) {
+            if(OperatingSystem.IsWindows())SetWindowsDecorations(previousDecorations);
             language.Set(lockStatus,"Could not change window lock. Reopen the floating monitor and try again.");return false;
         }
     }

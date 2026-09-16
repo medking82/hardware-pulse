@@ -28,6 +28,7 @@ static class WindowsInputTests {
         return $"hwnd={window} root={GetAncestor(window,2)} class={name} pid={process} process={processName} rect={rect.Left},{rect.Top},{rect.Right},{rect.Bottom} exStyle={GetWindowLongPtrW(window,-20).ToInt64():X}";
     }
     static void Pump(){using var slice=new CancellationTokenSource(TimeSpan.FromMilliseconds(150));Dispatcher.UIThread.MainLoop(slice.Token);}
+    static uint Pixel(Point point){var dc=GetDC(0);try{return GetPixel(dc,point.X,point.Y);}finally{ReleaseDC(0,dc);}}
     static void Until(Func<bool> condition,string message) {
         var deadline=DateTime.UtcNow.AddSeconds(5);
         while(!condition()&&DateTime.UtcNow<deadline)Pump();
@@ -52,6 +53,7 @@ static class WindowsInputTests {
                 Console.WriteLine("INPUT_WINDOW hit "+Describe(WindowFromPoint(p)));
             }
             var sample=Sample();
+            uint beforePixel=Pixel(sample);
             long before=GetWindowLongPtrW(handle,-20).ToInt64();
             input.SetPassThrough(true);
             try{Until(()=>HitWindow(sample)==below.TryGetPlatformHandle()!.Handle,"Locked native hit target is not the underlying fixture");}
@@ -59,7 +61,13 @@ static class WindowsInputTests {
                 Console.WriteLine("INPUT_LOCKED hit "+Describe(WindowFromPoint(sample)));
                 Console.WriteLine("INPUT_LOCKED below "+Describe(below.TryGetPlatformHandle()!.Handle));
             }
-            var dc=GetDC(0);try{Check(GetPixel(dc,sample.X,sample.Y)==0x0000ff,"Locked window lost its visible red content");}finally{ReleaseDC(0,dc);}
+            uint lockedPixel=Pixel(sample);
+            Console.WriteLine($"INPUT_PIXEL before={beforePixel:X8} locked={lockedPixel:X8}");
+            if(lockedPixel!=0x0000ff) {
+                var elapsed=System.Diagnostics.Stopwatch.StartNew();
+                for(int i=0;i<10;i++){Pump();uint later=Pixel(sample);Console.WriteLine($"INPUT_PIXEL laterMs={elapsed.ElapsedMilliseconds} color={later:X8} hit={HitWindow(sample)}");if(later==0x0000ff)break;}
+            }
+            Check(lockedPixel==0x0000ff,"Locked window lost its visible red content");
             input.SetPassThrough(true);
             input.SetPassThrough(false);
             Until(()=>HitWindow(sample)==handle,"Unlock did not restore native hit testing");

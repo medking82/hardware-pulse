@@ -18,6 +18,7 @@ static class Tests {
         if(args.SequenceEqual(new[]{"--update-live-metadata"})){DesktopUpdateTests.LiveMetadata();return;}
         if(args.SequenceEqual(new[]{"--layer-native"})){HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();WindowsLayerTests.Native();return;}
         if(args.SequenceEqual(new[]{"--capture-native"})){HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();WindowsCaptureTests.Native();return;}
+        if(args.SequenceEqual(new[]{"--input-native"})){HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();WindowsInputTests.Run();return;}
         if(args.SequenceEqual(new[]{"--contrast-native"})){HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();LocalContrastTests.Native();return;}
         if(args.Length==2&&args[0]=="--instance-secondary"){Environment.ExitCode=WindowsInstanceTests.Secondary(args[1]);return;}
         if(args.Length==2&&args[0]=="--instance-owner"){Environment.ExitCode=WindowsInstanceTests.Hold(args[1]);return;}
