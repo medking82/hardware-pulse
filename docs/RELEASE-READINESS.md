@@ -19,7 +19,7 @@ interpret a successful launch as full feature parity.
 | Architecture / CPU / RAM / selected network | Native x64/ARM64 CI on Windows, Linux, macOS | Repeat on the exact release commit; document supported OS and counter limitations |
 | Linux temperature / fans | Read-only hwmon fixtures and native graceful-absence tests; shared UI integration implemented with responsive headless tests | Verify native integrated UI and real exposed channels; do not infer physical coverage from an empty CI host |
 | Other hardware / FPS / Desktop mode | Existing Windows WPF implementation only | Scope-dependent platform implementation and verification, or explicit unsupported capabilities |
-| Settings / tray / lifecycle | Shared isolated settings, headless interactions and native launch checks | Validate intended desktop launch, restore, quit and persistence flows in packaged apps |
+| Settings / tray / lifecycle | Isolated settings, native language/theme/close/reopen/Tray command checks on all six targets, plus extracted-package launch | Validate shell-level menu interaction and intended desktop launch/download experience; command-handler tests do not cover those flows |
 | Quota | Opt-in Codex file-login adapter, synthetic file/HTTP and UI tests | Verify intended supported provider scope without exposing credentials |
 | Distribution | Six self-contained development archives, inventory, runtime and SHA-256 checks | Final package names/version, user launch/install instructions and platform installation behavior |
 | Updates | Stable Windows updater uses latest stable GitHub release | Ensure publishing shared-host assets cannot break installed WPF update selection; choose explicit release channels/asset rules |
@@ -158,3 +158,19 @@ the requested native maximize transition. The next revision requires activation,
 minimize and maximize acknowledgements before testing Tray behavior, with bounded
 timeouts and unchanged final state assertions. This fixes test sequencing; it is
 not evidence of a production Tray repair until the native run confirms it.
+
+Run [35055326312](https://github.com/medking82/hardware-pulse/actions/runs/35055326312)
+passed all six native session and package jobs at
+`ea2f7616178def7c09de5a51690d4294b11354c7`. Both Linux architectures reported
+Maximized before and after Open, completed settings/language/close/reopen/quit
+checks, and reported zero missing glyphs for all three catalogs. The earlier
+Tray assertion was a test precondition/timing defect, not a demonstrated App
+state-loss bug. One passing matrix does not establish long-duration stability.
+
+The extracted Linux packages' roughly 61-second live measurements in that run
+used 0.55% (x64) / 0.54% (ARM64) of a four-logical-CPU CI host and ended at about
+186 / 195 MiB working set, with no collections in the measured interval.
+These are Xvfb CI workloads, not physical desktop/game results or a claim of
+zero host overhead. Native session checks are separate processes from measurement.
+No cross-platform stable publication follows automatically from these checks;
+the scope, distribution and feature gates above remain open.
