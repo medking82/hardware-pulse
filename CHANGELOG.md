@@ -2,6 +2,16 @@
 
 English first; 简体中文 follows each version. Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
+## 0.7.0-preview.1 — 2026-09-16
+
+- First experimental shared Desktop prerelease for Windows, Linux and macOS on x64 and ARM64, with six self-contained archives and SHA-256 sidecars.
+- Live CPU/RAM, selected-interface network rates, opt-in Codex file-login quota, grouped Settings, themes and optional tray/menu-bar actions. Preview settings are separate from the installed WPF App.
+- All six frozen native CI packages launched successfully. Published asset sizes and server SHA-256 digests match the verified downloads; the tag points to the tested source commit.
+- This is not feature parity with the stable Windows App. Desktop overlay, FPS, hardware temperatures/fans, additional quota providers and other integration work remain. See [preview guide](docs/DESKTOP-PREVIEW.md) for signing and validation limits.
+- Stable latest and the Windows automatic-update channel remain v0.6.24.
+
+首次发布六个 OS／architecture 的 shared Desktop experimental prerelease。Native CI、package inventory 和发布后的 SHA-256 检查通过；完整 feature parity 尚未完成。Stable Windows update channel 保持 v0.6.24，preview 使用独立 settings。
+
 ## 0.6.24 — 2026-09-15
 
 - Reduce FPS statistics allocation by reusing a bounded sorting buffer and replacing temporary LINQ arrays with direct history traversal. Clear releases the buffer.

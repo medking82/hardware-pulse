@@ -12,6 +12,8 @@
 
 [Dependency maintenance and Linux/macOS roadmap](docs/DEPENDENCIES.md)
 
+**Experimental shared Desktop:** [0.7.0-preview.1 — Windows / Linux / macOS, x64 / ARM64](https://github.com/medking82/hardware-pulse/releases/tag/v0.7.0-preview.1). Self-contained downloads with live CPU/RAM/network and opt-in Codex quota. This preview does not replace the stable Windows App; [feature gaps, signing status and launch guide](docs/DESKTOP-PREVIEW.md).
+
 **[Download 0.6.24 / 下载 0.6.24 EXE](https://github.com/medking82/hardware-pulse/releases/download/v0.6.24/HardwarePulse-Setup.exe)** · [0.6.24 release notes](https://github.com/medking82/hardware-pulse/releases/tag/v0.6.24)
 
 **0.5.0** migrates the installed UI, collector and startup helpers to C#/.NET without a PowerShell runtime dependency. [Measured comparison](docs/PERFORMANCE-0.5.0.md). The installer remains self-signed; SignPath approval is pending. / Runtime 已迁移为 C#/.NET；详见 benchmark，仍为 self-signed。

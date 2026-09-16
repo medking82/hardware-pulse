@@ -1211,6 +1211,17 @@ The shared App now has explicit `0.7.0-preview.1` version metadata; package
 manifest and macOS bundle version are derived from that csproj owner and verified.
 See [preview scope and launch guide](DESKTOP-PREVIEW.md) for delivery limitations.
 
+`v0.7.0-preview.1` is now published as a GitHub prerelease, pinned to
+`9928b57b3cb64a8db85c74971275e0efbb86f68b`. Frozen-version
+[run 35043737237](https://github.com/medking82/hardware-pulse/actions/runs/35043737237)
+passed all six native package jobs. Original CI artifacts were downloaded and
+rechecked for architecture, version, source commit, clean-tree marker, notices,
+inventory and SHA-256; no local rebuild replaced them. The twelve uploaded assets
+(six archives plus sidecars) match GitHub's server sizes and SHA-256 digests.
+The remote tag resolves to the frozen commit; prerelease=true, draft=false, and
+the stable latest endpoint still returns v0.6.24. This establishes preview
+delivery, not complete platform feature parity or the full multi-platform goal.
+
 Live host wiring at `04c5536474a01918f995dc2a10ca816bbe8639bc` passed
 [run 35042812321](https://github.com/medking82/hardware-pulse/actions/runs/35042812321),
 including Windows x64/ARM64 live UI smoke and macOS network regression checks.
