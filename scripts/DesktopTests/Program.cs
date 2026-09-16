@@ -16,6 +16,7 @@ static class Tests {
         if(args.Length==2&&args[0]=="--startup-fixture"){Environment.ExitCode=StartupModeTests.Child(args[1]);return;}
         if(args.SequenceEqual(new[]{"--startup-native"})){StartupModeTests.Native();return;}
         if(args.SequenceEqual(new[]{"--update-live-metadata"})){DesktopUpdateTests.LiveMetadata();return;}
+        if(args.SequenceEqual(new[]{"--windows-hardware-live-native"})){HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();WindowsHardwareTests.Live();return;}
         if(args.SequenceEqual(new[]{"--layer-native"})){HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();WindowsLayerTests.Native();return;}
         if(args.SequenceEqual(new[]{"--capture-native"})){HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();WindowsCaptureTests.Native();return;}
         if(args.SequenceEqual(new[]{"--input-native"})){HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();WindowsInputTests.Run();return;}
@@ -59,6 +60,7 @@ static class Tests {
         AppBuilder.Configure<PulseApplication>().With(DesktopFonts.Options()).UseSkia().UseHeadless(new(){UseHeadlessDrawing=false}).SetupWithoutStarting();
         if(args.SequenceEqual(new[]{"--startup-settings"})){StartupModeTests.Settings();return;}
         if(args.SequenceEqual(new[]{"--profile-migration"})){ProfileMigrationTests.Run();return;}
+        if(args.SequenceEqual(new[]{"--windows-hardware-live"})){WindowsHardwareTests.Live();return;}
         if(args.SequenceEqual(new[]{"--game-overlay"})){GameOverlayTests.Run();return;}
         if(args.SequenceEqual(new[]{"--startup-controls"})){DesktopStartupTests.Run();return;}
         if(args.SequenceEqual(new[]{"--update-controls"})){DesktopUpdateTests.Run();return;}

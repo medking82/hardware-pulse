@@ -8,6 +8,57 @@ using HardwarePulse.Desktop;
 
 static class WindowsHardwareTests {
     static void Check(bool ok,string message){if(!ok)throw new Exception(message);}
+    // Explicit physical-machine acceptance. Never part of an unattended CI suite:
+    // it requires an already running collector and does not start or configure one.
+    public static void Live() {
+        Check(OperatingSystem.IsWindows(),"Live Windows hardware acceptance requires Windows");
+        var adapter=WindowsSnapshotReadings.Default();
+        var session=new ReadingSession(adapter.Read);
+        session.Poll(DateTimeOffset.UtcNow);
+        Check(session.Latest.state=="LIVE","Existing collector must provide a fresh snapshot");
+        var owner=new MonitorWindow(new MonitorSource(true),start:false);
+        var identities=new HashSet<string>();
+        HardwareSensorSnapshot[] rows=[];
+        try {
+            owner.Language.Select("en");owner.Show();owner.OpenFloatingMonitor();
+            void PresentAndCheck() {
+                rows=WindowsHardwarePresentation.Capture(session,false);
+                var snapshot=MonitorSnapshot.Capture(session,session,null) with {
+                    WindowsHardwareSupported=true,WindowsHardware=rows,
+                    PeakWindowsHardware=WindowsHardwarePresentation.Capture(session,true),
+                    WindowsHardwareStatus=WindowsHardwarePresentation.Status(session.Latest)};
+                owner.Present(snapshot);Dispatcher.UIThread.RunJobs();
+                var panel=owner.GetVisualDescendants().OfType<HardwareSensorPanel>().Single(x=>x.Name=="WindowsHardware");
+                var controls=panel.GetVisualDescendants().OfType<Grid>().ToArray();
+                Check(controls.Length==rows.Length,"Live Monitor hardware row count differs from snapshot");
+                for(int i=0;i<rows.Length;i++) {
+                    Check(((TextBlock)controls[i].Children[1]).Text==rows[i].Value,"Live Monitor hardware value differs from snapshot");
+                    var floating=owner.FloatingMonitor!.GetVisualDescendants().OfType<Grid>().Single(x=>Equals(x.Tag,"hardware/"+rows[i].Id));
+                    Check(((TextBlock)floating.Children[1]).Text==rows[i].Value,"Live Desktop hardware value differs from snapshot");
+                }
+            }
+            for(int sample=0;sample<4;sample++) {
+                if(sample>0)Thread.Sleep(2200);
+                session.Poll(DateTimeOffset.UtcNow);
+                Check(session.Latest.state=="LIVE","Collector became unavailable during live acceptance");
+                Check(session.Latest.values.Values.All(double.IsFinite),"Collector mapping contains non-finite readings");
+                identities.Add(session.Latest.identity);
+                PresentAndCheck();
+                Check(rows.Length>0&&rows.Any(x=>x.Value.EndsWith(" °C"))&&rows.Any(x=>x.Value.EndsWith(" RPM")),"Live acceptance requires actual temperature and fan channels");
+                // Only generic presentation IDs/values are exported. Device labels,
+                // identities, paths, raw snapshots and account data stay in memory.
+                Console.WriteLine("WINDOWS_LIVE_HARDWARE "+JsonSerializer.Serialize(new{sample,ageSeconds=(DateTimeOffset.UtcNow-session.Latest.time).TotalSeconds,metrics=rows.ToDictionary(x=>x.Id,x=>x.Value)}));
+            }
+            Check(identities.Count>=3,"Collector snapshot did not advance during live acceptance");
+            var liveIds=rows.Select(x=>x.Id).ToArray();
+            session.Poll(DateTimeOffset.UtcNow.AddSeconds(30));
+            Check(session.Latest.state=="STALE","Future-clock read must reject stale live metrics");
+            PresentAndCheck();
+            Check(rows.Select(x=>x.Id).SequenceEqual(liveIds)&&rows.All(x=>x.Value=="—"),"Stale hardware values must clear without losing known topology");
+            Check(session.Peaks.Count>0,"Staleness must preserve session history");
+        } finally {owner.Close();}
+        Console.WriteLine("PASS live Windows hardware: advancing existing collector, Monitor/Desktop parity and stale clearing; no source writes");
+    }
     public static void Run(string? output) {
         string folder=Directory.CreateTempSubdirectory("pulse-windows-snapshot-").FullName;
         try {

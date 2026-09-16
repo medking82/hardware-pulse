@@ -50,6 +50,44 @@ The narrow diagnostic run and three subsequent runs passed. The initial failure
 is retained at `vendor/validate-windows-hardware.log`; its root cause remains
 unproven. Do not label this as a fixed product bug or silently discard the failure.
 
+## Explicit live-source acceptance
+
+`Pulse.Desktop.Tests --windows-hardware-live-native` exercises the existing
+current-user collector through `WindowsSnapshotReadings.Default()` in native
+Monitor and floating windows. `--windows-hardware-live` uses the headless
+backend. These opt-in commands are not included in ordinary CI: they require
+fresh real temperature and fan channels and never start, elevate or configure
+a collector. The test's Monitor uses a disabled sampling worker and no settings
+store; one test-owned `ReadingSession` supplies both consumers.
+
+Four readings 2.2 seconds apart must stay LIVE, contain finite values and show
+at least three distinct source identities. Every hardware row's value is checked
+against the shared display snapshot in each window, including its matching
+Desktop row ID. A future-clock read then requires STALE, preserved row topology,
+all live values cleared to em dashes and retained session history. This advances
+only the test's clock argument; the collector, its source file and installed
+application are untouched. Logs whitelist generic metric IDs and formatted
+values; no raw snapshot, device label, SID or source identity is exported.
+
+The native run passed locally (`vendor/test-live-hardware-native.log`). All four
+reads had 20 hardware presentation metrics and source ages 1.85–1.93 seconds.
+Observed CPU temperature was 53.8–55.3 °C, GPU temperature 46.9–47.7 °C and
+CPU fan 743–785 RPM. Both GPU fans reported valid zero RPM. Voltage, memory-module
+and motherboard temperatures, two system fans, two NVMe temperatures, VRAM
+usage and LAN/Wi-Fi link/signal rows also matched in both consumers. The final
+stale check cleared all 20 live values.
+
+This verifies real collector ingestion and value propagation through native
+controls. It does not calibrate sensor accuracy against an independent device,
+establish visual legibility on every display, install the new worker or prove
+final packaged lifecycle/performance. Synthetic regression remains the
+independent expected-value check for mapping and units. Allowed follow-up scope
+is the explicit acceptance entry points and this evidence; production source,
+privileges, settings and sampling remain unchanged. Rollback is a source revert.
+The build had zero warnings/errors (`vendor/build-live-hardware.log`), original
+focused hardware regression passed (`vendor/test-live-hardware-regression.log`),
+and repository validation passed (`vendor/validate-live-hardware.log`).
+
 ## Admission
 
 This assessment covers read-only snapshot consumption and presentation only.

@@ -45,6 +45,18 @@ more memory/CPU in the dynamic Local Contrast scene. Actual background-update
 counts differed; attribution and final installed total-resource acceptance
 remain open.
 
+Subsequent attribution used a separately measured common WPF background for
+both hosts. In 60-second Local Contrast-on runs the UI CPU averages were 0.477%
+WPF and 0.524% shared, with 143.05 and 160.99 MiB working sets. This corrects the
+earlier mixed-process comparison but is still synthetic UI evidence, not final
+installed resource acceptance. See the same performance record for raw data.
+
+Explicit native live-source acceptance also passed with four advancing existing
+collector snapshots: all 20 hardware rows matched Monitor and Desktop, and a
+test-local stale clock cleared live values while retaining history. See
+[hardware evidence](WINDOWS-SHARED-HARDWARE.md). This does not replace final
+worker installation or independent sensor accuracy acceptance.
+
 The user explicitly requires lightweight CPU/RAM behavior. Compare the final
 shared host against the WPF baseline on the same Windows hardware, window size,
 refresh cadence and enabled features. Measure Monitor, floating Desktop and
