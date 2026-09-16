@@ -1,0 +1,75 @@
+Pulse · Desktop preview|Pulse · 桌面預覽版
+Starting…|正在啟動…
+Select network interface|選擇網路介面
+Refresh interfaces|重新整理網路介面
+Pause hardware monitoring|暫停硬體監控
+Live|即時
+Session Max|本次峰值
+Memory|記憶體
+System load|系統使用率
+Used memory estimate|已用記憶體估計
+Host memory|系統記憶體
+Download|下載
+Upload|上傳
+Selected interface|所選網路介面
+Preview · FPS and Desktop overlay are not connected yet. Hardware support depends on the platform and device.|預覽版尚未接入 FPS 與桌面浮動層；硬體支援取決於平台和裝置。
+Network interface|網路介面
+Download and upload show the selected interface. A missing saved interface stays unselected until you choose another.|下載與上傳顯示所選網路介面的資料。已儲存的介面不存在時，不會自動切換至其他介面。
+Appearance|外觀
+Theme|佈景主題
+System|跟隨系統
+Light|淺色
+Dark|深色
+System follows your desktop theme. Window size is remembered automatically.|跟隨系統桌面佈景主題，視窗大小自動儲存。
+Network|網路
+Monitor|監控
+Settings|設定
+Language|語言
+Auto (System)|自動（跟隨系統）
+Session only · Changes will not be saved.|僅本次工作階段有效，變更不會儲存。
+Changes save automatically.|變更自動儲存。
+Changes saved.|變更已儲存。
+Settings unavailable. Changes apply to this session; the original file is preserved.|無法讀取設定。變更僅本次工作階段有效，原始檔案保持不變。
+Could not save settings. Changes apply to this session.|無法儲存設定，變更僅本次工作階段有效。
+Monitoring unavailable. Retrying…|暫時無法讀取，正在重試…
+Demo · Session Max · Memory and quota remain current|示範 · 本次峰值 · 記憶體與額度仍顯示目前值
+Session Max · Memory and quota remain current|本次峰值 · 記憶體與額度仍顯示目前值
+Demo · Sample values|示範 · 範例資料
+Live · Refreshes every second|即時 · 每秒更新
+Waiting for available readings…|等待可用讀數…
+No network interfaces available. Connect a device and refresh.|沒有可用的網路介面。連接裝置後請重新整理。
+Saved interface unavailable. Reconnect and refresh, or choose another interface.|已儲存的網路介面無法使用。重新連接後重新整理，或選擇其他介面。
+Interface list refreshed.|網路介面清單已更新。
+Refreshing interfaces…|正在重新整理網路介面…
+Could not refresh interfaces. Try again.|無法重新整理網路介面，請重試。
+Paused|已暫停
+Monitoring unavailable. Close and reopen to retry.|監控無法使用，請關閉並重新開啟應用程式。
+Temperature & fans|溫度與風扇
+Not available on this platform yet.|此平台暫不支援。
+No temperature or fan sensors exposed by this device.|此裝置未提供溫度或風扇感測器。
+Device labels · Unavailable readings show —|裝置原始標籤 · 無法取得的讀數顯示 —
+Show Codex quota|顯示 Codex 額度
+Refresh|重新整理
+Off|已關閉
+Off · Enable in Settings → Codex|已關閉 · 可在設定 → Codex 中開啟
+Demo · Sample quota only. No account is accessed.|僅展示額度範例，不存取帳號。
+Uses your existing Codex file login. Refreshes every five minutes while enabled. This choice is remembered. Login and token refresh stay in Codex.|讀取既有的 Codex 檔案登入。開啟後每五分鐘更新，並儲存此選擇。登入及權杖更新仍由 Codex 處理。
+Demo|示範
+Updated {0}|更新於 {0}
+Sign in through Codex, then refresh here. This preview requires file-based login.|請先在 Codex 登入，再於此重新整理。本預覽版需要檔案登入。
+{0}% left|剩餘 {0}%
+Resets {0}|重設於 {0}
+Reset time unavailable|重設時間無法取得
+5-hour|5 小時
+Weekly|每週
+Login required|需要登入
+Unavailable|無法使用
+Refreshing|正在更新
+Refresh pending|等待更新
+Quota unavailable|額度無法取得
+Login unavailable|登入資訊無法取得
+Refresh rate limited|更新頻率受限
+Loading|正在載入
+Error|錯誤
+Open Pulse|開啟 Pulse
+Quit Pulse|結束 Pulse

@@ -6,7 +6,7 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 
 ## Unreleased
 
-- Shared Desktop supports Auto (System), English and Simplified Chinese UI, including Monitor, Settings, sensor status, Codex quota and tray actions. Language switches immediately without restarting sampling or refreshing credentials and is saved in the isolated preview profile.
+- Shared Desktop supports Auto (System), English and Simplified/Traditional Chinese UI, including Monitor, Settings, sensor status, Codex quota and tray actions. Language switches immediately without restarting sampling or refreshing credentials and is saved in the isolated preview profile. Auto respects Chinese script and region preferences.
 
 ## 0.6.25 — 2026-09-16
 

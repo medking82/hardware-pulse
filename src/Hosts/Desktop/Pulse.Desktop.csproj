@@ -12,6 +12,7 @@
   </PropertyGroup>
   <ItemGroup>
     <EmbeddedResource Include="Chinese.txt" LogicalName="Pulse.Desktop.Chinese.txt" />
+    <EmbeddedResource Include="ChineseTraditional.txt" LogicalName="Pulse.Desktop.ChineseTraditional.txt" />
     <AvaloniaResource Include="../../../assets/pulse.ico" Link="Assets/pulse.ico" />
     <AvaloniaResource Include="../../../assets/cpu.svg;../../../assets/memory.svg;../../../assets/down.svg;../../../assets/up.svg;../../../assets/codex.svg" Link="Assets/%(Filename)%(Extension)" />
     <PackageReference Include="Avalonia.Desktop" Version="12.1.2" />

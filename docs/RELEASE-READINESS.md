@@ -82,5 +82,11 @@ Shared UI localization now supports Auto (System), English and Simplified Chines
 with immediate Monitor/Settings/sensor/quota/tray updates and isolated preference
 persistence. Headless interactions cover system fallback, language round trips,
 unchanged running sampling task and cached quota reuse. Windows renders at 360 px
-were inspected for Monitor, Appearance and quota. Traditional Chinese and native
-cross-platform font/interaction validation are not established by these renders.
+were inspected for Monitor, Appearance and quota. Traditional Chinese is now
+included with matching catalog keys/placeholders and script/region resolution.
+Traditional Monitor/Appearance renders at 360 px were also inspected; saved choice
+restoration and cached quota language round trips pass. Native cross-platform
+font/interaction validation is not established by these Windows renders.
+English/Simplified localization commit `7ff4362fdd3fd02ebf9d99747b35817ce457e3d9`
+passed all six native package jobs in
+[run 35050745266](https://github.com/medking82/hardware-pulse/actions/runs/35050745266).

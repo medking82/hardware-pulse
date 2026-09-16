@@ -18,7 +18,7 @@ Linux displays kernel-exposed temperature and fan channels when available. Missi
 Session Max shows CPU, selected-network and exposed Linux sensor peaks. RAM and quota remain current.
 Codex quota is optional and off by default. It reads an existing file login without changing credentials.
 Settings remember window size, theme, network choice and Codex opt-in in a separate preview profile.
-Settings > Appearance > Language offers Auto (System), English and Simplified Chinese. UI and tray labels change immediately; device names and values are preserved.
+Settings > Appearance > Language offers Auto (System), English, Simplified Chinese and Traditional Chinese. UI and tray labels change immediately; device names and values are preserved.
 Tray/menu bar offers Open Pulse and Quit Pulse where supported. Closing the window quits.
 
 Limits

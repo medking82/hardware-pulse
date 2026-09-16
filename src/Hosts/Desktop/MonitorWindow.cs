@@ -58,9 +58,9 @@ public sealed class MonitorWindow : Window {
         appearance.Children.Add(Language.Set(new TextBlock{},"Theme"));appearance.Children.Add(theme);
         appearance.Children.Add(Language.Set(new TextBlock{TextWrapping=TextWrapping.Wrap},"System follows your desktop theme. Window size is remembered automatically."));
         appearance.Children.Add(Language.Set(new TextBlock(),"Language"));
-        var languageChoice=new ComboBox{Name="PreviewLanguage",ItemsSource=new[]{"Auto (System)","English","简体中文"},SelectedIndex=settings.Language=="en"?1:settings.Language=="zh-CN"?2:0,HorizontalAlignment=HorizontalAlignment.Stretch,ItemTemplate=Language.Choices()};
+        var languageChoice=new ComboBox{Name="PreviewLanguage",ItemsSource=new[]{"Auto (System)","English","简体中文","繁體中文"},SelectedIndex=settings.Language=="en"?1:settings.Language=="zh-CN"?2:settings.Language=="zh-TW"?3:0,HorizontalAlignment=HorizontalAlignment.Stretch,ItemTemplate=Language.Choices()};
         appearance.Children.Add(languageChoice);
-        languageChoice.SelectionChanged+=(_,_)=>{settings.Language=languageChoice.SelectedIndex==1?"en":languageChoice.SelectedIndex==2?"zh-CN":"auto";Language.Select(settings.Language);SaveLater();};
+        languageChoice.SelectionChanged+=(_,_)=>{settings.Language=languageChoice.SelectedIndex==1?"en":languageChoice.SelectedIndex==2?"zh-CN":languageChoice.SelectedIndex==3?"zh-TW":"auto";Language.Select(settings.Language);SaveLater();};
         var settingsTabs=new TabControl{Name="SettingsTabs",ItemsSource=new[]{
             Language.Set(new TabItem{Content=network},"Network"),Language.Set(new TabItem{Content=appearance},"Appearance"),
             new TabItem{Header="Codex",Content=new Border{Padding=new Thickness(20),Child=quota.SettingsContent}}}};

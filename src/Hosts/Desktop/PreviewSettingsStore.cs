@@ -40,7 +40,7 @@ public sealed class PreviewSettingsStore {
             string theme=values.Text("theme","System");settings.Theme=theme is "Light" or "Dark"?theme:"System";
             string network=values.Text("network");settings.Network=network.Length>0&&network.Length<=256&&!network.Any(char.IsControl)?network:null;
             settings.Codex=values.Flag("codex");
-            string language=values.Text("language","auto");settings.Language=language is "en" or "zh-CN"?language:"auto";
+            string language=values.Text("language","auto");settings.Language=language is "en" or "zh-CN" or "zh-TW"?language:"auto";
         }catch(Exception e) when(e is IOException or InvalidDataException or UnauthorizedAccessException or JsonException or InvalidOperationException) {
             blocked=true;Error="Settings unavailable. Changes apply to this session; the original file is preserved.";
             return new PreviewSettings();
