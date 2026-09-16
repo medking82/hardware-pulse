@@ -3,9 +3,9 @@ name: Desktop preview
 on:
   push:
     branches: [main]
-    paths: ['src/Hosts/Desktop/**', 'src/Core/**', 'src/Adapters/**', 'scripts/DesktopTests/**', 'scripts/package_desktop.py', 'scripts/prepare_desktop_fonts.py', 'scripts/desktop-fonts.lock.json', 'scripts/test_desktop_package.py', 'licenses/**', 'docs/distribution/**', 'assets/*.svg', '.github/workflows/desktop-preview.yml']
+    paths: ['src/Hosts/Desktop/**', 'src/Core/**', 'src/Adapters/**', 'scripts/DesktopTests/**', 'scripts/test_native_desktop_session.sh', 'scripts/package_desktop.py', 'scripts/prepare_desktop_fonts.py', 'scripts/desktop-fonts.lock.json', 'scripts/test_desktop_package.py', 'licenses/**', 'docs/distribution/**', 'assets/*.svg', '.github/workflows/desktop-preview.yml']
   pull_request:
-    paths: ['src/Hosts/Desktop/**', 'src/Core/**', 'src/Adapters/**', 'scripts/DesktopTests/**', 'scripts/package_desktop.py', 'scripts/prepare_desktop_fonts.py', 'scripts/desktop-fonts.lock.json', 'scripts/test_desktop_package.py', 'licenses/**', 'docs/distribution/**', 'assets/*.svg', '.github/workflows/desktop-preview.yml']
+    paths: ['src/Hosts/Desktop/**', 'src/Core/**', 'src/Adapters/**', 'scripts/DesktopTests/**', 'scripts/test_native_desktop_session.sh', 'scripts/package_desktop.py', 'scripts/prepare_desktop_fonts.py', 'scripts/desktop-fonts.lock.json', 'scripts/test_desktop_package.py', 'licenses/**', 'docs/distribution/**', 'assets/*.svg', '.github/workflows/desktop-preview.yml']
   workflow_dispatch:
 
 permissions:
@@ -71,7 +71,9 @@ jobs:
       - name: Native Linux window with live telemetry
         if: runner.os == 'Linux'
         run: |
-          timeout 60s xvfb-run -a dotnet scripts/DesktopTests/bin/Release/net10.0/Pulse.Desktop.Tests.dll --native-session
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y openbox x11-utils
+          timeout 75s xvfb-run -a bash scripts/test_native_desktop_session.sh
           timeout 30s xvfb-run -a dotnet src/Hosts/Desktop/bin/Release/net10.0/Pulse.Desktop.dll --smoke-test
       - name: Native macOS window with live telemetry
         if: runner.os == 'macOS'

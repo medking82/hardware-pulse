@@ -11,7 +11,9 @@ static class TrayTests {
         open.Command!.Execute(null);
         if(window.WindowState!=WindowState.Normal||!window.IsVisible)throw new Exception("Tray restore failed");
         window.WindowState=WindowState.Maximized;
+        Console.WriteLine("TRAY_STATE before Open: "+window.WindowState);
         open.Command.Execute(null);
+        Console.WriteLine("TRAY_STATE after Open: "+window.WindowState);
         if(window.WindowState!=WindowState.Maximized)throw new Exception("Tray restore lost maximized state");
         bool closed=false;window.Closed+=(_,_)=>closed=true;
         quit.Command!.Execute(null);

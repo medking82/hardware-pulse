@@ -2,7 +2,7 @@
 
 The delivery target is a public stable release with usable, verified packages,
 not merely pushed adapters or a renamed experimental release. Existing Windows
-WPF v0.6.25 remains stable; v0.7.0-preview.1 is still experimental.
+WPF v0.6.26 remains stable; v0.7.0-preview.1 is still experimental.
 
 ## Scope decision
 
@@ -140,3 +140,14 @@ widths, waits for the requested client width, and keeps the overflow assertion.
 Windows local checks remain green; Linux results are needed to distinguish a
 test timing defect from actual layout overflow. The failed run does not close
 the native session gate.
+
+The resize diagnostic confirmed Linux X11 initially reported an 800 px client
+with 752 px text after a 360 px request; after acknowledgement it reported a
+360 px client and 312 px text. Both Linux architectures in run `35054413692`
+then completed close, reopen and quota language phases, but failed the Tray
+maximized-state assertion. That CI environment had Xvfb without a window manager.
+The session check now starts Openbox in its isolated Xvfb display and requires
+the EWMH window-manager readiness property before testing native window state.
+This changes CI setup only; it neither installs a window manager for users nor
+weakens the maximize/restore assertion. The earlier timeout remains recorded;
+phase logging alone does not establish a fix for intermittent hangs.
