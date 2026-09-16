@@ -1229,3 +1229,30 @@ including Windows x64/ARM64 live UI smoke and macOS network regression checks.
 System adapter validation at `a610c1fa6ce55aab8125787ee73378df6e664a2f`:
 [run 35042377337](https://github.com/medking82/hardware-pulse/actions/runs/35042377337)
 passed all six jobs, including actual CPU/RAM reads in Windows x64 and ARM64.
+
+### Linux raw hwmon adapter (not yet connected to the shared UI)
+
+`LinuxHwmonReadings` discovers kernel-exposed temperature/fan inputs under
+`/sys/class/hwmon`. The adapter owns discovery, bounded attribute reads, unit
+conversion and per-channel availability; it reuses Core `Reading` snapshots.
+`Channels` supplies labels and units without changing Core or WPF contracts.
+Ids such as `hwmon0/temp1` are discovery-local, not persistent device identities.
+The host must call `Refresh` serially for topology changes; regular polls only
+read discovered attributes. There are no timers, processes, drivers or writes.
+
+Kernel labels are preserved; channel numbers do not imply CPU/GPU or physical
+fan placement. Disabled/faulted, malformed, inaccessible or missing readings
+are unavailable, not stale/zero. Valid zero RPM and negative temperatures are
+retained. Temperature inputs use millidegrees Celsius; declared thermistor or
+unknown sensor types remain unavailable because board-specific conversion may
+be necessary. This raw adapter does not apply lm-sensors configuration or legacy
+device-directory discovery. Firmware/driver absence cannot be repaired by it.
+Discovery is bounded to 128 directories and 512 candidate inputs per directory.
+Optional capability-file presence is cached until Refresh, but values are fresh.
+
+The [Linux hwmon ABI](https://docs.kernel.org/hwmon/sysfs-interface.html) owns
+these units and availability semantics. Synthetic filesystem tests cover
+conversion, labels, missing inputs, faults, disabled sensors, recovery and
+explicit rediscovery. Native CI may expose no hwmon channels; that validates
+graceful absence, not physical temperature/fan coverage. The published
+`0.7.0-preview.1` packages do not include this subsequent adapter work.
