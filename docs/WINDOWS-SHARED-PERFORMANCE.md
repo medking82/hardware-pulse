@@ -197,6 +197,69 @@ and stderr. Launch logs are `vendor/attribution-{wpf,shared}-dynamic-{off,on}.lo
 The WPF binary was rebuilt by validation since the five-minute comparison;
 only its new matched pair is used for this increment calculation.
 
+## Separately measured common background
+
+`Measure-NativeUi.ps1 -ExternalBackground` now runs the same WPF animated
+gradient helper for either host. `NativeTests --benchmark-backdrop` owns only
+that window and its cooperative stop marker. The UI harnesses suppress their
+internal gradients; production code and sampling are unchanged. The driver
+requires matching physical bounds, explicit external-background admission and
+zero UI-owned animation updates. It records background CPU/private/working-set
+samples separately on the same measurement interval. Startup, early exit and
+shutdown failures invalidate the run; cleanup targets only process objects
+created by this measurement. Existing embedded-background mode remains available.
+
+Allowed scope: the two UI harnesses, measurement driver and this evidence.
+No installed files, personal settings, collectors, privilege policy or capture
+implementation change. Source rollback is a revert of this harness change.
+Deterministic checks are both builds, repository validation, headless regression,
+paired execution, geometry checks and an injected early helper exit.
+
+Four serial 60-second runs used the same 440 x 640 DIP / 660 x 960 pixel bounds,
+2-second readings, 10-second warmup and 16 logical processors. All completed
+normally, each with 30 measured samples. No builds or UI tests ran concurrently.
+
+| Host | Contrast | UI CPU % | UI working set MiB | UI private MiB | Background CPU % | Background updates |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| WPF | Off | 0.035 | 125.03 | 106.60 | 0.066 | 1561 |
+| WPF | On | 0.477 | 143.05 | 128.06 | 0.043 | 1559 |
+| Shared | Off | 0.098 | 144.14 | 152.50 | 0.043 | 1581 |
+| Shared | On | 0.524 | 160.99 | 164.80 | 0.059 | 1583 |
+
+Background working set was 74.4–74.8 MiB and private bytes 96.9–98.5 MiB;
+this extra test helper is not shipped with Pulse. Removing framework-specific
+animation from the measured UI narrows the observed CPU gap. This supports
+background rendering as a confounder in the earlier combined-process results;
+it does not prove that all remaining overhead is understood. Shared still uses
+more memory, and one-minute samples cannot establish equivalence or stability.
+The WPF/shared Desktop integration difference, synthetic inputs and exclusion
+of real collectors/FPS/quota remain. These are not final installed measurements.
+
+Local evidence directories under `vendor/`, ordered as the table:
+`ui-measure-9d906ab2eea442469aff894534e3ce33`,
+`ui-measure-9f62171c68c14da2859db16f4d37c68a`,
+`ui-measure-3eb0faf7e35d44c680b2aaf9dbdee98b`,
+`ui-measure-97aabd3352674befaaf2ad89091e88d2`.
+Each retains assembly hashes, separate counters, geometry, completion and stderr.
+WPF app SHA-256: `438608BEE35FA5E8D0A4BC80CAF7D3CE3AB614C7510034A88843BA04581AB2D2`;
+shared app SHA-256: `90445A1CA55CF74FA556ACDFCBED8098787A5D5AB6DEC361D943CDC727D1F829`.
+Common helper SHA-256: `C7E05C3C03C4C097F877411BF825F4E1176FF2DAF5E62EB7930E4DE85B4B478B`.
+
+Repository validation passed (`vendor/validate-external-background.log`), and
+the shared Release build had no warnings/errors (`vendor/build-external-background.log`).
+The two-second shared contrast smoke passed geometry and both normal exits.
+An early cooperative helper exit failed with `External background exited during
+sampling`, recorded incomplete evidence, emitted no successful result and left
+neither owned process running (`vendor/external-background-early-exit.log` and
+`vendor/ui-measure-c8fdc36233e341b2b072a37ed3836b30`).
+The full shared headless suite passed (`vendor/test-external-background-headless.log`).
+Its two `FAIL native Desktop monitoring` lines are intentional injected failures
+in `SamplingRecoveryTests.Run`, which requires exit code 3 and closed windows
+for smoke/measurement mode before restoring the prior test exit code.
+Both original embedded-background dynamic smokes also passed, retaining their
+own animation and normal shutdown (`vendor/embedded-background-shared-smoke.log`
+and `vendor/embedded-background-wpf-smoke.log`).
+
 ## Remaining release evidence
 
 - Measure the actual installed UI plus collector and all helper processes,

@@ -133,7 +133,25 @@ internal static class NativeTests {
         Assert(translations.T("System glass background is unavailable on this Windows version.")=="此 Windows 版本不支援系統玻璃背景。","Glass message must not include another translation entry");
     }
     static void Capture(Shell shell,string path){shell.Window.UpdateLayout();var bitmap=new RenderTargetBitmap((int)shell.Window.ActualWidth,(int)shell.Window.ActualHeight,96,96,PixelFormats.Pbgra32);bitmap.Render(shell.Window);var encoder=new PngBitmapEncoder();encoder.Frames.Add(BitmapFrame.Create(bitmap));using(var file=File.Create(path))encoder.Save(file);}
+    static int BenchmarkBackdrop(string state,int width,int height){
+        Assert(width>=360&&width<=1600&&height>=400&&height<=1600,"Invalid backdrop dimensions");
+        state=Path.GetFullPath(state);Assert(Directory.Exists(state),"Missing benchmark directory");
+        var app=new Application();var gradient=new LinearGradientBrush{StartPoint=new Point(0,0),EndPoint=new Point(1,1)};
+        gradient.GradientStops.Add(new GradientStop(Colors.Black,0));gradient.GradientStops.Add(new GradientStop(Colors.White,.4));gradient.GradientStops.Add(new GradientStop(Colors.Gray,.7));gradient.GradientStops.Add(new GradientStop(Colors.Black,1));
+        var window=new Window{WindowStyle=WindowStyle.None,ResizeMode=ResizeMode.NoResize,ShowInTaskbar=false,ShowActivated=false,Left=100,Top=30,Width=width,Height=height,Topmost=true,Background=gradient};
+        var clock=Stopwatch.StartNew();int updates=0;var motion=new DispatcherTimer{Interval=TimeSpan.FromMilliseconds(33)};
+        motion.Tick+=delegate{
+            if(File.Exists(Path.Combine(state,"BACKGROUND-STOP"))){motion.Stop();Json.WriteAtomic(Path.Combine(state,"background-completed.json"),new{backgroundUpdates=updates});app.Shutdown();return;}
+            double offset=.35*Math.Sin(clock.Elapsed.TotalSeconds*Math.PI/4);gradient.StartPoint=new Point(offset,0);gradient.EndPoint=new Point(1+offset,1);updates++;
+        };
+        try{
+            window.Show();Pump();var origin=window.PointToScreen(new Point());var end=window.PointToScreen(new Point(window.ActualWidth,window.ActualHeight));
+            Json.WriteAtomic(Path.Combine(state,"background-ready.json"),new{leftPixels=origin.X,topPixels=origin.Y,widthPixels=end.X-origin.X,heightPixels=end.Y-origin.Y});
+            motion.Start();app.Run();return 0;
+        }finally{motion.Stop();window.Close();}
+    }
     [STAThread] static int Main(string[] args){
+        if(args.Length==4&&args[0]=="--benchmark-backdrop")return BenchmarkBackdrop(args[1],int.Parse(args[2]),int.Parse(args[3]));
         if(args.Length==2&&args[0]=="--benchmark-snapshot"){Json.WriteAtomic(Path.GetFullPath(args[1]),Snapshot());return 0;}
         DiagnosticChecks();
         try{
@@ -202,6 +220,7 @@ internal static class NativeTests {
                 Assert(scene=="monitor"||scene=="tray"||scene=="desktop"||scene=="desktop-contrast"||scene=="desktop-dynamic"||scene=="desktop-dynamic-contrast","Unknown benchmark scene");
                 double benchWidth=args.Length>3?int.Parse(args[3]):0,benchHeight=args.Length>4?int.Parse(args[4]):0;
                 Assert(benchWidth==0||benchWidth>=360&&benchWidth<=1600,"Invalid benchmark width");Assert(benchHeight==0||benchHeight>=400&&benchHeight<=1600,"Invalid benchmark height");
+                bool externalBackground=Environment.GetEnvironmentVariable("PULSE_BENCHMARK_EXTERNAL_BACKGROUND")=="1";
                 bool desktopScene=scene.StartsWith("desktop",StringComparison.Ordinal),contrast=scene.EndsWith("-contrast",StringComparison.Ordinal),dynamicScene=scene.StartsWith("desktop-dynamic",StringComparison.Ordinal);Window backdrop=null;DispatcherTimer motion=null;int backgroundUpdates=0;
                 EventHandler<System.Runtime.ExceptionServices.FirstChanceExceptionEventArgs> captureError=delegate(object sender,System.Runtime.ExceptionServices.FirstChanceExceptionEventArgs e){
                     string stack=e.Exception.StackTrace??"";
@@ -210,6 +229,7 @@ internal static class NativeTests {
                 AppDomain.CurrentDomain.FirstChanceException+=captureError;
                 if(desktopScene){
                     Json.WriteAtomic(Path.Combine(state,"widget-settings.json"),new {language="en",desktopEnabled=true,desktopLocked=true,desktopAlwaysOnTop=true,desktopLocalContrast=contrast,desktopAutoContrast=false,desktopOverlayOpacity=0,desktopBackgroundOpacity=0,desktopTextOpacity=100,desktopFontSize=16,desktopSpacing=6,desktopColumns=1,desktopLeft=100,desktopTop=30,desktopWidth=benchWidth>0?benchWidth:320,desktopHeight=benchHeight>0?benchHeight:850});
+                    if(!externalBackground){
                     var gradient=new LinearGradientBrush{StartPoint=new Point(0,0),EndPoint=new Point(1,1)};
                     gradient.GradientStops.Add(new GradientStop(Colors.Black,0));gradient.GradientStops.Add(new GradientStop(Colors.White,.4));gradient.GradientStops.Add(new GradientStop(Colors.Gray,.7));gradient.GradientStops.Add(new GradientStop(Colors.Black,1));
                     backdrop=new Window{WindowStyle=WindowStyle.None,ResizeMode=ResizeMode.NoResize,ShowInTaskbar=false,ShowActivated=false,Left=100,Top=30,Width=benchWidth>0?benchWidth:320,Height=benchHeight>0?benchHeight:850,Topmost=true,Background=gradient};backdrop.Show();
@@ -217,6 +237,7 @@ internal static class NativeTests {
                         var motionClock=Stopwatch.StartNew();motion=new DispatcherTimer{Interval=TimeSpan.FromMilliseconds(33)};
                         motion.Tick+=delegate{double offset=.35*Math.Sin(motionClock.Elapsed.TotalSeconds*Math.PI/4);gradient.StartPoint=new Point(offset,0);gradient.EndPoint=new Point(1+offset,1);backgroundUpdates++;};motion.Start();
                     }
+                }
                 }
                 try{using(var bench=new Shell(paths,true)){
                     bench.Window.ShowInTaskbar=false;bench.Window.ShowActivated=false;bench.Window.Width=benchWidth>0?benchWidth:310;bench.Window.Height=benchHeight>0?benchHeight:690;
@@ -229,10 +250,10 @@ internal static class NativeTests {
                     }
                     var origin=view.PointToScreen(new Point());var end=view.PointToScreen(new Point(view.ActualWidth,view.ActualHeight));
                     if(scene=="tray")bench.Window.Hide();
-                    Json.WriteAtomic(Path.Combine(state,"ready.json"),new {ready=DateTimeOffset.Now.ToString("o"),scene=scene,widthDip=view.ActualWidth,heightDip=view.ActualHeight,widthPixels=end.X-origin.X,heightPixels=end.Y-origin.Y,localContrast=contrast,backgroundIntervalMilliseconds=dynamicScene?33:0,backgroundPeriodSeconds=dynamicScene?8:0});
+                    Json.WriteAtomic(Path.Combine(state,"ready.json"),new {ready=DateTimeOffset.Now.ToString("o"),scene=scene,widthDip=view.ActualWidth,heightDip=view.ActualHeight,widthPixels=end.X-origin.X,heightPixels=end.Y-origin.Y,leftPixels=origin.X,topPixels=origin.Y,externalBackground=externalBackground,localContrast=contrast,backgroundIntervalMilliseconds=dynamicScene?33:0,backgroundPeriodSeconds=dynamicScene?8:0});
                     var stop=new DispatcherTimer {Interval=TimeSpan.FromSeconds(2)};
                     stop.Tick+=delegate{
-                        if(File.Exists(Path.Combine(state,"BENCH-STOP"))){stop.Stop();if(dynamicScene)Assert(backgroundUpdates>0,"Dynamic background did not advance");Json.WriteAtomic(Path.Combine(state,"completed.json"),new {backgroundUpdates=backgroundUpdates});bench.Exit();app.Shutdown();return;}
+                        if(File.Exists(Path.Combine(state,"BENCH-STOP"))){stop.Stop();if(dynamicScene&&!externalBackground)Assert(backgroundUpdates>0,"Dynamic background did not advance");Json.WriteAtomic(Path.Combine(state,"completed.json"),new {backgroundUpdates=backgroundUpdates});bench.Exit();app.Shutdown();return;}
                         Assert(desktopBench==null||desktopBench.LocalContrastAvailable==contrast,"Contrast state changed during benchmark");
                     };stop.Start();app.Run();
                 }}finally{AppDomain.CurrentDomain.FirstChanceException-=captureError;if(motion!=null)motion.Stop();if(backdrop!=null)backdrop.Close();}return 0;

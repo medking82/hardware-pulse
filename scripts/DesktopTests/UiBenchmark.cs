@@ -37,16 +37,19 @@ static class UiBenchmark {
             var source=new Source();var monitor=new MonitorWindow(source,start:false){Width=Width,Height=Height,ShowActivated=false,ShowInTaskbar=false};
             var tray=new DesktopTray(monitor);
             bool desktop=Scene.StartsWith("desktop"),contrast=Scene.EndsWith("-contrast"),dynamicScene=Scene.StartsWith("desktop-dynamic");
+            bool externalBackground=Environment.GetEnvironmentVariable("PULSE_BENCHMARK_EXTERNAL_BACKGROUND")=="1";
             Window? backdrop=null;FloatingMonitorWindow? floating=null;int backgroundUpdates=0;
             var motion=new DispatcherTimer{Interval=TimeSpan.FromMilliseconds(33)};
             if(desktop) {
                 var gradient=new LinearGradientBrush{StartPoint=new RelativePoint(0,0,RelativeUnit.Relative),EndPoint=new RelativePoint(1,1,RelativeUnit.Relative),GradientStops=new(){new(Colors.Black,0),new(Colors.White,.4),new(Colors.Gray,.7),new(Colors.Black,1)}};
+                if(!externalBackground){
                 backdrop=new Window{Width=Width,Height=Height,WindowDecorations=WindowDecorations.None,ShowInTaskbar=false,ShowActivated=false,Topmost=true,Background=gradient};backdrop.Show();
                 backdrop.Position=new PixelPoint((int)(100*backdrop.RenderScaling),(int)(30*backdrop.RenderScaling));
+                }
                 var settings=new PreviewSettings{FloatingWidth=Width,FloatingHeight=Height,FloatingFontSize=16,FloatingRowSpacing=6,DesktopColumns=1,FloatingBackgroundOpacity=0,FloatingTopmost=true,FloatingLocalContrast=contrast};
                 floating=new FloatingMonitorWindow(monitor.Language,settings){ShowActivated=false,ShowInTaskbar=false};
-                floating.Present(source.Poll(null));floating.Show();floating.Position=backdrop.Position;floating.SetLocked(true);
-                if(dynamicScene){var clock=Stopwatch.StartNew();motion.Tick+=(_,_)=>{double offset=.35*Math.Sin(clock.Elapsed.TotalSeconds*Math.PI/4);gradient.StartPoint=new(offset,0,RelativeUnit.Relative);gradient.EndPoint=new(1+offset,1,RelativeUnit.Relative);backgroundUpdates++;};motion.Start();}
+                floating.Present(source.Poll(null));floating.Show();floating.Position=backdrop?.Position??new PixelPoint((int)(100*floating.RenderScaling),(int)(30*floating.RenderScaling));floating.SetLocked(true);
+                if(dynamicScene&&!externalBackground){var clock=Stopwatch.StartNew();motion.Tick+=(_,_)=>{double offset=.35*Math.Sin(clock.Elapsed.TotalSeconds*Math.PI/4);gradient.StartPoint=new(offset,0,RelativeUnit.Relative);gradient.EndPoint=new(1+offset,1,RelativeUnit.Relative);backgroundUpdates++;};motion.Start();}
             }
             monitor.Present(source.Poll(null));if(!desktop)monitor.Show();
             Window view=floating??(Window)monitor;
@@ -64,7 +67,7 @@ static class UiBenchmark {
                 await Task.Delay(500);
                 if(Scene=="tray")monitor.Hide();
                 var origin=view.PointToScreen(default);var end=view.PointToScreen(new Point(view.ClientSize.Width,view.ClientSize.Height));
-                File.WriteAllText(Path.Combine(Directory,"ready.json"),JsonSerializer.Serialize(new{scene=Scene,widthDip=view.ClientSize.Width,heightDip=view.ClientSize.Height,widthPixels=end.X-origin.X,heightPixels=end.Y-origin.Y,localContrast=contrast,backgroundIntervalMilliseconds=dynamicScene?33:0,backgroundPeriodSeconds=dynamicScene?8:0}));poll.Start();
+                File.WriteAllText(Path.Combine(Directory,"ready.json"),JsonSerializer.Serialize(new{scene=Scene,widthDip=view.ClientSize.Width,heightDip=view.ClientSize.Height,widthPixels=end.X-origin.X,heightPixels=end.Y-origin.Y,leftPixels=origin.X,topPixels=origin.Y,externalBackground,localContrast=contrast,backgroundIntervalMilliseconds=dynamicScene?33:0,backgroundPeriodSeconds=dynamicScene?8:0}));poll.Start();
             });
             lifetime.Exit+=(_,_)=>{poll.Stop();motion.Stop();floating?.Close();backdrop?.Close();monitor.Close();tray.Dispose();};
             base.OnFrameworkInitializationCompleted();
