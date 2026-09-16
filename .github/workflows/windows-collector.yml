@@ -1,0 +1,23 @@
+name: Windows x64 collector
+
+on:
+  push:
+    branches: [main]
+    paths: ['src/Hosts/WindowsCollector/**', 'src/Native/Collector.cs', 'src/Native/FpsTransport.cs', 'src/Adapters/Windows/**', 'src/Adapters/Common/**', 'src/Core/**', 'src/HardwarePulse.exe.config', 'dependencies.lock.json', 'scripts/Build-WindowsCollector.ps1', 'scripts/Test-WindowsCollector.ps1', 'scripts/WindowsCollectorTests.cs', 'scripts/Build-WindowsAdapters.ps1', 'scripts/Build-Core.ps1', 'scripts/Run-Hidden.ps1', '.github/workflows/windows-collector.yml']
+  pull_request:
+    paths: ['src/Hosts/WindowsCollector/**', 'src/Native/Collector.cs', 'src/Native/FpsTransport.cs', 'src/Adapters/Windows/**', 'src/Adapters/Common/**', 'src/Core/**', 'src/HardwarePulse.exe.config', 'dependencies.lock.json', 'scripts/Build-WindowsCollector.ps1', 'scripts/Test-WindowsCollector.ps1', 'scripts/WindowsCollectorTests.cs', 'scripts/Build-WindowsAdapters.ps1', 'scripts/Build-Core.ps1', 'scripts/Run-Hidden.ps1', '.github/workflows/windows-collector.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  worker:
+    runs-on: windows-2022
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build dedicated payload and verify isolated counters
+        shell: pwsh
+        run: ./scripts/Run-Hidden.ps1 (Get-Command pwsh).Source @('-NoProfile','-File','scripts/Test-WindowsCollector.ps1') $PWD.Path

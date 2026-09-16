@@ -13,7 +13,7 @@ and verify each owner before freezing the final release commit.
 | Gate | Current shared-host evidence | Remaining acceptance |
 | --- | --- | --- |
 | Antigravity quota (P02) | Windows provider reused; independent opt-in and Monitor/floating projection; full Validate, headless UI, native Windows session and extracted x64 package pass | Repeat on the final stable commit; live account compatibility is distinct from fake-source regression |
-| Hardware | CPU/RAM/selected network plus read-only existing collector snapshot integration; the WPF SensorProfile supplies GPU, temperatures, fans, voltages, NVMe, VRAM usage and link/signal data to both views | Ship and manage the collector with the x64 shared installer; verify final payload and real hardware without changing privilege separation |
+| Hardware | CPU/RAM/selected network plus read-only collector snapshot integration; GPU, temperatures, fans, voltages, NVMe, VRAM usage and link/signal data reach both views. A dedicated x64 worker payload reuses the original collector without UI dependencies; isolated driver-free tests pass | Ship and manage the collector with the x64 shared installer; verify final payload and real hardware without changing privilege separation |
 | Cards/Desktop layout | Fixed basic cards and floating rows | Visibility, order, adaptive columns; stable resizing and live updates |
 | FPS | Not connected | Existing PresentMon process/capture ownership, settings, Monitor/Desktop display and real capture verification |
 | Desktop integration | Floating geometry, lock, topmost, tray, opacity, colors | Desktop layer placement, global shortcut, background sampling, Local Contrast and screenshot behavior |
