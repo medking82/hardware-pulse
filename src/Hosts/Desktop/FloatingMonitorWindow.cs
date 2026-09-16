@@ -12,6 +12,9 @@ public sealed class FloatingMonitorWindow : Window {
     readonly StackPanel rows=new(){Spacing=8,Margin=new Thickness(16)};
     readonly TextBlock cpu=new(),memory=new(),download=new(),upload=new();
     readonly StackPanel sensors=new(){Spacing=8};
+    readonly StackPanel gpus=new(){Spacing=8};
+    MonitorSnapshot? lastSnapshot;
+    bool lastPeaks;
     readonly StackPanel quotaRows=new(){Spacing=8,IsVisible=false};
     QuotaReading? quotaReading;
     readonly TextBlock lockStatus=new(){TextWrapping=TextWrapping.Wrap,IsVisible=false};
@@ -80,6 +83,7 @@ public sealed class FloatingMonitorWindow : Window {
         rows.Children.Add(Row(language.T("Download"),download,"down"));
         rows.Children.Add(Row(language.T("Upload"),upload,"up"));
         rows.Children.Add(sensors);
+        rows.Children.Add(gpus);
         rows.Children.Add(quotaRows);
         Content=new ScrollViewer{Content=rows,HorizontalScrollBarVisibility=Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled};
         language.Changed+=Localize;Localize();
@@ -130,6 +134,7 @@ public sealed class FloatingMonitorWindow : Window {
         var family=DesktopFonts.ForLanguage(language.EffectiveLanguage);
         if(family is null)ClearValue(FontFamilyProperty);else FontFamily=family;
         PresentQuota(quotaReading);
+        if(lastSnapshot!=null)Present(lastSnapshot,lastPeaks);
     }
     public void PresentQuota(QuotaReading? reading) {
         quotaReading=reading;quotaRows.Children.Clear();quotaRows.IsVisible=reading!=null;
@@ -143,6 +148,7 @@ public sealed class FloatingMonitorWindow : Window {
         }
     }
     public void Present(MonitorSnapshot snapshot,bool peaks=false) {
+        lastSnapshot=snapshot;lastPeaks=peaks;
         cpu.Text=peaks?snapshot.PeakCpu:snapshot.Cpu;memory.Text=snapshot.Memory;
         download.Text=peaks?snapshot.PeakDownload:snapshot.Download;upload.Text=peaks?snapshot.PeakUpload:snapshot.Upload;
         var readings=peaks?snapshot.PeakSensors:snapshot.Sensors;
@@ -150,6 +156,11 @@ public sealed class FloatingMonitorWindow : Window {
         if(sensors.Children.Count!=readings.Count){sensors.Children.Clear();foreach(var item in readings)sensors.Children.Add(Row(item.Label,new TextBlock()));}
         for(int i=0;i<readings.Count;i++) {
             var row=(Grid)sensors.Children[i];((TextBlock)row.Children[0]).Text=readings[i].Label;((TextBlock)row.Children[1]).Text=readings[i].Value;
+        }
+        var graphics=peaks?snapshot.PeakGpus:snapshot.Gpus;
+        if(gpus.Children.Count!=graphics.Count){gpus.Children.Clear();foreach(var item in graphics)gpus.Children.Add(Row(item.GpuLabel(language),new TextBlock()));}
+        for(int i=0;i<graphics.Count;i++) {
+            var row=(Grid)gpus.Children[i];((TextBlock)row.Children[0]).Text=graphics[i].GpuLabel(language);((TextBlock)row.Children[1]).Text=graphics[i].Value;
         }
     }
 }

@@ -91,3 +91,7 @@ Lock floating monitor|鎖定浮動監控視窗
 Reopen from Monitor or the tray to unlock.|從主介面或系統匣重新開啟即可解鎖。
 Locked · Reopen from Monitor or the tray to unlock.|已鎖定 · 從主介面或系統匣重新開啟即可解鎖。
 Could not change window lock. Reopen the floating monitor and try again.|無法變更視窗鎖定狀態，請重新開啟浮動監控視窗後重試。
+GPU|GPU
+No GPU statistics exposed by this device.|此裝置未提供 GPU 統計資料。
+{0} · {1} GPU cores|{0} · {1} 個 GPU 核心
+{0} physical cores · {1} logical cores|{0} 個實體核心 · {1} 個邏輯核心

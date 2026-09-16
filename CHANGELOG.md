@@ -6,6 +6,8 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 
 ## Unreleased
 
+- macOS CPU cards show the OS-reported model and physical/logical core counts. Add per-device IOAccelerator GPU utilization and Session Max to Monitor and floating monitor, with driver-reported GPU core counts; missing metadata remains unavailable. CPU identity and GPU core counts are cached rather than repeatedly queried.
+
 - Connect a read-only macOS AppleSMC temperature/fan adapter to Monitor, Session Max and the floating monitor. Cache bounded discovery and preserve raw sensor keys; missing/unknown values remain unavailable. Physical device coverage is not yet established; see [sensor limits](docs/MAC-SENSORS.md).
 
 - Shared floating monitor reuses the App's SVG icons and colors for CPU, memory, network and Codex quota.

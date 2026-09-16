@@ -26,6 +26,8 @@ public sealed class MonitorWindow : Window {
     bool samplingFailed;
     readonly CodexQuotaPanel quota;
     readonly HardwareSensorPanel sensors;
+    readonly HardwareSensorPanel gpus;
+    readonly TextBlock cpuIdentityText=new(){Name="CpuIdentity",Opacity=.75,TextWrapping=TextWrapping.Wrap,IsVisible=false};
     public UiLanguage Language {get;}
     readonly PreviewSettingsStore? store;
     readonly PreviewSettings settings;
@@ -39,21 +41,24 @@ public sealed class MonitorWindow : Window {
         this.source=source;this.smoke=smoke;this.measure=measure;
         this.store=store;settings=store?.Load()??new PreviewSettings();
         Language=new UiLanguage(settings.Language);sensors=new HardwareSensorPanel(Language);
+        gpus=new HardwareSensorPanel(Language,"GPU","No GPU statistics exposed by this device."){Name="GpuReadings",IsVisible=false};
         void ApplyLanguageFont(){var family=DesktopFonts.ForLanguage(Language.EffectiveLanguage);if(family is null)ClearValue(FontFamilyProperty);else FontFamily=family;}
         Language.Changed+=ApplyLanguageFont;ApplyLanguageFont();
         Title="Pulse · Desktop preview";Width=settings.Width;Height=settings.Height;MinWidth=360;MinHeight=400;
         FontSize=15;
         var heading=Language.Set(new TextBlock{FontSize=32,FontWeight=FontWeight.SemiBold},"Pulse");
         panels=[Card("CPU",cpu,"System load","cpu"),Card("Memory",ram,OperatingSystem.IsMacOS()?"Used memory estimate":"Host memory","memory"),Card("Download",down,"Selected interface","down"),Card("Upload",up,"Selected interface","up")];
+        ((StackPanel)panels[0].Child!).Children.Add(cpuIdentityText);
         foreach(var panel in panels)cards.Children.Add(panel);
         var body=new StackPanel{Spacing=16,Margin=new Thickness(24)};
         body.Children.Add(readingMode);body.Children.Add(status);body.Children.Add(cards);body.Children.Add(pause);
         var floating=Language.Set(new Button{Name="OpenFloatingMonitor"},"Open floating monitor");
         floating.Click+=(_,_)=>OpenFloatingMonitor();body.Children.Add(floating);
         readingMode.SelectionChanged+=(_,_)=>{if(latestSnapshot!=null)Render(latestSnapshot);};
-        body.Children.Add(sensors);
+        body.Children.Add(gpus);body.Children.Add(sensors);
         quota=new CodexQuotaPanel(source.IsDemo,inlineSettings:false,language:Language);body.Children.Add(quota);
         quota.ReadingChanged+=reading=>FloatingMonitor?.PresentQuota(reading);
+        Language.Changed+=()=>{if(latestSnapshot!=null)Render(latestSnapshot);};
         body.Children.Add(Language.Set(new TextBlock{TextWrapping=TextWrapping.Wrap,Opacity=.75},"Preview · FPS and Desktop overlay are not connected yet. Hardware support depends on the platform and device."));
         var network=new StackPanel{Spacing=12,Margin=new Thickness(20)};
         network.Children.Add(Language.Set(new TextBlock{FontSize=21,FontWeight=FontWeight.SemiBold},"Network interface"));network.Children.Add(interfaces);
@@ -162,6 +167,10 @@ public sealed class MonitorWindow : Window {
         cpu.Text=max?snapshot.PeakCpu:snapshot.Cpu;ram.Text=snapshot.Memory;
         down.Text=max?snapshot.PeakDownload:snapshot.Download;up.Text=max?snapshot.PeakUpload:snapshot.Upload;
         sensors.Present(max?snapshot.PeakSensors:snapshot.Sensors,snapshot.SensorsSupported);
+        gpus.IsVisible=snapshot.GpusSupported;
+        gpus.Present((max?snapshot.PeakGpus:snapshot.Gpus).Select(x=>x with {Label=x.GpuLabel(Language)}).ToArray(),snapshot.GpusSupported);
+        cpuIdentityText.IsVisible=snapshot.CpuModel!=null||snapshot.CpuPhysicalCores.HasValue||snapshot.CpuLogicalCores.HasValue;
+        cpuIdentityText.Text=(snapshot.CpuModel??"—")+"\n"+string.Format(Language.T("{0} physical cores · {1} logical cores"),snapshot.CpuPhysicalCores?.ToString()??"—",snapshot.CpuLogicalCores?.ToString()??"—");
         FloatingMonitor?.Present(snapshot,max);
         Language.Set(status,samplingFailed?"Monitoring unavailable. Retrying…":max?(source.IsDemo?"Demo · ":"")+"Session Max · Memory and quota remain current":source.IsDemo?"Demo · Sample values":snapshot.CpuReady&&snapshot.MemoryReady?"Live · Refreshes every second":"Waiting for available readings…");
     }
@@ -206,7 +215,8 @@ public sealed class MonitorWindow : Window {
                     samplingFailed=true;
                     var previous=latestSnapshot??new MonitorSnapshot("—","—","—","—",false,false);
                     Present(previous with {Cpu="—",Memory="—",Download="—",Upload="—",CpuReady=false,MemoryReady=false,
-                        Sensors=previous.Sensors.Select(sensor=>sensor with {Value="—"}).ToArray()});
+                        Sensors=previous.Sensors.Select(sensor=>sensor with {Value="—"}).ToArray(),
+                        Gpus=previous.Gpus.Select(gpu=>gpu with {Value="—"}).ToArray()});
                     continue;
                 }
                 if(stop.IsCancellationRequested)return;

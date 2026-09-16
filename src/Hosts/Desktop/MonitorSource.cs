@@ -16,6 +16,9 @@ public sealed class MonitorSource : IMonitorSource {
     string? selected;
     LinuxHwmonReadings? hwmon;
     MacSmcReadings? smc;
+    MacGpuReadings? gpu;
+    MacCpuIdentityReader? cpuIdentity;
+    ReadingSession? gpuSession;
     ReadingSession? sensorSession;
     long hwmonDiscovery;
     public bool IsDemo=>demo;
@@ -45,7 +48,19 @@ public sealed class MonitorSource : IMonitorSource {
         }
         network?.Poll(now);
         var sensors=ReadSensors(now);
-        return MonitorSnapshot.Capture(cpu,memory!,network) with {Sensors=sensors.Current,PeakSensors=sensors.Peaks,SensorsSupported=OperatingSystem.IsLinux()||OperatingSystem.IsMacOS()};
+        var gpus=ReadGpus(now);
+        MacCpuIdentity? info=OperatingSystem.IsMacOS()?(cpuIdentity??=new MacCpuIdentityReader()).Read():null;
+        return MonitorSnapshot.Capture(cpu,memory!,network) with {Sensors=sensors.Current,PeakSensors=sensors.Peaks,SensorsSupported=OperatingSystem.IsLinux()||OperatingSystem.IsMacOS(),
+            Gpus=gpus.Current,PeakGpus=gpus.Peaks,GpusSupported=OperatingSystem.IsMacOS(),
+            CpuModel=info?.Model,CpuPhysicalCores=info?.PhysicalCores,CpuLogicalCores=info?.LogicalCores};
+    }
+    (HardwareSensorSnapshot[] Current,HardwareSensorSnapshot[] Peaks) ReadGpus(DateTimeOffset now) {
+        if(!OperatingSystem.IsMacOS())return ([],[]);
+        if(gpu==null){gpu=new MacGpuReadings();gpuSession=new ReadingSession(gpu.Read);}
+        gpuSession!.Poll(now);
+        HardwareSensorSnapshot[] Format(IReadOnlyDictionary<string,double> values)=>gpu.Channels.Select(channel=>new HardwareSensorSnapshot(channel.Id,channel.Label,
+            values.TryGetValue(channel.Id,out var value)?ReadingFormat.SensorNumber(value,"%")+"%":"—",channel.Cores)).ToArray();
+        return (Format(gpuSession.Latest.values),Format(gpuSession.Peaks));
     }
     (HardwareSensorSnapshot[] Current,HardwareSensorSnapshot[] Peaks) ReadSensors(DateTimeOffset now) {
         if(OperatingSystem.IsMacOS()) {

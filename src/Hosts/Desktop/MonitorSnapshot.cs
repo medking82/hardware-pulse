@@ -1,10 +1,18 @@
 namespace HardwarePulse.Desktop;
 
-public sealed record HardwareSensorSnapshot(string Id,string Label,string Value);
+public sealed record HardwareSensorSnapshot(string Id,string Label,string Value,int? Cores=null) {
+    public string GpuLabel(UiLanguage language)=>string.Format(language.T("{0} · {1} GPU cores"),Label,Cores?.ToString()??"—");
+}
 public sealed record MonitorSnapshot(string Cpu,string Memory,string Download,string Upload,bool CpuReady,bool MemoryReady) {
     public IReadOnlyList<HardwareSensorSnapshot> Sensors {get;init;}=[];
     public IReadOnlyList<HardwareSensorSnapshot> PeakSensors {get;init;}=[];
     public bool SensorsSupported {get;init;}
+    public IReadOnlyList<HardwareSensorSnapshot> Gpus {get;init;}=[];
+    public IReadOnlyList<HardwareSensorSnapshot> PeakGpus {get;init;}=[];
+    public bool GpusSupported {get;init;}
+    public string? CpuModel {get;init;}
+    public int? CpuPhysicalCores {get;init;}
+    public int? CpuLogicalCores {get;init;}
     public string PeakCpu {get;init;}="—";
     public string PeakDownload {get;init;}="—";
     public string PeakUpload {get;init;}="—";

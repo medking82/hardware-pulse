@@ -46,6 +46,8 @@ static class Program {
         NetworkTests.Run(Array.IndexOf(args,"--live")>=0);
         CodexTests.Run();
         SmcTests.Run(Array.IndexOf(args,"--live")>=0);
+        GpuTests.Run(Array.IndexOf(args,"--live")>=0);
+        CpuIdentityTests.Run(Array.IndexOf(args,"--live")>=0);
         if(Array.IndexOf(args,"--measure")>=0)PollingBenchmark.Run();
     }
 }

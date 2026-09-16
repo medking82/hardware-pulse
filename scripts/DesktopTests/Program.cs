@@ -68,6 +68,7 @@ static class Tests {
         WindowsSystemTests.Run();
         NetworkAdapterTests.Run();
         HardwareSensorTests.Run(args.Length==1?args[0]:null);
+        GpuPresentationTests.Run(args.Length==1?args[0]:null);
         SessionMaxTests.Run();
         SamplingRecoveryTests.Run();
         LocalizationTests.Run(args.Length==1?args[0]:null);

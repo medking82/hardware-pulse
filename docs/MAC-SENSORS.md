@@ -32,3 +32,28 @@ verifies compiler alignment and IOKit argument widths; it cannot prove firmware
 compatibility. macOS CI prints actual channel/read counts. A VM without AppleSMC
 reports unavailable and does not establish physical Intel/Apple Silicon coverage.
 Current development is not included in the published preview.2 package.
+
+## CPU identity and GPU statistics
+
+CPU model comes from `machdep.cpu.brand_string`; installed physical/logical core
+counts come from `hw.physicalcpu_max` and `hw.logicalcpu_max`. The three sysctl
+queries are cached per MonitorSource and do not run on each sample. Values reflect
+what the OS exposes (including VM limits), not a model-name lookup table.
+See [XNU CPU topology definitions](https://github.com/apple-oss-distributions/xnu/blob/main/bsd/kern/kern_mib.c).
+
+`MacGpuReadings` enumerates at most 32 IOAccelerator registry entries, with stable
+registry IDs for independent device history. It reads the driver's
+PerformanceStatistics `Device Utilization %` or `GPU Activity(%)` property.
+Missing, non-finite or out-of-range values are unavailable, while a real zero is
+idle. See [the driver-property usage in Stats](https://github.com/exelban/stats/blob/master/Modules/GPU/reader.swift).
+
+GPU core count is the device's numeric `gpu-core-count` property, cached by registry
+ID and dropped when that device disappears. See [AppleGPUInfo](https://github.com/philipturner/applegpuinfo).
+Unknown core counts stay unavailable; Intel/AMD execution units are not relabeled
+as Apple GPU cores. No core-count lookup by chip name, synthetic VRAM accounting,
+or display-refresh-rate-as-game-FPS is used.
+
+Monitor and floating monitor share the same GPU snapshots and Session Max state.
+The CPU card shows model and physical/logical counts; GPU rows show device name,
+core count and utilization. Models and device identities are not translated.
+CF objects and IOKit handles are released before each native poll returns.

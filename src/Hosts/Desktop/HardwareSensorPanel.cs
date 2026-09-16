@@ -12,18 +12,20 @@ public sealed class HardwareSensorPanel : Border {
     readonly Dictionary<string,(TextBlock Label,TextBlock Value)> controls=new();
     string[] order=[];
     readonly UiLanguage language;
-    public HardwareSensorPanel(UiLanguage? language=null) {
+    readonly string emptyStatus;
+    public HardwareSensorPanel(UiLanguage? language=null,string title="Temperature & fans",string emptyStatus="No temperature or fan sensors exposed by this device.") {
         this.language=language??new UiLanguage();
+        this.emptyStatus=emptyStatus;
         Name="HardwareSensors";Padding=new Thickness(20);CornerRadius=new CornerRadius(14);
         BorderThickness=new Thickness(1);BorderBrush=Brushes.Gray;
         var body=new StackPanel{Spacing=14};
-        body.Children.Add(this.language.Set(new TextBlock{FontWeight=FontWeight.SemiBold},"Temperature & fans"));
+        body.Children.Add(this.language.Set(new TextBlock{FontWeight=FontWeight.SemiBold},title));
         body.Children.Add(status);body.Children.Add(rows);Child=body;
         Present([],false);
     }
     public void Present(IReadOnlyList<HardwareSensorSnapshot> sensors,bool supported) {
         language.Set(status,!supported?"Not available on this platform yet."
-            :sensors.Count==0?"No temperature or fan sensors exposed by this device."
+            :sensors.Count==0?emptyStatus
             :"Device labels · Unavailable readings show —");
         if(!order.SequenceEqual(sensors.Select(x=>x.Id))) {
             controls.Clear();rows.Children.Clear();order=sensors.Select(x=>x.Id).ToArray();
