@@ -74,6 +74,16 @@ public static class DesktopStyleProbe {
  [DllImport("user32.dll",EntryPoint="GetWindowLongPtrW")] public static extern IntPtr GetWindowLongPtr(IntPtr hwnd,int index);
  [StructLayout(LayoutKind.Sequential)] public struct Point {public int X,Y; public Point(int x,int y){X=x;Y=y;}}
  [DllImport("user32.dll")] public static extern IntPtr WindowFromPoint(Point point);
+ [DllImport("user32.dll")] static extern IntPtr GetAncestor(IntPtr window,uint flags);
+ [DllImport("user32.dll",CharSet=CharSet.Unicode)] static extern int GetClassName(IntPtr window,System.Text.StringBuilder name,int count);
+ [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr window,out uint process);
+ [StructLayout(LayoutKind.Sequential)] struct Rect {public int Left,Top,Right,Bottom;}
+ [DllImport("user32.dll")] static extern bool GetWindowRect(IntPtr window,out Rect rect);
+ public static string Describe(IntPtr window){
+  var name=new System.Text.StringBuilder(256);GetClassName(window,name,name.Capacity);uint process;GetWindowThreadProcessId(window,out process);Rect rect;GetWindowRect(window,out rect);
+  string owner="unavailable";try{using(var p=System.Diagnostics.Process.GetProcessById((int)process))owner=p.ProcessName;}catch(ArgumentException){}catch(System.ComponentModel.Win32Exception){}
+  return string.Format("hwnd={0} root={1} class={2} pid={3} process={4} rect={5},{6},{7},{8} exStyle={9:X}",window,GetAncestor(window,2),name,process,owner,rect.Left,rect.Top,rect.Right,rect.Bottom,GetWindowLongPtr(window,-20).ToInt64());
+ }
 }
 '@
 $native=[HardwarePulse.DesktopView]::new($icon,$false)
@@ -92,6 +102,11 @@ try{
         foreach($point in @([Windows.Point]::new(10,120),[Windows.Point]::new(3,3))){
             $screen=$native.PointToScreen($point)
             $target=[DesktopStyleProbe]::WindowFromPoint([DesktopStyleProbe+Point]::new([int]$screen.X,[int]$screen.Y))
+            if($target -ne $handle){
+                "DESKTOP_INPUT opacity=$opacity point=$point screen=$screen active=$($native.IsActive) backgroundAlpha=$($native.Background.Color.A)"
+                'DESKTOP_EXPECTED '+[DesktopStyleProbe]::Describe($handle)
+                'DESKTOP_HIT '+[DesktopStyleProbe]::Describe($target)
+            }
             Assert ($target -eq $handle) "Unlocked Desktop at $opacity percent passes native input through at $point"
         }
     }

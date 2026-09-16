@@ -1,6 +1,6 @@
-# Windows shared-host 0.7.0 release gate
+# Windows x64 shared-host 0.7.0 release gate
 
-Decision, 2026-09-16: Windows 0.7.0 stable must ship the shared host after its
+Decision, 2026-09-16: Windows x64 0.7.0 stable must ship the shared host after its
 Windows features and acceptance are complete. A WPF version bump or promotion
 of the existing preview does not satisfy this decision. Windows delivery may
 proceed independently of macOS. Preserve the installed WPF app and its settings
@@ -13,7 +13,7 @@ and verify each owner before freezing the final release commit.
 | Gate | Current shared-host evidence | Remaining acceptance |
 | --- | --- | --- |
 | Antigravity quota (P02) | Windows provider reused; independent opt-in and Monitor/floating projection; full Validate, headless UI, native Windows session and extracted x64 package pass | Repeat on the final stable commit; live account compatibility is distinct from fake-source regression |
-| Hardware | CPU/RAM/selected network; Windows sensors and GPU are not connected | Reuse Windows collector/profile with existing privilege separation; all current WPF readings and truthful unavailable states |
+| Hardware | CPU/RAM/selected network plus read-only existing collector snapshot integration; the WPF SensorProfile supplies GPU, temperatures, fans, voltages, NVMe, VRAM usage and link/signal data to both views | Ship and manage the collector with the x64 shared installer; verify final payload and real hardware without changing privilege separation |
 | Cards/Desktop layout | Fixed basic cards and floating rows | Visibility, order, adaptive columns; stable resizing and live updates |
 | FPS | Not connected | Existing PresentMon process/capture ownership, settings, Monitor/Desktop display and real capture verification |
 | Desktop integration | Floating geometry, lock, topmost, tray, opacity, colors | Desktop layer placement, global shortcut, background sampling, Local Contrast and screenshot behavior |
@@ -22,7 +22,8 @@ and verify each owner before freezing the final release commit.
 | Release quality | Existing tests are incremental evidence | Exact-commit native checks, CPU/RAM/soak/background restore measurements, separate-language documentation and verified downloadable stable assets |
 
 Windows ARM64 interaction remains unverified and is not automatically included in
-the x64 release. macOS/Win7 gates retain their separate status. Do not relabel
+the x64 release. The active release objective explicitly excludes ARM64.
+macOS/Win7 gates retain their separate status. Do not relabel
 unverified or missing behavior as supported to close this table.
 
 ## CPU and memory acceptance

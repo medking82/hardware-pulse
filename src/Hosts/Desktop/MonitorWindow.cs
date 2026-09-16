@@ -29,6 +29,7 @@ public sealed class MonitorWindow : Window {
     readonly CodexQuotaPanel antigravityQuota;
     readonly HardwareSensorPanel sensors;
     readonly HardwareSensorPanel gpus;
+    readonly HardwareSensorPanel windowsHardware;
     readonly TextBlock cpuIdentityText=new(){Name="CpuIdentity",Opacity=.75,TextWrapping=TextWrapping.Wrap,IsVisible=false};
     public UiLanguage Language {get;}
     readonly PreviewSettingsStore? store;
@@ -44,6 +45,7 @@ public sealed class MonitorWindow : Window {
         this.store=store;settings=store?.Load()??new PreviewSettings();
         Language=new UiLanguage(settings.Language);sensors=new HardwareSensorPanel(Language);
         gpus=new HardwareSensorPanel(Language,"GPU","No GPU statistics exposed by this device."){Name="GpuReadings",IsVisible=false};
+        windowsHardware=new HardwareSensorPanel(Language,"Windows hardware"){Name="WindowsHardware",IsVisible=false};
         void ApplyLanguageFont(){var family=DesktopFonts.ForLanguage(Language.EffectiveLanguage);if(family is null)ClearValue(FontFamilyProperty);else FontFamily=family;}
         Language.Changed+=ApplyLanguageFont;ApplyLanguageFont();
         Title="Pulse · Desktop preview";Width=settings.Width;Height=settings.Height;MinWidth=360;MinHeight=400;
@@ -57,7 +59,7 @@ public sealed class MonitorWindow : Window {
         var floating=Language.Set(new Button{Name="OpenFloatingMonitor"},"Open floating monitor");
         floating.Click+=(_,_)=>OpenFloatingMonitor();body.Children.Add(floating);
         readingMode.SelectionChanged+=(_,_)=>{if(latestSnapshot!=null)Render(latestSnapshot);};
-        body.Children.Add(gpus);body.Children.Add(sensors);
+        body.Children.Add(gpus);body.Children.Add(sensors);body.Children.Add(windowsHardware);
         quota=new CodexQuotaPanel(source.IsDemo,cancel=>DesktopQuotaReaders.Read(source.IsDemo,"Codex",cancel),inlineSettings:false,language:Language);body.Children.Add(quota);
         quota.ReadingChanged+=reading=>FloatingMonitor?.PresentQuota(reading);
         claudeQuota=new CodexQuotaPanel(source.IsDemo,cancel=>DesktopQuotaReaders.Read(source.IsDemo,"Claude",cancel),inlineSettings:false,language:Language,provider:"Claude");body.Children.Add(claudeQuota);
@@ -207,8 +209,11 @@ public sealed class MonitorWindow : Window {
         sensors.Present(max?snapshot.PeakSensors:snapshot.Sensors,snapshot.SensorsSupported);
         gpus.IsVisible=snapshot.GpusSupported;
         gpus.Present((max?snapshot.PeakGpus:snapshot.Gpus).Select(x=>x with {Label=x.GpuLabel(Language)}).ToArray(),snapshot.GpusSupported);
+        windowsHardware.IsVisible=snapshot.WindowsHardwareSupported;
+        windowsHardware.Present(max?snapshot.PeakWindowsHardware:snapshot.WindowsHardware,snapshot.WindowsHardwareSupported,snapshot.WindowsHardwareStatus);
+        sensors.IsVisible=!snapshot.WindowsHardwareSupported;
         cpuIdentityText.IsVisible=snapshot.CpuModel!=null||snapshot.CpuPhysicalCores.HasValue||snapshot.CpuLogicalCores.HasValue;
-        cpuIdentityText.Text=(snapshot.CpuModel??"—")+"\n"+string.Format(Language.T("{0} physical cores · {1} logical cores"),snapshot.CpuPhysicalCores?.ToString()??"—",snapshot.CpuLogicalCores?.ToString()??"—");
+        cpuIdentityText.Text=(snapshot.CpuModel??"—")+(snapshot.CpuPhysicalCores.HasValue||snapshot.CpuLogicalCores.HasValue?"\n"+string.Format(Language.T("{0} physical cores · {1} logical cores"),snapshot.CpuPhysicalCores?.ToString()??"—",snapshot.CpuLogicalCores?.ToString()??"—"):"");
         FloatingMonitor?.Present(snapshot,max);
         Language.Set(status,samplingFailed?"Monitoring unavailable. Retrying…":max?(source.IsDemo?"Demo · ":"")+"Session Max · Memory and quota remain current":source.IsDemo?"Demo · Sample values":snapshot.CpuReady&&snapshot.MemoryReady?"Live · Refreshes every second":"Waiting for available readings…");
     }
@@ -254,7 +259,9 @@ public sealed class MonitorWindow : Window {
                     var previous=latestSnapshot??new MonitorSnapshot("—","—","—","—",false,false);
                     Present(previous with {Cpu="—",Memory="—",Download="—",Upload="—",CpuReady=false,MemoryReady=false,
                         Sensors=previous.Sensors.Select(sensor=>sensor with {Value="—"}).ToArray(),
-                        Gpus=previous.Gpus.Select(gpu=>gpu with {Value="—"}).ToArray()});
+                        Gpus=previous.Gpus.Select(gpu=>gpu with {Value="—"}).ToArray(),
+                        WindowsHardware=previous.WindowsHardware.Select(reading=>reading with {Value="—"}).ToArray(),
+                        WindowsHardwareStatus="Windows collector unavailable. Waiting for hardware readings."});
                     continue;
                 }
                 if(stop.IsCancellationRequested)return;

@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+#if !NET
 using System.Web.Script.Serialization;
+#endif
 
 namespace HardwarePulse {
     public sealed class Sensor {
@@ -18,6 +20,7 @@ namespace HardwarePulse {
         public Sensor[] sensors; public MemoryModule[] memoryModules; public DiskInfo[] disks; public RamUsage ramUsage;
         public NetworkLink[] networkLinks;
     }
+#if !NET
     public static class Json {
         public static JavaScriptSerializer Serializer() { return new JavaScriptSerializer { MaxJsonLength=8*1024*1024, RecursionLimit=64 }; }
         public static string Read(string path) {
@@ -31,4 +34,5 @@ namespace HardwarePulse {
             if(File.Exists(path)) File.Replace(temp,path,null); else File.Move(temp,path);
         }
     }
+#endif
 }

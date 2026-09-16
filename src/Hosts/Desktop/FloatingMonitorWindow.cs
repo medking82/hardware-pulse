@@ -14,6 +14,8 @@ public sealed class FloatingMonitorWindow : Window {
     readonly TextBlock cpu=new(),memory=new(),download=new(),upload=new();
     readonly StackPanel sensors=new(){Spacing=8};
     readonly StackPanel gpus=new(){Spacing=8};
+    readonly StackPanel windowsHardware=new(){Spacing=8};
+    readonly TextBlock windowsStatus=new(){TextWrapping=TextWrapping.Wrap,IsVisible=false};
     MonitorSnapshot? lastSnapshot;
     bool lastPeaks;
     readonly StackPanel quotaRows=new(){Spacing=8,IsVisible=false};
@@ -86,6 +88,7 @@ public sealed class FloatingMonitorWindow : Window {
         rows.Children.Add(Row(language.T("Upload"),upload,"up"));
         rows.Children.Add(sensors);
         rows.Children.Add(gpus);
+        rows.Children.Add(windowsStatus);rows.Children.Add(windowsHardware);
         rows.Children.Add(quotaRows);
         ApplyTextAppearance();
         Content=new ScrollViewer{Content=rows,HorizontalScrollBarVisibility=Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled};
@@ -125,7 +128,7 @@ public sealed class FloatingMonitorWindow : Window {
         }
     }
     public void ApplyTextAppearance() {
-        rows.Spacing=sensors.Spacing=gpus.Spacing=quotaRows.Spacing=appearance.FloatingRowSpacing;
+        rows.Spacing=sensors.Spacing=gpus.Spacing=windowsHardware.Spacing=quotaRows.Spacing=appearance.FloatingRowSpacing;
         foreach(var row in rows.Children.Skip(1))StyleReading(row);
     }
     void StyleReading(Control control) {
@@ -177,6 +180,12 @@ public sealed class FloatingMonitorWindow : Window {
         lastSnapshot=snapshot;lastPeaks=peaks;
         cpu.Text=peaks?snapshot.PeakCpu:snapshot.Cpu;memory.Text=snapshot.Memory;
         download.Text=peaks?snapshot.PeakDownload:snapshot.Download;upload.Text=peaks?snapshot.PeakUpload:snapshot.Upload;
+        windowsStatus.IsVisible=snapshot.WindowsHardwareSupported;language.Set(windowsStatus,snapshot.WindowsHardwareStatus);
+        var hardware=peaks?snapshot.PeakWindowsHardware:snapshot.WindowsHardware;
+        if(windowsHardware.Children.Count!=hardware.Count){windowsHardware.Children.Clear();foreach(var item in hardware)windowsHardware.Children.Add(Row(item.DisplayLabel(language),new TextBlock()));}
+        for(int i=0;i<hardware.Count;i++) {
+            var row=(Grid)windowsHardware.Children[i];((TextBlock)row.Children[0]).Text=hardware[i].DisplayLabel(language);((TextBlock)row.Children[1]).Text=language.T(hardware[i].Value);
+        }
         var readings=peaks?snapshot.PeakSensors:snapshot.Sensors;
         // Reuse controls across samples; only device-count changes require layout creation.
         if(sensors.Children.Count!=readings.Count){sensors.Children.Clear();foreach(var item in readings)sensors.Children.Add(Row(item.Label,new TextBlock()));}

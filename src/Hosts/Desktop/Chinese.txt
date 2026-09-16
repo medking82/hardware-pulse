@@ -110,3 +110,29 @@ Row spacing (px)|行间距 (px)
 Text color (#RRGGBB, blank follows theme)|文字颜色（#RRGGBB，留空跟随主题）
 Enter a six-digit hex color, such as #FFFFFF.|请输入六位十六进制颜色，例如 #FFFFFF。
 Icons follow App colors|图标跟随 App 颜色
+Windows hardware|Windows 硬件
+CPU temperature|CPU 温度
+GPU temperature|GPU 温度
+GPU utilization|GPU 利用率
+Vcore · Motherboard|Vcore · 主板
+CPU Fan|CPU 风扇
+VRAM Junction|VRAM 结温
+Core Voltage|核心电压
+GPU Fan 1|GPU 风扇 1
+GPU Fan 2|GPU 风扇 2
+Module 1|内存模块 1
+Module 2|内存模块 2
+Motherboard temperature|主板温度
+System Fan 1|系统风扇 1
+System Fan 2|系统风扇 2
+Drive 1|硬盘 1
+Drive 2|硬盘 2
+LAN Link Speed|LAN 连接速度
+Wi-Fi Link Speed|Wi-Fi 连接速度
+Wi-Fi Signal|Wi-Fi 信号
+GPU memory|GPU 内存
+Shared GPU memory|共享 GPU 内存
+Live · Windows collector|实时 · Windows collector
+Windows collector readings are stale. Waiting for a fresh snapshot.|Windows collector 数据已过期，正在等待新 snapshot。
+Windows collector unavailable. Waiting for hardware readings.|Windows collector 暂不可用，正在等待硬件数据。
+Disconnected|未连接

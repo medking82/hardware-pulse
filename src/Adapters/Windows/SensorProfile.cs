@@ -46,7 +46,11 @@ namespace HardwarePulse {
             return new Usage {used=u,total=t,percent=100*u/t};
         }
         public static Reading Read(string path,DateTimeOffset now) {
+#if NET
+            try{return Parse(WindowsSnapshotReadings.ReadRaw(path),now);}
+#else
             try{return Parse(Json.Serializer().Deserialize<RawSnapshot>(Json.Read(path)),now);}
+#endif
             catch(Exception e){return new Reading {error=e.Message};}
         }
         public static Reading Parse(RawSnapshot raw,DateTimeOffset now) {

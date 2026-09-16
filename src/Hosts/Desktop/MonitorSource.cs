@@ -12,6 +12,7 @@ public interface IMonitorSource {
 public sealed class MonitorSource : IMonitorSource {
     readonly bool demo;
     readonly ReadingSession? cpu,memory;
+    readonly ReadingSession? windowsHardware;
     ReadingSession? network;
     string? selected;
     LinuxHwmonReadings? hwmon;
@@ -26,7 +27,10 @@ public sealed class MonitorSource : IMonitorSource {
         this.demo=demo;
         if(demo)return;
         if(OperatingSystem.IsLinux())cpu=memory=new ReadingSession(new LinuxReadings().Read);
-        else if(OperatingSystem.IsWindows())cpu=memory=new ReadingSession(new WindowsSystemReadings().Read);
+        else if(OperatingSystem.IsWindows()) {
+            cpu=memory=new ReadingSession(new WindowsSystemReadings().Read);
+            windowsHardware=new ReadingSession(WindowsSnapshotReadings.Default().Read);
+        }
         else if(OperatingSystem.IsMacOS()) {
             cpu=new ReadingSession(new MacCpuReadings().Read);
             memory=new ReadingSession(new MacMemoryReadings().Read);
@@ -47,12 +51,18 @@ public sealed class MonitorSource : IMonitorSource {
                 ?new LinuxNetworkReadings(name).Read:OperatingSystem.IsWindows()?new WindowsNetworkReadings(name).Read:new MacNetworkReadings(name).Read);
         }
         network?.Poll(now);
+        windowsHardware?.Poll(now);
         var sensors=ReadSensors(now);
         var gpus=ReadGpus(now);
         MacCpuIdentity? info=OperatingSystem.IsMacOS()?(cpuIdentity??=new MacCpuIdentityReader()).Read():null;
-        return MonitorSnapshot.Capture(cpu,memory!,network) with {Sensors=sensors.Current,PeakSensors=sensors.Peaks,SensorsSupported=OperatingSystem.IsLinux()||OperatingSystem.IsMacOS(),
+        return MonitorSnapshot.Capture(cpu,memory!,network) with {
+            WindowsHardwareSupported=windowsHardware!=null,
+            WindowsHardware=windowsHardware==null?[]:WindowsHardwarePresentation.Capture(windowsHardware,false),
+            PeakWindowsHardware=windowsHardware==null?[]:WindowsHardwarePresentation.Capture(windowsHardware,true),
+            WindowsHardwareStatus=windowsHardware==null?"":WindowsHardwarePresentation.Status(windowsHardware.Latest),
+            Sensors=sensors.Current,PeakSensors=sensors.Peaks,SensorsSupported=OperatingSystem.IsLinux()||OperatingSystem.IsMacOS(),
             Gpus=gpus.Current,PeakGpus=gpus.Peaks,GpusSupported=OperatingSystem.IsMacOS(),
-            CpuModel=info?.Model,CpuPhysicalCores=info?.PhysicalCores,CpuLogicalCores=info?.LogicalCores};
+            CpuModel=info?.Model??(windowsHardware?.Latest.names.TryGetValue("CPU",out var model)==true?model:null),CpuPhysicalCores=info?.PhysicalCores,CpuLogicalCores=info?.LogicalCores};
     }
     (HardwareSensorSnapshot[] Current,HardwareSensorSnapshot[] Peaks) ReadGpus(DateTimeOffset now) {
         if(!OperatingSystem.IsMacOS())return ([],[]);

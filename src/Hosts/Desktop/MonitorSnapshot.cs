@@ -1,9 +1,14 @@
 namespace HardwarePulse.Desktop;
 
-public sealed record HardwareSensorSnapshot(string Id,string Label,string Value,int? Cores=null) {
+public sealed record HardwareSensorSnapshot(string Id,string Label,string Value,int? Cores=null,string? Device=null) {
     public string GpuLabel(UiLanguage language)=>string.Format(language.T("{0} · {1} GPU cores"),Label,Cores?.ToString()??"—");
+    public string DisplayLabel(UiLanguage language)=>language.T(Label)+(string.IsNullOrWhiteSpace(Device)||string.Equals(Label,Device,StringComparison.Ordinal)?"":" · "+Device);
 }
 public sealed record MonitorSnapshot(string Cpu,string Memory,string Download,string Upload,bool CpuReady,bool MemoryReady) {
+    public IReadOnlyList<HardwareSensorSnapshot> WindowsHardware {get;init;}=[];
+    public IReadOnlyList<HardwareSensorSnapshot> PeakWindowsHardware {get;init;}=[];
+    public bool WindowsHardwareSupported {get;init;}
+    public string WindowsHardwareStatus {get;init;}="";
     public IReadOnlyList<HardwareSensorSnapshot> Sensors {get;init;}=[];
     public IReadOnlyList<HardwareSensorSnapshot> PeakSensors {get;init;}=[];
     public bool SensorsSupported {get;init;}
