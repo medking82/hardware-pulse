@@ -10,6 +10,7 @@
     <RuntimeFrameworkVersion>10.0.12</RuntimeFrameworkVersion>
   </PropertyGroup>
   <ItemGroup>
+    <AvaloniaResource Include="../../../assets/pulse.ico" Link="Assets/pulse.ico" />
     <AvaloniaResource Include="../../../assets/cpu.svg;../../../assets/memory.svg;../../../assets/down.svg;../../../assets/up.svg;../../../assets/codex.svg" Link="Assets/%(Filename)%(Extension)" />
     <PackageReference Include="Avalonia.Desktop" Version="12.1.2" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.2" />

@@ -45,6 +45,7 @@ static class Tests {
         QuotaPanelTests.Run(args.Length==1?args[0]:null);
         SettingsTests.Run(args.Length==1?args[0]:null);
         MeasurementTests.Run();
+        TrayTests.Run();
         Console.WriteLine("PASS Desktop rendering, responsive cards, unavailable state, keyboard and worker shutdown");
     }
 }

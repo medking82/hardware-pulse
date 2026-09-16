@@ -110,7 +110,8 @@ def build(rid, dotnet, allow_dirty=False):
             "The .NET runtime is included; native OS graphics/font dependencies are still required.\n"
             "Live CPU/RAM, selected network and opt-in Codex file-login quota are available.\n"
             "Settings remember window size, theme, network choice and explicit Codex opt-in.\n"
-            "Tray, Desktop overlay, FPS and other quota providers are not connected.\n"
+            "Tray/menu bar offers Open Pulse and Quit Pulse where the desktop supports it. Closing the window quits.\n"
+            "Desktop overlay, FPS and other quota providers are not connected.\n"
             "No installation, startup registration or automatic updates are performed.\n"
             "Upstream notices are in licenses/ on Linux, or inside the macOS App's Contents/Resources/licenses/.\n"
             "This CI artifact is for validation; public release remains pending.\n", encoding="utf-8")

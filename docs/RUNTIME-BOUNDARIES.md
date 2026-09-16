@@ -1114,3 +1114,23 @@ Package validation checks the platform-specific resource directory, and a
 relocation fixture copies only the .app to prove it does not depend on outer
 archive notices. Local full validation and an osx-arm64 cross-publish/archive
 inspection passed; native launch remains covered by the package CI matrix.
+At `18e93d5146871c22c96f6bcc4e41d1888c2443cb`,
+[run 35028082190](https://github.com/medking82/hardware-pulse/actions/runs/35028082190)
+passed all six jobs and all four native package checks with this resource layout.
+
+## Shared tray entry point
+
+DesktopTray owns one optional native tray/menu-bar icon for the existing shared
+window. Open Pulse restores a minimized window and activates that same instance;
+an already maximized window keeps its state. Quit Pulse closes the window through
+its existing cancellation/settings-flush lifecycle. Closing the window still
+quits; no close-to-tray or hidden startup is enabled. A missing tray host therefore
+cannot strand an invisible process. This is not cross-process single-instance IPC.
+
+The existing Pulse icon is embedded, without file-path or installed-App dependency.
+Native menu items work on macOS; tray click restoration is exposed where Avalonia
+supports it on Windows/Linux. Linux desktop tray availability and physical shell
+interaction remain environment-dependent. Headless tests cover commands, window
+state and stale callbacks after disposal, not shell visibility. Native smoke runs
+create/dispose the icon; measurement mode excludes it to preserve the earlier
+baseline scenario. No personal settings or real quota credentials are used by tests.

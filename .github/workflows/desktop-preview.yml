@@ -55,7 +55,9 @@ jobs:
       - name: Native Windows demo window measurement
         if: runner.os == 'Windows'
         shell: pwsh
-        run: ./scripts/Run-Hidden.ps1 (Get-Command dotnet).Source @('src/Hosts/Desktop/bin/Release/net10.0/Pulse.Desktop.dll','--demo','--measure-session') $PWD.Path
+        run: |
+          ./scripts/Run-Hidden.ps1 (Get-Command dotnet).Source @('src/Hosts/Desktop/bin/Release/net10.0/Pulse.Desktop.dll','--demo','--smoke-test') $PWD.Path
+          ./scripts/Run-Hidden.ps1 (Get-Command dotnet).Source @('src/Hosts/Desktop/bin/Release/net10.0/Pulse.Desktop.dll','--demo','--measure-session') $PWD.Path
       - name: Native Linux window with live telemetry
         if: runner.os == 'Linux'
         run: timeout 30s xvfb-run -a dotnet src/Hosts/Desktop/bin/Release/net10.0/Pulse.Desktop.dll --smoke-test

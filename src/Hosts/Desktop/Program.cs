@@ -34,11 +34,15 @@ public static class Program {
 }
 
 public sealed class PulseApplication : Application {
+    DesktopTray? tray;
     public override void Initialize()=>Styles.Add(new FluentTheme());
     public override void OnFrameworkInitializationCompleted() {
-        if(ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        if(ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop) {
             desktop.MainWindow=new MonitorWindow(new MonitorSource(Program.Demo),Program.Smoke,
                 store:Program.Demo||Program.Smoke||Program.Measure?null:PreviewSettingsStore.Default(),measure:Program.Measure);
+            if(!Program.Measure)tray=new DesktopTray(desktop.MainWindow);
+            desktop.Exit+=(_,_)=>tray?.Dispose();
+        }
         base.OnFrameworkInitializationCompleted();
     }
 }
