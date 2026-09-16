@@ -95,6 +95,7 @@ public sealed class MonitorWindow : Window {
         var startupMode=new ComboBox{Name="StartupMode",ItemsSource=new[]{"Monitor","Desktop","Tray"},SelectedItem=settings.StartupMode,HorizontalAlignment=HorizontalAlignment.Stretch,ItemTemplate=Language.Choices(),IsEnabled=OperatingSystem.IsWindows()};
         startupMode.SelectionChanged+=(_,_)=>{settings.StartupMode=startupMode.SelectedItem as string??"Monitor";SaveLater();};appearance.Children.Add(startupMode);
         appearance.Children.Add(Language.Set(new TextBlock{TextWrapping=TextWrapping.Wrap},"Applies on the next Windows launch. If the tray is unavailable, Monitor opens instead."));
+        var startup=new DesktopStartupPanel(Language,source.IsDemo||smoke||measure);appearance.Children.Add(startup);Closed+=(_,_)=>startup.Dispose();
         void ColumnsChoice(StackPanel parent,string label,string name,int selected,Action<int> changed) {
             parent.Children.Add(Language.Set(new TextBlock(),label));
             var choice=new ComboBox{Name=name,ItemsSource=new[]{"Auto","1","2","3"},SelectedIndex=selected,HorizontalAlignment=HorizontalAlignment.Stretch,ItemTemplate=Language.Choices()};

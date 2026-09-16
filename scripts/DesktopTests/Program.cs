@@ -37,6 +37,7 @@ static class Tests {
             LockedLayoutTests.Native();
             WindowsInstanceTests.Native();
             StartupModeTests.Native();
+            DesktopStartupTests.Run();
             WindowsLayerTests.Native();
             WindowsCaptureTests.Native();
             LocalContrastTests.Native();
@@ -49,6 +50,7 @@ static class Tests {
         }
         AppBuilder.Configure<PulseApplication>().With(DesktopFonts.Options()).UseSkia().UseHeadless(new(){UseHeadlessDrawing=false}).SetupWithoutStarting();
         if(args.SequenceEqual(new[]{"--startup-settings"})){StartupModeTests.Settings();return;}
+        if(args.SequenceEqual(new[]{"--startup-controls"})){DesktopStartupTests.Run();return;}
         if(args.Length>=1&&args[0]=="--compact-fps"){LockedLayoutTests.Fps(args.Length==2?args[1]:null);return;}
         if(args.Length>=1&&args[0]=="--layouts"){ReadingLayoutTests.Run(args.Length==2?args[1]:null);return;}
         if(args.Length>=1&&args[0]=="--columns"){AdaptiveReadingsTests.Run(args.Length==2?args[1]:null);return;}
@@ -94,6 +96,7 @@ static class Tests {
         SettingsTests.Run(args.Length==1?args[0]:null);
         StartupModeTests.Settings();
         LocalContrastTests.Settings();
+        DesktopStartupTests.Run();
         MeasurementTests.Run();
         TrayTests.Run();
         FloatingMonitorTests.Run(args.Length==1?args[0]:null);

@@ -163,6 +163,17 @@ Could not refresh apps.|無法重新整理 App。
 FPS is unavailable on this platform.|此平台暫不支援 FPS。
 FPS capture stopped|FPS capture 已停止
 Local Contrast|局部對比度
+Start with Windows|隨 Windows 啟動
+Refresh startup status|重新整理啟動狀態
+Start hardware collector|啟動硬體 collector
+Checking startup status…|正在檢查啟動狀態…
+Startup is enabled.|已啟用隨系統啟動。
+Startup is disabled.|已關閉隨系統啟動。
+Startup management requires the installed Windows version.|啟動管理需要已安裝的 Windows 版本。
+Startup change canceled.|已取消啟動設定變更。
+Startup action failed; refresh status or reinstall to repair.|啟動操作失敗；請重新整理狀態或重新安裝以修復。
+Startup change could not be verified.|無法確認啟動設定變更。
+Hardware collector start requested.|已要求啟動硬體 collector。
 Local Contrast is off.|局部對比度已關閉。
 Local contrast active|局部對比度已啟用
 Local contrast unavailable; using standard text color|局部對比度無法使用；使用標準文字顏色
