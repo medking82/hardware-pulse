@@ -110,5 +110,10 @@ despite successful telemetry smoke. Windows and macOS had no missing catalog
 glyphs. The repair embeds pinned Noto Sans CJK SC/TC fonts, uses the corresponding
 regional family for Chinese UI, and makes missing native catalog glyphs fail
 smoke. Local Windows embedded-family, language-switch and native coverage checks
-pass. Linux native confirmation is still required; local Windows results do not
-close that gate. Font diagnostics remain outside performance measurement.
+pass. Run `35052855090` at `88ae22248a30c29e5ee553dae8c76c9ed10b7abb`
+then reported zero missing catalog glyphs natively on Linux x64 and ARM64,
+and all Linux/macOS package jobs passed. Both Windows jobs passed native glyph
+coverage but failed packaging because the workflow supplied extra CLI arguments.
+The corrected Windows command passes local extracted-package smoke; the complete
+matrix must be repeated on the correction commit. This failed run is not a
+six-platform release gate. Font diagnostics remain outside performance measurement.

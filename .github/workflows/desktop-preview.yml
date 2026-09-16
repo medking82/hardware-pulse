@@ -89,7 +89,7 @@ jobs:
         shell: pwsh
         run: |
           ./scripts/Run-Hidden.ps1 (Get-Command python).Source @('scripts/test_desktop_package.py') $PWD.Path
-          ./scripts/Run-Hidden.ps1 (Get-Command python).Source @('scripts/package_desktop.py', 'scripts/prepare_desktop_fonts.py', 'scripts/desktop-fonts.lock.json','--rid','${{ matrix.rid }}','--smoke-test') $PWD.Path
+          ./scripts/Run-Hidden.ps1 (Get-Command python).Source @('scripts/package_desktop.py','--rid','${{ matrix.rid }}','--smoke-test') $PWD.Path
       - name: Package and launch extracted macOS AppHost
         if: runner.os == 'macOS'
         run: python3 scripts/package_desktop.py --rid ${{ matrix.rid }} --measure-session
