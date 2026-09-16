@@ -10,6 +10,39 @@ The current Windows WPF implementation is the behavior reference. Core is alread
 extracted; do not restart componentization. Complete bounded changes in sequence
 and verify each owner before freezing the final release commit.
 
+## Release audit at e63315b
+
+The dedicated Windows x64 collector CI passed at `e63315b` in run 35136160299,
+including registration/launch rollback regression. Desktop Windows x64 passed
+at `c8ed8ba` in run 35134152187. That Desktop run was not wholly green: Linux
+ARM64 reached a native-session timeout (exit 124) after the hardware fixture;
+its cause is unproven and the local log is `vendor/ci-live-hardware-linux-arm-failed.log`.
+Windows ARM64 remains excluded. Neither pass establishes final installer acceptance.
+
+The shared project version is still `0.7.0-preview.3`. The existing local combined
+payload manifest identifies `windows-development`, source `6f5d36e`, and dirty
+input; it is stale and must not be promoted or used as current-release evidence.
+GitHub's latest published stable remains `v0.6.27`; `v0.7.0-preview.3` is explicitly
+a prerelease. No verified Windows shared 0.7.0 stable asset is available.
+
+`Test-WindowsShared.ps1` is still absent following quarantine. The draft builder
+now refuses this missing gate before deleting any old output. A negative guard
+check preserved names and SHA-256 values for all 287 existing payload files
+(`vendor/test-shared-builder-preflight.json`). The draft builder remains local,
+untracked work, not a completed release pipeline. This guard neither restores
+the quarantined file nor substitutes another verifier.
+
+The critical remaining sequence is: resolve the quarantined verifier through
+the vendor/user boundary; produce and verify a current combined payload; finish
+and exercise installer file/task recovery in an isolated Windows installation;
+verify real installed FPS/overlay, startup/logon, update/uninstall, Desktop/display
+behavior and total-resource/soak acceptance; then freeze the stable version,
+repeat applicable final-commit checks and verify the published download.
+Source/fake-store task rollback and UI-only benchmarks do not close those gates.
+Keep the installed WPF app and original settings throughout development.
+
+## Feature evidence
+
 | Gate | Current shared-host evidence | Remaining acceptance |
 | --- | --- | --- |
 | Antigravity quota (P02) | Windows provider reused; independent opt-in and Monitor/floating projection; full Validate, headless UI, native Windows session and extracted x64 package pass | Repeat on the final stable commit; live account compatibility is distinct from fake-source regression |
