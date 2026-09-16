@@ -90,3 +90,16 @@ font/interaction validation is not established by these Windows renders.
 English/Simplified localization commit `7ff4362fdd3fd02ebf9d99747b35817ce457e3d9`
 passed all six native package jobs in
 [run 35050745266](https://github.com/medking82/hardware-pulse/actions/runs/35050745266).
+
+Native smoke now emits `FONT_COVERAGE` for all three UI catalogs using the native
+Avalonia font manager (normal and semibold weights). Windows x64 reports no
+missing code points: 59 English, 204 Simplified Chinese, 209 Traditional Chinese.
+This is catalog glyph availability, not proof for arbitrary device labels or
+typographic quality. A missing glyph report is not a successful font gate even
+if CPU/RAM smoke passes. Headless reports are separately labelled and cannot
+substitute for native platform font evidence. The probe runs only in smoke,
+not normal usage or measurement, to preserve the performance workload.
+Traditional Chinese commit `e45231455b4ec2749909473b6d87fef6a8570c63` passed
+all six native package jobs in
+[run 35051139255](https://github.com/medking82/hardware-pulse/actions/runs/35051139255).
+That run predates native glyph coverage logging and is not font coverage evidence.

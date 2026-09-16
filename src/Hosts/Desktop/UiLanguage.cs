@@ -23,6 +23,7 @@ public sealed class UiLanguage {
         return result;
     }
     public string T(string key)=>EffectiveLanguage!="en"&&(EffectiveLanguage=="zh-TW"?traditional:chinese).TryGetValue(key,out var text)?text:key;
+    internal static IEnumerable<string> Catalog(string language)=>language=="en"?chinese.Keys:language=="zh-TW"?traditional.Values:chinese.Values;
     static string ResolveSystem(string name) {
         var parts=name.Replace('_','-').Split('-');
         if(!parts[0].Equals("zh",StringComparison.OrdinalIgnoreCase))return "en";

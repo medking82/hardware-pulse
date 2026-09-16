@@ -40,6 +40,7 @@ public sealed class PulseApplication : Application {
         if(ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop) {
             desktop.MainWindow=new MonitorWindow(new MonitorSource(Program.Demo),Program.Smoke,
                 store:Program.Demo||Program.Smoke||Program.Measure?null:PreviewSettingsStore.Default(),measure:Program.Measure);
+            if(Program.Smoke)desktop.MainWindow.Opened+=(_,_)=>Console.WriteLine("FONT_COVERAGE "+System.Text.Json.JsonSerializer.Serialize(FontCoverage.Capture()));
             if(!Program.Measure)tray=new DesktopTray(desktop.MainWindow);
             desktop.Exit+=(_,_)=>tray?.Dispose();
         }

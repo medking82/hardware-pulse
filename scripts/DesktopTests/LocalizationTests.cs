@@ -26,6 +26,10 @@ static class LocalizationTests {
             string[] Tokens(string text)=>System.Text.RegularExpressions.Regex.Matches(text,@"\{\d+\}").Select(x=>x.Value).Order().ToArray();
             Check(Tokens(parts[0]).SequenceEqual(Tokens(parts[1])),"Translation preserves format placeholders");
         }
+        var coverage=FontCoverage.Capture();
+        Check(coverage.Select(x=>x.Language).SequenceEqual(new[]{"en","zh-CN","zh-TW"})&&coverage.All(x=>x.CodePoints>0),"Font coverage observes all catalogs");
+        Check(coverage.All(x=>x.Missing.Length<=x.CodePoints&&x.Missing.Distinct().Count()==x.Missing.Length),"Font coverage reports unique missing code points");
+        Console.WriteLine("HEADLESS_FONT_COVERAGE "+System.Text.Json.JsonSerializer.Serialize(coverage));
         string directory=Directory.CreateTempSubdirectory("pulse-language-").FullName;
         try {
             var store=new PreviewSettingsStore(Path.Combine(directory,"settings.json"));store.Save(new PreviewSettings{Language="en",Network="Device / eth0",Theme="Dark"});
