@@ -184,3 +184,10 @@ are pending CI. This does not establish downloaded-quarantine, signing or
 notarization behavior. A timeout fails the CI job; the ephemeral runner owns
 any remaining launched process and is discarded, rather than terminating an
 unrelated installed App.
+
+Run [35056501603](https://github.com/medking82/hardware-pulse/actions/runs/35056501603)
+passed all six native jobs at `1559568dbc165e2bd8dd6f0a9f93cee7f52ea4fe`.
+Both macOS jobs explicitly emitted `PASS macOS Launch Services bundle launch`
+and the matching extracted-package success marker (Intel at 04:43:45 UTC,
+ARM64 at 04:43:21 UTC on 2026-09-16). This closes the native `.app` launch-path
+gate while retaining the download-quarantine/signing limitations above.
