@@ -31,6 +31,7 @@ public sealed class MonitorWindow : Window {
     readonly PreviewSettings settings;
     readonly DispatcherTimer saveTimer=new(){Interval=TimeSpan.FromMilliseconds(500)};
     readonly TextBlock saveStatus=new(){TextWrapping=TextWrapping.Wrap};
+    readonly TextBlock materialStatus=new(){TextWrapping=TextWrapping.Wrap};
     bool loadingNetwork;
     public Task Sampling {get;private set;}=Task.CompletedTask;
     public MonitorWindow(IMonitorSource source,bool smoke=false,bool start=true,PreviewSettingsStore? store=null,bool measure=false) {
@@ -77,6 +78,10 @@ public sealed class MonitorWindow : Window {
         Language.Changed+=()=>Avalonia.Automation.AutomationProperties.SetName(opacity,Language.T("Background opacity"));
         opacity.ValueChanged+=(_,_)=>{settings.FloatingBackgroundOpacity=opacity.Value;opacityValue.Text=opacity.Value.ToString("F0")+"%";FloatingMonitor?.SetBackgroundOpacity(opacity.Value);SaveLater();};
         desktop.Children.Add(opacity);
+        var blur=Language.Set(new CheckBox{Name="FloatingBackgroundBlur",IsChecked=settings.FloatingBackgroundBlur},"Background blur");
+        blur.IsCheckedChanged+=(_,_)=>{settings.FloatingBackgroundBlur=blur.IsChecked==true;FloatingMonitor?.SetBackgroundBlur(settings.FloatingBackgroundBlur);UpdateMaterialStatus();SaveLater();};
+        desktop.Children.Add(blur);desktop.Children.Add(materialStatus);UpdateMaterialStatus();
+        desktop.Children.Add(Language.Set(new TextBlock{TextWrapping=TextWrapping.Wrap},"Blur strength is controlled by the system. Lower background opacity to reveal the effect."));
         desktop.Children.Add(Language.Set(new TextBlock{TextWrapping=TextWrapping.Wrap},"Only the background changes. Text stays opaque. Unsupported transparency uses a solid background."));
         var settingsTabs=new TabControl{Name="SettingsTabs",ItemsSource=new[]{
             Language.Set(new TabItem{Content=network},"Network"),Language.Set(new TabItem{Content=appearance},"Appearance"),
@@ -107,14 +112,17 @@ public sealed class MonitorWindow : Window {
         if(stop.IsCancellationRequested)return;
         if(FloatingMonitor==null) {
             FloatingMonitor=new FloatingMonitorWindow(Language,settings,SaveLater){RequestedThemeVariant=RequestedThemeVariant};
-            FloatingMonitor.Closed+=(_,_)=>FloatingMonitor=null;
+            FloatingMonitor.MaterialChanged+=UpdateMaterialStatus;
+            FloatingMonitor.Closed+=(_,_)=>{FloatingMonitor!.MaterialChanged-=UpdateMaterialStatus;FloatingMonitor=null;UpdateMaterialStatus();};
         }
         if(latestSnapshot!=null)FloatingMonitor.Present(latestSnapshot,readingMode.SelectedIndex==1);
         FloatingMonitor.PresentQuota(quota.CurrentReading);
         FloatingMonitor.Show();if(!FloatingMonitor.SetLocked(false))return;
         if(FloatingMonitor.WindowState==WindowState.Minimized)FloatingMonitor.WindowState=WindowState.Normal;
         FloatingMonitor.Activate();
+        UpdateMaterialStatus();
     }
+    void UpdateMaterialStatus()=>Language.Set(materialStatus,FloatingMonitor?.MaterialStatus??"Open the floating monitor to check background effects.");
     static ScrollViewer Scroll(Control content)=>new(){Content=content,HorizontalScrollBarVisibility=Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled};
     void ApplyTheme(){RequestedThemeVariant=settings.Theme=="Dark"?ThemeVariant.Dark:settings.Theme=="Light"?ThemeVariant.Light:ThemeVariant.Default;if(FloatingMonitor!=null)FloatingMonitor.RequestedThemeVariant=RequestedThemeVariant;}
     void SaveLater(){if(store==null)return;saveTimer.Stop();saveTimer.Start();}

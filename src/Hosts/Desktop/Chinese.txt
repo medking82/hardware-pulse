@@ -76,6 +76,13 @@ Quit Pulse|退出 Pulse
 Floating monitor|浮动监控窗口
 Desktop|桌面
 Background opacity|背景不透明度
+Background blur|背景模糊
+Background blur is off.|背景模糊已关闭。
+Background blur is active.|背景模糊已生效。
+Blur is active but hidden by the opaque background.|模糊已生效，但被不透明背景遮住。
+Background blur is unavailable. Using the supported background instead.|当前无法使用背景模糊，已回退到受支持的背景效果。
+Open the floating monitor to check background effects.|打开浮动监控窗口以查看背景效果状态。
+Blur strength is controlled by the system. Lower background opacity to reveal the effect.|模糊强度由系统控制，降低背景不透明度即可看到效果。
 Only the background changes. Text stays opaque. Unsupported transparency uses a solid background.|只调整背景，文字保持不透明。不支持透明效果时使用纯色背景。
 Open floating monitor|打开浮动监控窗口
 Always on top|置顶显示

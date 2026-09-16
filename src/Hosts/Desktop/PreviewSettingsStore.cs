@@ -12,6 +12,7 @@ public sealed class PreviewSettings {
     public int FloatingX,FloatingY;
     public bool FloatingPositionSet,FloatingTopmost;
     public double FloatingBackgroundOpacity=100;
+    public bool FloatingBackgroundBlur;
 }
 
 // Host-specific persistence. No credentials or installed WPF settings are stored here.
@@ -45,6 +46,7 @@ public sealed class PreviewSettingsStore {
             settings.FloatingX=(int)values.Number("floatingX",0,-100000,100000);settings.FloatingY=(int)values.Number("floatingY",0,-100000,100000);
             settings.FloatingPositionSet=values.Flag("floatingPositionSet");settings.FloatingTopmost=values.Flag("floatingTopmost");
             settings.FloatingBackgroundOpacity=values.Number("floatingBackgroundOpacity",100,0,100);
+            settings.FloatingBackgroundBlur=values.Flag("floatingBackgroundBlur");
             string theme=values.Text("theme","System");settings.Theme=theme is "Light" or "Dark"?theme:"System";
             string network=values.Text("network");settings.Network=network.Length>0&&network.Length<=256&&!network.Any(char.IsControl)?network:null;
             settings.Codex=values.Flag("codex");
@@ -68,6 +70,7 @@ public sealed class PreviewSettingsStore {
                 ["floatingX"]=JsonSerializer.SerializeToElement(settings.FloatingX),["floatingY"]=JsonSerializer.SerializeToElement(settings.FloatingY),
                 ["floatingPositionSet"]=JsonSerializer.SerializeToElement(settings.FloatingPositionSet),["floatingTopmost"]=JsonSerializer.SerializeToElement(settings.FloatingTopmost),
                 ["floatingBackgroundOpacity"]=JsonSerializer.SerializeToElement(settings.FloatingBackgroundOpacity),
+                ["floatingBackgroundBlur"]=JsonSerializer.SerializeToElement(settings.FloatingBackgroundBlur),
                 ["language"]=JsonSerializer.SerializeToElement(settings.Language)};
             var bytes=JsonSerializer.SerializeToUtf8Bytes(updated);
             if(bytes.Length>65536)throw new InvalidDataException();

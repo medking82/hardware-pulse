@@ -20,6 +20,10 @@ public sealed class FloatingMonitorWindow : Window {
     IDisposable? inputLifetime;
     double backgroundOpacity=100;
     public double BackgroundOpacity=>backgroundOpacity;
+    public bool BackgroundBlur {get;private set;}
+    public event Action? MaterialChanged;
+    public string MaterialStatus=>!BackgroundBlur?"Background blur is off.":ActualTransparencyLevel==WindowTransparencyLevel.Blur||ActualTransparencyLevel==WindowTransparencyLevel.AcrylicBlur?
+        (backgroundOpacity>=100?"Blur is active but hidden by the opaque background.":"Background blur is active."):"Background blur is unavailable. Using the supported background instead.";
     public bool IsLocked {get;private set;}
     public bool CanLock=>input!=null;
     public FloatingMonitorWindow(UiLanguage language,PreviewSettings? saved=null,Action? changed=null) {
@@ -27,7 +31,7 @@ public sealed class FloatingMonitorWindow : Window {
         saved??=new PreviewSettings();
         Width=saved.FloatingWidth;Height=saved.FloatingHeight;MinWidth=360;MinHeight=240;FontSize=15;
         Topmost=saved.FloatingTopmost;
-        TransparencyLevelHint=[WindowTransparencyLevel.Transparent,WindowTransparencyLevel.None];
+        SetBackgroundBlur(saved.FloatingBackgroundBlur);
         PropertyChanged+=(_,e)=>{if(e.Property==ActualTransparencyLevelProperty||e.Property==ActualThemeVariantProperty)ApplyBackground();};
         SetBackgroundOpacity(saved.FloatingBackgroundOpacity);
         bool restored=false;
@@ -86,11 +90,17 @@ public sealed class FloatingMonitorWindow : Window {
     public void SetBackgroundOpacity(double value) {
         backgroundOpacity=double.IsFinite(value)?Math.Clamp(value,0,100):100;ApplyBackground();
     }
+    public void SetBackgroundBlur(bool enabled) {
+        BackgroundBlur=enabled;
+        TransparencyLevelHint=enabled?[WindowTransparencyLevel.Blur,WindowTransparencyLevel.Transparent,WindowTransparencyLevel.None]:[WindowTransparencyLevel.Transparent,WindowTransparencyLevel.None];
+        MaterialChanged?.Invoke();
+    }
     void ApplyBackground() {
         var color=ActualThemeVariant==ThemeVariant.Dark?Color.Parse("#202830"):Color.Parse("#F4F6F8");
         byte alpha=ActualTransparencyLevel==WindowTransparencyLevel.None?(byte)255:(byte)Math.Round(backgroundOpacity*2.55);
         Background=new SolidColorBrush(Color.FromArgb(alpha,color.R,color.G,color.B));
         TransparencyBackgroundFallback=new SolidColorBrush(color);
+        MaterialChanged?.Invoke();
     }
     public bool SetLocked(bool locked) {
         if(input==null)return !locked;

@@ -6,6 +6,8 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 
 ## Unreleased
 
+- Shared Desktop adds an opt-in system background blur control with saved preferences and actual-backend status. Unsupported backends retain the supported background; this does not implement a native macOS blur adapter or adjustable blur radius.
+
 - Locked shared floating monitors hide inactive editing controls. Reopening from Monitor or the tray restores the controls without changing the window dimensions.
 
 - Shared Desktop settings add a 0–100% floating background opacity control, saved independently of fully opaque text. Platforms without transparency use a solid background; this is not a blur effect.

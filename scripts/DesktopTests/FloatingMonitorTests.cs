@@ -32,6 +32,10 @@ static class FloatingMonitorTests {
             Check(background.Color.A==(floating.ActualTransparencyLevel==WindowTransparencyLevel.None?255:0)&&floating.Opacity==1,"Transparent background or solid fallback altered text opacity");
             if(floating.CanLock){Check(floating.SetLocked(true)&&floating.SetLocked(false),"Zero background opacity broke lock/unlock");}
             floating.SetBackgroundOpacity(100);Check(((Avalonia.Media.SolidColorBrush)floating.Background!).Color.A==255,"Solid background alpha");
+            floating.SetBackgroundBlur(true);Dispatcher.UIThread.RunJobs();
+            bool blurActive=floating.ActualTransparencyLevel==WindowTransparencyLevel.Blur||floating.ActualTransparencyLevel==WindowTransparencyLevel.AcrylicBlur;
+            Check(floating.MaterialStatus==(blurActive?"Blur is active but hidden by the opaque background.":"Background blur is unavailable. Using the supported background instead."),"Blur status confuses request with achieved backend capability");
+            floating.SetBackgroundBlur(false);Check(floating.MaterialStatus=="Background blur is off."&&floating.Opacity==1,"Blur toggle changed foreground opacity");
             if(output!=null){floating.Width=360;Dispatcher.UIThread.RunJobs();using var frame=floating.CaptureRenderedFrame();frame!.Save(Path.Combine(output,"floating-360.png"),Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);}
             var top=floating.GetVisualDescendants().OfType<CheckBox>().Single();
             top.IsChecked=true;Check(floating.Topmost,"Topmost not applied");top.IsChecked=false;Check(!floating.Topmost,"Topmost not reversible");
