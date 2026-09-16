@@ -65,6 +65,25 @@ static class QuotaPanelTests {
         floating.PresentQuota(null,"Claude");Dispatcher.UIThread.RunJobs();
         Check(Text(floating).Any(x=>x.Text=="Codex · Live")&&!Text(floating).Any(x=>x.Text=="Claude · Live"),"Disabling Claude preserves Codex");
         floating.Close();claudeWindow.Close();
+        int antigravityReads=0;
+        using var antigravity=new CodexQuotaPanel(false,_=>new(){Provider="Antigravity",Status=Interlocked.Increment(ref antigravityReads)==1?"Open Antigravity to read quota":"Login required"},provider:"Antigravity");
+        var missing=new Window{Content=antigravity};missing.Show();antigravity.QuotaEnabled=true;
+        Until(()=>Text(missing).Any(x=>x.Text=="Open Antigravity to read quota"),"Missing Antigravity is explicit");
+        Check(!missing.GetVisualDescendants().OfType<ProgressBar>().Any(),"Missing source does not fabricate quota");
+        missing.GetVisualDescendants().OfType<Button>().Single(x=>x.Name=="RefreshAntigravityQuota").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Until(()=>Text(missing).Any(x=>x.Text=="Login required · Open Antigravity to read quota"),"Expired source directs the user to Antigravity");missing.Close();
+        var owner=new MonitorWindow(new MonitorSource(true),start:false);owner.Show();
+        var panels=owner.GetVisualDescendants().OfType<CodexQuotaPanel>().ToDictionary(x=>x.Provider);
+        foreach(var provider in QuotaSession.Providers)panels[provider].QuotaEnabled=true;
+        owner.OpenFloatingMonitor();
+        Until(()=>QuotaSession.Providers.All(provider=>Text(owner.FloatingMonitor!).Any(x=>x.Text==provider+" · Live")),"All providers reach floating monitor from owner");
+        Check(panels["Antigravity"].CurrentReading!.Provider=="Antigravity","Correct Antigravity snapshot identity");
+        if(output!=null){using var frame=owner.FloatingMonitor!.CaptureRenderedFrame();frame!.Save(Path.Combine(output,"antigravity-floating.png"),Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);}
+        owner.FloatingMonitor!.Close();owner.OpenFloatingMonitor();Dispatcher.UIThread.RunJobs();
+        Check(Text(owner.FloatingMonitor!).Any(x=>x.Text=="Antigravity · Live"),"Reopen reuses current provider snapshot");
+        panels["Antigravity"].QuotaEnabled=false;Dispatcher.UIThread.RunJobs();
+        Check(!Text(owner.FloatingMonitor!).Any(x=>x.Text=="Antigravity · Live")&&Text(owner.FloatingMonitor!).Any(x=>x.Text=="Codex · Live")&&Text(owner.FloatingMonitor!).Any(x=>x.Text=="Claude · Live"),"Antigravity opt-out preserves both other providers");
+        owner.Close();
         Console.WriteLine("PASS Codex UI opt-in, complete windows, missing values, retry, stale result rejection and cancellation; synthetic reader only");
     }
 }

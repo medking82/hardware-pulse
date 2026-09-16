@@ -23,19 +23,20 @@ A missing saved interface stays unselected; reconnect and refresh, or choose ano
 Linux displays kernel-exposed temperature and fan channels when available. Missing readings display an em dash, not zero.
 Session Max shows CPU, selected-network and exposed Linux sensor peaks. RAM and quota remain current.
 Codex quota is optional and off by default. It reads an existing file login without changing credentials.
-Settings remember window size, theme, network choice and Codex opt-in in a separate preview profile.
+Claude and Antigravity have independent opt-ins. Claude reads existing login; Antigravity requires the current user's running Windows language server. Antigravity is explicitly unavailable on other platforms. Pulse does not sign in or renew tokens.
+Settings remember window size, theme, network choice and each quota opt-in in a separate preview profile.
 Settings > Appearance > Language offers Auto (System), English, Simplified Chinese and Traditional Chinese. UI and tray labels change immediately; device names and values are preserved.
 Tray/menu bar offers Open Pulse and Quit Pulse where supported. Closing the window quits.
 Open floating monitor is available from Monitor and the tray/menu bar. Both reuse the same window and readings.
 The floating monitor supports Always on top and native move/resize. Closing it leaves Monitor running; quitting Monitor closes both.
 Settings > Desktop controls font size, Always on top, background opacity and system blur. Preferences and floating size/position are remembered. Opacity changes only the background, not text. Blur status reports the achieved backend effect; its strength is controlled by the OS.
-Enabled Codex quota appears in the floating monitor using the existing session. Locking hides editing controls; reopening restores them.
+Enabled quota providers appear in the floating monitor using their existing sessions. Disabling one preserves the others. Locking hides editing controls; reopening restores them.
 On Windows/macOS and Linux X11 with XFixes, Lock floating monitor requests native mouse input pass-through. Reopen it from Monitor or the tray/menu bar to unlock. X11 temporarily removes the interactive window frame and restores it on unlock. Windows ARM64 interactive validation remains incomplete; it is not included in this preview update. Native Wayland locking is not implemented.
 
 Limits
 This is an experimental preview, not feature parity with the stable Windows App.
 GPU telemetry, FPS, complete Desktop overlay, adjustable blur radius/local contrast, global shortcuts,
-startup registration, automatic updates and other quota providers are not connected.
+startup registration and automatic updates are not connected.
 Temperature/fan channels are currently supported only through Linux hwmon in this shared App.
 Windows CPU requires a single processor group; macOS RAM is an estimate of used memory.
 No installer or automatic update is performed. Replace the extracted folder to update while the App is closed.

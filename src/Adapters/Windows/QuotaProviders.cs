@@ -1,3 +1,6 @@
+#if NET
+#pragma warning disable SYSLIB0014, SYSLIB0039, CA1416 // Reuse the established Windows transport and credential boundary.
+#endif
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -24,6 +27,7 @@ namespace HardwarePulse {
         static string LoginFile(string variable,string directory,string file){string root=Environment.GetEnvironmentVariable(variable);if(string.IsNullOrWhiteSpace(root))root=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),directory);return Path.Combine(root,file);}
         static object ReadLogin(string path){var info=new FileInfo(path);if(!info.Exists)throw new QuotaFailure("Login required");if(info.Length>1048576)throw new QuotaFailure("Login unavailable");return QuotaData.Parse(File.ReadAllText(path));}
         public static QuotaReading Read(string provider,CancellationToken cancel){
+            cancel.ThrowIfCancellationRequested();
             if(provider=="Codex")return CodexQuota.Read(()=>ReadLogin(LoginFile("CODEX_HOME",".codex","auth.json")),RequestCodex,cancel);
             try{
                 object body;

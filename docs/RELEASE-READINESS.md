@@ -65,6 +65,13 @@ verification on each target platform.
 
 ## Scope decision
 
+Latest explicit decision (2026-09-16): Windows 0.7.0 stable must use the shared
+host after Windows feature parity and acceptance, rather than a WPF version bump.
+Continue P02 first, then the Windows gates in
+[Windows 0.7.0 readiness](WINDOWS-070-READINESS.md). Keep preview separate until
+the final release gates pass. This supersedes earlier Windows-host delivery
+priorities below; macOS need not block a verified Windows release.
+
 Latest priority (2026-09-16, after the Win7 test publication): the user requests
 Windows 10/11 and macOS stable delivery as soon as possible. Ship Windows
 independently; continue macOS completion. Win7 stays at the explicitly requested

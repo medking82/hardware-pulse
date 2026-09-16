@@ -155,13 +155,13 @@ public sealed class FloatingMonitorWindow : Window {
         if(lastSnapshot!=null)Present(lastSnapshot,lastPeaks);
     }
     public void PresentQuota(QuotaReading? reading,string provider="Codex") {
-        if(provider is not ("Codex" or "Claude"))throw new ArgumentException("Unsupported quota provider",nameof(provider));
+        if(!QuotaSession.Providers.Contains(provider))throw new ArgumentException("Unsupported quota provider",nameof(provider));
         if(reading==null)quotaReadings.Remove(provider);else quotaReadings[provider]=reading;
         RenderQuota();
     }
     void RenderQuota() {
         quotaRows.Children.Clear();quotaRows.IsVisible=quotaReadings.Count>0;
-        foreach(var provider in new[]{"Codex","Claude"}) {
+        foreach(var provider in QuotaSession.Providers) {
         if(!quotaReadings.TryGetValue(provider,out var reading))continue;
         quotaRows.Children.Add(new TextBlock{Text=provider+" · "+language.T(reading.Status),TextWrapping=TextWrapping.Wrap,FontWeight=FontWeight.SemiBold});
         var windows=reading.AllWindows.Count>0?reading.AllWindows:reading.Windows;

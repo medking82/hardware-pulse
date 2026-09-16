@@ -20,6 +20,8 @@ static class SettingsTests {
             File.WriteAllText(path,"{\"schema\":1,\"width\":-999,\"height\":99999,\"theme\":\"bad\",\"network\":\"missing-interface\",\"codex\":true,\"future\":{\"keep\":7}}");
             var store=new PreviewSettingsStore(path);var value=store.Load();
             Check(!value.Claude,"Existing settings must not opt into Claude credentials");
+            Check(!value.Antigravity,"Existing settings must not opt into Antigravity");
+            value.Antigravity=true;
             Check(value.FloatingIconsFollowApp&&value.FloatingTextOpacity==100&&value.FloatingTextColor=="","Old settings retain readable appearance defaults");
             Check(value.Width==360&&value.Height==1600&&value.Theme=="System"&&value.Codex,"Settings normalize known values");
             value.Width=700;value.Height=650;Check(store.Save(value),"Atomic save");
@@ -27,6 +29,8 @@ static class SettingsTests {
             value.FloatingBackgroundOpacity=35;
             Check(store.Save(value),"Floating settings save");
             var floatingSaved=new PreviewSettingsStore(path).Load();
+            Check(floatingSaved.Antigravity,"Antigravity opt-in round trip");
+            value.Antigravity=false;Check(store.Save(value),"Antigravity opt-out saved independently");
             Check(floatingSaved.FloatingBackgroundOpacity==35,"Floating background opacity round trip");
             Check(floatingSaved.FloatingWidth==620&&floatingSaved.FloatingHeight==730&&floatingSaved.FloatingX==-900&&floatingSaved.FloatingY==80&&floatingSaved.FloatingTopmost&&floatingSaved.FloatingPositionSet,"Floating settings round trip");
             using(var doc=JsonDocument.Parse(File.ReadAllText(path)))Check(doc.RootElement.GetProperty("future").GetProperty("keep").GetInt32()==7,"Unknown fields retained");
@@ -113,10 +117,12 @@ static class SettingsTests {
             var quota=window.GetVisualDescendants().OfType<CheckBox>().Single(x=>x.Name=="EnableCodexQuota");Check(quota.IsChecked==true,"Quota choice restored with explicit demo reader");quota.IsChecked=false;
             var claude=window.GetVisualDescendants().OfType<CheckBox>().Single(x=>x.Name=="EnableClaudeQuota");
             Check(claude.IsChecked==false,"Claude starts disabled independently of Codex");claude.IsChecked=true;
+            var antigravity=window.GetVisualDescendants().OfType<CheckBox>().Single(x=>x.Name=="EnableAntigravityQuota");
+            Check(antigravity.IsChecked==false,"Antigravity starts disabled independently");antigravity.IsChecked=true;
             if(output!=null){window.Width=360;Dispatcher.UIThread.RunJobs();using var frame=window.CaptureRenderedFrame();frame!.Save(Path.Combine(output,"settings-360.png"),Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);}
             window.Close();Until(()=>window.Sampling.IsCompleted);
             var saved=new PreviewSettingsStore(path).Load();Check(saved.Theme=="Dark"&&!saved.Codex&&saved.Network=="missing-interface","Choices survive close");
-            Check(saved.Claude&&!saved.Codex,"Provider opt-ins persist independently");
+            Check(saved.Claude&&saved.Antigravity&&!saved.Codex,"Provider opt-ins persist independently");
             var reopened=new MonitorWindow(new MonitorSource(true),start:false,store:new PreviewSettingsStore(path));
             Check(reopened.RequestedThemeVariant==ThemeVariant.Dark&&reopened.Width==saved.Width,"Choices survive reopen");reopened.Show();reopened.Close();
             Console.WriteLine("PASS isolated preview settings: normalization, unknown fields, atomic save, error preservation, theme, quota and missing interface");

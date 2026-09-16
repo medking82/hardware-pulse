@@ -1,5 +1,37 @@
 # Independent quota readings
 
+## Shared Antigravity (P02)
+
+The shared host composes readers in `DesktopQuotaReaders`; quota panels receive
+a reader and do not select credential implementations. Windows builds reuse the
+existing `AntigravityQuota` and `QuotaProviders` source, including current-user
+process ownership, PID-owned ports, fixed endpoints, redirect rejection and
+bounded transport. The modern JSON bridge uses the same bounded `QuotaJson`
+graph as the other modern quota clients. No second Antigravity collector or
+floating-window reader is introduced.
+
+`QuotaSession` remains the refresh/cancellation/late-result owner. Antigravity has
+its own opt-in in the separate preview profile. Monitor publishes the same
+reading to floating Desktop, including reopen and opt-out. Missing local server
+is explicit; no values are fabricated. macOS/Linux acquisition is unavailable:
+Windows WMI, SID and TCP ownership discovery has no verified adapter there.
+The presentation and decoder remain portable; this does not claim portable
+Antigravity source discovery.
+
+Synthetic tests cover modern JSON bounds, fractional and zero quota, canceled
+reads, independent persistence, missing source, floating propagation/reopen and
+provider-specific clearing. Core late-result/no-overlap tests cover each provider.
+Tests never read authentication stores. Live account compatibility is separate
+from synthetic acceptance.
+
+Local P02 verification: `Validate.ps1 -ModernCore`, Desktop headless regression,
+native Windows session checks and extracted self-contained win-x64 package smoke
+passed. Rendered Antigravity floating rows were inspected. Local validation
+packages retain the preview version and dirty-source marker; they are not stable
+release assets. No installed application or authentication store was modified.
+
+## Existing Windows contract
+
 Scope: opt-in Codex, Claude and Antigravity remaining quota and reset times in
 Monitor and Desktop View. No token history, spending, chat contents or account management.
 

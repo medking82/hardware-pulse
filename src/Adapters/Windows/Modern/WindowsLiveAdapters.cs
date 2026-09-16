@@ -1,3 +1,4 @@
+#nullable enable
 namespace HardwarePulse;
 
 public sealed class WindowsNetworkReadings {

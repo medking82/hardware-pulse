@@ -13,6 +13,13 @@ while hidden. Programmatic close and OS/application shutdown are never intercept
 Linux retains close-to-exit until tray reachability can be established. This source
 change is not in the preview.3 download.
 
+Source after preview.3 also adds independent Claude and Antigravity quota
+opt-ins. Windows Antigravity uses the current user's running local server;
+macOS/Linux Antigravity source discovery is unavailable. Monitor and floating
+Desktop share each provider snapshot. These additions are not in the published
+preview.3 packages. Windows 0.7.0 stable now targets the shared host only after
+the [Windows release gates](WINDOWS-070-READINESS.md) pass.
+
 - Live CPU utilization, physical RAM and download/upload rates for one selected
   network interface, refreshed once per second. Windows CPU currently requires
   a single processor group; macOS RAM is a documented used-memory estimate.

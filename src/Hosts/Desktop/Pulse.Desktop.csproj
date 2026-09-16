@@ -11,6 +11,7 @@
     <RuntimeFrameworkVersion>10.0.12</RuntimeFrameworkVersion>
   </PropertyGroup>
   <ItemGroup>
+    <AvaloniaResource Include="../../../assets/antigravity.svg" Link="Assets/antigravity.svg" />
     <AvaloniaResource Include="../../../vendor/desktop-fonts/*.otf" Link="Assets/Fonts/%(Filename)%(Extension)" />
     <EmbeddedResource Include="Chinese.txt" LogicalName="Pulse.Desktop.Chinese.txt" />
     <EmbeddedResource Include="ChineseTraditional.txt" LogicalName="Pulse.Desktop.ChineseTraditional.txt" />
