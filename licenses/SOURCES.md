@@ -35,6 +35,9 @@ The self-contained preview uses Avalonia 12.1.2 and .NET 10.0.12. Vendored
 upstream notices were read from these versioned sources:
 
 - Avalonia-MIT.txt and Avalonia-NOTICE.md: https://github.com/AvaloniaUI/Avalonia/tree/12.1.2
+- Avalonia-ANGLE-LICENSE.txt: LICENSE from Avalonia.Angle.Windows.Natives
+  2.1.27548.20260419, repository commit 1c89805903c1482166356d3b950d474973180e61
+  at https://github.com/AvaloniaUI/angle/. Bundled Windows graphics dependency.
 - DotNet-MIT.txt and DotNet-NOTICES.txt: https://github.com/dotnet/runtime/tree/v10.0.12
 - MicroCom-MIT.txt: https://github.com/kekekeks/MicroCom/blob/76785efcafd91b5902fd19dd11145f6dd655b7b4/LICENSE
 - SkiaSharp-MIT.txt: LICENSE.txt in the locked SkiaSharp 3.119.4 NuGet package.
@@ -43,6 +46,7 @@ upstream notices were read from these versioned sources:
 - SkiaSharp-HarfBuzzSharp-NOTICES.txt: unmodified THIRD-PARTY-NOTICES.txt from
   SkiaSharp.NativeAssets.Linux 3.119.4. The corresponding macOS package and
   HarfBuzzSharp.NativeAssets.Linux/macOS 8.3.1.3 contain identical bytes.
+  The corresponding Win32 native packages also contain these identical notices.
   Notice SHA-256: `21504c46c4c58aa64c1055bd2dcbc5f9a136b4b8c412ed3cc6740e22c5b127f5`.
   NuGet cache contentHash metadata for all four packages matches packages.lock.json.
   This is the upstream combined notice bundle, including native Skia/HarfBuzz

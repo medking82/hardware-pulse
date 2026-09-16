@@ -23,8 +23,10 @@ jobs:
         include:
           - runner: windows-2022
             arch: X64
+            rid: win-x64
           - runner: windows-11-arm
             arch: Arm64
+            rid: win-arm64
           - runner: ubuntu-24.04
             arch: X64
             rid: linux-x64
@@ -75,11 +77,16 @@ jobs:
       - name: Reject damaged or incomplete packages
         if: runner.os != 'Windows'
         run: python3 scripts/test_desktop_package.py
+      - name: Package and launch extracted Windows AppHost
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          ./scripts/Run-Hidden.ps1 (Get-Command python).Source @('scripts/test_desktop_package.py') $PWD.Path
+          ./scripts/Run-Hidden.ps1 (Get-Command python).Source @('scripts/package_desktop.py','--rid','${{ matrix.rid }}','--smoke-test') $PWD.Path
       - name: Package and launch extracted macOS AppHost
         if: runner.os == 'macOS'
         run: python3 scripts/package_desktop.py --rid ${{ matrix.rid }} --measure-session
       - name: Retain verified development packages
-        if: runner.os != 'Windows'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: desktop-preview-${{ matrix.rid }}

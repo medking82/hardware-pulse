@@ -1189,6 +1189,25 @@ also pass. Windows native CI smoke now uses live adapters; the existing Windows
 measurement still explicitly uses demo so its historical baseline stays comparable.
 Windows self-contained shared-host distribution remains separate release work.
 
+The package builder now targets Windows x64/ARM64 as well as Linux/macOS.
+Windows development archives contain Pulse.Desktop.exe and the pinned runtime;
+they are portable previews, not replacements for the WPF installer. Verification
+checks PE bounds/machine type, runtimeconfig and required native DLLs, notices,
+file inventory and SHA-256 before native launch. Only the two known native Skia/
+HarfBuzz debug-symbol files are removed from owned temporary publish output.
+Unknown debug/private/script files still fail verification. The original ANGLE
+package license is included for Windows graphics dependencies.
+
+Local Windows x64 extracted AppHost passed live CPU/RAM smoke with DOTNET_ROOT
+removed/redirected; wrong-architecture and missing-runtime fixtures fail. Windows
+ARM64 must pass its native CI package launch before execution support is claimed.
+All six native package jobs retain development archives; public release,
+installation integration and full feature coverage remain outstanding.
+
+Live host wiring at `04c5536474a01918f995dc2a10ca816bbe8639bc` passed
+[run 35042812321](https://github.com/medking82/hardware-pulse/actions/runs/35042812321),
+including Windows x64/ARM64 live UI smoke and macOS network regression checks.
+
 System adapter validation at `a610c1fa6ce55aab8125787ee73378df6e664a2f`:
 [run 35042377337](https://github.com/medking82/hardware-pulse/actions/runs/35042377337)
 passed all six jobs, including actual CPU/RAM reads in Windows x64 and ARM64.

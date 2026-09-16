@@ -32,10 +32,36 @@ class PackageTests(unittest.TestCase):
             shutil.copy2(package.ROOT / "licenses" / name, self.folder / "licenses" / name)
         self.manifest()
 
-    def manifest(self):
-        (self.folder / "manifest.json").write_text(json.dumps({"kind": "development-preview", "rid": "linux-x64",
+    def manifest(self, rid="linux-x64"):
+        (self.folder / "manifest.json").write_text(json.dumps({"kind": "development-preview", "rid": rid,
             "files": {p.relative_to(self.folder).as_posix(): package.digest(p)
                       for p in self.folder.rglob("*") if p.is_file() and p.name != "manifest.json"}}))
+
+    def test_windows_machine_and_native_dependencies(self):
+        (self.folder / "Pulse.Desktop").unlink()
+        header = bytearray(96)
+        header[:2] = b"MZ"
+        header[60:64] = (64).to_bytes(4, "little")
+        header[64:68] = b"PE\0\0"
+        header[68:70] = (0x8664).to_bytes(2, "little")
+        exe = self.folder / "Pulse.Desktop.exe"
+        exe.write_bytes(header)
+        for old, new in zip(("libhostfxr.so", "libcoreclr.so", "libSkiaSharp.so", "libHarfBuzzSharp.so"),
+                            ("hostfxr.dll", "coreclr.dll", "libSkiaSharp.dll", "libHarfBuzzSharp.dll")):
+            (self.folder / old).rename(self.folder / new)
+        self.manifest("win-x64")
+        package.verify(self.folder, "win-x64")
+        self.manifest("win-arm64")
+        with self.assertRaisesRegex(AssertionError, "Wrong PE architecture"):
+            package.verify(self.folder, "win-arm64")
+        header[68:70] = (0xaa64).to_bytes(2, "little")
+        exe.write_bytes(header)
+        self.manifest("win-arm64")
+        package.verify(self.folder, "win-arm64")
+        (self.folder / "coreclr.dll").unlink()
+        self.manifest("win-arm64")
+        with self.assertRaisesRegex(AssertionError, "Missing self-contained dependency"):
+            package.verify(self.folder, "win-arm64")
 
     def test_required_notice_even_with_matching_manifest(self):
         notice = self.folder / "licenses/SkiaSharp-HarfBuzzSharp-NOTICES.txt"

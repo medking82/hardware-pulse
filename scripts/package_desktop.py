@@ -12,8 +12,8 @@ import tarfile
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
-RIDS = ("linux-x64", "linux-arm64", "osx-x64", "osx-arm64")
-REQUIRED_NOTICES = ("Avalonia-MIT.txt", "Avalonia-NOTICE.md", "DotNet-MIT.txt", "DotNet-NOTICES.txt",
+RIDS = ("win-x64", "win-arm64", "linux-x64", "linux-arm64", "osx-x64", "osx-arm64")
+REQUIRED_NOTICES = ("Avalonia-MIT.txt", "Avalonia-NOTICE.md", "Avalonia-ANGLE-LICENSE.txt", "DotNet-MIT.txt", "DotNet-NOTICES.txt",
                     "MicroCom-MIT.txt", "SkiaSharp-MIT.txt", "HarfBuzzSharp-MIT.txt",
                     "SkiaSharp-HarfBuzzSharp-NOTICES.txt", "LobeIcons-MIT.txt", "TokenMonitor.txt", "SOURCES.md")
 
@@ -29,6 +29,8 @@ def digest(path):
 
 
 def executable_path(rid):
+    if rid.startswith("win-"):
+        return Path("Pulse.Desktop.exe")
     return Path("Pulse Preview.app/Contents/MacOS/Pulse.Desktop") if rid.startswith("osx-") else Path("Pulse.Desktop")
 
 
@@ -54,12 +56,18 @@ def verify(folder, rid):
     verify_notices(folder, rid)
     exe = folder / executable_path(rid)
     assert exe.is_file(), "Missing executable"
-    if os.name != "nt":
+    if os.name != "nt" and not rid.startswith("win-"):
         assert exe.stat().st_mode & 0o111, "Missing executable permission"
-    header = exe.read_bytes()[:32]
+    data = exe.read_bytes()
+    header = data[:32]
     if rid.startswith("linux-"):
         assert header[:4] == b"\x7fELF" and header[4:6] == b"\x02\x01", "Expected little-endian ELF64"
         assert int.from_bytes(header[18:20], "little") == (183 if rid.endswith("arm64") else 62)
+    elif rid.startswith("win-"):
+        assert len(data) >= 64 and header[:2] == b"MZ", "Expected PE executable"
+        offset = int.from_bytes(data[60:64], "little")
+        assert 64 <= offset <= len(data) - 24 and data[offset:offset + 4] == b"PE\0\0", "Invalid PE header"
+        assert int.from_bytes(data[offset + 4:offset + 6], "little") == (0xaa64 if rid.endswith("arm64") else 0x8664), "Wrong PE architecture"
     else:
         assert header[:4] == b"\xcf\xfa\xed\xfe", "Expected Mach-O 64"
         assert int.from_bytes(header[4:8], "little") == (0x100000c if rid.endswith("arm64") else 0x1000007)
@@ -69,9 +77,11 @@ def verify(folder, rid):
     assert "framework" not in options and "frameworks" not in options
     assert options["includedFrameworks"] == [{"name": "Microsoft.NETCore.App", "version": "10.0.12"}]
     suffix = ".dylib" if rid.startswith("osx-") else ".so"
-    for file in ["libhostfxr" + suffix, "libcoreclr" + suffix, "libSkiaSharp" + suffix, "libHarfBuzzSharp" + suffix]:
+    native_files = ["hostfxr.dll", "coreclr.dll", "libSkiaSharp.dll", "libHarfBuzzSharp.dll"] if rid.startswith("win-") else ["libhostfxr" + suffix, "libcoreclr" + suffix, "libSkiaSharp" + suffix, "libHarfBuzzSharp" + suffix]
+    for file in native_files:
         assert (exe.parent / file).is_file(), "Missing self-contained dependency: " + file
-    assert not any(p.endswith((".pdb", "auth.json", ".ps1")) for p in expected)
+    forbidden = [p for p in expected if p.endswith((".pdb", "auth.json", ".ps1"))]
+    assert not forbidden, "Unexpected development/private files: " + ", ".join(forbidden)
     return exe
 
 
@@ -92,6 +102,12 @@ def build(rid, dotnet, allow_dirty=False):
         run([dotnet, "publish", ROOT / "src/Hosts/Desktop/Pulse.Desktop.csproj", "-c", "Release", "-r", rid,
              "--self-contained", "true", "--no-restore", "--disable-build-servers", "-p:UseSharedCompilation=false",
              "-p:DebugType=None", "-p:DebugSymbols=false", "-o", binary.parent], cwd=ROOT)
+        # Native NuGet symbols are copied independently of managed DebugSymbols.
+        # Remove only these known symbols from this owned temporary publish output.
+        for name in ("libSkiaSharp.pdb", "libHarfBuzzSharp.pdb"):
+            symbol = binary.parent / name
+            if symbol.is_file():
+                symbol.unlink()
         binary.chmod(0o755)
         if rid.startswith("osx-"):
             (binary.parent.parent / "Info.plist").write_bytes(plistlib.dumps({
@@ -105,6 +121,7 @@ def build(rid, dotnet, allow_dirty=False):
         shutil.copy2(ROOT / "src/Hosts/Desktop/packages.lock.json", resources / "packages.lock.json")
         (package / "README.txt").write_text(
             "Pulse Desktop development preview\n\n"
+            "Windows: extract the entire archive, then run Pulse.Desktop.exe. This does not replace the WPF installer.\n"
             "Linux: run ./Pulse.Desktop in a graphical desktop (X11 tested).\n"
             "macOS: Pulse Preview.app is a development bundle, not Developer ID signed or notarized.\n"
             "The .NET runtime is included; native OS graphics/font dependencies are still required.\n"
@@ -113,7 +130,7 @@ def build(rid, dotnet, allow_dirty=False):
             "Tray/menu bar offers Open Pulse and Quit Pulse where the desktop supports it. Closing the window quits.\n"
             "Desktop overlay, FPS and other quota providers are not connected.\n"
             "No installation, startup registration or automatic updates are performed.\n"
-            "Upstream notices are in licenses/ on Linux, or inside the macOS App's Contents/Resources/licenses/.\n"
+            "Upstream notices are in licenses/ on Windows/Linux, or inside the macOS App's Contents/Resources/licenses/.\n"
             "This CI artifact is for validation; public release remains pending.\n", encoding="utf-8")
         files = {p.relative_to(package).as_posix(): digest(p) for p in sorted(package.rglob("*")) if p.is_file()}
         (package / "manifest.json").write_text(json.dumps({"schema": 1, "kind": "development-preview",
@@ -148,8 +165,9 @@ def inspect_archive(archive, rid, smoke=False, measure=False):
         assert {p.name for p in Path(temp).iterdir()} == {package.name}, "Unexpected archive root"
         exe = verify(package, rid)
         if smoke or measure:
-            os_name = "osx" if platform.system() == "Darwin" else "linux" if platform.system() == "Linux" else "unsupported"
-            arch = "arm64" if platform.machine().lower() in ("arm64", "aarch64") else "x64"
+            os_name = "osx" if platform.system() == "Darwin" else "linux" if platform.system() == "Linux" else "win" if platform.system() == "Windows" else "unsupported"
+            machine = os.environ.get("PROCESSOR_ARCHITEW6432", platform.machine()).lower() if os_name == "win" else platform.machine().lower()
+            arch = "arm64" if machine in ("arm64", "aarch64") else "x64"
             assert rid == os_name + "-" + arch, "Native smoke requires matching OS and architecture"
             env = dict(os.environ)
             for key in list(env):
