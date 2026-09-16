@@ -43,6 +43,8 @@ namespace HardwarePulse {
         public Shell(PulsePaths paths,bool isolated=false,Version platformVersion=null){
             if(platformVersion!=null&&!isolated)throw new ArgumentException("Platform override requires isolated mode");
             windowsVersion=platformVersion??WindowsCompatibility.CurrentVersion();
+            bool legacyUpdates=WindowsCompatibility.RequiresDriverFreeCollector(windowsVersion);
+            updater=new UpdateCoordinator(new UpdateClient(legacyUpdates),typeof(Shell).Assembly.GetName().Version,legacyUpdates);
             this.paths=paths;this.isolated=isolated;Directory.CreateDirectory(paths.State);
             readings=new ReadingSession(now=>SensorProfile.Read(paths.Snapshot,now));
             settings=new Settings(Path.Combine(paths.State,"widget-settings.json"));language=new Languages(Path.Combine(paths.Root,"Languages.txt"));language.Preference=settings.Text("language","auto");

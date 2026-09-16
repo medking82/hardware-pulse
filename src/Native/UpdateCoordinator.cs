@@ -16,7 +16,8 @@ namespace HardwarePulse {
 
     // The adapter delegates verification and process launch to the existing owner.
     public sealed class UpdateClient : IUpdateClient {
-        readonly UpdateCheck client=new UpdateCheck();
+        readonly UpdateCheck client;
+        public UpdateClient(bool legacyWindows=false){client=new UpdateCheck(legacyWindows);}
         public Task<string> CheckAsync(){client.Start();return client.Pending;}
         public Task<string> DownloadAsync(string url,string tag,string digest,long size){client.Download(url,tag,digest,size);return client.DownloadPending;}
         public bool Ready { get {return client.Ready;} }
@@ -32,6 +33,7 @@ namespace HardwarePulse {
         sealed class ReleaseInfo {public bool draft,prerelease;public string tag_name;public ReleaseAsset[] assets;}
         readonly IUpdateClient client;
         readonly Version installed;
+        readonly bool legacyWindows;
         ReleaseAsset asset;string tag;bool disposed;
         public bool Checking {get;private set;}
         public bool Downloading {get;private set;}
@@ -44,7 +46,7 @@ namespace HardwarePulse {
         public int Progress {get{return client.Progress;}}
         public bool CanDownload {get{return !disposed&&!Busy&&!Ready&&asset!=null;}}
 
-        public UpdateCoordinator(IUpdateClient client,Version installed){this.client=client;this.installed=installed;}
+        public UpdateCoordinator(IUpdateClient client,Version installed,bool legacyWindows=false){this.client=client;this.installed=installed;this.legacyWindows=legacyWindows;}
         public bool ShouldCheck(DateTime now){return !disposed&&!Busy&&!Ready&&now>=NextCheck;}
 
         public async Task CheckAsync(DateTime now,bool autoDownload){
@@ -56,8 +58,9 @@ namespace HardwarePulse {
                 var release=Json.Serializer().Deserialize<ReleaseInfo>(json);Version remote;
                 if(release==null||release.draft||release.prerelease||!Version.TryParse((release.tag_name??"").TrimStart('v'),out remote))throw new InvalidDataException("Not a stable release");
                 if(remote>installed){
-                    var assets=(release.assets??new ReleaseAsset[0]).Where(a=>a!=null&&a.name=="HardwarePulse-Setup.exe").ToArray();
-                    if(assets.Length!=1||!UpdateCheck.ValidAsset(assets[0].browser_download_url,release.tag_name,assets[0].digest,assets[0].size))throw new InvalidDataException("Invalid installer metadata");
+                    var assets=(release.assets??new ReleaseAsset[0]).Where(a=>a!=null&&a.name==UpdateCheck.AssetName(legacyWindows)).ToArray();
+                    if(assets.Length==0&&legacyWindows){StatusKey="No compatible Windows 7 update is available.";return;}
+                    if(assets.Length!=1||!UpdateCheck.ValidAsset(assets[0].browser_download_url,release.tag_name,assets[0].digest,assets[0].size,legacyWindows))throw new InvalidDataException("Invalid installer metadata");
                     asset=assets[0];tag=release.tag_name;StatusKey="Update available";VersionText=remote.ToString();
                 }else StatusKey="You are up to date";
             }catch{if(!disposed)StatusKey="Update check failed; try again";}

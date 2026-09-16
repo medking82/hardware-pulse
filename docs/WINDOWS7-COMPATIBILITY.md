@@ -50,9 +50,23 @@ do not replace drag/resize testing on Windows 7 itself.
 
 Package names must distinguish OS compatibility from architecture: `Win7-x64`
 means Windows 7 SP1 64-bit, while `x86` would mean a separate 32-bit build.
-No x86 build is implemented. Preserve the current stable updater's
-`HardwarePulse-Setup.exe` contract until an explicit compatibility channel is
-implemented and tested.
+No x86 build is implemented. The current stable updater's
+`HardwarePulse-Setup.exe` contract is preserved for modern Windows. The WPF
+host selects the fixed `HardwarePulse-Win7-x64-Setup.exe` identity on legacy
+Windows in both the metadata coordinator and download verifier. Both use the
+same stable release endpoint and version ordering. A release without the legacy
+asset displays an explicit unavailable-update status and never falls back to
+the modern installer. A future stable release must include each supported
+channel's correctly versioned package before publishing it as latest.
+
+Channel tests exercise mixed assets, modern/legacy selection, duplicate and
+missing assets, cross-channel URL rejection, SHA-256 requirements and download
+rejection before any request starts. Repository, HTTPS, redirect-host, size,
+digest and pre-install revalidation rules remain unchanged. Scope is the
+updater, WPF construction, tests and text; no installer is launched or published.
+Reverting this increment restores the former modern-only channel contract.
+
+<!-- sop-risk-classification: {"facts":{"blast_radius":"shared","change_kind":"implementation","data_boundary":"ordinary","destructive":"no","failure_cost":"material","irreversibility":"reversible","operational_controls":"not_applicable","privilege_boundary":"unchanged","project_policy":"default","rollback":"easy","scope_knowledge":"known","uncertainty":"low","verification":"deterministic"},"formal_review":"not_required","kind":"risk-classification-assessment","reasons":{"formal_review":["routine_no_review"],"risk":["no_high_risk_signal"]},"risk":"routine","schema_version":2} -->
 
 The first implementation shares the driver-free `WindowsSystemReadings` source
 between the Framework and modern hosts. The existing collector selects this

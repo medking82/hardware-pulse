@@ -49,6 +49,25 @@ static class UpdateCoordinatorTests {
                 }
             }
             Console.WriteLine("PASS mixed-platform release assets: exact Windows installer at any position; absent/duplicate rejected");
+            var legacyInstaller=new {name="HardwarePulse-Win7-x64-Setup.exe",browser_download_url="https://github.com/medking82/hardware-pulse/releases/download/v0.7.0/HardwarePulse-Win7-x64-Setup.exe",digest="sha256:"+new string('c',64),size=456};
+            foreach(bool legacy in new[]{false,true}){
+                mixed["assets"]=new object[]{legacyInstaller,installer};
+                var target=new Client {CheckResult=Task.FromResult(Json.Serializer().Serialize(mixed)),DownloadResult=Task.FromResult("verified")};
+                using(var c=new UpdateCoordinator(target,version,legacy)){
+                    c.CheckAsync(now,true).GetAwaiter().GetResult();
+                    Check(target.Downloads==1&&target.DownloadUrl==(legacy?legacyInstaller.browser_download_url:installer.browser_download_url)&&target.DownloadSize==(legacy?456:123),"OS update channel crossed");
+                }
+            }
+            foreach(int scenario in new[]{0,1,2,3}){
+                mixed["assets"]=scenario==0?new object[]{installer}:scenario==1?new object[]{legacyInstaller,legacyInstaller}:scenario==2?new object[]{new {name=legacyInstaller.name,browser_download_url=installer.browser_download_url,digest=legacyInstaller.digest,size=456}}:new object[]{new {name=legacyInstaller.name,browser_download_url=legacyInstaller.browser_download_url,digest="",size=456}};
+                var target=new Client {CheckResult=Task.FromResult(Json.Serializer().Serialize(mixed))};
+                using(var c=new UpdateCoordinator(target,version,true)){
+                    c.CheckAsync(now,true).GetAwaiter().GetResult();c.Install();
+                    Check(target.Downloads==0&&target.Installs==0&&!c.CanDownload&&!c.Checking,"Invalid legacy update became actionable");
+                    Check(c.StatusKey==(scenario==0?"No compatible Windows 7 update is available.":"Update check failed; try again"),"Legacy asset rejection explanation incorrect");
+                }
+            }
+            Console.WriteLine("PASS OS update channels: exact selection, missing/duplicate/cross-channel URL and absent digest rejected");
             var client=new Client();var pending=new TaskCompletionSource<string>();client.CheckResult=pending.Task;
             using(var coordinator=new UpdateCoordinator(client,version)){
                 Check(coordinator.ShouldCheck(now),"Initial auto check");

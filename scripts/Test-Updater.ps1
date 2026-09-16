@@ -3,6 +3,17 @@ $ErrorActionPreference='Stop'
 Add-Type -Path (Join-Path (Split-Path $PSScriptRoot) 'src/UpdateCheck.cs')
 $tag='v0.4.2';$url='https://github.com/medking82/hardware-pulse/releases/download/v0.4.2/HardwarePulse-Setup.exe';$digest='sha256:'+('a'*64)
 if(-not [UpdateCheck]::ValidAsset($url,$tag,$digest,100)){throw 'Valid asset rejected'}
+$legacyUrl=$url.Replace('HardwarePulse-Setup.exe','HardwarePulse-Win7-x64-Setup.exe')
+if(-not [UpdateCheck]::ValidAsset($legacyUrl,$tag,$digest,100,$true)){throw 'Win7 asset rejected'}
+if([UpdateCheck]::ValidAsset($url,$tag,$digest,100,$true) -or [UpdateCheck]::ValidAsset($legacyUrl,$tag,$digest,100)){throw 'Cross-channel installer accepted'}
+foreach($legacy in @($false,$true)){
+    $channel=[UpdateCheck]::new($legacy);$wrong=if($legacy){$url}else{$legacyUrl};$rejected=$false
+    try{$channel.Download($wrong,$tag,$digest,100)}catch{$rejected=$true}
+    if(-not $rejected -or $null -ne $channel.DownloadPending){throw 'Cross-channel download started'}
+}
+foreach($bad in @($legacyUrl.Replace('Win7-x64','Win7-x86'),$legacyUrl.Replace('https:','http:'),$legacyUrl.Replace('medking82','someone'),($legacyUrl+'?wrong=1'))){
+    if([UpdateCheck]::ValidAsset($bad,$tag,$digest,100,$true)){throw 'Invalid Win7 asset accepted'}
+}
 foreach($bad in @($url.Replace('https:','http:'),$url.Replace('medking82','someone'),($url+'?file=evil'),$url.Replace('github.com','github.com.evil.test'),'file:///C:/evil.exe')){
     if([UpdateCheck]::ValidAsset($bad,$tag,$digest,100)){throw ('Invalid asset accepted: '+$bad)}
 }

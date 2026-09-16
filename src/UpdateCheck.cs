@@ -6,6 +6,9 @@ using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 public sealed class UpdateCheck {
+    readonly bool legacyWindows;
+    public UpdateCheck(bool legacyWindows=false){this.legacyWindows=legacyWindows;}
+    public static string AssetName(bool legacyWindows){return legacyWindows?"HardwarePulse-Win7-x64-Setup.exe":"HardwarePulse-Setup.exe";}
     public Task<string> Pending { get; private set; }
     public Task<string> DownloadPending { get; private set; }
     public int Progress { get { return progress; } }
@@ -17,17 +20,17 @@ public sealed class UpdateCheck {
     Process installer;
     public bool Installing { get { return installer!=null && !installer.HasExited; } }
     public bool Ready { get { return verifiedPath!=null && DownloadPending!=null && DownloadPending.Status==TaskStatus.RanToCompletion && File.Exists(verifiedPath); } }
-    public static bool ValidAsset(string url,string tag,string digest,long size) {
+    public static bool ValidAsset(string url,string tag,string digest,long size,bool legacyWindows=false) {
         Uri uri;
         return Regex.IsMatch(tag??"",@"^v\d+\.\d+\.\d+$") &&
             Uri.TryCreate(url,UriKind.Absolute,out uri) && uri.Scheme=="https" && uri.Host=="github.com" && uri.IsDefaultPort && uri.UserInfo=="" && uri.Query=="" && uri.Fragment=="" &&
-            uri.AbsolutePath=="/medking82/hardware-pulse/releases/download/"+tag+"/HardwarePulse-Setup.exe" &&
+            uri.AbsolutePath=="/medking82/hardware-pulse/releases/download/"+tag+"/"+AssetName(legacyWindows) &&
             Regex.IsMatch(digest??"",@"^sha256:[a-fA-F0-9]{64}$") && size>0 && size<=100*1024*1024;
     }
     public void Download(string url,string tag,string digest,long size) {
         if(Installing)throw new InvalidOperationException("Installation in progress");
         ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | (SecurityProtocolType)12288;
-        if(!ValidAsset(url,tag,digest,size))throw new InvalidDataException("Invalid release asset metadata");
+        if(!ValidAsset(url,tag,digest,size,legacyWindows))throw new InvalidDataException("Invalid release asset metadata");
         if(DownloadPending!=null && !DownloadPending.IsCompleted)return;
         if(Ready && expectedDigest==digest.Substring(7) && expectedSize==size)return;
         if(verifiedPath!=null && File.Exists(verifiedPath))File.Delete(verifiedPath);

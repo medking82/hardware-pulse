@@ -11,7 +11,7 @@ using Forms=System.Windows.Forms;
 
 namespace HardwarePulse {
     public sealed partial class Shell {
-        readonly UpdateCoordinator updater=new UpdateCoordinator(new UpdateClient(),typeof(Shell).Assembly.GetName().Version);
+        readonly UpdateCoordinator updater;
         readonly DispatcherTimer updateTimer=new DispatcherTimer();
         readonly GameOverlay overlay=new GameOverlay();FpsClient frames;readonly DispatcherTimer overlayTimer=new DispatcherTimer();Process target;bool refreshingGames;
         void WireUpdater(){

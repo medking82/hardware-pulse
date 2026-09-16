@@ -6,6 +6,8 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 
 ## Unreleased
 
+- Prepare a separate fixed Win7 x64 update asset identity. Legacy clients reject modern Windows installers and report when no compatible asset exists; existing modern Windows updates retain their asset name and verification rules. No Win7 package is published yet.
+
 - Explain and disable unavailable FPS and Local Contrast controls on older Windows, including Desktop and tray entry points, while retaining saved preferences. Windows 7 compatibility is still under development.
 
 - Window snapping falls back to WPF DPI on older Windows versions that lack `GetDpiForWindow`, preserving scaled snap distances without repeated missing-API exceptions. Windows 7 installation remains unverified.

@@ -173,6 +173,7 @@ internal static class NativeTests {
                     var saved=Field<Settings>(legacy,"settings");
                     Assert(saved.Flag("desktopLocalContrast")&&(bool)saved.Map("overlay")["fps"]&&(bool)saved.Map("desktopVisible")["fps"],"Capability gates erased saved preferences");
                     Assert(!Field<System.Windows.Forms.ToolStripMenuItem>(legacy,"trayFps").Enabled,"Legacy tray FPS entry enabled");
+                    Assert((bool)typeof(UpdateCoordinator).GetField("legacyWindows",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(Field<UpdateCoordinator>(legacy,"updater")),"Legacy Shell selected modern update channel");
                     foreach(ComboBoxItem item in legacy.Control<ComboBox>("LanguagePicker").Items)if((string)item.Tag=="zh-CN")legacy.Control<ComboBox>("LanguagePicker").SelectedItem=item;
                     Assert(legacy.Control<TextBlock>("OverlayStatus").Text.Contains("不支持")&&legacy.Control<TextBlock>("DesktopLocalContrastStatus").Text.Contains("需要"),"Capability explanations did not follow language switch");
                     legacy.Exit();
