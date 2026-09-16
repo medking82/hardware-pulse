@@ -1,6 +1,8 @@
 # Changelog
 
-English first; 简体中文 follows each version. Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
+[简体中文](CHANGELOG.zh-CN.md)
+
+Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
 ## 0.7.0-preview.1 — 2026-09-16
 
@@ -10,16 +12,12 @@ English first; 简体中文 follows each version. Dates are release dates. Unrel
 - This is not feature parity with the stable Windows App. Desktop overlay, FPS, hardware temperatures/fans, additional quota providers and other integration work remain. See [preview guide](docs/DESKTOP-PREVIEW.md) for signing and validation limits.
 - Stable latest and the Windows automatic-update channel remain v0.6.24.
 
-首次发布六个 OS／architecture 的 shared Desktop experimental prerelease。Native CI、package inventory 和发布后的 SHA-256 检查通过；完整 feature parity 尚未完成。Stable Windows update channel 保持 v0.6.24，preview 使用独立 settings。
-
 ## 0.6.24 — 2026-09-15
 
 - Reduce FPS statistics allocation by reusing a bounded sorting buffer and replacing temporary LINQ arrays with direct history traversal. Clear releases the buffer.
 - Preserve Current, Average, Minimum, 1% Low, active stream selection, history limits and refresh intervals.
 - Add randomized/reference, tie selection, smaller-stream reuse and steady-allocation regression tests on Framework and .NET 10.
 - Add a reproducible x64 FPS microbenchmark: CPU 1.25–1.41 to about 0.23 ms/read; reported allocation 936,232 to 40 bytes/read in the fixed 14,400-frame workload. This does not establish whole-app or game performance gains.
-
-FPS statistics 改为复用 bounded buffer，减少每次 read 的 temporary allocation。数值语义、history bounds 和 refresh interval 保持不变；Framework/.NET 10 与 native regression checks 通过。Benchmark 仅代表固定 FPS workload。
 
 ## 0.6.23 — 2026-09-15
 
@@ -29,16 +27,12 @@ FPS statistics 改为复用 bounded buffer，减少每次 read 的 temporary all
 - Test the same quota fixtures, FPS bounds/statistics and settings semantics on Framework and .NET 10, alongside native UI/transport/startup/package regression checks.
 - FPS microbenchmark allocations remain unchanged; CPU ranges overlap. This is a modularization release, not a claim of reduced whole-app RAM/CPU or new ARM64/Linux/macOS support. Existing settings and process isolation are preserved.
 
-Windows hardware sampling 进入 adapter；numeric formatting、quota decoding、FPS statistics、Settings value rules 与 material policy 进入 shared Core。Framework/.NET 10 shared tests 和完整 native regression checks 通过。现有 settings 保持兼容；跨平台 runtime 与完整 App performance A/B test 尚未完成。
-
 ## 0.6.22 — 2026-09-15
 
 - Extract shared readings/session state, quota contracts/refresh lifecycle, network formatting and existing contrast analysis into Pulse.Core.dll.
 - Separate snapshot parsing, sensor mapping, quota providers and LAN/Wi-Fi sampling into Pulse.Adapters.Windows.dll. Preserve credentials, request validation, sensor identifiers, refresh intervals and existing process isolation.
 - Add a .NET 10 Core target and reuse the same headless tests alongside the shipped Framework build. Add standalone Windows adapter smoke checks and package dependency checks.
 - Preserve the current Windows x64 app and settings. No additional process or sampling timer is introduced; this release does not claim a measured CPU/RAM reduction or ARM64/Linux/macOS/Windows 7 support.
-
-共享 readings、quota lifecycle、network formatting 与 contrast analysis 进入 Core；Windows data/network adapters 独立成 DLL。现有 Windows app、settings 与 refresh 行为保持兼容，Framework/.NET 10 Core tests 和完整 regression checks 通过。其他平台尚未完成适配。
 
 ## 0.6.21 — 2026-09-15
 
@@ -47,16 +41,12 @@ Windows hardware sampling 进入 adapter；numeric formatting、quota decoding�
 - Add a thin opposite-color outline over mixed backgrounds. Reuse unchanged icons and retain Screenshot mode freezing and base-style restoration when Local Contrast is disabled.
 - Verify independent icon/label sampling, dark custom palettes, stable icon reuse, Screenshot mode and style restoration alongside the complete regression suite.
 
-开启 Local Contrast 后，所有 Desktop SVG icons 按自身位置的背景独立调整明暗。App 配色保留色相；关闭配色时使用黑白对比色，复杂背景加入细 outline。Screenshot mode 保持配色冻结。
-
 ## 0.6.20 — 2026-09-15
 
 - Add Settings → General → Export Diagnostics with English, Simplified Chinese and Traditional Chinese labels. Choose where to save the local JSON report.
 - Include App/OS versions, manufacturer/model, motherboard, non-network sensor readings and fan mapping. Preserve unmapped fan readings so support can distinguish mapping gaps from unavailable RPM data.
 - Report missing or invalid collector snapshots without exporting arbitrary error logs. Exclude credentials, quota data, settings, network identifiers, screenshots and serial-number fields; nothing is uploaded automatically.
 - Validate report contents, private metadata exclusion and Settings rendering alongside the complete regression suite.
-
-新增 Settings → General → 导出诊断，保存包含机型、version、sensor 读数与 fan mapping 的 JSON，方便排查风扇漏识别。不包含账号凭据、network identifiers 或截图，也不会自动上传。
 
 ## 0.6.19 — 2026-09-15
 
@@ -65,8 +55,6 @@ Windows hardware sampling 进入 adapter；numeric formatting、quota decoding�
 - Apply fixed one-decimal temperatures and utilization to the separate overlay. FPS and fan RPM retain integer formatting.
 - Update the native WPF regression expectations for whole-valued temperature and memory readings.
 
-温度、CPU/GPU utilization、RAM/VRAM capacity 与 utilization 固定保留一位小数，整数也显示末尾 .0，例如 54.0 °C、42.0%。FPS 与 fan RPM 继续使用整数。
-
 ## 0.6.18 — 2026-09-15
 
 - Reduce Local Contrast overhead by reusing capture buffers, bounding analysis to 160,000 pixels, caching luminance conversion and avoiding per-label pixel copies and unchanged foreground brush replacement.
@@ -74,23 +62,17 @@ Windows hardware sampling 进入 adapter；numeric formatting、quota decoding�
 - A controlled component benchmark measured about 87% less CPU time per frame and 93% less managed allocation. This does not establish lower resident memory or whole-app/game performance; see docs/PERFORMANCE.md for methodology and limits.
 - Validate headless Core behavior, large captures, resize, dispose/resume, Screenshot mode and stable brushes alongside the complete regression suite. Preserve saved settings and zero-opacity Desktop input behavior.
 
-降低 Local Contrast 的 capture、analysis 与 allocation 开销，拆出独立 Pulse.Core component。受控 component benchmark 中，每帧 CPU 时间约降低 87%，managed allocation 约降低 93%；RAM 与完整游戏场景尚未证明改善。ARM64、Linux、macOS App support 尚未实现。
-
 ## 0.6.17 — 2026-09-15
 
 - Fix dragging at zero Desktop background opacity. Windows passed fully transparent pixels through before WPF received mouse input, so unlocked blank areas could not start a drag.
 - Give only the unlocked editor a 1/255-alpha input surface, including resize corners. Saved opacity is unchanged; locking removes the surface and preserves true zero-opacity click-through.
 - Native hit-test regression reproduces the old failure and verifies blank space and resize corners at 0% and 30%, plus transparent locked state.
 
-修复 Desktop background opacity 为 0% 时无法拖动的问题。Unlocked editor 使用极低 alpha 的 input surface；Locked 后恢复真正透明，保留用户保存的 opacity。
-
 ## 0.6.16 — 2026-09-15
 
 - Restore normal activation and mouse input when Desktop is unlocked. Previously the real Desktop layer retained WS_EX_NOACTIVATE even though the editor controls were visible; isolated tests did not include this layer.
 - Preserve no-activation and click-through only while locked. Apply the requested lock state when the native layer is first created, avoiding a temporarily locked editor.
 - Verify native extended styles through initial unlock, lock and unlock. A test using the real Desktop layer was confirmed to support both dragging and button clicks.
-
-修复正式 Desktop layer 解锁后仍保留 non-activating style 的问题。带真实 layer 的测试已确认拖动和按钮都正常；锁定后仍保持 click-through。
 
 ## 0.6.15 — 2026-09-15
 
@@ -99,15 +81,11 @@ Windows hardware sampling 进入 adapter；numeric formatting、quota decoding�
 - Reproduce the stale-swapchain failure and validate the correction alongside the complete regression suite.
 - Fix FPS row height across ready/waiting transitions. Superscript badges and the empty dash now share a fixed line box, preventing the rows below from jumping.
 
-再次修复 Desktop 拖动，测试窗口已记录连续位置变化。修复旧 swapchain 历史数据压过新 stream、导致 FPS 错误显示 — 的情况。
-
 ## 0.6.14 — 2026-09-15
 
 - Move unlocked Desktop panels through native caption hit-testing, so ScrollViewer content can initiate dragging without relying on a handled WPF mouse event.
 - Preserve editor button clicks, scrollbar interaction, eight-edge resizing and locked click-through. Save and clamp position when native move/resize finishes.
 - Validate content/button/scrollbar/edge hit targets and locked behavior in a real WPF window.
-
-修复 unlocked Desktop 内容区域无法拖动。按钮和 scrollbar 保留操作，边缘继续 resize，结束移动后保存位置。
 
 ## 0.6.13 — 2026-09-15
 
@@ -115,16 +93,12 @@ Windows hardware sampling 进入 adapter；numeric formatting、quota decoding�
 - Refine whole-label contrast selection and add a subtle, zero-offset opposite-color edge only where local backgrounds contain both light and dark regions. Separate enter/exit thresholds keep the edge from flickering near the boundary.
 - Clear adaptive edges when local contrast is disabled or capture becomes unavailable. Screenshot mode retains the current appearance.
 
-FPS SVG 使用 Pulse 薄荷青；Local Contrast 保留色相并调整亮度。复杂背景下加入细反色轮廓，简单背景保持清晰字形，无需增加面板背景。
-
 ## 0.6.12 — 2026-09-15
 
 - Keep Desktop FPS in one row with small NOW / AVG / MIN badges, three reserved tabular digit positions per reading, and a single dash when frames are unavailable. Minimum remains the rolling 60-second minimum, not 1% Low.
 - Choose one consistent local contrast color per label and reading, with hysteresis, to avoid splitting glyphs into black and white fragments.
 - Add Screenshot mode in Desktop settings and the tray: freeze text colors and allow capture for 15 seconds, then restore local contrast automatically.
 - Fit locked Desktop content by growing a saved short panel and, in Auto columns, widening within the monitor work area before falling back to scrolling. Keep FPS badges inside narrow panels.
-
-Desktop FPS 合并为一行，加入 NOW / AVG / MIN 小号角标。Local Contrast 按完整 label 和 reading 调色；新增 15 秒 Screenshot mode，支持 Win+Shift+S。锁定的 Desktop 自动容纳内容，减少不必要的 scroll。
 
 ## 0.6.11 — 2026-09-15
 
@@ -134,8 +108,6 @@ Desktop FPS 合并为一行，加入 NOW / AVG / MIN 小号角标。Local Contra
 - Smooth local background luminance at a font/DPI-scaled radius before choosing text contrast. Stabilize small changes across frames while allowing large changes immediately; this reduces fine-texture speckles without blurring glyphs.
 - Validate ready and waiting transitions, numeric statistics, no wrapping, and the complete regression suite.
 
-Desktop FPS 分开显示当前、平均与最低值；没有 frame 时三项只显示 —，不再显示 Waiting for frames 导致换行。平均和最低使用最近 60 秒滚动统计。
-
 ## 0.6.10 — 2026-09-15
 
 - Add opt-in local adaptive text contrast: an in-memory pixel mask uses black/white hysteresis, independent of SVG colors. Capture runs on a single background worker; Windows 10 build 19041+ is required. While enabled, screen capture may exclude the Desktop panel. HDR and fast-game performance still need field validation.
@@ -143,8 +115,6 @@ Desktop FPS 分开显示当前、平均与最低值；没有 frame 时三项只�
 - Add an optional FPS Desktop reading using the existing collector and target selection without enabling the separate FPS overlay.
 - Add a customizable Desktop toggle shortcut, default Ctrl+Alt+F10, with registration conflict checks and no App activation. Reserved Windows/F12 combinations are not accepted; game-local bindings may still overlap.
 - Validate actual capture exclusion/restoration, split dark/light backgrounds, WPF brush placement, opacity, FPS separation and the existing regression suite.
-
-新增可选的局部文字自适应对比度，黑白配色按像素位置变化，SVG 配色独立。此模式可能从截图及录屏中排除 Desktop panel。修复 0% background 残留外框与 Text Color 无法选择；Desktop readings 可单独开启 FPS，无需独立 overlay。HDR 与高速游戏效果仍待实测。
 
 ## 0.6.9 — 2026-09-15
 
@@ -154,22 +124,16 @@ Desktop FPS 分开显示当前、平均与最低值；没有 frame 时三项只�
 
 - Allow 0–100% Desktop text and topmost background opacity. Auto Contrast and topmost rendering no longer override text opacity; saved values and slider labels match the rendered result. Keep 55% as the topmost background default.
 
-改进拖曳换列与渐进吸附，Desktop 支持附近 App 吸附，锁定后提示从 tray 解锁。明确中英文字体 fallback，并开放背景和文字 opacity 0%–100%。
-
 ## 0.6.8 — 2026-09-15
 
 - Group settings by General, App Appearance, Desktop, App Cards, FPS and AI Quota, with wrapping navigation and responsive columns. Desktop layout, appearance and readings now share one page.
 - Give topmost panels a lighter smoke background (55% default), opaque dark text and independent background opacity; trim the locked backdrop to content without changing saved geometry.
 - Add separate ordinary Desktop background opacity. Keep regular Desktop preferences and click-through behavior; actual Desktop blur remains unavailable.
 
-设置按功能分组，Desktop 布局、外观和显示项目集中到同一页，宽窗口支持多列。置顶使用浅烟灰背景，默认不透明度 55%；普通 Desktop 和置顶背景可分别调整，文字保持清晰，click-through 不变。Desktop blur 强度尚未实现。
-
 ## 0.6.7 — 2026-09-15
 
 - Optional Desktop Always on top: default wallpaper-level behavior is preserved; locked panels pass mouse input through, editing retains no-activate behavior, and disabling the option returns to the desktop layer.
 - Apply the saved lock state immediately after the native Desktop window is created.
-
-Desktop 新增默认关闭的“置顶显示”。默认仍在 wallpaper / Wallpaper Engine 上方、普通 App 下方；开启后浮在 App 上方，锁定时 click-through，编辑时接受鼠标操作。Exclusive fullscreen 游戏仍待实测。
 
 ## 0.6.6 — 2026-09-15
 
@@ -177,28 +141,20 @@ Desktop 新增默认关闭的“置顶显示”。默认仍在 wallpaper / Wallp
 - New installs start with 30% background opacity, #35383B tint and system glass enabled. Saved preferences are preserved.
 - Refresh the GitHub hero using actual WPF UI and SVG artwork with fictional demo readings.
 
-Desktop 的 LAN、Wi-Fi link speed 和 signal 使用独立 SVG。新安装默认背景不透明度 30%、#35383B、开启系统毛玻璃；已有设置保持不变。GitHub hero 使用实际 WPF render 和 demo 数据。
-
 ## 0.6.5 — 2026-09-15
 
 - Show independent LAN and Wi-Fi negotiated link speeds in App and Desktop; Wi-Fi rate and signal update even when LAN carries most traffic.
 - Prefer confirmed physical adapters, clear disconnected/unknown link values, and keep throughput explicitly associated with its traffic adapter. Desktop connection readings can be hidden individually.
-
-App 和 Desktop 独立显示 LAN / Wi-Fi 连接速率及 Wi-Fi signal。Wi-Fi 空闲时仍更新连接速率；断线清除旧数值，优先匹配物理 adapter。
 
 ## 0.6.4 — 2026-09-15
 
 - Launching the App shortcut again signals the existing instance to show its home instead of silently exiting. Hidden, minimized and Desktop-mode windows are restored without creating a second UI or Collector.
 - Queue activation during initial startup and transfer foreground permission to the matching running executable.
 
-再次点击 App shortcut 会唤回现有首页，支持 hidden、minimized 和 Desktop mode；复用现有 App 与 Collector。
-
 ## 0.6.3 — 2026-09-15
 
 - Include Codex HTTP additional quota pools in All available display; preserve the essential Weekly-only Desktop display.
 - Double-click the system tray icon or choose Show Pulse to restore the App home from hidden, minimized or Settings state, while retaining the Desktop panel.
-
-修复 Codex 额外 quota 遗漏；tray 双击和 Show Pulse 直接恢复 App 首页，保留 Desktop panel。
 
 ## 0.6.2 — 2026-09-15
 
@@ -208,8 +164,6 @@ App 和 Desktop 独立显示 LAN / Wi-Fi 连接速率及 Wi-Fi signal。Wi-Fi �
 - Default Desktop icons to the App palette while retaining explicit user overrides.
 - Correct compact Network labels and light-theme navigation icon contrast.
 - Start directly in saved Desktop mode without showing or activating the App window; save preferences even before opening the App.
-
-Settings 支持 responsive columns、统一 controls 和独立 App/Desktop appearance；App quota 可显示完整额度并拖曳排序。Desktop 可直接从边缘 resize、在 panel 内锁定，并从 tray 重新编辑；保存的 Desktop mode 在 startup 时直接显示，避免主窗口闪现。
 
 ## 0.6.1 — 2026-09-15
 
@@ -238,7 +192,6 @@ Settings 支持 responsive columns、统一 controls 和独立 App/Desktop appea
 - Fix Antigravity quota discovery: bind the Windows process instance before calling GetOwnerSid. Projected WMI query objects could fail before any quota request. Same-user and PID-owned loopback-port checks remain in place.
 - Show only the main Codex Weekly quota in Monitor and Desktop View; omit Spark, reserve and other additional pools.
 - Validate against live Codex, Antigravity and Claude quota endpoints; add regression checks for current-user acceptance, different-user rejection and main Weekly selection.
-- 修复 Antigravity 已运行却读不到 quota 的问题，Codex 精简为主 Weekly。无需修改 CLI 自启动或登录配置。
 
 ## 0.5.10 — 2026-09-15
 
@@ -247,7 +200,6 @@ Settings 支持 responsive columns、统一 controls 和独立 App/Desktop appea
 - Support provider accent colors and Unified Color for quota icons; Desktop icons follow Desktop contrast/color settings.
 - Keep quota credentials out of settings, hardware snapshots and logs. Antigravity requires a running local language server; expired Codex/Claude login must be renewed in the owning app.
 - Enable TLS 1.2 and TLS 1.3 for quota and update connections.
-- 新增 AI quota、SVG icon 和 Network 连接速率。Codex、Claude live probe 已通过；Antigravity live probe 待运行其 app 后验证。
 
 ## 0.5.9 — 2026-09-14
 
@@ -256,14 +208,12 @@ Settings 支持 responsive columns、统一 controls 和独立 App/Desktop appea
 - Choose Hardware Colors or a custom Unified Color for monitor SVG icons and temperatures in Appearance → Colors.
 - Add Network download/upload readings to Monitor and Desktop, with Auto, KB/s, MB/s and Mbit/s units. Reuse the Collector's LibreHardwareMonitor network counters and show the busiest adapter without summing overlapping adapters.
 - Fix an async FPS pipe timeout race discovered during regression: native completion must retain its wait event until cancellation completes.
-- 修复 Desktop contrast 与贴边留白，新增 icon/temperature 配色选项，以及支持单位切换的上下行网速。无需新 Collector 或 PowerShell runtime。
 
 ## 0.5.8 — 2026-09-14
 
 - Enter Desktop Mode in an editable preview from Settings or the tray; Done locks the readings and hides the editor. Disabling it returns to the monitor.
 - Reorder individual desktop readings in Settings independently of monitor cards, with animated drag handles, Esc cancellation and Up/Down keyboard support. Missing channels keep their saved position.
 - Snap Desktop View to all four screen work-area edges while moving. Pull away to release without Alt; Alt temporarily bypasses snapping. Ordinary windows do not attract the desktop readout.
-- Desktop Mode 先进入编辑预览，Done 后锁定；Settings 支持独立 readings 动画拖曳排序与 keyboard 调整，并补齐四边 edge snap。
 
 ## 0.5.7 — 2026-09-14
 
@@ -273,7 +223,6 @@ Settings 支持 responsive columns、统一 controls 和独立 App/Desktop appea
 - Show Desktop Mode VRAM usage as used / total GB and percentage; integrated GPUs identify shared GPU memory.
 - Separate desktop font size, text color, row spacing and position preferences; locked readouts pass clicks through, with editing and recovery in the system tray.
 - Preserve monitor settings, card order/visibility and hardware names. Rediscover the Windows desktop host when window ordering changes.
-- 新增 Desktop Mode：数据显示在 wallpaper 上、普通 app 下方。支持独立字号、颜色、间距、位置和 Lock 后 click-through，复用现有 Collector。
 - Validated with Wallpaper Engine running and Show Desktop; mixed-DPI monitors and Explorer restart remain dedicated compatibility checks.
 
 ## 0.5.5 — 2026-09-14
@@ -281,7 +230,6 @@ Settings 支持 responsive columns、统一 controls 和独立 App/Desktop appea
 - Read FPS through the installed elevated Collector while keeping the widget unelevated. Accept PresentMon's actual `msBetweenPresents` CSV header.
 - Preserve Overlay preferences, automatically follow the foreground app, and reconnect manually selected apps after restart.
 - Customize Overlay background color and opacity independently; text stays opaque. Fix the simplified/traditional Chinese foreground-app label.
-- 修复 FPS 实际读取与自动跟随，保留 Overlay 设置并支持应用重启后重连。新增状态条背景颜色及透明度设置，文字清晰度不受影响。
 - Install over the existing version or use the in-app updater; preferences are preserved. Windowed/borderless application presents are supported; exclusive fullscreen and generated-frame counts are not supported.
 
 ## 0.5.4 — 2026-09-14
@@ -289,7 +237,6 @@ Settings 支持 responsive columns、统一 controls 和独立 App/Desktop appea
 - Keep known device names and fan-channel metadata while a snapshot is stale or unavailable. Live values remain unavailable; new live snapshots replace the retained identity.
 - Refresh dynamic monitor and updater status immediately when switching language, including an already completed update check.
 - Reproduced both bugs before fixes; headless and real WPF regressions now pass. See docs/PRODUCT-CHECK-0.5.4.md for the bounded product check and remaining gaps.
-- 修复 stale/offline 时硬件型号退回默认名称，以及切换 language 后动态 status 保留旧语言的问题。保留 stale 提示，不把旧 readings 显示成实时数据。
 
 ## 0.5.3 — 2026-09-14
 
@@ -297,22 +244,18 @@ Settings 支持 responsive columns、统一 controls 和独立 App/Desktop appea
 - Extract update orchestration from Shell into a headless UpdateCoordinator, retaining UpdateCheck's verification and installation boundary. Use assembly version metadata and test duplicate actions, retries, automatic download, scheduling and late completions after disposal.
 - Extract snapshot polling, session peaks and retained capabilities into a headless ReadingSession. Cards and overlay consume the same session; WPF timers, STOP handling and existing polling frequency are preserved.
 - Add independent domain tests for missing/malformed/stale snapshots, recovery, duplicate identities, collector restarts and session isolation. This is a maintenance refactor, not a claimed memory improvement.
-- 将 snapshot/session state 从 Shell 独立出来，新增不依赖 WPF 的 tests；保留原有 UI 和 lifecycle 行为。包含在 0.5.3 maintenance release。
 
 ## 0.5.2 — 2026-09-14
 
 - Reuse fixed sensor-discovery Regex instances and frozen UI brushes to reduce repeated managed allocations without changing the two-second collection interval or sensor selection rules.
 - Skip card rendering while the window is hidden or minimized. Continue collecting session peaks and tracking stale readings; refresh immediately when the window is restored.
 - Add a repeatable allocation workload and timed UI replay, plus regressions for hidden-window peaks, stale state and immediate restoration. Allocation reductions do not imply the same reduction in resident RAM.
-- 复用 sensor-discovery Regex 和 UI brushes，减少 managed allocations；隐藏或 minimized 时暂停 card rendering，继续记录 Session Max 和 stale state，恢复窗口时立即刷新。保留原有采样频率及 sensor selection。
 
 ## 0.5.1 — 2026-09-14
 
 - Fix startup registration on machines with missing scheduled tasks. Windows COM interop can report a missing task as FileNotFoundException; setup now treats that specific missing-task result as absent and creates the owned tasks.
 - Rerun this installer over a failed 0.5.0 installation to repair startup registration while preserving preferences. Access-denied and unrelated errors still surface; permissions and hardware collection are unchanged.
 - Add a real Task Scheduler regression for missing tasks and an isolated elevated integration test for first registration, partial-install repair, disabled-startup preservation and cleanup.
-- 修复 missing task 被 .NET 转为 FileNotFoundException 后中断 startup registration 的 bug；直接覆盖安装即可修复失败的 0.5.0 installation，保留 preferences。
-- 新增真实 Task Scheduler regression 和隔离 integration test；不改变权限或 hardware collection，installer 仍为 self-signed。
 
 ## 0.5.0 — 2026-09-14
 
@@ -320,9 +263,6 @@ Settings 支持 responsive columns、统一 controls 和独立 App/Desktop appea
 - Preserve settings, window geometry, card order/visibility, language, read-only sensor discovery, FPS overlay and verified in-app update flow.
 - Upgrade in place with an explicit obsolete-file cleanup list. Preserve Windows components, shared PawnIO and user preferences; no clean install is required. Treat Task Scheduler's omitted default XML values correctly and keep UI/collector privilege separation.
 - Compare the baseline and native implementation using synthetic UI replay and sequential real hardware collection. Memory use was lower on the tested host; see [method and results](docs/PERFORMANCE-0.5.0.md), including the limits of single-run measurements.
-- Installed runtime 改为 C#/WPF，不再依赖 PowerShell；保留 settings、桌面位置、card 选择、language、sensor discovery、overlay 和 updater。
-- Installer 支持原位 upgrade，清理明确列出的旧 app 文件，保留 Windows components、共享 PawnIO 和用户设置。修复 Task Scheduler 省略 default XML values 时的 compatibility。
-- 对比测试显示本机 memory use 降低；benchmark 不是所有电脑或 battery life 的保证。SignPath 仍待审核，installer 仍为 self-signed。
 
 ## 0.4.9 — 2026-09-14
 
@@ -330,43 +270,32 @@ Settings 支持 responsive columns、统一 controls 和独立 App/Desktop appea
 - Keep card widths stable when scrolling appears. Use an integrated narrow monitor scrollbar and a rounded keyboard-focus outline.
 - Translate pump/system fan channels and explain that a zero-RPM channel does not describe all fans or pumps. No hardware reading or driver behavior changed.
 - Stop the overlay timer when unused, avoiding its previous 500 ms wakeups. PowerShell runtime remains in use; no measured memory reduction is claimed.
-- Compact 使用紧凑 readings；Details 保留完整数据并自适应 spacing，增加 selected 状态。固定 scrolling 前后的 card 宽度，采用细 scrollbar 与圆角 keyboard focus。
-- 补齐水泵与系统风扇 label 翻译，说明单通道 0 RPM 的含义；未修改 driver 或硬件采集逻辑。关闭未使用的 overlay timer，仍依赖 PowerShell runtime。
 
 ## 0.4.8 — 2026-09-14
 
 - Add a saved 10–16 px text-size slider in Appearance (12 by default). Sizes use WPF logical pixels and follow Windows display scaling; older large-text preferences migrate automatically.
 - Keep native text rendering while resizing card typography proportionally. Tighten card spacing, reflow narrow headers and compact reading groups, and truncate long row labels with full-text tooltips instead of wrapping them into tall cards.
 - Verify font persistence across a new process, temperature/header bounds at 240/310 DIP, and existing screen-size and language regressions. Very large text or Details may still require scrolling.
-- Appearance 新增 10–16 px 字号设置，默认 12，自动保存并兼容旧 Large Text 设置；使用 WPF logical pixels，跟随 Windows display scaling。
-- Card 随字号调整 typography 与 spacing，窄窗口下 header 和 compact readings 自动换行，长 label 省略并通过 tooltip 显示全文，避免标题重叠与多余高度。
-- 已验证字号保存、重启恢复、240/310 DIP header 边界与原有 layout/language regression；大字号或 Details 仍可能需要 scrolling。
 
 ## 0.4.7 — 2026-09-14
 
 - Discover Intel D3D 3D load and shared GPU memory by sensor semantics, without machine-specific identifiers. Shared memory is labeled separately from dedicated VRAM, including in the overlay.
 - Adapt monitor cards to detected sensor capabilities: hide absent fan/temperature fields and unused disk columns, retain saved card preferences, and restore fields when sensors return. Null readings remain unavailable rather than becoming zero.
 - Show the number of valid mapped readings without the fixed 17-field denominator.
-- 通用识别 Intel D3D 3D 负载及 GPU 共享内存，不绑定电脑型号；共享内存与独立 VRAM 明确区分。
-- Monitor 根据传感器能力隐藏缺失的风扇、温度和硬盘占位，保留 card 设置，传感器恢复后自动显示。无数据不再误认为零读数。
-- 移除固定 17 项分母。此版本没有新增厂商专用风扇 controller 支持。
 
 ## 0.4.6 — 2026-09-14
 
 - Fix script-policy startup failures on Windows clients: use process-scoped RemoteSigned for the embedded host and collector. No persistent policy changes; Group Policy remains authoritative and unsigned Internet-marked scripts remain blocked.
 - Keep text at native layout size in narrow windows, use Display text formatting, and tighten card spacing instead of scaling the whole interface.
-- 修复 Windows 脚本策略导致的 app/startup helper/collector 启动失败：仅当前 process 使用 RemoteSigned，不修改持久系统设置，保留 Group Policy 与 Internet 脚本签名检查。
-- 窄窗口不再整体缩字；使用 Display 字体排版和紧凑 card spacing。
 
 ## 0.4.5 — 2026-09-14
 
 - Honor a fresh installer shutdown request even when an old startup STOP marker could not be deleted. This fixes a hidden widget retaining files during upgrade.
-- 修复启动时无法删除旧 STOP 文件后忽略新退出请求的问题，避免 widget 隐藏到 tray 后继续占用安装文件。
 
 ## 0.4.4 — 2026-09-14
 
 - Fix edge snapping trapping slow drags: derive movement from total cursor displacement since drag start instead of Windows' rebased moving rectangle. Pull away normally without Alt; retain the 24-DIP attraction range.
-- 修复缓慢拖离 edge 时反复吸回的问题：根据 drag 起点累计 cursor 位移，正常拖动即可释放，无需 Alt；保留 24 DIP 吸附范围。
+
 ## 0.4.3 — 2026-09-14
 
 - Group Settings into collapsible sections with wrapping switch labels; center the gear and replace its dotted focus decoration.
@@ -375,15 +304,11 @@ Settings 支持 responsive columns、统一 controls 和独立 App/Desktop appea
 - Strengthen left/right and other edge magnets to 24 DPI-scaled logical pixels, apply during drag, and align to visible adjacent-window frames. Alt bypass remains available.
 - Add Auto (System) app language and English/Simplified/Traditional Chinese installer detection, with localized setup messages.
 - Download updates inside Pulse, with optional automatic downloads, progress, verified size/SHA-256 and Install and Restart. No unattended installation and no security-setting changes.
-- Settings 改为折叠分组与 switch；修正 gear 居中、focus 和窄窗口 label 换行。
-- 修复 inactive 透明度，card/gradient 跟随 opacity；锁定 Monitor 更透明，禁止移动、resize 和排序，tray 保留解锁入口。
-- 吸附范围提高至 24 DIP，拖动时对齐 screen/window edge，保留 Alt 自由移动。
-- App 增加 Auto (System)，installer 支持三种 language；新增 app 内下载、校验和点击安装更新。
+
 ## 0.4.2 — 2026-09-13
 
 - Translate generated system/storage temperature descriptions, intake/exhaust labels, memory slots/configuration and RAM/VRAM usage labels in Simplified and Traditional Chinese. Preserve model identifiers and user-defined names.
 - Use clearer Chinese wording for VRAM temperature, with a tooltip distinguishing memory-chip temperature from GPU core temperature.
-- 补齐动态硬件说明、进出风、内存槽位及用量标签的简繁体翻译；“显存结温”改为“显存温度”，tooltip 说明其含义，型号与自定义名称保持原样。
 
 ## 0.4.1 — 2026-09-13
 
@@ -393,7 +318,6 @@ Promoted to stable / Latest with maintainer authorization after local regression
 - It preserves full information first, then reduces padding, then uses compact metric rows. Device descriptions are hidden only when those layouts still do not fit. Hidden cards are excluded from measurement.
 - Details keeps full information available. Switching density through Details uses a short opacity transition that respects Windows reduced-motion settings.
 - Regression covers resizing down and back up, plus the existing logical display-size matrix.
-- 自动 density 根据实际 viewport 测量：优先完整信息，依次压缩留白、调整 metrics 排列，最后才隐藏设备说明。窗口放大后自动恢复；Details 切换增加轻量过渡并尊重 reduced motion。
 
 ## 0.4.0 — 2026-09-13 (Pre-release)
 
@@ -423,13 +347,6 @@ Promoted to stable / Latest with maintainer authorization after local regression
 - Exclusive fullscreen is not supported by this ordinary topmost overlay. FPS may need admin or Performance Log Users access; Pulse does not alter group membership.
 - Bright/dark foreground is based on the selected color; readability over arbitrary desktop content is not guaranteed at zero opacity. Glass blur strength has no slider.
 
-### 简体中文
-
-- 新增 game overlay 六位置、compact/detailed 布局、可选 metrics、PresentMon FPS；AVG/MIN/1% Low 使用最近 60 秒，Current 使用最近 1 秒。
-- 新增 close-to-tray、明确 Exit、开机启动 checkbox、background color、0–100% opacity 和可选 update checks。
-- Installer 增加覆盖前停止旧版流程；原创代码采用 MIT，SignPath 尚未获批；展示图使用虚构数据。
-- WPF regression 已通过；移除独立 upgrade helper 后，installer 在本机成功覆盖安装（exit 0，无需重启），未修改 Bitdefender protection，已验证实时读数。真实游戏、elevated FPS 和 clean-machine 场景待验证。当前 update action 打开 download page，不会自动安装。
-
 ## [0.3.1] — 2026-09-13
 
 ### Changed
@@ -446,14 +363,6 @@ Promoted to stable / Latest with maintainer authorization after local regression
 
 - WPF gesture tests cover preview displacement, cancel, reduced motion, commit and interrupted settling, alongside existing regression tests.
 - Pointer feel and edge autoscroll still require hands-on validation. This version does not yet fix the installer inability to close an already-running elevated collector automatically.
-
-### 简体中文
-
-- Card drag 增加轻微抬起、相邻 cards 让位，以及 220 ms ease-out 回落；可在 animation 中重新抓取。
-- Esc 取消后恢复原顺序且不保存；drop 完成后仅保存一次。
-- 遵循 Windows animation preference；keyboard menu 排序保持即时响应。
-- WPF gesture regression 覆盖预览、取消、reduced motion、提交和中断回落；真实 pointer 手感和 edge autoscroll 待验证。
-- 尚未修复 upgrade 时无法自动关闭 elevated collector 的问题。
 
 ## [0.3.0] — 2026-09-13
 
@@ -474,13 +383,6 @@ Promoted to stable / Latest with maintainer authorization after local regression
 - WPF language switching, autosave/restore, custom-name preservation and 240-pixel render checks passed; sensor/settings/snap regressions and signed builds passed.
 - Windows 10, clean-machine dependency installation and installed upgrade were not validated at release. An upgrade was subsequently reported blocked by a running collector; asking the collector to stop released the occupied files.
 - Self-signed Authenticode is not public CA trust; Windows/SmartScreen and antivirus warnings can remain.
-
-### 简体中文
-
-- 新增 English、简体中文、繁體中文 UI，支持即时切换和 restart 后恢复；保留 hardware model、自定义名称及 card order。
-- 增强 .NET / PowerShell prerequisite checks 和 PawnIO 安装后检查。
-- README 与 Release Notes 改为 English 优先；增加 version consistency checks。
-- Language、persistence、窄窗口和现有 regression checks 通过；Windows 10 / clean-machine / upgrade 未在 release 前验证。之后发现运行中的 collector 可阻塞 upgrade，停止 collector 可释放占用。
 
 ## [0.2.0] — 2026-09-13
 
@@ -507,14 +409,6 @@ Promoted to stable / Latest with maintainer authorization after local regression
 - Windows 10, clean-machine installation, multiple-monitor DPI, uninstall/reinstall and the replacement widget task's next reboot remained untested.
 - One CPU/GPU and up to two reporting DIMMs/NVMe drives. Missing or ambiguous sensors display a dash; SPD addresses are not physical slot identities.
 - Public repository visibility does not grant an open-source license to original application code. Dependencies retain their upstream licenses.
-
-### 简体中文
-
-- 首个 public Release：Windows EXE installer，包含固定 versions 的 dependencies、third-party notices/source archives 与 checksums。
-- 提供 compact glass UI、CPU/GPU/Memory/NVMe/Fan readings、RAM/VRAM usage、独立 Settings、自定义名称和自动 discovery。
-- 保存窗口、外观、card order；支持 drag 排序、keyboard menu 和窗口边缘吸附。
-- 修复 stale snapshot、sticky drag、UTF-8 编码、gear icon 与 GPU fan label 问题；GUI startup 改用独立 task。
-- 已验证 Windows 11 当前机器；其他品牌主要依靠 fixtures，其他 OS/clean-machine/reboot 场景仍有验证限制。
 
 [0.3.1]: https://github.com/medking82/hardware-pulse/releases/tag/v0.3.1
 [0.3.0]: https://github.com/medking82/hardware-pulse/releases/tag/v0.3.0

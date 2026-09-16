@@ -7,3 +7,8 @@ WinExe and installer; `scripts/Test-NativeSensors.ps1` checks native/legacy pars
 Use `scripts/Validate.ps1` before commit. Keep machine snapshots, settings, downloaded binaries,
 and personal paths out of Git. Preserve the existing read-only hardware boundary.
 No repository SOP release launcher is configured; normal Git synchronization is used.
+
+Public documentation keeps English and Simplified Chinese in separate files with language links
+(for example README.md / README.zh-CN.md and CHANGELOG.md / CHANGELOG.zh-CN.md).
+GitHub release descriptions use separate English and 简体中文 sections; never interleave translations.
+Write natural Chinese prose while preserving product names, code identifiers, paths, units and hashes.

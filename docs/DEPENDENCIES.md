@@ -39,8 +39,4 @@ returned no SDKs on 2026-09-15. ARM64, Linux and macOS runtime checks have not r
 Install/select a modern .NET SDK and establish target build/test environments before
 claiming a portable build. No WSL checkout or new framework was introduced here.
 
-## 简体中文维护说明
-
-Dependency 使用固定 release version 和 SHA-256；用户机器不会持续 `git pull` 或自动替换 upstream dependency。更新在开发环境完成，经过 sensor、退出、installer upgrade 和相关 FPS regression 验证后，随 Hardware Pulse 新版本发布。保留 upstream license、必要 source 和 signature。
-
-Linux / macOS 属于 planned support，需要各自的 backend 和 UI 适配；当前不宣称支持。自动 upstream-check / PR workflow 尚未实现。
+[简体中文](DEPENDENCIES.zh-CN.md)

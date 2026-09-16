@@ -23,10 +23,4 @@ Live-game FPS, clean-machine installation and reboot behavior need further testi
 
 The maintainer authorized this testing release with a new-model-review waiver; the earlier partial dual-review failure remains recorded. See [validation](https://github.com/medking82/hardware-pulse/blob/v0.4.0/docs/RELEASE-0.4.0.md) and [full changelog](https://github.com/medking82/hardware-pulse/blob/v0.4.0/CHANGELOG.md).
 
-## 简体中文
-
-在 Assets 下载 **HardwarePulse-Setup.exe**。目标平台为 Windows 10 22H2 / Windows 11 x64，安装包包含 application libraries、PresentMon 和 PawnIO installer，并检查 Windows 自带的 .NET Framework 4.8 与 PowerShell 5.1，无需 HWiNFO。
-
-本版移除了被 Bitdefender 隔离的独立 upgrade helper，改由 Inno Setup 直接准备 upgrade。本机覆盖安装已成功，exit 0，无需重启，也未修改 Bitdefender protection。新增紧凑 card、自定义 scrollbar、card 显示开关、tray、startup、0–100% opacity 和实验性 game overlay。
-
-这是供测试反馈的 **Pre-release**，并非所有机器都已验证。installer 目前为 self-signed，SignPath 尚未批准，Windows 仍可能显示 publisher/reputation 提示。真实游戏、clean-machine 和 reboot 场景还需测试；FPS 不统计 generated frames，exclusive fullscreen 不支持。可在 [GitHub Issues](https://github.com/medking82/hardware-pulse/issues) 提交复现步骤，分享截图前请自行隐藏个人信息。
+[简体中文](RELEASE-NOTES-0.4.0.zh-CN.md)
