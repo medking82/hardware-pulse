@@ -14,15 +14,24 @@ namespace HardwarePulse {
         [StructLayout(LayoutKind.Sequential,CharSet=CharSet.Unicode)]struct Credential {public uint Flags,Type;public string TargetName,Comment;public System.Runtime.InteropServices.ComTypes.FILETIME LastWritten;public uint BlobSize;public IntPtr Blob;public uint Persist,AttributeCount;public IntPtr Attributes;public string TargetAlias,UserName;}
         [DllImport("advapi32.dll",EntryPoint="CredReadW",CharSet=CharSet.Unicode,SetLastError=true)]static extern bool CredRead(string target,uint type,int flags,out IntPtr credential);
         [DllImport("advapi32.dll")]static extern void CredFree(IntPtr credential);
-        static object ClaudeLogin(){
-            string path=LoginFile("CLAUDE_CONFIG_DIR",".claude",".credentials.json");if(File.Exists(path))return ReadLogin(path);
+        static Func<object> ClaudeLoginReader(){
+            string path=LoginFile("CLAUDE_CONFIG_DIR",".claude",".credentials.json");if(File.Exists(path))return ()=>ReadLogin(path);
             foreach(string target in new[]{"Claude Code-credentials","Claude Code-credentials:"+Environment.UserName,"Claude Code-credentials/"+Environment.UserName}){
-                IntPtr ptr;if(!CredRead(target,1,0,out ptr))continue;
-                try{var credential=(Credential)Marshal.PtrToStructure(ptr,typeof(Credential));if(credential.BlobSize==0||credential.BlobSize>1048576)continue;byte[] bytes=new byte[credential.BlobSize];Marshal.Copy(credential.Blob,bytes,0,bytes.Length);
-                    try{return QuotaData.Parse(Encoding.UTF8.GetString(bytes).TrimEnd('\0'));}catch{try{return QuotaData.Parse(Encoding.Unicode.GetString(bytes).TrimEnd('\0'));}catch{}}finally{Array.Clear(bytes,0,bytes.Length);}
-                }finally{CredFree(ptr);}
+                var initial=ReadClaudeCredential(target);if(initial==null)continue;
+                string selected=target;
+                return delegate{
+                    if(initial!=null){var login=initial;initial=null;return login;}
+                    var current=ReadClaudeCredential(selected);if(current==null)throw new QuotaFailure("Login required");return current;
+                };
             }
             throw new QuotaFailure("Login required");
+        }
+        static object ReadClaudeCredential(string target){
+                IntPtr ptr;if(!CredRead(target,1,0,out ptr))return null;
+                try{var credential=(Credential)Marshal.PtrToStructure(ptr,typeof(Credential));if(credential.BlobSize==0||credential.BlobSize>1048576)return null;byte[] bytes=new byte[credential.BlobSize];Marshal.Copy(credential.Blob,bytes,0,bytes.Length);
+                    try{return QuotaData.Parse(Encoding.UTF8.GetString(bytes).TrimEnd('\0'));}catch{try{return QuotaData.Parse(Encoding.Unicode.GetString(bytes).TrimEnd('\0'));}catch{}}finally{Array.Clear(bytes,0,bytes.Length);}
+                }finally{CredFree(ptr);}
+            return null;
         }
         static string LoginFile(string variable,string directory,string file){string root=Environment.GetEnvironmentVariable(variable);if(string.IsNullOrWhiteSpace(root))root=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),directory);return Path.Combine(root,file);}
         static object ReadLogin(string path){
@@ -60,9 +69,11 @@ namespace HardwarePulse {
                 }
                 else if(provider=="Claude"){
                     string supplied=Environment.GetEnvironmentVariable("CLAUDE_CODE_OAUTH_TOKEN");
+                    Func<object> selectedLogin=null;
                     body=ClaudeQuotaRequest.Read(delegate(CancellationToken ignored){
                         if(!string.IsNullOrEmpty(supplied))return supplied;
-                        var login=ClaudeLogin();return QuotaDecoder.Text(QuotaDecoder.Get(QuotaDecoder.Get(login,"claudeAiOauth")??login,"accessToken"));
+                        if(selectedLogin==null)selectedLogin=ClaudeLoginReader();
+                        var login=selectedLogin();return QuotaDecoder.Text(QuotaDecoder.Get(QuotaDecoder.Get(login,"claudeAiOauth")??login,"accessToken"));
                     },(token,requestCancel)=>Request("https://api.anthropic.com/api/oauth/usage",new Dictionary<string,string>{{"Authorization","Bearer "+token},{"anthropic-beta","oauth-2025-04-20"}},null,requestCancel,false),cancel);
                 }else throw new QuotaFailure("Quota unavailable");
                 cancel.ThrowIfCancellationRequested();return QuotaDecoder.Decode(provider,body,DateTimeOffset.UtcNow);

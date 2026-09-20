@@ -241,3 +241,24 @@ owner is closed and the login has expired.
 Sources: [CLI reference](https://code.claude.com/docs/en/cli-reference),
 [authentication](https://code.claude.com/docs/en/authentication#renew-an-expiring-login),
 [token-monitor source](https://github.com/medking82/token-monitor/blob/1e2c03d2a55b5eef97c7732341281415c2a3d7ea/src/shared/limitCollector.js).
+
+### Pin the source for a recovery attempt
+
+<!-- sop-risk-classification: {"facts":{"blast_radius":"shared","change_kind":"implementation","data_boundary":"sensitive","destructive":"no","failure_cost":"low","irreversibility":"reversible","operational_controls":"not_applicable","privilege_boundary":"changed","project_policy":"default","rollback":"easy","scope_knowledge":"known","uncertainty":"low","verification":"deterministic"},"formal_review":"required","kind":"risk-classification-assessment","reasons":{"formal_review":["high_risk_requires_review"],"risk":["privilege_boundary_change"]},"risk":"high","schema_version":2} -->
+
+Windows previously rediscovered the source on every credential read. A synthetic
+configuration-path change between the original read and retry reproduced source
+drift. The reader now selects one file path or one Credential Manager target for
+the entire request/retry pair. A selected file disappearing fails with Login
+required instead of consulting another file or store. A subsequent independent
+refresh may discover the current configuration as before. Explicit environment
+tokens stay pinned and never fall back to a file.
+
+The file regression uses only isolated synthetic data and a process-local
+CLAUDE_CONFIG_DIR, restored in finally. It proves path pinning and disappearance
+handling without accessing real Credential Manager entries. The native store
+reader retains the existing bounded decoding and memory cleanup; its selected
+target is captured for rereads. Live store mutation is not part of these tests.
+
+This changes the credential-selection boundary and requires one independent review
+after deterministic checks, before commit/release.
