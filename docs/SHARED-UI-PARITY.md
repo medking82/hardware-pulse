@@ -1223,3 +1223,24 @@ Focused fixtures, full shared regression and Validate.ps1 passed. Inspected the
 up/down buttons and fixed Back remain visible/reachable with scrolling. Original
 per-window import/order/visibility, restart persistence, provider failure hiding
 and earlier shared group/colon aliases are exercised with synthetic readings.
+
+### Windows host lifetime
+
+Restore the original one-owner, show-existing-App, close-to-tray and cooperative
+upgrade shutdown behavior. Reuse AppActivation's no-payload event with a modern
+dispatcher bridge; isolate the shared instance mutex/event by user, session and
+profile. Demo/smoke/measurement remain isolated. UI teardown must release the
+mutex and reject already queued activation callbacks. A reachable tray is required
+before hiding on close; explicit Quit and OS/application shutdown always exit.
+Only the installed stable host observes the established per-user runtime STOP
+file. It never creates/deletes that file or changes tasks; installer/worker own
+its lifecycle. Check STOP before startup and while hidden without adding sampling.
+
+Allowed: AppActivation compile bridge, Windows instance/STOP adapters, shared
+Program/MonitorWindow/Tray lifecycle and isolated tests. Preserve visuals, quota
+readers, profiles, collector behavior and installation. Tests use unique mutex
+identities and temporary STOP files. Verify real second-process exclusion,
+activation/crash recovery, tray close/Quit/fallback, STOP and callback disposal,
+then full shared and legacy regressions. Rollback is source revert.
+
+<!-- sop-risk-classification: {"facts":{"blast_radius":"shared","change_kind":"implementation","data_boundary":"ordinary","destructive":"no","failure_cost":"material","irreversibility":"reversible","operational_controls":"not_applicable","privilege_boundary":"changed","project_policy":"default","rollback":"easy","scope_knowledge":"known","uncertainty":"low","verification":"deterministic"},"formal_review":"required","kind":"risk-classification-assessment","reasons":{"formal_review":["high_risk_requires_review"],"risk":["privilege_boundary_change"]},"risk":"high","schema_version":2} -->

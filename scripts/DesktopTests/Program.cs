@@ -10,6 +10,9 @@ static class Tests {
     static void Check(bool ok,string message){if(!ok)throw new Exception(message);}
     [STAThread]
     static void Main(string[] args) {
+        if(args.Length==2&&args[0]=="--instance-secondary"){Environment.ExitCode=WindowsInstanceTests.Secondary(args[1]);return;}
+        if(args.Length==2&&args[0]=="--instance-owner"){Environment.ExitCode=WindowsInstanceTests.Hold(args[1]);return;}
+        if(args.SequenceEqual(new[]{"--native-lifetime"})){HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();WindowsInstanceTests.Native();DesktopLifetimeTests.Run();return;}
         var expected=Environment.GetEnvironmentVariable("PULSE_TEST_ARCH");
         Check(expected==null||expected==System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture.ToString(),"Architecture mismatch");
         if(args.SequenceEqual(new[]{"--native-contrast"})) {HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();WindowsCaptureTests.Native();LocalContrastTests.Native();return;}
@@ -40,6 +43,7 @@ static class Tests {
         AppBuilder.Configure<PulseApplication>().With(DesktopFonts.Options()).UseSkia().UseHeadless(new(){UseHeadlessDrawing=false}).SetupWithoutStarting();
         if(args.SequenceEqual(new[]{"--startup"})) {DesktopStartupTests.Run();return;}
         if(args.SequenceEqual(new[]{"--delivery"})) {DesktopUpdateTests.Run();ProfileMigrationTests.Run();HardwareNameTests.Run();return;}
+        if(args.SequenceEqual(new[]{"--lifetime"})){DesktopLifetimeTests.Run();return;}
         if(args.Length>=1&&args[0]=="--quota-preferences") {DesktopMetricPreferenceTests.Run(args.Length==2?args[1]:null);ProfileMigrationTests.Run();QuotaPanelTests.Run(null);return;}
         if(args.Length>=1&&args[0]=="--fps") {FpsPanelTests.Run(args.Length==2?args[1]:null);return;}
         if(args.Length>=1&&args[0]=="--game-overlay") {GameOverlayTests.Run(args.Length==2?args[1]:null);return;}
@@ -92,7 +96,7 @@ static class Tests {
         QuotaPanelTests.Run(args.Length==1?args[0]:null);
         FpsPanelTests.Run(args.Length==1?args[0]:null);
         GameOverlayTests.Run(args.Length==1?args[0]:null);
-        ReorderHandleTests.Run();DesktopMetricPreferenceTests.Run(args.Length==1?args[0]:null);DesktopGeometryTests.Run();SettingsTests.Run(args.Length==1?args[0]:null);
+        ReorderHandleTests.Run();DesktopMetricPreferenceTests.Run(args.Length==1?args[0]:null);DesktopGeometryTests.Run();SettingsTests.Run(args.Length==1?args[0]:null);DesktopLifetimeTests.Run();
         AppMaterialTests.Run();DesktopModeTests.Run();
         ReadingPaletteTests.Run(args.Length==1?args[0]:null);
         LocalContrastTests.Settings();

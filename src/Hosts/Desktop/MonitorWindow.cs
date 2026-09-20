@@ -274,6 +274,9 @@ public sealed class MonitorWindow : Window {
         // interactive editor and owner, so the user always has a recovery path.
         if(FloatingMonitor?.SetLocked(true)==true)Hide();
     }
+    public event Action? UserCloseRequested;
+    public void RequestUserClose(){if(stop.IsCancellationRequested)return;if(UserCloseRequested!=null)UserCloseRequested();else Close();}
+    public void RestoreMain(){if(stop.IsCancellationRequested)return;Show();if(WindowState==WindowState.Minimized)WindowState=WindowState.Normal;Activate();}
     public void OpenFloatingMonitor() {
         if(stop.IsCancellationRequested)return;
         if(FloatingMonitor==null) {
@@ -494,7 +497,7 @@ public sealed class MonitorWindow : Window {
             Language.Changed+=Label;Label();button.Click+=(_,_)=>action();Grid.SetColumn(button,column);bar.Children.Add(button);return button;
         }
         Action("Minimize","minimize","Minimize",1,()=>WindowState=WindowState.Minimized);
-        Action("Close","close","Close widget",2,Close);
+        Action("Close","close","Close widget",2,RequestUserClose);
         return bar;
     }
     static ColorPicker ColorSetting(string name,string value,Action<string> changed) {

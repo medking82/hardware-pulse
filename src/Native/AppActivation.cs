@@ -3,7 +3,9 @@ using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
+#if !NET
 using System.Windows.Threading;
+#endif
 
 namespace HardwarePulse {
     // Carries only a show-home notification, never commands or caller-supplied data.
@@ -13,16 +15,19 @@ namespace HardwarePulse {
         volatile bool disposed;
         [DllImport("user32.dll")]static extern bool AllowSetForegroundWindow(int processId);
         public AppActivation(string name){signal=new EventWaitHandle(false,EventResetMode.AutoReset,name);}
-        public void Listen(Dispatcher dispatcher,Action showHome){
+        public void Listen(Action<Action> post,Action showHome){
             listener=ThreadPool.RegisterWaitForSingleObject(signal,delegate(object state,bool timedOut){
-                if(disposed||dispatcher.HasShutdownStarted)return;
-                try{dispatcher.BeginInvoke(new Action(delegate{if(!disposed)showHome();}));}
+                if(disposed)return;
+                try{post(new Action(delegate{if(!disposed)showHome();}));}
                 catch(InvalidOperationException){}
             },null,Timeout.Infinite,false);
         }
+#if !NET
+        public void Listen(Dispatcher dispatcher,Action showHome){Listen(action=>{if(!dispatcher.HasShutdownStarted)dispatcher.BeginInvoke(action);},showHome);}
+#endif
         public void Notify(string executable){
             // Transfer foreground permission from this user-launched process to its existing peer.
-            using(var self=Process.GetCurrentProcess())foreach(var peer in Process.GetProcessesByName(Path.GetFileNameWithoutExtension(executable))){
+            if(!string.IsNullOrEmpty(executable))using(var self=Process.GetCurrentProcess())foreach(var peer in Process.GetProcessesByName(Path.GetFileNameWithoutExtension(executable))){
                 using(peer)try{
                     if(peer.Id!=self.Id&&peer.SessionId==self.SessionId&&string.Equals(peer.MainModule.FileName,executable,StringComparison.OrdinalIgnoreCase))AllowSetForegroundWindow(peer.Id);
                 }catch(System.ComponentModel.Win32Exception){}catch(InvalidOperationException){}

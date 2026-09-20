@@ -4,15 +4,19 @@ using System.Windows.Input;
 
 namespace HardwarePulse.Desktop;
 
-// The existing window owns the lifetime. Tray support is optional; never hide on close.
+// The existing window owns sampling. Hiding requires a reachable native tray.
 public sealed class DesktopTray : IDisposable {
     readonly Window window;
     readonly TrayIcon icon;
     readonly UiLanguage language;
     bool disposed;
+    readonly bool closeToTray;
+    readonly Func<bool> trayAvailable;
+    public bool IsAvailable=>!disposed&&trayAvailable();
     public NativeMenu Menu { get; }=new();
-    public DesktopTray(Window window) {
+    public DesktopTray(Window window,bool closeToTray=false,Func<bool>? trayAvailable=null) {
         this.window=window;
+        this.closeToTray=closeToTray;
         language=(window as MonitorWindow)?.Language??new UiLanguage();
         using var stream=AssetLoader.Open(new Uri("avares://Pulse.Desktop/Assets/pulse.ico"));
         var artwork=new WindowIcon(stream);
@@ -28,8 +32,16 @@ public sealed class DesktopTray : IDisposable {
         Menu.NeedsUpdate+=UpdateMenu;
         language.Changed+=Localize;Localize();
         icon=new TrayIcon {Icon=artwork,ToolTipText="Pulse",Menu=Menu,IsVisible=true};
+        this.trayAvailable=trayAvailable??(()=>icon.NativeMenuExporter!=null);
         icon.Clicked+=OnClicked;
         window.Closed+=OnClosed;
+        window.Closing+=OnClosing;
+        if(window is MonitorWindow owner)owner.UserCloseRequested+=UserClose;
+    }
+    void UserClose(){if(disposed)return;if(closeToTray&&IsAvailable)window.Hide();else window.Close();}
+    void OnClosing(object? sender,WindowClosingEventArgs e){
+        if(disposed||!closeToTray||!IsAvailable||e.Cancel||e.IsProgrammatic||e.CloseReason!=WindowCloseReason.WindowClosing)return;
+        e.Cancel=true;window.Hide();
     }
     void OnClicked(object? sender,EventArgs e)=>Restore();
     void Localize(){
@@ -47,6 +59,7 @@ public sealed class DesktopTray : IDisposable {
     void OnClosed(object? sender,EventArgs e)=>Dispose();
     void Restore() {
         if(disposed)return;
+        if(window is MonitorWindow monitor){monitor.RestoreMain();return;}
         window.Show();
         if(window.WindowState==WindowState.Minimized)window.WindowState=WindowState.Normal;
         window.Activate();
@@ -57,6 +70,8 @@ public sealed class DesktopTray : IDisposable {
         language.Changed-=Localize;
         Menu.NeedsUpdate-=UpdateMenu;
         window.Closed-=OnClosed;
+        window.Closing-=OnClosing;
+        if(window is MonitorWindow owner)owner.UserCloseRequested-=UserClose;
         icon.Clicked-=OnClicked;
         icon.IsVisible=false;
         icon.Dispose();

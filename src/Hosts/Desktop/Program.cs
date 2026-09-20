@@ -9,6 +9,7 @@ public static class Program {
     public static bool Smoke { get; private set; }
     public static bool Measure { get; private set; }
     static bool transientFramebuffer;
+    internal static WindowsInstanceSession? Instance {get;private set;}
     [STAThread]
     public static int Main(string[] args) {
         if(args.Length==1&&args[0]=="--help") {
@@ -22,8 +23,13 @@ public static class Program {
         transientFramebuffer=args.Contains("--transient-framebuffer");
         if(transientFramebuffer&&(!diagnose||!OperatingSystem.IsLinux()))return 2;
         if(!Demo&&!OperatingSystem.IsLinux()&&!OperatingSystem.IsMacOS()&&!OperatingSystem.IsWindows())return 4;
+        using var instance=OperatingSystem.IsWindows()&&!Demo&&!Smoke&&!Measure?new WindowsInstanceSession(DesktopProfile.InstanceScope):null;
+        if(instance?.IsPrimary==false){instance.Notify();return 0;}
+        if(DesktopProfile.IsInstalledStable&&!Demo&&!Smoke&&!Measure&&File.Exists(DesktopStopMonitor.WindowsPath()))return 0;
+        Instance=instance;
         using var gc=diagnose?new GcDiagnostics():null;
-        int result=BuildApp().StartWithClassicDesktopLifetime(args);
+        int result;
+        try{result=BuildApp().StartWithClassicDesktopLifetime(args);}finally{Instance=null;}
         if(gc!=null)Console.WriteLine("DIAG_GC "+gc.Report());
         return Environment.ExitCode!=0?Environment.ExitCode:result;
     }
@@ -36,6 +42,7 @@ public static class Program {
 
 public sealed class PulseApplication : Application {
     DesktopTray? tray;
+    DesktopStopMonitor? stopMonitor;
     public override void Initialize() {
         Styles.Add(new FluentTheme());
         Styles.Add(new Avalonia.Markup.Xaml.Styling.StyleInclude(new Uri("avares://Pulse.Desktop/")){Source=new Uri("avares://Avalonia.Controls.ColorPicker/Themes/Fluent/Fluent.xaml")});
@@ -44,12 +51,16 @@ public sealed class PulseApplication : Application {
         if(ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop) {
             desktop.MainWindow=new MonitorWindow(new MonitorSource(Program.Demo),Program.Smoke,
                 store:Program.Demo||Program.Smoke||Program.Measure?null:PreviewSettingsStore.Default(),measure:Program.Measure);
+            var monitor=(MonitorWindow)desktop.MainWindow;
+            Program.Instance?.Listen(action=>Avalonia.Threading.Dispatcher.UIThread.Post(action),monitor.RestoreMain);
             if(Program.Smoke)desktop.MainWindow.Opened+=(_,_)=>{
                 var coverage=FontCoverage.Capture();Console.WriteLine("FONT_COVERAGE "+System.Text.Json.JsonSerializer.Serialize(coverage));
                 if(coverage.Any(x=>x.Missing.Length!=0)){Environment.ExitCode=3;desktop.Shutdown(3);}
             };
-            if(!Program.Measure)tray=new DesktopTray(desktop.MainWindow);
-            desktop.Exit+=(_,_)=>tray?.Dispose();
+            if(!Program.Measure)tray=new DesktopTray(monitor,closeToTray:!Program.Smoke&&!Program.Demo&&(OperatingSystem.IsWindows()||OperatingSystem.IsMacOS()));
+            if(DesktopProfile.IsInstalledStable&&!Program.Demo&&!Program.Smoke&&!Program.Measure)
+                stopMonitor=new DesktopStopMonitor(DesktopStopMonitor.WindowsPath(),()=>desktop.Shutdown());
+            desktop.Exit+=(_,_)=>{stopMonitor?.Dispose();tray?.Dispose();};
         }
         base.OnFrameworkInitializationCompleted();
     }
