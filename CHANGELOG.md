@@ -6,15 +6,6 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 
 ## Unreleased
 
-- Sustained remote quota failures now use capped automatic retry backoff (30, 60, 120, 240, 300 seconds). Manual Refresh remains available, successful recovery resets backoff, and server rate limits and local snapshot polling retain their rules.
-
-- Antigravity Desktop quota probes now preserve HTTP 429 backoff and HTTP 403 access-denied status instead of converting them into ordinary transport failures. No credential/source or UI change.
-
-
-
-
-
-
 - Shared Linux X11 floating monitor adds mouse-through locking with XFixes. Unlock restores the default input region and window frame; native x64/ARM64 checks pass. Native Wayland locking is not implemented.
 
 - Shared macOS floating monitor adds AppKit mouse-through locking and reuses the Monitor/tray unlock action. Native Intel/ARM64 lifecycle and package checks pass.
@@ -28,6 +19,12 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 - Shared Desktop embeds pinned Noto Sans CJK SC/TC fonts for Chinese UI on systems without CJK fonts. Build preparation verifies size and SHA-256, packages include the OFL notice, and native smoke fails on missing catalog glyphs. No system font installation or runtime download is needed.
 
 - Shared Desktop supports Auto (System), English and Simplified/Traditional Chinese UI, including Monitor, Settings, sensor status, Codex quota and tray actions. Language switches immediately without restarting sampling or refreshing credentials and is saved in the isolated preview profile. Auto respects Chinese script and region preferences.
+
+## 0.6.35 — 2026-09-21
+
+- Sustained remote quota failures now use capped automatic retry backoff (30, 60, 120, 240, 300 seconds). Manual Refresh remains available, successful recovery resets backoff, and server rate limits and local snapshot polling retain their rules.
+
+- Antigravity Desktop quota probes now preserve HTTP 429 backoff and HTTP 403 access-denied status instead of converting them into ordinary transport failures. No credential/source or UI change.
 
 ## 0.6.34 — 2026-09-21
 

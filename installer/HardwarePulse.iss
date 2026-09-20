@@ -18,7 +18,7 @@ AppName=Hardware Pulse
 #ifdef SharedDesktop
 AppVersion={#SharedVersion}
 #else
-AppVersion=0.6.34
+AppVersion=0.6.35
 #endif
 AppPublisher=Marck Wong
 AppPublisherURL=https://github.com/medking82
@@ -43,7 +43,7 @@ OutputBaseFilename=HardwarePulse-Win7-x64-Setup
 #ifdef SharedDesktop
 OutputBaseFilename=HardwarePulse-Shared-{#SharedVersion}-Setup
 #else
-OutputBaseFilename=HardwarePulse-0.6.34-Setup
+OutputBaseFilename=HardwarePulse-0.6.35-Setup
 #endif
 #endif
 SetupIconFile=..\assets\pulse.ico

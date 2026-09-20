@@ -6,15 +6,6 @@
 
 ## 未发布
 
-- 连续 remote quota failure 改用封顶 automatic retry backoff（30、60、120、240、300 秒）。保留手动 Refresh，成功恢复后重置 backoff，server rate limit 和 local snapshot polling 规则保持不变。
-
-- Antigravity Desktop quota probe 保留 HTTP 429 backoff 和 HTTP 403 access-denied 状态，不再将其转成普通 transport failure；credential／source 和 UI 保持不变。
-
-
-
-
-
-
 - Linux X11 浮动窗口新增基于 XFixes 的鼠标穿透锁定，解锁时恢复默认输入区域及窗口边框。x64/ARM64 原生检查已通过，尚未实现原生 Wayland 锁定。
 
 - 跨平台界面的 macOS 浮动窗口新增 AppKit 鼠标穿透锁定，复用主界面及菜单栏解锁入口。Intel/ARM64 生命周期及安装包检查均已通过。
@@ -28,6 +19,12 @@
 - 跨平台桌面版内嵌固定版本的 Noto Sans CJK 简体和繁体字体，解决未安装中文字体的系统上界面缺字的问题。构建时校验文件大小和 SHA-256，安装包附带 OFL 许可；原生启动检查会将界面文案缺字判为失败。无需安装系统字体，也不会在运行时下载字体。
 
 - 共享桌面应用支持自动跟随系统、英语、简体中文和繁体中文，覆盖监控、设置、传感器状态、Codex 额度与托盘操作。语言即时切换，不重启采样或重新读取登录信息，并保存到独立的预览版设置中。自动模式会区分中文书写体系和地区。
+
+## 0.6.35 — 2026-09-21
+
+- 连续 remote quota failure 改用封顶 automatic retry backoff（30、60、120、240、300 秒）。保留手动 Refresh，成功恢复后重置 backoff，server rate limit 和 local snapshot polling 规则保持不变。
+
+- Antigravity Desktop quota probe 保留 HTTP 429 backoff 和 HTTP 403 access-denied 状态，不再将其转成普通 transport failure；credential／source 和 UI 保持不变。
 
 ## 0.6.34 — 2026-09-21
 

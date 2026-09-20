@@ -83,7 +83,7 @@ or invalid headers retain the two-minute default. The first transient failure re
 30 seconds; consecutive remote failures back off through 60, 120, 240 and 300 seconds.
 This classification does not refresh tokens, change endpoints or grant access.
 
-### Sustained outage retry budget (after 0.6.34)
+### Sustained outage retry budget (Windows 0.6.35)
 
 The user prioritizes long-term quota stability and low background cost. Repeating
 a failed remote/CLI read every 30 seconds indefinitely amplifies an outage into
@@ -110,7 +110,7 @@ already-established queued-refresh contract: initial read, in-flight refresh and
 one coalesced queued refresh. Production click handling was not changed for this
 fixture correction.
 
-### Antigravity Desktop probe error propagation (after 0.6.34)
+### Antigravity Desktop probe error propagation (Windows 0.6.35)
 
 The Windows Desktop endpoint loop previously preserved 401 but swallowed 429 and
 403 as ordinary probe failures. A synthetic response reproduced loss of the
