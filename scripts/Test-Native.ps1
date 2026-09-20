@@ -10,3 +10,10 @@ Copy-Item "$app/HardwarePulse.exe.config" "$app/NativeTests.exe.config" -Force
 Copy-Item "$app/HardwarePulse.exe.config" "$app/NativeCollectorBench.exe.config" -Force
 $testRoot=Join-Path $root ('vendor/native-ui-'+[Guid]::NewGuid().ToString('N'))
 & "$PSScriptRoot/Run-Hidden.ps1" "$app/NativeTests.exe" @($testRoot) $root
+& "$PSScriptRoot/Run-Hidden.ps1" "$framework/csc.exe" @('/nologo','/target:exe',"/out:$app\NativeCodexRpcTests.exe","/reference:$app\Pulse.Core.dll","/reference:$app\Pulse.Adapters.Windows.dll","$root\scripts\CodexRpcTests.cs") $root
+Copy-Item "$app/HardwarePulse.exe.config" "$app/NativeCodexRpcTests.exe.config" -Force
+foreach($fixture in @(@('NativeCodexRpcFixture','RPC_NORMAL'),@('NativeCodexRpcFixture-hang','RPC_HANG'),@('NativeCodexRpcFixture-stderr','RPC_STDERR'))){
+    & "$PSScriptRoot/Run-Hidden.ps1" "$framework/csc.exe" @('/nologo','/target:exe',"/define:$($fixture[1])","/out:$app\$($fixture[0]).exe","$root\scripts\CodexRpcFixture.cs") $root
+    Copy-Item "$app/HardwarePulse.exe.config" "$app/$($fixture[0]).exe.config" -Force
+}
+& "$PSScriptRoot/Run-Hidden.ps1" "$app/NativeCodexRpcTests.exe" @() $root

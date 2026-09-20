@@ -11,6 +11,18 @@ internal static class NativeQuotaTests {
     static void Check(bool value,string message){if(!value)throw new Exception("Quota: "+message);}
     static QuotaReading Decode(string provider,string json){return QuotaDecoder.Decode(provider,QuotaData.Parse(json),DateTimeOffset.UtcNow);}
     public static void Run(){
+        var protocol=typeof(QuotaProviders).Assembly.GetType("HardwarePulse.CodexAppServerQuota").GetMethod("ReadProtocol",BindingFlags.NonPublic|BindingFlags.Static);
+        var output=new System.IO.StringWriter();
+        string rpc="{\"id\":1,\"result\":{}}\n{\"method\":\"account/updated\",\"params\":{}}\n{\"id\":2,\"result\":{\"rateLimits\":{\"secondary\":{\"usedPercent\":36,\"windowDurationMins\":10080}}}}\n";
+        var rpcBody=protocol.Invoke(null,new object[]{new System.IO.StringReader(rpc),output,CancellationToken.None});
+        var rpcQuota=QuotaDecoder.Decode("Codex",rpcBody,DateTimeOffset.UtcNow);
+        Check(rpcQuota.Status=="Live"&&rpcQuota.Windows.Single().Remaining==64,"official RPC quota decoded through existing model");
+        var sent=output.ToString().Split(new[]{'\n'},StringSplitOptions.RemoveEmptyEntries).Select(line=>QuotaDecoder.Text(QuotaDecoder.Get(QuotaData.Parse(line),"method"))).ToArray();
+        Check(sent.SequenceEqual(new[]{"initialize","initialized","account/rateLimits/read"}),"RPC must issue only handshake and quota read");
+        foreach(string invalid in new[]{"", "{\"id\":1,\"error\":{\"message\":\"private fixture\"}}\n",new string('x',1048577)}){
+            try{protocol.Invoke(null,new object[]{new System.IO.StringReader(invalid),new System.IO.StringWriter(),CancellationToken.None});throw new Exception("Invalid RPC accepted");}
+            catch(TargetInvocationException error){Check(error.InnerException is QuotaFailure&&((QuotaFailure)error.InnerException).Status=="Quota unavailable","RPC failure must be bounded and sanitized");}
+        }
         var ownership=typeof(QuotaProviders).Assembly.GetType("HardwarePulse.AntigravityQuota").GetMethod("IsOwnedProcess",BindingFlags.NonPublic|BindingFlags.Static);
         uint pid=(uint)System.Diagnostics.Process.GetCurrentProcess().Id;string sid=System.Security.Principal.WindowsIdentity.GetCurrent().User.Value;
         Check((bool)ownership.Invoke(null,new object[]{pid,sid}),"bound WMI instance can query current process owner");

@@ -21,6 +21,41 @@ against v0.6.27; compression alone does not establish runtime improvements.
 The shared Windows 0.7.1-rc.1 build is experimental evidence, not the chosen
 Windows stable deliverable. Do not publish it as the final Windows update.
 
+## Current validation checkpoint
+
+Current validation checkpoint (2026-09-20, WPF iteration): the default-glass
+readability and HTTP quota-status changes are committed locally. Codex managed
+CLI recovery remains uncommitted and unreviewed. Its native WPF build, modern
+adapter build (zero warnings/errors), and dedicated child-process fixtures
+(decode, cancellation, stderr limit, process exit) passed. This does not prove
+expired-token recovery or full application acceptance.
+
+Earlier full native regression was blocked: compilation of `NativeTests.exe` returned
+CS0016 access denied. Subsequent read-only Bitdefender quarantine metadata
+identified `Atc4.Detection` for that executable, the native application/adapter,
+and the dedicated RPC fixture artifacts. Successful build/test artifacts were
+subsequently quarantined; they are not usable release candidates. No false-positive
+verdict has been established. Do not rename/rebuild artifacts to evade detection,
+restore quarantined files automatically, or change protection settings.
+
+Subsequent user-provided attack timeline identifies
+`SuspiciousBehavior.7CBD16A74B45D806` and the process chain
+`codex.exe -> pwsh.exe -> codexrpctests.exe`. It provides no specific triggering
+operation. Source inspection found that a stdin-close exception could skip
+owned-process cleanup; this now uses nested `finally`. That latest change has
+now passed full repository validation together with separately compiled RPC
+fixtures, which no longer copy or launch the test runner itself. The modern
+adapter build also passed with zero warnings/errors. The protection setting
+during this later run was not attested; these results do not establish that the
+detection has been resolved.
+
+Before delivery, establish the supported protection-on compatibility outcome,
+complete the required
+independent review of the frozen recovery diff, measure comparable WPF workloads,
+and verify installation/upgrade and preserved App/Desktop/Settings interactions.
+Use a new release version; existing 0.6.27 validation installers are local evidence
+only. No release or CPU/RAM improvement is claimed by this checkpoint.
+
 ## Earlier scope and validation history
 
 Latest priority (2026-09-16, after the Win7 test publication): the user requests

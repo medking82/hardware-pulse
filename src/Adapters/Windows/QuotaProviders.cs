@@ -28,7 +28,14 @@ namespace HardwarePulse {
         static object ReadLogin(string path){var info=new FileInfo(path);if(!info.Exists)throw new QuotaFailure("Login required");if(info.Length>1048576)throw new QuotaFailure("Login unavailable");return QuotaData.Parse(File.ReadAllText(path));}
         public static QuotaReading Read(string provider,CancellationToken cancel){
             cancel.ThrowIfCancellationRequested();
-            if(provider=="Codex")return CodexQuota.Read(()=>ReadLogin(LoginFile("CODEX_HOME",".codex","auth.json")),RequestCodex,cancel);
+            if(provider=="Codex"){
+                var reading=CodexQuota.Read(()=>ReadLogin(LoginFile("CODEX_HOME",".codex","auth.json")),RequestCodex,cancel);
+                // Avoid spawning a CLI for transient network errors or server throttling.
+                if(reading.Status!="Login required")return reading;
+                string executable=CodexAppServerQuota.InstalledExecutable();if(executable==null)return reading;
+                try{var recovered=CodexAppServerQuota.Read(executable,cancel);return recovered.Status=="Live"?recovered:reading;}
+                catch{cancel.ThrowIfCancellationRequested();return reading;}
+            }
             try{
                 object body;
                 if(provider=="Antigravity")body=AntigravityQuota.Read(cancel);
