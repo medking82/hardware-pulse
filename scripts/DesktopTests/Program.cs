@@ -18,6 +18,7 @@ static class Tests {
             AppMaterialTests.Run();
             LocalizationTests.Run(null,native:true);
             TrayTests.Run(native:true);
+            TitlebarTests.Run();
             FloatingMonitorTests.Run();
             WindowsInputTests.Run();
             MacInputTests.Run();
@@ -72,6 +73,7 @@ static class Tests {
         WindowsSnapshotTests.Run();
         DeviceCardsTests.Run(args.Length==1?args[0]:null);
         NavigationTests.Run(args.Length==1?args[0]:null);
+        TitlebarTests.Run();
         MeasurementTests.Run();
         TrayTests.Run();
         FloatingMonitorTests.Run(args.Length==1?args[0]:null);

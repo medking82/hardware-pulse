@@ -15,7 +15,7 @@
     <EmbeddedResource Include="Chinese.txt" LogicalName="Pulse.Desktop.Chinese.txt" />
     <EmbeddedResource Include="ChineseTraditional.txt" LogicalName="Pulse.Desktop.ChineseTraditional.txt" />
     <AvaloniaResource Include="../../../assets/pulse.ico" Link="Assets/pulse.ico" />
-    <AvaloniaResource Include="../../../assets/cpu.svg;../../../assets/gpu.svg;../../../assets/memory.svg;../../../assets/nvme.svg;../../../assets/airflow.svg;../../../assets/network.svg;../../../assets/down.svg;../../../assets/up.svg;../../../assets/codex.svg;../../../assets/settings.svg" Link="Assets/%(Filename)%(Extension)" />
+    <AvaloniaResource Include="../../../assets/cpu.svg;../../../assets/gpu.svg;../../../assets/memory.svg;../../../assets/nvme.svg;../../../assets/airflow.svg;../../../assets/network.svg;../../../assets/down.svg;../../../assets/up.svg;../../../assets/codex.svg;../../../assets/settings.svg;../../../assets/live.svg;../../../assets/minimize.svg;../../../assets/close.svg" Link="Assets/%(Filename)%(Extension)" />
     <PackageReference Include="Avalonia.Desktop" Version="12.1.2" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.2" />
     <ProjectReference Include="../../Adapters/Linux/Pulse.Adapters.Linux.csproj" />

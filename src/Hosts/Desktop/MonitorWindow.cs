@@ -6,6 +6,7 @@ using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.Styling;
 using Avalonia.Platform;
+using Avalonia.Input;
 
 namespace HardwarePulse.Desktop;
 
@@ -52,6 +53,7 @@ public sealed class MonitorWindow : Window {
         Language.Changed+=ApplyLanguageFont;ApplyLanguageFont();
         Title="Pulse · Desktop preview";Width=settings.Width;Height=settings.Height;MinWidth=360;MinHeight=400;
         FontSize=15;
+        WindowDecorations=WindowDecorations.None;
         var heading=Language.Set(new TextBlock{FontSize=22,FontWeight=FontWeight.SemiBold},"Pulse");
         panels=new[]{"CPU","GPU","Memory","NVMe","Airflow","Network"}.Select(key=>new DeviceCard(key,Language)).ToArray();
         foreach(var panel in panels)cards.Children.Add(panel);
@@ -113,7 +115,8 @@ public sealed class MonitorWindow : Window {
         var pages=new ContentControl{Name="AppPage",HorizontalContentAlignment=HorizontalAlignment.Stretch,VerticalContentAlignment=VerticalAlignment.Stretch,Content=monitorPage};
         openSettings.Click+=(_,_)=>{pages.Content=settingsSurface;back.Focus();};
         back.Click+=(_,_)=>{pages.Content=monitorPage;openSettings.Focus();};
-        DockPanel.SetDock(heading,Dock.Top);heading.Margin=new Thickness(14,10,14,8);viewport.Children.Add(heading);viewport.Children.Add(pages);Content=viewport;
+        var titlebar=CreateTitlebar(heading);DockPanel.SetDock(titlebar,Dock.Top);viewport.Children.Add(titlebar);viewport.Children.Add(pages);
+        var frame=new Grid();frame.Children.Add(viewport);AddResizeEdges(frame);Content=frame;
         Language.Set(this,"Pulse · Desktop preview");Language.Set(status,"Starting…");Language.Set(pause,"Pause hardware monitoring");Language.Set(refreshInterfaces,"Refresh interfaces");
         theme.ItemTemplate=Language.Choices();
         void Placeholder()=>interfaces.PlaceholderText=Language.T("Select network interface");
@@ -160,6 +163,42 @@ public sealed class MonitorWindow : Window {
         TransparencyLevelHint=settings.Solid||highContrast?[WindowTransparencyLevel.None]:
             OperatingSystem.IsWindows()||settings.AppOpacity==0?[WindowTransparencyLevel.Transparent]:[WindowTransparencyLevel.Blur];
         ApplyMaterial();
+    }
+    Control CreateTitlebar(TextBlock heading) {
+        var bar=new Grid{Name="Titlebar",ColumnDefinitions=new ColumnDefinitions("*,Auto,Auto"),Margin=new Thickness(14,10,14,8)};
+        var brand=AppIcon.Create("live");brand.Stroke=Brush.Parse("#A5E7D5");
+        var label=new StackPanel{Orientation=Orientation.Horizontal,Spacing=7,VerticalAlignment=VerticalAlignment.Center};
+        label.Children.Add(new Viewbox{Width=22,Height=22,Child=brand});label.Children.Add(heading);
+        var drag=new Border{Name="DragHandle",Background=Brushes.Transparent,Child=label,Cursor=new Cursor(StandardCursorType.SizeAll)};
+        drag.PointerPressed+=(_,e)=>{if(e.GetCurrentPoint(drag).Properties.IsLeftButtonPressed){BeginMoveDrag(e);e.Handled=true;}};
+        bar.Children.Add(drag);
+        Button Action(string name,string icon,string text,int column,Action action) {
+            var glyph=AppIcon.Create(icon);glyph.Bind(Avalonia.Controls.Shapes.Shape.StrokeProperty,this.GetObservable(ForegroundProperty));
+            var button=new Button{Name=name,Padding=new Thickness(10,3),VerticalAlignment=VerticalAlignment.Center,Content=new Viewbox{Width=14,Height=14,Child=glyph}};
+            void Label(){ToolTip.SetTip(button,Language.T(text));Avalonia.Automation.AutomationProperties.SetName(button,Language.T(text));}
+            Language.Changed+=Label;Label();button.Click+=(_,_)=>action();Grid.SetColumn(button,column);bar.Children.Add(button);return button;
+        }
+        Action("Minimize","minimize","Minimize",1,()=>WindowState=WindowState.Minimized);
+        Action("Close","close","Close widget",2,Close);
+        return bar;
+    }
+    void AddResizeEdges(Grid frame) {
+        void Edge(WindowEdge edge,HorizontalAlignment horizontal,VerticalAlignment vertical,StandardCursorType cursor,bool corner=false) {
+            var grip=new Border{Name="Resize"+edge,Background=Brushes.Transparent,HorizontalAlignment=horizontal,VerticalAlignment=vertical,Cursor=new Cursor(cursor)};
+            if(horizontal!=HorizontalAlignment.Stretch)grip.Width=corner?10:5;
+            if(vertical!=VerticalAlignment.Stretch)grip.Height=corner?10:5;
+            grip.PointerPressed+=(_,e)=>{if(CanResize&&WindowState==WindowState.Normal&&e.GetCurrentPoint(grip).Properties.IsLeftButtonPressed){BeginResizeDrag(edge,e);e.Handled=true;}};
+            void State(){grip.IsVisible=CanResize&&WindowState==WindowState.Normal;}
+            PropertyChanged+=(_,e)=>{if(e.Property==WindowStateProperty||e.Property==CanResizeProperty)State();};State();frame.Children.Add(grip);
+        }
+        Edge(WindowEdge.North,HorizontalAlignment.Stretch,VerticalAlignment.Top,StandardCursorType.SizeNorthSouth);
+        Edge(WindowEdge.South,HorizontalAlignment.Stretch,VerticalAlignment.Bottom,StandardCursorType.SizeNorthSouth);
+        Edge(WindowEdge.West,HorizontalAlignment.Left,VerticalAlignment.Stretch,StandardCursorType.SizeWestEast);
+        Edge(WindowEdge.East,HorizontalAlignment.Right,VerticalAlignment.Stretch,StandardCursorType.SizeWestEast);
+        Edge(WindowEdge.NorthWest,HorizontalAlignment.Left,VerticalAlignment.Top,StandardCursorType.TopLeftCorner,true);
+        Edge(WindowEdge.NorthEast,HorizontalAlignment.Right,VerticalAlignment.Top,StandardCursorType.TopRightCorner,true);
+        Edge(WindowEdge.SouthWest,HorizontalAlignment.Left,VerticalAlignment.Bottom,StandardCursorType.BottomLeftCorner,true);
+        Edge(WindowEdge.SouthEast,HorizontalAlignment.Right,VerticalAlignment.Bottom,StandardCursorType.BottomRightCorner,true);
     }
     void ApplyMaterial() {
         bool highContrast=materialPlatform?.GetColorValues().ContrastPreference==ColorContrastPreference.High;

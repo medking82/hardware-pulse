@@ -186,3 +186,26 @@ all six original Settings categories, or the full Desktop. Existing three Settin
 categories remain functional; their headers still scroll and require the subsequent
 original-category migration. Full visual parity and stable release remain unaccepted.
 Full scripts/Validate.ps1 passed for the navigation change.
+
+### Shared custom titlebar and resize
+
+Monitor now uses a shared custom titlebar with the original live/minimize/close
+SVG geometry, independent foreground binding and localized accessible labels.
+Titlebar dragging delegates to Avalonia BeginMoveDrag; eight edge/corner regions
+delegate to BeginResizeDrag and disappear when resize is disabled or the window
+is not Normal. Minimize and Close preserve the existing tray/lifetime ownership.
+Original WPF source/assets, installed profiles, adapters and release state remain
+unchanged. The change is source-reversible and uses the existing routine UI risk
+classification; no native privilege or credential boundary changes.
+
+Headless and Windows native regressions pass for minimize/restore, close with an
+open floating view, stale tray actions, localization and resize-target availability.
+The rendered compact header was inspected. A real isolated Windows demo was moved
+through its titlebar (screen origin 494,494 to 614,554 at 150% scaling), resized
+through its southeast corner from 800x560 to 720x510 logical pixels, then closed
+through its titlebar; the process exited successfully. The cards reflowed and the
+blur remained visible. Demo mode writes no user settings. This is Windows evidence
+for one drag/corner, not all-edge, multi-monitor, macOS or Linux acceptance. Original
+lock/snap behavior, original minimum size and complete Settings/Desktop parity are
+still outstanding.
+Full scripts/Validate.ps1 passed for this titlebar change.

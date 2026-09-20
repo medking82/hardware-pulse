@@ -111,3 +111,5 @@ LAN Link Speed|LAN 連線速率
 Wi-Fi Link Speed|Wi-Fi 連線速率
 Wi-Fi Signal|Wi-Fi 訊號
 Back|返回
+Minimize|最小化
+Close widget|關閉元件
