@@ -24,6 +24,11 @@
 
 - 共享桌面应用支持自动跟随系统、英语、简体中文和繁体中文，覆盖监控、设置、传感器状态、Codex 额度与托盘操作。语言即时切换，不重启采样或重新读取登录信息，并保存到独立的预览版设置中。自动模式会区分中文书写体系和地区。
 
+## 0.6.32 — 2026-09-20
+
+- Windows quota CLI 的 pipe 在 writer 保持打开但无输出时也能响应 cancellation。Cleanup 会取消并等待 stderr reader 结束，保留 UTF-8 decoding、output limit 和既有 refresh/backoff 行为。
+- 新增两个 CLI parser、idle stderr、fragmented UTF-8 和 EOF 的 in-process pipe regression checks。未新增 Claude token renewal，也不代表已确认此前 antivirus detection 的原因。
+
 ## 0.6.31 — 2026-09-20
 
 - 唤醒后若收到休眠前已完成、现已过期的 quota observation，会立即重新读取，不再额外等待五分钟。

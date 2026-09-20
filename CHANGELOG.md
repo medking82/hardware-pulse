@@ -24,6 +24,11 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 
 - Shared Desktop supports Auto (System), English and Simplified/Traditional Chinese UI, including Monitor, Settings, sensor status, Codex quota and tray actions. Language switches immediately without restarting sampling or refreshing credentials and is saved in the isolated preview profile. Auto respects Chinese script and region preferences.
 
+## 0.6.32 — 2026-09-20
+
+- Windows quota CLI pipe reads now respond to cancellation even while a writer remains open without output. Cleanup cancels and joins the stderr reader; UTF-8 decoding, output limits and the existing refresh/backoff behavior are preserved.
+- Adds in-process pipe regression checks for both CLI parsers, idle stderr, fragmented UTF-8 and EOF. This does not add Claude token renewal or establish the cause of earlier antivirus detections.
+
 ## 0.6.31 — 2026-09-20
 
 - Wake recovery immediately refreshes an expired successful quota observation completed before sleep, instead of adding another five-minute wait.
