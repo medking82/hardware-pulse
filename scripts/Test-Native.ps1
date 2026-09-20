@@ -17,3 +17,6 @@ foreach($fixture in @(@('NativeCodexRpcFixture','RPC_NORMAL'),@('NativeCodexRpcF
     Copy-Item "$app/HardwarePulse.exe.config" "$app/$($fixture[0]).exe.config" -Force
 }
 & "$PSScriptRoot/Run-Hidden.ps1" "$app/NativeCodexRpcTests.exe" @() $root
+
+& "$PSScriptRoot/Run-Hidden.ps1" "$framework/csc.exe" @('/nologo','/target:exe',"/out:$app\NativeQuotaPipeTests.exe","$root\scripts\QuotaPipeTests.cs") $root
+& "$PSScriptRoot/Run-Hidden.ps1" "$app/NativeQuotaPipeTests.exe" @("$app/Pulse.Adapters.Windows.dll") $root

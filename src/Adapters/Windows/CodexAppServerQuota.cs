@@ -1,6 +1,8 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Pipes;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -51,20 +53,29 @@ namespace HardwarePulse {
                 cancel.ThrowIfCancellationRequested();
                 if(!process.Start())throw new QuotaFailure("Quota unavailable");
                 Action stop=delegate{try{if(!process.HasExited)process.Kill();}catch(InvalidOperationException){}catch(System.ComponentModel.Win32Exception){}};
-                using(deadline.Token.Register(()=>stop())){
+                using(deadline.Token.Register(()=>stop()))
+                using(var reading=CancellationTokenSource.CreateLinkedTokenSource(deadline.Token))
+                using(var stdout=new StreamReader(new QuotaPipeStream(process.StandardOutput.BaseStream,reading.Token),Encoding.UTF8))
+                using(var stderr=new StreamReader(new QuotaPipeStream(process.StandardError.BaseStream,reading.Token),Encoding.UTF8)){
                     int diagnosticOverflow=0;
-                    var errors=Task.Run(()=>{try{var buffer=new char[2048];int count,total=0;while((count=process.StandardError.Read(buffer,0,buffer.Length))>0){total+=count;if(total>65536){Interlocked.Exchange(ref diagnosticOverflow,1);stop();break;}}}catch(IOException){}catch(ObjectDisposedException){}});
+                    var errors=Task.Run(()=>{try{var buffer=new char[2048];int count,total=0;while((count=stderr.Read(buffer,0,buffer.Length))>0){total+=count;if(total>65536){Interlocked.Exchange(ref diagnosticOverflow,1);reading.Cancel();stop();break;}}}catch(OperationCanceledException){}catch(IOException){}catch(ObjectDisposedException){}});
                     object body;
                     try{
-                        body=read(process.StandardOutput,process.StandardInput,deadline.Token);
+                        body=read(stdout,process.StandardInput,reading.Token);
+                    }catch(OperationCanceledException){
+                        cancel.ThrowIfCancellationRequested();throw new QuotaFailure("Quota unavailable");
                     }finally{
                         // A child can close its pipe before the writer flushes. Even if
                         // closing stdin fails, always finish owned-process cleanup.
                         try{process.StandardInput.Close();}
                         finally{
-                            if(!process.WaitForExit(500)){stop();if(!process.WaitForExit(2000))throw new QuotaFailure("Quota unavailable");}
-                            // Observe completion without retaining or logging server diagnostics.
-                            if(!errors.Wait(2000))throw new QuotaFailure("Quota unavailable");
+                            try{if(!process.WaitForExit(500)){stop();if(!process.WaitForExit(2000))throw new QuotaFailure("Quota unavailable");}}
+                            finally{
+                                // A descendant may retain stderr after the owned child exits.
+                                // Cancel the pipe reader before joining; never abandon a worker.
+                                reading.Cancel();
+                                if(!errors.Wait(2000))throw new QuotaFailure("Quota unavailable");
+                            }
                         }
                     }
                     cancel.ThrowIfCancellationRequested();
@@ -74,5 +85,42 @@ namespace HardwarePulse {
                 }
             }
         }
+    }
+    // Sole reader of a redirected anonymous pipe. Probe bytes before ReadFile so
+    // an idle writer cannot trap a synchronous StreamReader beyond cancellation.
+    // The Process/PipeStream owns the handle; this wrapper never closes it.
+    internal sealed class QuotaPipeStream:Stream {
+        readonly SafeHandle handle;
+        readonly CancellationToken cancel;
+        readonly byte[] bytes=new byte[4096];
+        [DllImport("kernel32.dll",SetLastError=true)]static extern bool PeekNamedPipe(SafeHandle pipe,IntPtr buffer,uint size,IntPtr read,out uint available,IntPtr remaining);
+        [DllImport("kernel32.dll",SetLastError=true)]static extern bool ReadFile(SafeHandle file,byte[] buffer,uint count,out uint read,IntPtr overlapped);
+        internal QuotaPipeStream(Stream source,CancellationToken cancel){
+            var file=source as FileStream;var pipe=source as PipeStream;
+            if(file!=null)handle=file.SafeFileHandle;
+            else if(pipe!=null)handle=pipe.SafePipeHandle;
+            else throw new ArgumentException("Expected an owned pipe stream","source");
+            this.cancel=cancel;
+        }
+        public override int Read(byte[] buffer,int offset,int count){
+            if(buffer==null)throw new ArgumentNullException("buffer");
+            if(offset<0||count<0||offset>buffer.Length-count)throw new ArgumentOutOfRangeException();
+            if(count==0)return 0;
+            while(true){
+                cancel.ThrowIfCancellationRequested();uint available;
+                if(!PeekNamedPipe(handle,IntPtr.Zero,0,IntPtr.Zero,out available,IntPtr.Zero))return EndOrThrow();
+                if(available>0){
+                    uint received;uint wanted=(uint)Math.Min(Math.Min(count,bytes.Length),(long)available);
+                    if(!ReadFile(handle,bytes,wanted,out received,IntPtr.Zero))return EndOrThrow();
+                    Buffer.BlockCopy(bytes,0,buffer,offset,(int)received);return (int)received;
+                }
+                cancel.WaitHandle.WaitOne(25);
+            }
+        }
+        int EndOrThrow(){int error=Marshal.GetLastWin32Error();cancel.ThrowIfCancellationRequested();if(error==109)return 0;throw new IOException("Quota pipe read failed",new System.ComponentModel.Win32Exception(error));}
+        public override bool CanRead{get{return true;}}public override bool CanSeek{get{return false;}}public override bool CanWrite{get{return false;}}
+        public override long Length{get{throw new NotSupportedException();}}public override long Position{get{throw new NotSupportedException();}set{throw new NotSupportedException();}}
+        public override void Flush(){}public override long Seek(long offset,SeekOrigin origin){throw new NotSupportedException();}
+        public override void SetLength(long value){throw new NotSupportedException();}public override void Write(byte[] buffer,int offset,int count){throw new NotSupportedException();}
     }
 }

@@ -36,6 +36,25 @@ windows, invalid percentages, missing timezone/reset and unknown report formats.
 No raw CLI report or diagnostic output enters application logs or settings.
 The five-minute QuotaSession cadence and explicit opt-in remain unchanged.
 
+### Pipe cancellation hardening
+
+The Windows child adapter reads stdout/stderr through a single-reader pipe stream.
+It probes available bytes before reading, checks cancellation while waiting, and
+retains StreamReader UTF-8 decoding. It does not rely solely on killing the direct
+child to produce EOF: another writer may still hold a pipe handle. Cleanup cancels
+and joins the diagnostic reader even when the child has already exited. Existing
+output caps, fixed CLI arguments and the 15-second deadline remain in place.
+The stream borrows its handle from Process; it never closes an unrelated handle,
+changes credentials, starts a replacement refresh, or terminates other processes.
+
+The local pre-fix diagnostic showed both parsers remaining blocked after token
+cancellation until the in-process writer closed. `scripts/QuotaPipeTests.cs` now
+checks cancellation with an open idle writer for both parsers and stderr, plus
+fragmented UTF-8, EOF and worker completion. The existing RPC child fixtures cover
+real owned-child exit, timeout cancellation and excessive diagnostics. These
+checks do not establish that a real provider spawned a descendant, that antivirus
+caused a quota failure, or that expired credentials can renew automatically.
+
 Evidence: with no observed Antigravity/agy/language-server process before the
 probe, the released Windows reader returned `Open Antigravity to read quota`;
 the installed native CLI independently returned weekly and five-hour Gemini
