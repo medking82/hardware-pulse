@@ -101,7 +101,13 @@ internal static class NativeQuotaTests {
                 shell.Control<Button>("ClaudeSnapshotRebind").RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
                 Check(ClaudeStatusLineReceiver.Read(paths.State,received).Windows.Count==0,"rebind action clears prior selected snapshot");
                 source.SelectedIndex=0;fake.Tick(DateTimeOffset.UtcNow);for(int i=0;i<100&&fake.Readings.Any(r=>r.Status!="Live");i++){Thread.Sleep(10);fake.Tick(DateTimeOffset.UtcNow);}shell.UpdatePanel();
+                var antigravityReading=fake.Readings.Single(r=>r.Provider=="Antigravity");antigravityReading.Source="CLI";shell.UpdatePanel();
                 var metrics=(System.Collections.IEnumerable)typeof(Shell).GetMethod("DesktopMetrics",BindingFlags.NonPublic|BindingFlags.Instance).Invoke(shell,null);Check(metrics.Cast<object>().Count()>=6,"Desktop quota readings");
+                var geminiMetrics=metrics.Cast<DesktopMetric>().Where(m=>m.Key.StartsWith("quotaAntigravity",StringComparison.Ordinal)).ToArray();
+                Check(geminiMetrics.Length==2&&geminiMetrics.All(m=>m.Title.StartsWith("Gemini · ",StringComparison.Ordinal)&&!m.Title.Contains("CLI")&&m.ToolTip!=null&&m.ToolTip.Contains("Antigravity CLI")),"Gemini keeps concise titles and discloses CLI source in tooltip");
+                antigravityReading.Source=null;shell.UpdatePanel();
+                metrics=(System.Collections.IEnumerable)typeof(Shell).GetMethod("DesktopMetrics",BindingFlags.NonPublic|BindingFlags.Instance).Invoke(shell,null);
+                Check(metrics.Cast<DesktopMetric>().Where(m=>m.Key.StartsWith("quotaAntigravity",StringComparison.Ordinal)).All(m=>m.ToolTip==null),"Returning to Desktop source clears the previous CLI tooltip");
                 var hardware=shell.Control<StackPanel>("Cards");var previous=hardware.Visibility;double height=shell.Window.Height;shell.Window.Height=920;hardware.Visibility=Visibility.Collapsed;shell.Window.UpdateLayout();
                 var bitmap=new System.Windows.Media.Imaging.RenderTargetBitmap((int)shell.Window.ActualWidth,(int)shell.Window.ActualHeight,96,96,System.Windows.Media.PixelFormats.Pbgra32);bitmap.Render(shell.Window);var png=new System.Windows.Media.Imaging.PngBitmapEncoder();png.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmap));using(var file=System.IO.File.Create(screenshot))png.Save(file);
                 hardware.Visibility=previous;shell.Window.Height=height;

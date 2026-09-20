@@ -192,7 +192,7 @@ namespace HardwarePulse {
                     row.Value.Height=row.Value.LineHeight;
                 }
                 row.Value.ToolTip=metric.ToolTip??metric.Value;
-                row.Name.ToolTip=metric.Title;if(localContrast==null||!LocalContrastAvailable){row.Name.Foreground=row.Value.Foreground=foreground;}row.Border.BorderBrush=line;
+                row.Name.ToolTip=metric.ToolTip??metric.Title;if(localContrast==null||!LocalContrastAvailable){row.Name.Foreground=row.Value.Foreground=foreground;}row.Border.BorderBrush=line;
                 row.Border.Padding=new Thickness(0,spacing/2,0,spacing/2);row.Border.Visibility=Visibility.Visible;
                 string tint=iconColor==null?color:iconColor(metric.Icon);
                 row.IconName=metric.Icon;row.BaseIconColor=tint;row.IconPalette=iconColor!=null;

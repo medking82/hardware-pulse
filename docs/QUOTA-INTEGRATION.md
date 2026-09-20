@@ -26,7 +26,9 @@ download a CLI, search PATH, launch a model prompt, create a login, borrow OAuth
 client credentials, or persist tokens. The installed CLI owns authentication.
 An identified Desktop session's HTTP/auth failure must not switch accounts by
 falling back to the CLI. The CLI account can differ from the Desktop account:
-Monitor status and Desktop quota labels identify the source as `CLI`.
+Windows WPF Monitor status and Desktop name/value tooltips identify the source as
+`Source: Antigravity CLI`; the main Gemini label stays concise. The experimental
+shared host still identifies CLI sources inline.
 
 The existing bounded child-process lifetime is reused by Codex and Antigravity:
 15-second deadline, cancellation, hidden stdio, capped diagnostics, and owned-child

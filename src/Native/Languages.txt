@@ -103,7 +103,7 @@ Leave a name blank to use device information. Hover over a field to see its auto
 SPD numbers identify sensor addresses, not physical slots. Installed slots are reported separately; assign a slot name only after confirming its sensor.|SPD 编号代表传感器地址，并非实体插槽。已安装插槽单独显示；确认对应关系后再命名。|SPD 編號代表感測器位址，並非實體插槽。已安裝插槽單獨顯示；確認對應關係後再命名。
 Changes save automatically.|更改自动保存。|變更自動儲存。
 About Pulse|关于 Pulse|關於 Pulse
-Version 0.6.35 · Marck Wong|版本 0.6.35 · Marck Wong|版本 0.6.35 · Marck Wong
+Version 0.6.36 · Marck Wong|版本 0.6.36 · Marck Wong|版本 0.6.36 · Marck Wong
 Sensors by LibreHardwareMonitor. Shared driver by PawnIO.|传感器：LibreHardwareMonitor。共享驱动：PawnIO。|感測器：LibreHardwareMonitor。共用驅動程式：PawnIO。
 Language|语言 / Language|語言 / Language
 Minimize|最小化|最小化
@@ -283,6 +283,7 @@ Could not save diagnostics. Choose another location and try again.|无法保存�
 Claude quota source|Claude quota 来源|Claude quota 來源
 Existing login|现有登录|現有登入
 CLI snapshot|CLI snapshot|CLI snapshot
+Source: Antigravity CLI|来源：Antigravity CLI|來源：Antigravity CLI
 Experimental. Requires a configured Claude Code status line. Snapshots expire after 10 minutes and do not refresh while CLI is closed.|Experimental。需要先配置 Claude Code status line。Snapshot 在 10 分钟后过期，CLI 关闭后不会刷新。|Experimental。需要先設定 Claude Code status line。Snapshot 在 10 分鐘後過期，CLI 關閉後不會重新整理。
 Copy status-line command|复制 status-line command|複製 status-line command
 Bind next CLI session|绑定下一个 CLI session|綁定下一個 CLI session

@@ -20,6 +20,12 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 
 - Shared Desktop supports Auto (System), English and Simplified/Traditional Chinese UI, including Monitor, Settings, sensor status, Codex quota and tray actions. Language switches immediately without restarting sampling or refreshing credentials and is saved in the isolated preview profile. Auto respects Chinese script and region preferences.
 
+## 0.6.36 — 2026-09-21
+
+- Windows Desktop keeps the concise `Gemini` quota title. CLI-backed readings disclose `Source: Antigravity CLI` in the name/value tooltip and Monitor status tooltip; switching back to Desktop readings clears the CLI tooltip.
+- Quota child fixtures reject a visible console window. A bounded local window-event/process trace observed successful Desktop and installed-CLI reads with no visible owned window; the reported intermittent flash was not reproduced. This is not a claim that every descendant or login state is flash-free.
+- Preserves the WPF glass UI, settings, quota source selection and five-minute successful refresh cadence. No new CLI is installed or bundled.
+
 ## 0.6.35 — 2026-09-21
 
 - Sustained remote quota failures now use capped automatic retry backoff (30, 60, 120, 240, 300 seconds). Manual Refresh remains available, successful recovery resets backoff, and server rate limits and local snapshot polling retain their rules.

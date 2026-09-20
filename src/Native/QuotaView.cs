@@ -69,8 +69,8 @@ namespace HardwarePulse {
                 System.Windows.Automation.AutomationProperties.SetName(grip,reading.Provider+" · "+language.T("Reading Order"));
                 var icon=Icon(reading.Provider.ToLowerInvariant(),19,accent);icon.Margin=new Thickness(0,0,8,0);Grid.SetColumn(icon,1);title.Children.Add(icon);
                 var name=new TextBlock{Text=reading.Provider=="Antigravity"&&!full?"Antigravity · Gemini":reading.Provider,FontSize=13*Window.FontSize/12,FontWeight=FontWeights.SemiBold,Foreground=foreground,TextWrapping=TextWrapping.Wrap,VerticalAlignment=VerticalAlignment.Center};Grid.SetColumn(name,2);title.Children.Add(name);body.Children.Add(title);
-                string state=QuotaState(reading);if(reading.Source=="CLI")state+=" · CLI";if(reading.Observed!=default(DateTimeOffset))state+=" · "+Math.Max(0,(int)(now-reading.Observed).TotalMinutes)+" "+language.T("min ago");
-                body.Children.Add(new TextBlock{Text=state,Foreground=foreground,Opacity=.8,Margin=new Thickness(0,5,0,8),TextWrapping=TextWrapping.Wrap});
+                string state=QuotaState(reading);if(reading.Observed!=default(DateTimeOffset))state+=" · "+Math.Max(0,(int)(now-reading.Observed).TotalMinutes)+" "+language.T("min ago");
+                body.Children.Add(new TextBlock{Text=state,ToolTip=reading.Provider=="Antigravity"&&reading.Source=="CLI"?language.T("Source: Antigravity CLI"):null,Foreground=foreground,Opacity=.8,Margin=new Thickness(0,5,0,8),TextWrapping=TextWrapping.Wrap});
                 foreach(var window in reading.Windows){
                     var row=new Grid{Margin=new Thickness(0,6,0,3)};row.ColumnDefinitions.Add(new ColumnDefinition());row.ColumnDefinitions.Add(new ColumnDefinition{Width=GridLength.Auto});
                     row.Children.Add(new TextBlock{Text=language.T(window.Label),Foreground=foreground,TextWrapping=TextWrapping.Wrap,Margin=new Thickness(0,0,8,0)});
@@ -84,7 +84,8 @@ namespace HardwarePulse {
         }
         void AddDesktopQuotas(List<DesktopMetric> metrics){foreach(var reading in quotas.Readings){
             if(reading.Windows.Count==0||!QuotaFresh(reading)){metrics.Add(new DesktopMetric("quota"+reading.Provider,reading.Provider,QuotaState(reading),reading.Provider.ToLowerInvariant()));continue;}
-            int index=0;foreach(var window in reading.Windows)metrics.Add(new DesktopMetric("quota"+reading.Provider+(index++),(reading.Provider=="Antigravity"?"Gemini"+(reading.Source=="CLI"?" (CLI)":""):reading.Provider+(reading.Source=="CLI snapshot"?" ("+language.T("CLI snapshot")+")":""))+" · "+language.T(window.Label),QuotaValue(reading,window),reading.Provider.ToLowerInvariant()));
+            string source=reading.Provider=="Antigravity"&&reading.Source=="CLI"?language.T("Source: Antigravity CLI"):null;
+            int index=0;foreach(var window in reading.Windows)metrics.Add(new DesktopMetric("quota"+reading.Provider+(index++),(reading.Provider=="Antigravity"?"Gemini":reading.Provider+(reading.Source=="CLI snapshot"?" ("+language.T("CLI snapshot")+")":""))+" · "+language.T(window.Label),QuotaValue(reading,window),reading.Provider.ToLowerInvariant()){ToolTip=source});
         }}
     }
 }

@@ -20,6 +20,12 @@
 
 - 共享桌面应用支持自动跟随系统、英语、简体中文和繁体中文，覆盖监控、设置、传感器状态、Codex 额度与托盘操作。语言即时切换，不重启采样或重新读取登录信息，并保存到独立的预览版设置中。自动模式会区分中文书写体系和地区。
 
+## 0.6.36 — 2026-09-21
+
+- Windows Desktop 的 quota 标题恢复为简洁的 `Gemini`。CLI source 放到名称／数值及 Monitor status 的 tooltip，显示 `来源：Antigravity CLI`；切回 Desktop source 时清除旧提示。
+- Quota child fixture 新增 visible console 检查。本机 bounded window-event／process trace 中，Desktop 和已安装 CLI 均成功读取，未观察到可见的 owned window；尚未复现反馈中的间歇闪窗，不能据此保证所有 descendant／login state 都不会闪窗。
+- 保留 WPF glass UI、settings、quota source selection 和成功读取后的五分钟 refresh cadence；没有新增安装或打包 CLI。
+
 ## 0.6.35 — 2026-09-21
 
 - 连续 remote quota failure 改用封顶 automatic retry backoff（30、60、120、240、300 秒）。保留手动 Refresh，成功恢复后重置 backoff，server rate limit 和 local snapshot polling 规则保持不变。
