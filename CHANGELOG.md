@@ -6,6 +6,8 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 
 ## Unreleased
 
+- Claude quota reads recover once from HTTP 401 if the existing credential owner has already replaced the access token. Unchanged tokens, 403, 429 and transport failures are not retried. No credential renewal or writes are added.
+
 
 
 

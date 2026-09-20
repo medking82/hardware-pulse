@@ -7,5 +7,7 @@ static class Program {
         if(!string.IsNullOrEmpty(expected)&&expected!=RuntimeInformation.ProcessArchitecture.ToString())throw new Exception("Unexpected process architecture");
         Console.WriteLine(RuntimeInformation.OSDescription+" / "+RuntimeInformation.ProcessArchitecture+" / "+RuntimeInformation.FrameworkDescription);
         CodexQuotaTests.Run();
+        ClaudeQuotaTests.Run();
+        ClaudeQuotaRequestTests.Run();
     }
 }

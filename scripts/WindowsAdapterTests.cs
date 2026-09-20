@@ -22,6 +22,7 @@ class WindowsAdapterTests {
         Console.WriteLine("PASS Framework driver-free CPU/RAM and Windows version policy");
         CodexQuotaTests.Run();
         QuotaLoginFileTests.Run();
+        ClaudeQuotaRequestTests.Run();
         string architecture=System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture.ToString();
         string expected=Environment.GetEnvironmentVariable("PULSE_TEST_ARCH");
         Check(string.IsNullOrEmpty(expected)||expected==architecture,"Expected adapter process architecture "+expected+", got "+architecture);

@@ -18,13 +18,10 @@ namespace HardwarePulse {
         public QuotaReading Read(CancellationToken cancel) {
             try {
                 cancel.ThrowIfCancellationRequested();
-                string accessToken=token(cancel);
-                if(string.IsNullOrWhiteSpace(accessToken))throw new QuotaFailure("Login required");
-                if(accessToken.Length>16384||Array.Exists(accessToken.ToCharArray(),char.IsControl))throw new QuotaFailure("Login unavailable");
                 using var timeout=CancellationTokenSource.CreateLinkedTokenSource(cancel);
                 timeout.CancelAfter(TimeSpan.FromSeconds(10));
                 object body;
-                try {body=Request(accessToken,timeout.Token).GetAwaiter().GetResult();}
+                try {body=ClaudeQuotaRequest.Read(token,(accessToken,requestCancel)=>Request(accessToken,requestCancel).GetAwaiter().GetResult(),timeout.Token);}
                 catch(OperationCanceledException) when(!cancel.IsCancellationRequested){throw new QuotaFailure("Quota unavailable");}
                 cancel.ThrowIfCancellationRequested();
                 return QuotaDecoder.Decode("Claude",body,DateTimeOffset.UtcNow);

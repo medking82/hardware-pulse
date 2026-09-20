@@ -46,6 +46,14 @@ static class ClaudeQuotaTests {
         Check(reading.Provider=="Claude"&&reading.Status=="Live"&&reading.AllWindows.Count==3,"All Claude windows decoded");
         Check(reading.AllWindows[0].Remaining==75&&reading.AllWindows[1].Remaining==100&&reading.AllWindows[2].Remaining==0,"Real zero and full usage preserved");
         credential="synthetic-second";client.Read(CancellationToken.None);Check(reads==2,"No cached credential");
+        int rotationRequests=0;credential="synthetic-before-rotation";
+        handler.Reply=(request,cancel)=>{
+            if(++rotationRequests==1){credential="synthetic-after-rotation";return Task.FromResult(Response(401,"private response body"));}
+            Check(request.Headers.Authorization.Parameter==credential,"Recovery must use newly read credential");
+            return Task.FromResult(Response(200,"{\"five_hour\":{\"utilization\":25}}"));
+        };
+        reading=client.Read(CancellationToken.None);
+        Check(reading.Status=="Live"&&rotationRequests==2,"401 during owner token replacement should recover once without re-login");
         int calls=handler.Calls;
         foreach(var token in new[]{"", "  ","injected\r\nheader",new string('a',16385)}) {
             credential=token;reading=client.Read(CancellationToken.None);

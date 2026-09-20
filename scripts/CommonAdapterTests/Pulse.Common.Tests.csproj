@@ -9,5 +9,7 @@
   <ItemGroup>
     <ProjectReference Include="../../src/Adapters/Common/Pulse.Adapters.Common.csproj" />
     <Compile Include="../CodexQuotaTests.cs" Link="CodexQuotaTests.cs" />
+    <Compile Include="../MacAdapterTests/ClaudeQuotaTests.cs" Link="ClaudeQuotaTests.cs" />
+    <Compile Include="../ClaudeQuotaRequestTests.cs" Link="ClaudeQuotaRequestTests.cs" />
   </ItemGroup>
 </Project>

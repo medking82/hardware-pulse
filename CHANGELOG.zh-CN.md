@@ -6,6 +6,8 @@
 
 ## 未发布
 
+- Claude quota read 收到 HTTP 401 后，如果既有 credential owner 已替换 access token，会重读并重试一次。Token 未变化、403、429 和 transport failure 不会重试；不新增 credential renewal 或写入。
+
 
 
 

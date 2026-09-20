@@ -59,10 +59,11 @@ namespace HardwarePulse {
                     }
                 }
                 else if(provider=="Claude"){
-                    string token=Environment.GetEnvironmentVariable("CLAUDE_CODE_OAUTH_TOKEN");
-                    if(string.IsNullOrEmpty(token)){var login=ClaudeLogin();token=QuotaDecoder.Text(QuotaDecoder.Get(QuotaDecoder.Get(login,"claudeAiOauth")??login,"accessToken"));}
-                    if(string.IsNullOrEmpty(token))throw new QuotaFailure("Login required");
-                    body=Request("https://api.anthropic.com/api/oauth/usage",new Dictionary<string,string>{{"Authorization","Bearer "+token},{"anthropic-beta","oauth-2025-04-20"}},null,cancel,false);
+                    string supplied=Environment.GetEnvironmentVariable("CLAUDE_CODE_OAUTH_TOKEN");
+                    body=ClaudeQuotaRequest.Read(delegate(CancellationToken ignored){
+                        if(!string.IsNullOrEmpty(supplied))return supplied;
+                        var login=ClaudeLogin();return QuotaDecoder.Text(QuotaDecoder.Get(QuotaDecoder.Get(login,"claudeAiOauth")??login,"accessToken"));
+                    },(token,requestCancel)=>Request("https://api.anthropic.com/api/oauth/usage",new Dictionary<string,string>{{"Authorization","Bearer "+token},{"anthropic-beta","oauth-2025-04-20"}},null,requestCancel,false),cancel);
                 }else throw new QuotaFailure("Quota unavailable");
                 cancel.ThrowIfCancellationRequested();return QuotaDecoder.Decode(provider,body,DateTimeOffset.UtcNow);
             }catch(OperationCanceledException){throw;}

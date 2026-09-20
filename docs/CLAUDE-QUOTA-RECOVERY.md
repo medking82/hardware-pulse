@@ -208,3 +208,36 @@ QuotaLoginFileTests covers compatible writer handles, atomic replacement, UTF-8
 and UTF-16 BOMs, oversized/missing files and partial JSON using isolated synthetic
 data. No real credential values or files are used. The pre-fix sharing test failed;
 the corrected adapter passed. This does not establish provider token-expiry recovery.
+
+## Owner-rotated token recovery (after 0.6.33, not yet released)
+
+Local token-monitor source at commit `1e2c03d2a55b5eef97c7732341281415c2a3d7ea`
+uses direct OAuth refresh and credential persistence on Windows; its macOS path
+instead delegates a best-effort `/status` probe to Claude Code. Those are different
+ownership contracts, not evidence that Pulse's read-only adapter already renews a
+login. The official CLI reference documents auth login/logout/status, but no
+standalone auth-refresh command. The authentication guide says an expired login
+that cannot refresh requires `/login`. Do not promise permanent unattended renewal.
+
+A separate race is reproducible: the selected credential owner can replace an
+access token while a quota request using the previous token returns HTTP 401.
+Previously Pulse reported Login required without checking for that replacement.
+`ClaudeQuotaRequest` now rereads the same selected source after the first 401 and
+retries once only when the token has changed and passes validation. An explicit
+Windows environment token remains pinned for the read, with no file fallback.
+No token endpoint, refresh-token read, credential write or CLI launch was added.
+Unchanged tokens, 403, 429 and transport failures do not cause request retries;
+the second rejection propagates. Cancellation is checked before credential access
+and each request. The modern client retains one ten-second budget for the whole
+operation; Windows retains its per-request bounds and host cancellation budget.
+
+Both Windows and modern Claude transports use this shared request boundary.
+The modern HTTP-handler fixture failed before the fix and passed afterwards.
+Framework and .NET 10 tests cover changed/unchanged/invalid replacement tokens,
+exact retry counts, non-authentication errors and cancellation. This handles an
+owner update already in progress; it cannot manufacture a fresh token when the
+owner is closed and the login has expired.
+
+Sources: [CLI reference](https://code.claude.com/docs/en/cli-reference),
+[authentication](https://code.claude.com/docs/en/authentication#renew-an-expiring-login),
+[token-monitor source](https://github.com/medking82/token-monitor/blob/1e2c03d2a55b5eef97c7732341281415c2a3d7ea/src/shared/limitCollector.js).
