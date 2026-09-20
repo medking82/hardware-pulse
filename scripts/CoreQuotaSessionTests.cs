@@ -104,6 +104,33 @@ internal static class CoreQuotaSessionTests {
                 session.Tick(now.AddHours(1));Check(session.Readings[0].Status=="Refresh pending","disposed session published result");
             } finally {session.Dispose();}
         }
+        // Exercise repeated mixed failures/recovery without real credentials, network or sleeps.
+        long clockTicks=now.UtcTicks;int overlap=0;int[] active=new int[3],counts=new int[3];
+        string[] outcomes={"Live","Quota unavailable","Login required","Refresh rate limited","Quota access denied","Live"};
+        using(var soak=new QuotaSession((provider,cancel)=>{
+            int index=Array.IndexOf(QuotaSession.Providers,provider);
+            if(Interlocked.Increment(ref active[index])!=1)Interlocked.Increment(ref overlap);
+            try{
+                int attempt=Interlocked.Increment(ref counts[index]);
+                string status=outcomes[(attempt-1)%outcomes.Length];
+                var result=new QuotaReading{Provider=provider,Status=status,Observed=new DateTimeOffset(Interlocked.Read(ref clockTicks),TimeSpan.Zero)};
+                if(status=="Live")result.Windows.Add(new QuotaWindow{Label="Weekly",Remaining=37});
+                return result;
+            }finally{Interlocked.Decrement(ref active[index]);}
+        })){
+            for(int round=0;round<360;round++){
+                var instant=now.AddMinutes(round*6);Interlocked.Exchange(ref clockTicks,instant.UtcTicks);
+                int hidden=round%4-1;int before=counts[0]+counts[1]+counts[2];
+                for(int provider=0;provider<3;provider++)soak.Enable(QuotaSession.Providers[provider],provider!=hidden);
+                if(round%7==0)soak.Refresh();
+                Pump(soak,instant,()=>Array.TrueForAll(soak.Readings,r=>r.Observed==instant));
+                var results=soak.Readings;Check(results.Length==(hidden<0?3:2),"soak exposed a disabled provider");
+                Check(counts[0]+counts[1]+counts[2]==before+results.Length,"soak skipped or duplicated a refresh");
+                foreach(var result in results)Check(result.Status=="Live"?result.Windows.Count==1&&result.Windows[0].Remaining==37:result.Windows.Count==0,"soak retained old quota through failure");
+            }
+            Check(overlap==0,"soak overlapped provider requests");
+        }
+        Console.WriteLine("PASS quota lifecycle soak: 360 simulated refresh rounds / 36 hours, 810 reads, mixed failures, recovery, provider toggles and no overlapping requests");
         Console.WriteLine("PASS Core quota lifecycle: opt-in, host deadlines, manual refresh, no overlap, cancellation, re-enable late results, faults and disposal");
     }
 }

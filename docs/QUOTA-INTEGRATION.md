@@ -123,3 +123,28 @@ unchanged. This visibility improvement must not be advertised as resolving the s
 unidentified installed-app network failure.
 
 Resolution: the user restored Bitdefender firewall rules to defaults. The installed app then showed You are up to date and live Codex; Claude showed Login required. Collector was restored through its unchanged owned scheduled task and consecutive advancing snapshots plus live UI were verified. No security rules were changed by the agent.
+
+## Recovery regression evidence (Windows 0.6.31)
+
+QuotaSession coalesces manual Refresh clicks received during a pending request into
+one follow-up read. Provider requests remain serialized, disabled generations cannot
+publish late results, and a rate-limited completion retains its backoff. On UI resume,
+a completed successful observation older than the normal five-minute interval is
+refreshed immediately when its previous deadline has elapsed; a fresh observation
+keeps the normal cadence.
+
+CoreQuotaSessionTests includes 360 synthetic rounds spanning 36 hours of host clock,
+810 reads across three providers, mixed success/network/auth/rate-limit responses,
+provider toggles, exact request counts, no per-provider overlap, and clearing old
+quota windows on failures. The same fixture passes on .NET Framework and .NET 10.
+This is accelerated lifecycle coverage, not 36 hours of real provider availability
+or evidence that an actual credential has crossed its expiry and renewed.
+
+Claude credential lifetime remains owned by Claude Code. Its documented
+[long-lived setup token](https://code.claude.com/docs/en/authentication#generate-a-long-lived-token)
+is model-request-only; do not present it as a supported quota credential replacement.
+The documented `claude auth status` command reports authentication state; its
+[CLI contract](https://code.claude.com/docs/en/cli-reference) does not promise a
+quota-read or credential-renewal operation. A persistent-login claim requires an
+observed, supported renewal path, not repeated login prompts, inference calls to
+force refresh, or copying/rotating an application's refresh token behind its back.
