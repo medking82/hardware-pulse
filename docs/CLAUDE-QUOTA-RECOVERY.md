@@ -178,3 +178,12 @@ failure metadata and honors it for automatic and manual refresh. Missing/invalid
 headers retain the existing two-minute backoff. Credential selection, endpoints,
 UI and ordinary five-minute successful refresh are unchanged. This improves
 rate-limit behavior; it does not renew expired credentials.
+
+Follow-up reproduction found that a click after a completed 429 still reset the
+scheduler deadline when Retry-After was missing, expired or shorter than two
+minutes. Manual refresh now preserves the effective rate-limit deadline, including
+the local two-minute floor. Synthetic tests first failed with no Retry-After, then
+passed for missing, expired, short and long server deadlines; repeated clicks
+produce exactly one retry at the effective deadline. Successful and authentication
+failure refreshes retain their existing immediate manual recovery behavior. This
+is scheduler-only work: no credential, endpoint, account or UI changes.

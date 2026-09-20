@@ -69,20 +69,20 @@ internal static class CoreQuotaSessionTests {
             }
         }
         calls=0;CancellationToken captured=CancellationToken.None;
-        // The provider requests ten minutes, longer than our default two-minute backoff.
+        // Manual clicks must honor both the local floor and a longer server deadline.
+        foreach(DateTimeOffset? serverDeadline in new DateTimeOffset?[]{null,now.AddSeconds(-1),now.AddSeconds(30),now.AddMinutes(10)})
         using(var premature=new ManualResetEventSlim()){
             int attempts=0;
+            var deadline=serverDeadline.HasValue&&serverDeadline.Value>now.AddSeconds(120)?serverDeadline.Value:now.AddSeconds(120);
             using(var retry=new QuotaSession((provider,cancel)=>{
                 if(Interlocked.Increment(ref attempts)>1){premature.Set();return new QuotaReading{Provider=provider,Status="Live"};}
-                return new QuotaReading{Provider=provider,Status="Refresh rate limited",RetryAt=now.AddMinutes(10)};
+                return new QuotaReading{Provider=provider,Status="Refresh rate limited",RetryAt=serverDeadline};
             })){
                 retry.Enable("Claude",true);Pump(retry,now,()=>retry.Readings[0].Status=="Refresh rate limited");
-                retry.Tick(now.AddMinutes(2));
-                Check(!premature.Wait(200),"Server Retry-After must prevent the default two-minute retry");
-                retry.Refresh();retry.Tick(now.AddMinutes(9));
-                Check(!premature.Wait(200),"Manual Refresh must not bypass server Retry-After");
-                Pump(retry,now.AddMinutes(10),()=>retry.Readings[0].Status=="Live");
-                Check(attempts==2,"Server deadline launches one recovery request");
+                for(int i=0;i<10;i++){retry.Refresh();retry.Tick(deadline.AddTicks(-1));}
+                Check(!premature.Wait(200),"Manual Refresh bypassed effective rate-limit deadline: "+(serverDeadline.HasValue?serverDeadline.Value.ToString("o"):"no Retry-After"));
+                Pump(retry,deadline,()=>retry.Readings[0].Status=="Live");
+                Check(attempts==2,"Effective deadline launches one recovery request");
             }
         }
         foreach(string failure in new[]{"Quota unavailable","Refresh rate limited","Login required","Quota access denied"}) {

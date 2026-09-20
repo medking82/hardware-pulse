@@ -36,7 +36,7 @@ namespace HardwarePulse {
             slot.Next=now.AddMinutes(5);slot.Cancel=new CancellationTokenSource(TimeSpan.FromSeconds(30));slot.PendingVersion=slot.Version;string provider=pair.Key;var token=slot.Cancel.Token;
             slot.Pending=Task.Run(()=>read(provider,token));
         }}
-        public void Refresh(){if(disposed)return;foreach(var slot in slots.Values){if(!slot.Enabled)continue;if(slot.Pending==null)slot.Next=DateTimeOffset.MinValue;else slot.RefreshQueued=true;}}
+        public void Refresh(){if(disposed)return;foreach(var slot in slots.Values){if(!slot.Enabled)continue;if(slot.Pending==null){if(slot.Reading.Status!="Refresh rate limited")slot.Next=DateTimeOffset.MinValue;}else slot.RefreshQueued=true;}}
         public void Dispose(){if(disposed)return;disposed=true;foreach(var slot in slots.Values){if(slot.Cancel!=null){slot.Cancel.Cancel();var source=slot.Cancel;if(slot.Pending!=null)slot.Pending.ContinueWith(t=>{var ignored=t.Exception;source.Dispose();},TaskScheduler.Default);else source.Dispose();}}}
     }
 }
