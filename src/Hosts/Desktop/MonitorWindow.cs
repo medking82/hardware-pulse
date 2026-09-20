@@ -104,6 +104,7 @@ public sealed class MonitorWindow : Window {
         var appearance=new StackPanel{Spacing=10};
         var windowPreferences=new StackPanel{Spacing=10};
         var theme=new ComboBox{Name="PreviewTheme",ItemsSource=new[]{"System","Light","Dark"},SelectedItem=settings.Theme,HorizontalAlignment=HorizontalAlignment.Stretch};
+        bool choosingBackground=false;
         appearance.Children.Add(Language.Set(new TextBlock{},"Theme"));appearance.Children.Add(theme);
         appearance.Children.Add(Language.Set(new TextBlock{TextWrapping=TextWrapping.Wrap},"System follows your desktop theme. Window size is remembered automatically."));
         var font=new Slider{Name="AppFontSize",Minimum=10,Maximum=16,TickFrequency=1,IsSnapToTickEnabled=true,Value=settings.FontSize};
@@ -121,6 +122,15 @@ public sealed class MonitorWindow : Window {
         appOpacity.Value=settings.AppOpacity;appearance.Children.Add(appOpacity);
         appOpacity.ValueChanged+=(_,_)=>{settings.AppOpacity=appOpacity.Value;RequestMaterial();SaveLater();};
         solid.IsCheckedChanged+=(_,_)=>{settings.Solid=solid.IsChecked==true;RequestMaterial();SaveLater();};
+        appearance.Children.Add(Language.Set(new TextBlock(),"Background Color"));
+        appearance.Children.Add(ColorSetting("BackgroundColor",settings.BackgroundColor??(settings.Theme=="Light"?"#F4F6F8":"#35383B"),value=>{
+            settings.BackgroundColor=value;var tint=Color.Parse(value);
+            settings.Theme=(.2126*tint.R+.7152*tint.G+.0722*tint.B)/255>.55?"Light":"Dark";
+            choosingBackground=true;try{theme.SelectedItem=settings.Theme;}finally{choosingBackground=false;}
+            ApplyTheme();ApplyMaterial();SaveLater();
+        }));
+        var resetBackground=Language.Set(new Button{Name="ResetBackgroundColor"},"Use theme background");
+        resetBackground.Click+=(_,_)=>{settings.BackgroundColor=null;ApplyTheme();ApplyMaterial();SaveLater();};appearance.Children.Add(resetBackground);
         appearance.Children.Add(Language.Set(new TextBlock{FontWeight=FontWeight.SemiBold},"Colors"));
         var hardwareColors=Language.Set(new RadioButton{Name="HardwareReadingColors",GroupName="ReadingColors",IsChecked=!settings.UnifiedReadingColors},"Hardware Colors");
         var unifiedColors=Language.Set(new RadioButton{Name="UnifiedReadingColors",GroupName="ReadingColors",IsChecked=settings.UnifiedReadingColors},"Unified Color");
@@ -171,9 +181,9 @@ public sealed class MonitorWindow : Window {
         void Placeholder()=>interfaces.PlaceholderText=Language.T("Select network interface");
         Language.Changed+=Placeholder;Placeholder();
         Language.Set(saveStatus,store?.Error??(store==null?"Session only · Changes will not be saved.":"Changes save automatically."));
-        theme.SelectionChanged+=(_,_)=>{settings.Theme=theme.SelectedItem as string??"System";ApplyTheme();SaveLater();};ApplyTheme();
+        theme.SelectionChanged+=(_,_)=>{settings.Theme=theme.SelectedItem as string??"System";if(!choosingBackground)settings.BackgroundColor=null;ApplyTheme();ApplyMaterial();SaveLater();};ApplyTheme();
         PropertyChanged+=(_,e)=>{if(e.Property==ActualTransparencyLevelProperty||e.Property==ActualThemeVariantProperty)ApplyMaterial();};
-        void ColorsChanged(object? sender,PlatformColorValues colors)=>RequestMaterial();
+        void ColorsChanged(object? sender,PlatformColorValues colors){ApplyTheme();RequestMaterial();}
         if(materialPlatform!=null)materialPlatform.ColorValuesChanged+=ColorsChanged;
         RequestMaterial();
         interfaces.SelectionChanged+=(_,_)=>{if(!loadingNetwork){settings.Network=interfaces.SelectedItem as string;SaveLater();}};
@@ -372,7 +382,12 @@ public sealed class MonitorWindow : Window {
         }
         Refresh();return list;
     }
-    void ApplyTheme(){RequestedThemeVariant=settings.Theme=="Dark"?ThemeVariant.Dark:settings.Theme=="Light"?ThemeVariant.Light:ThemeVariant.Default;}
+    void ApplyTheme(){
+        if(settings.BackgroundColor is string custom&&materialPlatform?.GetColorValues().ContrastPreference!=ColorContrastPreference.High) {
+            var tint=Color.Parse(custom);
+            RequestedThemeVariant=(.2126*tint.R+.7152*tint.G+.0722*tint.B)/255>.55?ThemeVariant.Light:ThemeVariant.Dark;
+        }else RequestedThemeVariant=settings.Theme=="Dark"?ThemeVariant.Dark:settings.Theme=="Light"?ThemeVariant.Light:ThemeVariant.Default;
+    }
     void RequestMaterial() {
         bool highContrast=materialPlatform?.GetColorValues().ContrastPreference==ColorContrastPreference.High;
         // Native/Backdrop.cs deliberately avoids focus-dependent system Acrylic.
@@ -467,7 +482,7 @@ public sealed class MonitorWindow : Window {
         quota.ApplyReadingPalette(palette);claude.ApplyReadingPalette(palette);antigravity.ApplyReadingPalette(palette);
         FloatingMonitor?.ApplyAppPalette(palette,light);
         // Match WPF Controls.ApplyMaterial: tint alpha changes, never the whole window.
-        var tint=Color.Parse(light?"#F4F6F8":"#35383B");
+        var tint=Color.Parse(!highContrast&&settings.BackgroundColor is string custom?custom:light?"#F4F6F8":"#35383B");
         Background=new SolidColorBrush(Color.FromArgb((byte)Math.Round(255*opacity),tint.R,tint.G,tint.B));
         Foreground=Brush.Parse(light?"#17202B":"#F0F5FA");
         viewport.Background=new RadialGradientBrush {

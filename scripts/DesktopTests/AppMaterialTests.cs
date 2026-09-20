@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using Avalonia.Headless;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
@@ -6,7 +7,7 @@ using HardwarePulse.Desktop;
 
 static class AppMaterialTests {
     static void Check(bool ok,string message){if(!ok)throw new Exception(message);}
-    public static void Run() {
+    public static void Run(string? output=null) {
         CheckDefaultTextContrast();
         string directory=Directory.CreateTempSubdirectory("pulse-app-material-").FullName;
         try {
@@ -23,6 +24,21 @@ static class AppMaterialTests {
             var slider=window.GetVisualDescendants().OfType<Slider>().Single(x=>x.Name=="AppOpacity");
             var solid=window.GetVisualDescendants().OfType<CheckBox>().Single(x=>x.Name=="AppSolid");
             var surface=window.GetVisualDescendants().OfType<Border>().Single(x=>x.Name=="SettingsSurface");
+            var background=window.GetVisualDescendants().OfType<ColorPicker>().Single(x=>x.Name=="BackgroundColor");
+            background.Color=Colors.White;Dispatcher.UIThread.RunJobs();
+            Check(((ISolidColorBrush)window.Background!).Color.R==255&&((ISolidColorBrush)window.Foreground!).Color.R<128,"White custom background must use dark readable foreground");
+            Check(window.ActualThemeVariant==Avalonia.Styling.ThemeVariant.Light,"Custom light background must also theme cards and controls");
+            var theme=window.GetVisualDescendants().OfType<ComboBox>().Single(x=>x.Name=="PreviewTheme");
+            Check((string?)theme.SelectedItem=="Light","Theme selector must reflect the custom background appearance");
+            if(output!=null){using var frame=window.CaptureRenderedFrame();frame!.Save(Path.Combine(output,"app-custom-background-light.png"),Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);}
+            background.Color=Color.Parse("#102030");Dispatcher.UIThread.RunJobs();
+            Check(((ISolidColorBrush)window.Background!).Color.B==48&&((ISolidColorBrush)window.Foreground!).Color.R>200,"Dark custom background must restore light foreground");
+            if(output!=null){using var frame=window.CaptureRenderedFrame();frame!.Save(Path.Combine(output,"app-custom-background-dark.png"),Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);}
+            window.GetVisualDescendants().OfType<Button>().Single(x=>x.Name=="ResetBackgroundColor").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));Dispatcher.UIThread.RunJobs();
+            Check(((ISolidColorBrush)window.Background!).Color.R==53,"Reset background must restore theme tint");
+            theme.SelectedItem="Light";Dispatcher.UIThread.RunJobs();
+            Check(((ISolidColorBrush)window.Background!).Color==Color.Parse("#F4F6F8"),"Explicit theme choice must restore its default background");
+            theme.SelectedItem="Dark";Dispatcher.UIThread.RunJobs();
             Check(slider.Value==35,"Restore saved App opacity independently from theme");
             solid.IsChecked=true;
             Check(((ISolidColorBrush)window.Background!).Color.A==255&&!slider.IsEnabled,"Solid provides opaque background and disables opacity adjustment");
@@ -43,15 +59,18 @@ static class AppMaterialTests {
             main.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));Dispatcher.UIThread.RunJobs();
             Check(((ISolidColorBrush)window.Background!).Color.A==255&&slider.Value==100,"Returning to Settings restores saved opacity without changing slider");
             locked.IsChecked=false;Check(window.CanResize,"Unlock restores resize without reopening");
-            slider.Value=35;solid.IsChecked=true;window.Close();
+            background.Color=Color.Parse("#213141");slider.Value=35;solid.IsChecked=true;window.Close();
             var saved=new PreviewSettingsStore(path).Load();
             Check(saved.AppOpacity==35&&saved.Solid,"Opacity and solid preference survive close");
+            Check(saved.BackgroundColor=="#213141","Custom background survives close independently of opacity");
             using(var json=System.Text.Json.JsonDocument.Parse(File.ReadAllText(path)))
                 Check(json.RootElement.GetProperty("future").GetInt32()==17,"Material save preserves unknown fields");
             foreach(var value in new[]{-1,101}) {
                 File.WriteAllText(path,"{\"appOpacity\":"+value+"}");
                 Check(new PreviewSettingsStore(path).Load().AppOpacity==Math.Clamp(value,0,100),"Out-of-range opacity normalized");
             }
+            File.WriteAllText(path,"{\"background\":\"#INVALID\",\"appOpacity\":35}");
+            var invalid=new PreviewSettingsStore(path).Load();Check(invalid.BackgroundColor==null&&invalid.AppOpacity==35,"Invalid background falls back without discarding other preferences");
             Console.WriteLine("PASS App material: solid/unsupported fallback, foreground, zero/full opacity and profile roundtrip");
         } finally {Directory.Delete(directory,true);}
     }

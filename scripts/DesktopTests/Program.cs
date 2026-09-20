@@ -35,6 +35,7 @@ static class Tests {
         if(args.Length>=1&&args[0]=="--fps") {FpsPanelTests.Run(args.Length==2?args[1]:null);return;}
         if(args.Length>=1&&args[0]=="--game-overlay") {GameOverlayTests.Run(args.Length==2?args[1]:null);return;}
         if(args.SequenceEqual(new[]{"--palette"})) {ReadingPaletteTests.Run();return;}
+        if(args.Length>=1&&args[0]=="--material") {AppMaterialTests.Run(args.Length==2?args[1]:null);return;}
         if(args.Length==2&&args[0]=="--settings-sections") {SettingsSectionTests.Run(args[1]);return;}
         var source=new MonitorSource(true);
         var window=new MonitorWindow(source,start:false);

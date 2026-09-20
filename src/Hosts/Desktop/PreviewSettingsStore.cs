@@ -12,6 +12,7 @@ public sealed class PreviewSettings {
     public double Width=280,Height=650;
     public string Theme="Dark";
     public double AppOpacity=85;
+    public string? BackgroundColor;
     public double FontSize=12;
     public double DesktopFontSize=16,DesktopSpacing=14;
     public int DesktopColumns;
@@ -66,6 +67,7 @@ public sealed class PreviewSettingsStore {
             settings.Width=values.Number("width",280,240,2400);settings.Height=values.Number("height",650,340,1600);
             string theme=values.Text("theme","Dark");settings.Theme=theme is "Light" or "Dark"?theme:"System";
             settings.AppOpacity=values.Number("appOpacity",settings.AppOpacity,0,100);settings.Solid=values.Flag("solid");
+            string background=values.Text("background","");settings.BackgroundColor=ReadingPalette.IsColor(background)?background:null;
             settings.Details=values.Flag("details");
             settings.FontSize=values.Number("fontSize",12,10,16);
             settings.DesktopWidth=values.Number("desktopWidth",466,280,10000);settings.DesktopHeight=values.Number("desktopHeight",400,140,10000);
@@ -121,6 +123,7 @@ public sealed class PreviewSettingsStore {
                 ["network"]=JsonSerializer.SerializeToElement(settings.Network),["codex"]=JsonSerializer.SerializeToElement(settings.Codex),
                 ["language"]=JsonSerializer.SerializeToElement(settings.Language),["claude"]=JsonSerializer.SerializeToElement(settings.Claude),["antigravity"]=JsonSerializer.SerializeToElement(settings.Antigravity),
                 ["appOpacity"]=JsonSerializer.SerializeToElement(settings.AppOpacity),["solid"]=JsonSerializer.SerializeToElement(settings.Solid),
+                ["background"]=JsonSerializer.SerializeToElement(settings.BackgroundColor),
                 ["details"]=JsonSerializer.SerializeToElement(settings.Details),
                 ["quotaFull"]=JsonSerializer.SerializeToElement(settings.QuotaFull),
                 ["unifiedReadingColors"]=JsonSerializer.SerializeToElement(settings.UnifiedReadingColors),["readingColor"]=JsonSerializer.SerializeToElement(settings.ReadingColor),

@@ -984,3 +984,26 @@ Three bounded diagnostic runs of the same native capture/Screenshot fixture also
 passed on 2026-09-20. No failing diagnostic sample was obtained; this narrows no
 root cause and does not erase the earlier intermittent failure. Keep that item in
 final native acceptance while continuing other parity work.
+
+### App custom background color
+
+App Appearance restores the original background color picker using the existing
+shared ColorPicker and the original `background` profile key. Custom tint keeps
+MaterialPolicy opacity and native backdrop behavior. The original luminance rule
+selects Light/Dark foreground, card and control appearance; the Theme selector
+reflects that choice. Choosing a different theme or Use theme background restores
+the theme tint. High contrast ignores custom tint. Invalid hex falls back without
+discarding other preferences; foreground opacity remains independent.
+
+Scope is shared App presentation, an optional profile field, catalogs and material
+regression coverage. Defaults, installed profiles, WPF, collectors, quota and
+release identity remain unchanged. Rollback is this source change. Classifier
+returned routine / not_required (known shared presentation, deterministic checks,
+easy rollback, low failure cost, ordinary data, unchanged privilege boundary).
+
+Material tests passed custom white/dark readable foreground, theme synchronization,
+reset, saved tint, invalid input, unknown-field preservation and all existing
+opacity/lock/solid checks. Full shared regression and repository Validate passed
+before the final Theme-selector synchronization correction; the affected material
+fixture passed again afterwards. Final shared regression is being rerun.
+Final shared regression passed after Theme-selector synchronization; the light Settings render was inspected with a matching Light selection and readable dark text.
