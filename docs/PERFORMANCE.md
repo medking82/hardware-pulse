@@ -631,6 +631,11 @@ capture, Desktop layout, sensor parity, quota lifecycle and package checks.
 New checks cover unchanged-poll density churn and FPS unchanged text, value
 changes, stale/recovery, font changes and hidden rows.
 
+Release preparation for 0.6.37 also makes pair/usage visibility invalidation
+explicit and adds a Memory capability/usage transition fixture. The measurements
+above identify the pre-release optimization binaries; they are not new
+measurements of the signed 0.6.37 installer.
+
 Local raw evidence is retained under `vendor/perf-monitor-*`, `perf-steady-*`,
 `perf-fps-*`, `perf-sensor-*` and `perf-runtime-hashes.json`. The local
 reproduction sources are `vendor/FpsUiBench.cs`, `SensorPerf.cs` and

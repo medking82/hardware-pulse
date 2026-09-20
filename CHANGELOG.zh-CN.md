@@ -20,6 +20,13 @@
 
 - 共享桌面应用支持自动跟随系统、英语、简体中文和繁体中文，覆盖监控、设置、传感器状态、Codex 额度与托盘操作。语言即时切换，不重启采样或重新读取登录信息，并保存到独立的预览版设置中。自动模式会区分中文书写体系和地区。
 
+## 0.6.37 — 2026-09-21
+
+- Windows App 在 geometry 或 sensor capability 变化时才重新计算 card density，减少每次 polling 的重复 layout。保留现有 glass material、字体、responsive cards 和 settings。
+- 500 ms Desktop FPS tick 只更新自身 row，并复用未变化的 text runs。普通 hardware refresh 仍为两秒，Local Contrast 仍为 100 ms。
+- Sensor matching 减少临时 match arrays，保留唯一候选选择和每次 snapshot 的重新识别。
+- 受控 component measurement 中，App refresh allocation 减少约 55%，开启 Local Contrast 的 Desktop FPS allocation 减少 24–25%；这些结果不代表完整 App CPU 或 steady-state RAM 必然下降。详见 [measurement scope 与结果](docs/PERFORMANCE.md#wpf-refresh-work-reduction-after-0636)。
+
 ## 0.6.36 — 2026-09-21
 
 - Windows Desktop 的 quota 标题恢复为简洁的 `Gemini`。CLI source 放到名称／数值及 Monitor status 的 tooltip，显示 `来源：Antigravity CLI`；切回 Desktop source 时清除旧提示。

@@ -20,6 +20,13 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 
 - Shared Desktop supports Auto (System), English and Simplified/Traditional Chinese UI, including Monitor, Settings, sensor status, Codex quota and tray actions. Language switches immediately without restarting sampling or refreshing credentials and is saved in the isolated preview profile. Auto respects Chinese script and region preferences.
 
+## 0.6.37 — 2026-09-21
+
+- Windows App recomputes card density when geometry or sensor capabilities change instead of repeating the layout work on every poll. Existing glass materials, fonts, responsive cards and settings are preserved.
+- The 500 ms Desktop FPS tick updates its row only and reuses unchanged text runs. Ordinary hardware refresh remains two seconds; Local Contrast remains 100 ms.
+- Sensor matching avoids temporary match arrays while preserving unique-candidate selection and fresh per-snapshot discovery.
+- Bounded component measurements show about 55% less App refresh allocation and 24–25% less Desktop FPS allocation with Local Contrast enabled. These do not establish lower whole-app CPU or steady-state RAM. See [measurement scope and results](docs/PERFORMANCE.md#wpf-refresh-work-reduction-after-0636).
+
 ## 0.6.36 — 2026-09-21
 
 - Windows Desktop keeps the concise `Gemini` quota title. CLI-backed readings disclose `Source: Antigravity CLI` in the name/value tooltip and Monitor status tooltip; switching back to Desktop readings clears the CLI tooltip.

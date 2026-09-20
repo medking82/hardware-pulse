@@ -61,6 +61,15 @@ internal static class NativeTests {
             for(int i=0;i<3;i++){shell.UpdatePanel();Pump();}
             Assert(paddingChanges==0,"Unchanged polling reran card density layout");
         }finally{paddingProperty.RemoveValueChanged(densityCard,paddingChanged);}
+        var memoryCard=panel.Children.Cast<Border>().Single(c=>(string)c.Tag=="Memory");
+        string snapshotPath=Field<PulsePaths>(shell,"paths").Snapshot;
+        var transition=Snapshot();transition.sequence=700;transition.ramUsage=null;transition.sensors=transition.sensors.Concat(new[]{new Sensor {id="/memory/dimm/0/temperature/0",hardwareId="/memory/dimm/0",hardwareType="Memory",hardware="Demo Memory",name="DIMM #1",type="Temperature",value=42}}).ToArray();
+        Json.WriteAtomic(snapshotPath,transition);shell.UpdatePanel();Pump();Settle();
+        Assert(Tree(memoryCard).OfType<TextBlock>().Any(t=>t.IsVisible&&t.Text=="42.0 °C"),"Memory pair did not appear after capability transition");
+        Assert(Tree(memoryCard).OfType<TextBlock>().Any(t=>!t.IsVisible&&t.Text.StartsWith("RAM ",StringComparison.Ordinal)),"Memory usage row did not hide after usage transition");
+        Json.WriteAtomic(snapshotPath,Snapshot());shell.UpdatePanel();Pump();Settle();
+        Assert(!Tree(memoryCard).OfType<TextBlock>().Any(t=>t.IsVisible&&t.Text=="42.0 °C"),"Memory pair remained visible after capability removal");
+        Assert(Tree(memoryCard).OfType<TextBlock>().Any(t=>t.IsVisible&&t.Text.StartsWith("RAM ",StringComparison.Ordinal)),"Memory usage row did not recover after usage transition");
         foreach(int columns in new[]{1,2,3}){
             shell.Window.Width=columns==1?310:columns==2?660:1000;shell.Window.Height=820;Pump();shell.UpdatePanel();Settle();
             Assert(panel.Columns==columns,"Responsive columns do not follow window width: expected="+columns+" actual="+panel.Columns+" window="+shell.Window.ActualWidth+" panel="+panel.ActualWidth+" minimum="+panel.MinimumColumnWidth);
