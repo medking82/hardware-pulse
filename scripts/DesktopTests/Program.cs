@@ -13,6 +13,7 @@ static class Tests {
         var expected=Environment.GetEnvironmentVariable("PULSE_TEST_ARCH");
         Check(expected==null||expected==System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture.ToString(),"Architecture mismatch");
         if(args.SequenceEqual(new[]{"--native-contrast"})) {HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();WindowsCaptureTests.Native();LocalContrastTests.Native();return;}
+        if(args.SequenceEqual(new[]{"--native-desktop-tray"})) {HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();FloatingMonitorTests.Run();TrayTests.Run(native:true);return;}
         if(args.Length>=1&&args[0]=="--native-game-overlay") {HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();GameOverlayTests.Native(args.Length==2?args[1]:null);return;}
         if(args.SequenceEqual(new[]{"--native-session"})) {
             HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();
@@ -36,6 +37,7 @@ static class Tests {
         if(args.Length>=1&&args[0]=="--game-overlay") {GameOverlayTests.Run(args.Length==2?args[1]:null);return;}
         if(args.SequenceEqual(new[]{"--palette"})) {ReadingPaletteTests.Run();return;}
         if(args.Length>=1&&args[0]=="--material") {AppMaterialTests.Run(args.Length==2?args[1]:null);return;}
+        if(args.SequenceEqual(new[]{"--desktop-tray"})) {FloatingMonitorTests.Run();TrayTests.Run();return;}
         if(args.Length==2&&args[0]=="--settings-sections") {SettingsSectionTests.Run(args[1]);return;}
         var source=new MonitorSource(true);
         var window=new MonitorWindow(source,start:false);

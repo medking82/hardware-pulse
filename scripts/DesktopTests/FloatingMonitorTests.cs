@@ -13,6 +13,8 @@ static class FloatingMonitorTests {
         owner.Show();owner.Present(new("21.0%","4.0 / 16.0 GiB · 25.0%","1.0 KiB/s","2.0 KiB/s",true,true));
         using var tray=new DesktopTray(owner);
         var open=(NativeMenuItem)tray.Menu.Items[1];
+        var done=(NativeMenuItem)tray.Menu.Items[2];var returnApp=(NativeMenuItem)tray.Menu.Items[3];var screenshot=(NativeMenuItem)tray.Menu.Items[4];
+        Check(!done.Command!.CanExecute(null)&&!returnApp.Command!.CanExecute(null)&&!screenshot.Command!.CanExecute(null),"Desktop tray commands enabled without a Desktop window");
         open.Command!.Execute(null);var floating=owner.FloatingMonitor!;
         try {
             owner.OpenFloatingMonitor();Check(ReferenceEquals(floating,owner.FloatingMonitor),"Repeated open created another floating window");
@@ -22,6 +24,9 @@ static class FloatingMonitorTests {
             ((NativeMenuItem)tray.Menu.Items[0]).Command!.Execute(null);
             Check(owner.IsVisible&&ReferenceEquals(floating,owner.FloatingMonitor),"Tray restores App without replacing Desktop");
             open.Command.Execute(null);Check(!floating.IsLocked,"Tray edit reopens unlocked Desktop");
+            Check(done.Command.CanExecute(null)==floating.CanLock&&returnApp.Command!.CanExecute(null),"Tray command availability must follow Desktop capability");
+            if(floating.CanLock){done.Command.Execute(null);Check(floating.IsLocked&&!owner.IsVisible&&!done.Command.CanExecute(null),"Tray Done must lock Desktop and hide App");open.Command.Execute(null);}
+            Check(!screenshot.Command!.CanExecute(null),"Demo session must not offer background capture");
             var materialWindow=new FloatingMonitorWindow(owner.Language);
             materialWindow.Present(new("21.0%","4.0 / 16.0 GiB","1 KiB/s","2 KiB/s",true,true));materialWindow.Show();
             try {
@@ -110,6 +115,8 @@ static class FloatingMonitorTests {
             owner.Hide();
             floating.GetVisualDescendants().OfType<Button>().Single(x=>x.Name=="ReturnToApp").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
             Check(owner.FloatingMonitor==null&&owner.IsVisible&&!floating.IsVisible,"Return restores App and closes only Desktop");
+            owner.OpenFloatingMonitor();floating=owner.FloatingMonitor!;
+            returnApp.Command!.Execute(null);Check(owner.FloatingMonitor==null&&owner.IsVisible&&!returnApp.Command.CanExecute(null),"Tray Return must close Desktop and restore App");
             owner.OpenFloatingMonitor();floating=owner.FloatingMonitor!;
             owner.Close();Check(!floating.IsVisible&&owner.FloatingMonitor==null,"Owner close left floating window alive");
             Check(!open.Command.CanExecute(null),"Disposed tray still offers floating action");open.Command.Execute(null);

@@ -21,6 +21,7 @@ public sealed class FloatingMonitorWindow : Window {
     PreviewSettings contrastSettings=new();
     readonly WindowsLocalContrast? contrast;
     public event Action? ContrastChanged;
+    public bool CanBeginScreenshot=>contrast!=null&&contrastSettings.DesktopLocalContrast&&IsVisible;
     public Color ContrastBackground=>(surface.Background as ISolidColorBrush)?.Color??Colors.Transparent;
     public string ContrastStatus=>contrast==null?"Local Contrast is unavailable in this session.":contrast.ScreenshotActive?"Screenshot mode · 15 seconds":!contrastSettings.DesktopLocalContrast?"Local Contrast is off.":contrast.Available?"Local contrast active":"Local contrast unavailable; using standard text color";
     public void BeginScreenshot()=>contrast?.BeginScreenshot();

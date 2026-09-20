@@ -1007,3 +1007,19 @@ opacity/lock/solid checks. Full shared regression and repository Validate passed
 before the final Theme-selector synchronization correction; the affected material
 fixture passed again afterwards. Final shared regression is being rerun.
 Final shared regression passed after Theme-selector synchronization; the light Settings render was inspected with a matching Light selection and readable dark text.
+
+### Desktop tray recovery actions
+
+The shared tray now exposes Done (lock), Return to App and Screenshot mode in
+addition to the existing Open/Edit action. Commands query the existing Desktop
+instance, never create another sampling owner, and recheck capability/lifetime
+at execution. NativeMenu.NeedsUpdate refreshes enabled states before presentation.
+Done requires working pass-through support; Screenshot requires opt-in capture
+in a supported live session. Closing/disposal invalidates stale callbacks.
+
+This routine presentation change preserves existing Open/Quit and maximized
+restore behavior. Focused headless and Windows-native tray/Desktop fixtures passed
+lock/edit, Return, unsupported/demo rejection, singleton and lifetime checks.
+Screenshot capture/recovery itself retains the separate native evidence and the
+unattributed intermittent failure recorded above. Installed state is unchanged.
+Repository Validate.ps1 passed after the tray changes; the focused native fixture exercised the real window lock/edit/restore transitions.
