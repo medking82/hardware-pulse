@@ -57,14 +57,20 @@ static class SettingsTests {
             groups.SelectedIndex=1;Dispatcher.UIThread.RunJobs();
             var theme=window.GetVisualDescendants().OfType<ComboBox>().Single(x=>x.Name=="PreviewTheme");theme.SelectedItem="Dark";
             Check(window.RequestedThemeVariant==ThemeVariant.Dark,"Theme applies immediately");
+            var pin=window.GetVisualDescendants().OfType<CheckBox>().Single(x=>x.Name=="AppTopmost");pin.IsChecked=true;
+            var locked=window.GetVisualDescendants().OfType<CheckBox>().Single(x=>x.Name=="AppLockPosition");locked.IsChecked=true;
+            Check(window.Topmost&&!window.CanResize,"Window preferences apply immediately");
+            Check(window.GetVisualDescendants().OfType<Border>().Where(x=>x.Name?.StartsWith("Resize")==true).All(x=>!x.IsVisible),"Lock removes all resize regions without disabling Settings");
             Until(()=>new PreviewSettingsStore(path).Load().Theme=="Dark");
             groups.SelectedIndex=2;Dispatcher.UIThread.RunJobs();
             var quota=window.GetVisualDescendants().OfType<CheckBox>().Single(x=>x.Name=="EnableCodexQuota");Check(quota.IsChecked==true,"Quota choice restored with explicit demo reader");quota.IsChecked=false;
             if(output!=null){window.Width=360;Dispatcher.UIThread.RunJobs();using var frame=window.CaptureRenderedFrame();frame!.Save(Path.Combine(output,"settings-360.png"),Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);}
             window.Close();Until(()=>window.Sampling.IsCompleted);
             var saved=new PreviewSettingsStore(path).Load();Check(saved.Theme=="Dark"&&!saved.Codex&&saved.Network=="missing-interface","Choices survive close");
+            Check(saved.Topmost&&saved.LockPosition,"Window preferences survive close");
             var reopened=new MonitorWindow(new MonitorSource(true),start:false,store:new PreviewSettingsStore(path));
             Check(reopened.RequestedThemeVariant==ThemeVariant.Dark&&reopened.Width==saved.Width,"Choices survive reopen");reopened.Show();reopened.Close();
+            Check(reopened.Topmost&&!reopened.CanResize,"Window preferences restored before interaction");
             Console.WriteLine("PASS isolated preview settings: normalization, unknown fields, atomic save, error preservation, theme, quota and missing interface");
         } finally {
             Check(Path.GetFullPath(directory).StartsWith(Path.GetFullPath(Path.GetTempPath()),StringComparison.OrdinalIgnoreCase),"Fixture cleanup boundary");

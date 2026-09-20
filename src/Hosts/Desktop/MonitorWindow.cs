@@ -28,6 +28,8 @@ public sealed class MonitorWindow : Window {
     readonly ToggleButton liveMode=new(){Name="Live",IsChecked=true,Padding=new Thickness(7,5)};
     readonly ToggleButton maxMode=new(){Name="SessionMax",Padding=new Thickness(7,5)};
     bool sessionMax;
+    bool settingsVisible;
+    Border? titleDrag;
     MonitorSnapshot? latestSnapshot;
     public FloatingMonitorWindow? FloatingMonitor {get;private set;}
     bool samplingFailed;
@@ -80,6 +82,11 @@ public sealed class MonitorWindow : Window {
         var theme=new ComboBox{Name="PreviewTheme",ItemsSource=new[]{"System","Light","Dark"},SelectedItem=settings.Theme,HorizontalAlignment=HorizontalAlignment.Stretch};
         appearance.Children.Add(Language.Set(new TextBlock{},"Theme"));appearance.Children.Add(theme);
         appearance.Children.Add(Language.Set(new TextBlock{TextWrapping=TextWrapping.Wrap},"System follows your desktop theme. Window size is remembered automatically."));
+        var pin=Language.Set(new CheckBox{Name="AppTopmost",IsChecked=settings.Topmost},"Always on Top");
+        var locked=Language.Set(new CheckBox{Name="AppLockPosition",IsChecked=settings.LockPosition},"Lock Position and Size");
+        appearance.Children.Add(pin);appearance.Children.Add(locked);
+        pin.IsCheckedChanged+=(_,_)=>{settings.Topmost=pin.IsChecked==true;ApplyWindowPreferences();SaveLater();};
+        locked.IsCheckedChanged+=(_,_)=>{settings.LockPosition=locked.IsChecked==true;ApplyWindowPreferences();SaveLater();};
         var solid=Language.Set(new CheckBox{Name="AppSolid",IsChecked=settings.Solid},"Solid background");
         appearance.Children.Add(solid);
         appearance.Children.Add(Language.Set(new TextBlock(),"App background opacity"));
@@ -113,10 +120,11 @@ public sealed class MonitorWindow : Window {
         DockPanel.SetDock(monitorHeader,Dock.Top);monitorPage.Children.Add(monitorHeader);
         DockPanel.SetDock(footer,Dock.Bottom);monitorPage.Children.Add(footer);monitorPage.Children.Add(Scroll(body));
         var pages=new ContentControl{Name="AppPage",HorizontalContentAlignment=HorizontalAlignment.Stretch,VerticalContentAlignment=VerticalAlignment.Stretch,Content=monitorPage};
-        openSettings.Click+=(_,_)=>{pages.Content=settingsSurface;back.Focus();};
-        back.Click+=(_,_)=>{pages.Content=monitorPage;openSettings.Focus();};
+        openSettings.Click+=(_,_)=>{settingsVisible=true;pages.Content=settingsSurface;RequestMaterial();back.Focus();};
+        back.Click+=(_,_)=>{settingsVisible=false;pages.Content=monitorPage;RequestMaterial();openSettings.Focus();};
         var titlebar=CreateTitlebar(heading);DockPanel.SetDock(titlebar,Dock.Top);viewport.Children.Add(titlebar);viewport.Children.Add(pages);
         var frame=new Grid();frame.Children.Add(viewport);AddResizeEdges(frame);Content=frame;
+        ApplyWindowPreferences();
         Language.Set(this,"Pulse · Desktop preview");Language.Set(status,"Starting…");Language.Set(pause,"Pause hardware monitoring");Language.Set(refreshInterfaces,"Refresh interfaces");
         theme.ItemTemplate=Language.Choices();
         void Placeholder()=>interfaces.PlaceholderText=Language.T("Select network interface");
@@ -161,16 +169,21 @@ public sealed class MonitorWindow : Window {
         bool highContrast=materialPlatform?.GetColorValues().ContrastPreference==ColorContrastPreference.High;
         // Native/Backdrop.cs deliberately avoids focus-dependent system Acrylic.
         TransparencyLevelHint=settings.Solid||highContrast?[WindowTransparencyLevel.None]:
-            OperatingSystem.IsWindows()||settings.AppOpacity==0?[WindowTransparencyLevel.Transparent]:[WindowTransparencyLevel.Blur];
+            OperatingSystem.IsWindows()||settings.AppOpacity==0||(settings.LockPosition&&!settingsVisible)?[WindowTransparencyLevel.Transparent]:[WindowTransparencyLevel.Blur];
         ApplyMaterial();
+    }
+    void ApplyWindowPreferences() {
+        Topmost=settings.Topmost;CanResize=!settings.LockPosition;
+        if(titleDrag!=null)titleDrag.Cursor=new Cursor(settings.LockPosition?StandardCursorType.Arrow:StandardCursorType.SizeAll);
+        RequestMaterial();
     }
     Control CreateTitlebar(TextBlock heading) {
         var bar=new Grid{Name="Titlebar",ColumnDefinitions=new ColumnDefinitions("*,Auto,Auto"),Margin=new Thickness(14,10,14,8)};
         var brand=AppIcon.Create("live");brand.Stroke=Brush.Parse("#A5E7D5");
         var label=new StackPanel{Orientation=Orientation.Horizontal,Spacing=7,VerticalAlignment=VerticalAlignment.Center};
         label.Children.Add(new Viewbox{Width=22,Height=22,Child=brand});label.Children.Add(heading);
-        var drag=new Border{Name="DragHandle",Background=Brushes.Transparent,Child=label,Cursor=new Cursor(StandardCursorType.SizeAll)};
-        drag.PointerPressed+=(_,e)=>{if(e.GetCurrentPoint(drag).Properties.IsLeftButtonPressed){BeginMoveDrag(e);e.Handled=true;}};
+        var drag=titleDrag=new Border{Name="DragHandle",Background=Brushes.Transparent,Child=label,Cursor=new Cursor(StandardCursorType.SizeAll)};
+        drag.PointerPressed+=(_,e)=>{if(!settings.LockPosition&&e.GetCurrentPoint(drag).Properties.IsLeftButtonPressed){BeginMoveDrag(e);e.Handled=true;}};
         bar.Children.Add(drag);
         Button Action(string name,string icon,string text,int column,Action action) {
             var glyph=AppIcon.Create(icon);glyph.Bind(Avalonia.Controls.Shapes.Shape.StrokeProperty,this.GetObservable(ForegroundProperty));
@@ -202,7 +215,7 @@ public sealed class MonitorWindow : Window {
     }
     void ApplyMaterial() {
         bool highContrast=materialPlatform?.GetColorValues().ContrastPreference==ColorContrastPreference.High;
-        var policy=new HardwarePulse.MaterialPolicy(settings.AppOpacity,false,false,settings.Solid,highContrast);
+        var policy=new HardwarePulse.MaterialPolicy(settings.AppOpacity,settings.LockPosition,settingsVisible,settings.Solid,highContrast);
         bool supported=ActualTransparencyLevel!=WindowTransparencyLevel.None;
         // Avalonia's Windows Blur hint can fall back to plain transparency. Reuse
         // the original WPF backdrop owner; a transparent surface alone is not blur.

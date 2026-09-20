@@ -209,3 +209,28 @@ for one drag/corner, not all-edge, multi-monitor, macOS or Linux acceptance. Ori
 lock/snap behavior, original minimum size and complete Settings/Desktop parity are
 still outstanding.
 Full scripts/Validate.ps1 passed for this titlebar change.
+
+### App window preferences and lock material transitions
+
+Shared Appearance now exposes Always on Top and Lock Position and Size, using the
+original labels. Preferences are isolated in PreviewSettingsStore and restored
+before interaction; unknown profile fields remain preserved. Lock disables shared
+titlebar dragging and all resize regions, but Settings/Back and Close remain usable.
+Unlock restores resize and the drag cursor. Topmost applies to the App only, leaving
+the floating view's independent preference intact.
+
+The existing Core MaterialPolicy now receives lock and Settings visibility, matching
+WPF Controls.ApplyMaterial: supported locked Monitor uses clear material at one quarter
+of saved opacity; Settings restores saved opacity and an opaque content surface.
+Solid/unsupported fallback remains opaque. Lock never rewrites the opacity preference.
+The readable-default palette evidence applies to unlocked mode, not this deliberately
+more transparent original locked mode.
+
+Changes are limited to shared presentation/preferences/localization and their tests;
+original WPF, assets, collectors, credentials, installed profiles and releases are
+protected. Source reversion restores previous behavior and added profile keys are
+ordinary optional booleans. Windows native regression passes for preference application,
+close/reopen, resize availability, Settings access and lock/Settings opacity transitions.
+Full OS-level move prevention, multi-monitor behavior, visual locked-mode acceptance,
+tray preference commands and the rest of Settings/Desktop parity remain outstanding.
+Headless regression and full scripts/Validate.ps1 also passed for this change.

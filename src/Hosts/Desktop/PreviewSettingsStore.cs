@@ -8,6 +8,7 @@ public sealed class PreviewSettings {
     public double AppOpacity=85;
     public bool Solid;
     public bool Details;
+    public bool Topmost,LockPosition;
     public string Language="auto";
     public string? Network;
     public bool Codex;
@@ -43,6 +44,7 @@ public sealed class PreviewSettingsStore {
             string theme=values.Text("theme","Dark");settings.Theme=theme is "Light" or "Dark"?theme:"System";
             settings.AppOpacity=values.Number("appOpacity",settings.AppOpacity,0,100);settings.Solid=values.Flag("solid");
             settings.Details=values.Flag("details");
+            settings.Topmost=values.Flag("topmost");settings.LockPosition=values.Flag("lockPosition");
             string network=values.Text("network");settings.Network=network.Length>0&&network.Length<=256&&!network.Any(char.IsControl)?network:null;
             settings.Codex=values.Flag("codex");
             string language=values.Text("language","auto");settings.Language=language is "en" or "zh-CN" or "zh-TW"?language:"auto";
@@ -63,7 +65,8 @@ public sealed class PreviewSettingsStore {
                 ["network"]=JsonSerializer.SerializeToElement(settings.Network),["codex"]=JsonSerializer.SerializeToElement(settings.Codex),
                 ["language"]=JsonSerializer.SerializeToElement(settings.Language),
                 ["appOpacity"]=JsonSerializer.SerializeToElement(settings.AppOpacity),["solid"]=JsonSerializer.SerializeToElement(settings.Solid),
-                ["details"]=JsonSerializer.SerializeToElement(settings.Details)};
+                ["details"]=JsonSerializer.SerializeToElement(settings.Details),
+                ["topmost"]=JsonSerializer.SerializeToElement(settings.Topmost),["lockPosition"]=JsonSerializer.SerializeToElement(settings.LockPosition)};
             var bytes=JsonSerializer.SerializeToUtf8Bytes(updated);
             if(bytes.Length>65536)throw new InvalidDataException();
             temp=Path.Combine(directory,".settings-"+Guid.NewGuid().ToString("N")+".tmp");

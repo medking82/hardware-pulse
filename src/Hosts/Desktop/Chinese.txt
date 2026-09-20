@@ -113,3 +113,5 @@ Wi-Fi Signal|Wi-Fi 信号
 Back|返回
 Minimize|最小化
 Close widget|关闭组件
+Always on Top|始终置顶
+Lock Position and Size|锁定位置和大小

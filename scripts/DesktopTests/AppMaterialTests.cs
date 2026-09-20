@@ -36,6 +36,13 @@ static class AppMaterialTests {
             Check(window.Opacity==1&&((ISolidColorBrush)window.Foreground!).Color.A==255,"Background opacity does not fade foreground; visual contrast requires native acceptance");
             slider.Value=100;
             Check(((ISolidColorBrush)window.Background!).Color.A==255,"Full opacity is opaque on every platform");
+            var locked=window.GetVisualDescendants().OfType<CheckBox>().Single(x=>x.Name=="AppLockPosition");locked.IsChecked=true;
+            Check(((ISolidColorBrush)window.Background!).Color.A==255&&!window.CanResize,"Locked Settings keeps full saved opacity and disables resize");
+            window.GetVisualDescendants().OfType<Button>().Single(x=>x.Name=="Back").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));Dispatcher.UIThread.RunJobs();
+            Check(((ISolidColorBrush)window.Background!).Color.A==(unsupported?255:64),"Locked Monitor reuses original quarter-opacity policy when supported");
+            main.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));Dispatcher.UIThread.RunJobs();
+            Check(((ISolidColorBrush)window.Background!).Color.A==255&&slider.Value==100,"Returning to Settings restores saved opacity without changing slider");
+            locked.IsChecked=false;Check(window.CanResize,"Unlock restores resize without reopening");
             slider.Value=35;solid.IsChecked=true;window.Close();
             var saved=new PreviewSettingsStore(path).Load();
             Check(saved.AppOpacity==35&&saved.Solid,"Opacity and solid preference survive close");
