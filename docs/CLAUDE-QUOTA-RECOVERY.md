@@ -187,3 +187,24 @@ passed for missing, expired, short and long server deadlines; repeated clicks
 produce exactly one retry at the effective deadline. Successful and authentication
 failure refreshes retain their existing immediate manual recovery behavior. This
 is scheduler-only work: no credential, endpoint, account or UI changes.
+
+## Windows login-file sharing
+
+A synthetic credential-shaped file held by a writer with ReadWrite/Delete sharing
+reproduced an IOException in the Windows adapter's File.ReadAllText call. Its read
+sharing denied the already-open write handle even though the writer allowed reads.
+This can turn an overlapping file update into a transient quota failure. It is not
+proof that every reported authentication failure had this cause.
+
+The existing ReadLogin boundary now opens read-only with ReadWrite/Delete sharing,
+enforces the one-MiB limit against the open stream and every copied chunk, and
+preserves BOM decoding. Each refresh opens the selected path anew; an atomic file
+replacement becomes visible on the next read. Missing files retain Login required,
+oversized files retain Login unavailable, and malformed partial JSON is rejected.
+The adapter neither writes nor renews credentials and does not add an account or
+fallback source. ReadLogin serves both Codex and Claude on Windows.
+
+QuotaLoginFileTests covers compatible writer handles, atomic replacement, UTF-8
+and UTF-16 BOMs, oversized/missing files and partial JSON using isolated synthetic
+data. No real credential values or files are used. The pre-fix sharing test failed;
+the corrected adapter passed. This does not establish provider token-expiry recovery.

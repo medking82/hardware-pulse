@@ -25,7 +25,19 @@ namespace HardwarePulse {
             throw new QuotaFailure("Login required");
         }
         static string LoginFile(string variable,string directory,string file){string root=Environment.GetEnvironmentVariable(variable);if(string.IsNullOrWhiteSpace(root))root=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),directory);return Path.Combine(root,file);}
-        static object ReadLogin(string path){var info=new FileInfo(path);if(!info.Exists)throw new QuotaFailure("Login required");if(info.Length>1048576)throw new QuotaFailure("Login unavailable");return QuotaData.Parse(File.ReadAllText(path));}
+        static object ReadLogin(string path){
+            try{
+                using(var input=new FileStream(path,FileMode.Open,FileAccess.Read,FileShare.ReadWrite|FileShare.Delete))
+                using(var memory=new MemoryStream()){
+                    if(input.Length>1048576)throw new QuotaFailure("Login unavailable");
+                    byte[] buffer=new byte[8192];int count;
+                    try{while((count=input.Read(buffer,0,buffer.Length))>0){if(memory.Length+count>1048576)throw new QuotaFailure("Login unavailable");memory.Write(buffer,0,count);}
+                        memory.Position=0;using(var reader=new StreamReader(memory,Encoding.UTF8,true,1024,true))return QuotaData.Parse(reader.ReadToEnd());
+                    }finally{Array.Clear(buffer,0,buffer.Length);Array.Clear(memory.GetBuffer(),0,(int)memory.Length);}
+                }
+            }catch(FileNotFoundException){throw new QuotaFailure("Login required");}
+            catch(DirectoryNotFoundException){throw new QuotaFailure("Login required");}
+        }
         public static QuotaReading Read(string provider,CancellationToken cancel){
             cancel.ThrowIfCancellationRequested();
             if(provider=="Codex"){
