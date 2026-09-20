@@ -18,7 +18,7 @@
 - **锁定位置与大小** 禁用移动、调整大小和卡片排序。锁定监控页面的背景不透明度降为原设置的四分之一并关闭模糊；设置保持可读。从托盘或设置解锁后恢复；纯色／高对比度设置优先。这还不是桌面层嵌入。
 - 应用程序默认 **自动（跟随系统）**，安装程序也根据 Windows UI 语言预选英语、简体或繁体中文。
 
-当前版本为 **0.6.33**，手动 Refresh 也遵守 server Retry-After 和最低 rate-limit backoff，并修复 credential 更新期间的 login-file sharing。保留现有 WPF UI 和默认 quota source。新增可选的 experimental Claude Code status-line source；需要手动 setup，过期 snapshot 会隐藏，不提供 credential renewal。[Integration 与 validation 限制](docs/CLAUDE-QUOTA-RECOVERY.md)。
+当前版本为 **0.6.33**，手动 Refresh 也遵守 server Retry-After 和最低 rate-limit backoff，并修复 credential 更新期间的 login-file sharing。保留现有 WPF UI 和默认 quota source。新增可选的 experimental Claude Code status-line source；需要手动 setup，过期 snapshot 会隐藏，不提供 credential renewal。[Setup 与 rollback](docs/CLAUDE-STATUSLINE.zh-CN.md) · [Integration 与 validation 限制](docs/CLAUDE-QUOTA-RECOVERY.md)。
 
 适用于 **Windows 10 22H2 / Windows 11 x64** 的轻量桌面硬件组件，集中显示 CPU、GPU、内存、NVMe 和风扇读数，以及实时 RAM/VRAM 用量。
 

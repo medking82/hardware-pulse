@@ -24,7 +24,7 @@ See [Desktop Mode](docs/DESKTOP-MODE.md) for wallpaper integration, appearance c
 
 Use **Ctrl+Alt+F10** to show/hide Desktop without opening App. Customize or disable it in Settings → Desktop; enable Always on top for games.
 
-Latest: **0.6.33** respects server Retry-After and the minimum rate-limit backoff even after manual Refresh, and fixes login-file sharing during credential updates. The existing WPF UI and default quota sources are preserved. An optional experimental Claude Code status-line source is available; it requires manual setup, expires stale snapshots and does not renew credentials. [Integration and validation limits](docs/CLAUDE-QUOTA-RECOVERY.md).
+Latest: **0.6.33** respects server Retry-After and the minimum rate-limit backoff even after manual Refresh, and fixes login-file sharing during credential updates. The existing WPF UI and default quota sources are preserved. An optional experimental Claude Code status-line source is available; it requires manual setup, expires stale snapshots and does not renew credentials. [Setup and rollback](docs/CLAUDE-STATUSLINE.md) · [Integration and validation limits](docs/CLAUDE-QUOTA-RECOVERY.md).
 
 Appearance → Colors selects Hardware Colors or a custom Unified Color for Monitor icons and temperatures. Cards → Network Speed Unit selects Auto, KB/s, MB/s or Mbit/s (decimal units; 1 MB/s = 8 Mbit/s). Network shows the busiest adapter by combined download/upload rate, with its name visible, and is not the sum of all adapters. Desktop reading order includes Download and Upload.
 
