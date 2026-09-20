@@ -41,7 +41,7 @@ static class FileCodexQuotaTests {
                 foreach(int status in new[]{301,302,307,308,401,403,429,500}){
                     handler.Reply=(r,c)=>{var response=Response(status,"{}");response.Headers.Location=new Uri("https://example.invalid/no-credentials");return Task.FromResult(response);};
                     int calls=handler.Calls;
-                    Check(adapter.Read(CancellationToken.None).Status==(status==401||status==403?"Login required":status==429?"Refresh rate limited":"Quota unavailable"),"HTTP safe status mapping");
+                    Check(adapter.Read(CancellationToken.None).Status==(status==401?"Login required":status==403?"Quota access denied":status==429?"Refresh rate limited":"Quota unavailable"),"HTTP safe status mapping");
                     Check(handler.Calls==calls+1,"No additional request on redirect");
                 }
                 foreach(string body in new[]{"invalid","[]",new string(' ',1048577),"{\"x\":"+new string('[',40)+"0"+new string(']',40)+"}"}){

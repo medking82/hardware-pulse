@@ -55,7 +55,7 @@ static class ClaudeQuotaTests {
         foreach(int status in new[]{301,302,401,403,429,500}) {
             handler.Reply=(_,_)=>Task.FromResult(Response(status,"private response body"));
             reading=client.Read(CancellationToken.None);
-            Check(reading.Status==(status==401||status==403?"Login required":status==429?"Refresh rate limited":"Quota unavailable")&&reading.AllWindows.Count==0,"Sanitized status with no stale quota");
+            Check(reading.Status==(status==401?"Login required":status==403?"Quota access denied":status==429?"Refresh rate limited":"Quota unavailable")&&reading.AllWindows.Count==0,"Sanitized status with no stale quota");
         }
         foreach(string body in new[]{"not json","[]",new string('x',1048577)}) {
             handler.Reply=(_,_)=>Task.FromResult(Response(200,body));

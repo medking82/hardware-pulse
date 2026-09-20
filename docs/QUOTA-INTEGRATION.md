@@ -21,6 +21,12 @@ bounded requests, no per-frame API calls. Disable/dispose cancels requests and
 rejects late results. Clear old windows on failures/account transitions; no fabricated
 100% or reset-to-full inference. Show observation age and expired readings explicitly.
 
+HTTP status presentation distinguishes missing/rejected authentication (401,
+`Login required`) from forbidden access (403, `Quota access denied`). A 403 does
+not prove the login expired. Both retain the normal five-minute retry cadence;
+429 keeps the two-minute backoff and transient failures retry after 30 seconds.
+This classification does not refresh tokens, change endpoints or grant access.
+
 Allowed surfaces: quota adapters/model/session, Shell wiring, XAML/settings,
 Desktop quota rows, localization, attribution, focused regression tests and docs.
 No changes to installed authentication stores, elevation or hardware acquisition.

@@ -68,7 +68,7 @@ namespace HardwarePulse {
                             return QuotaData.Parse(Encoding.UTF8.GetString(memory.ToArray()));
                         }
                     }
-                }catch(WebException e){cancel.ThrowIfCancellationRequested();using(var response=e.Response as HttpWebResponse){int status=response==null?0:(int)response.StatusCode;throw new QuotaFailure(status==401||status==403?"Login required":status==429?"Refresh rate limited":"Quota unavailable");}}
+                }catch(WebException e){cancel.ThrowIfCancellationRequested();using(var response=e.Response as HttpWebResponse){int status=response==null?0:(int)response.StatusCode;throw new QuotaFailure(status==401?"Login required":status==403?"Quota access denied":status==429?"Refresh rate limited":"Quota unavailable");}}
             }
         }
     }

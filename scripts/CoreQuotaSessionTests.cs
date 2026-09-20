@@ -26,7 +26,7 @@ internal static class CoreQuotaSessionTests {
             Check(calls==3,"manual refresh duplicated requests");
         }
         calls=0;CancellationToken captured=CancellationToken.None;
-        foreach(string failure in new[]{"Quota unavailable","Refresh rate limited","Login required"}) {
+        foreach(string failure in new[]{"Quota unavailable","Refresh rate limited","Login required","Quota access denied"}) {
             int attempts=0;int delay=failure=="Quota unavailable"?30:failure=="Refresh rate limited"?120:300;
             using(var retry=new QuotaSession((provider,cancel)=>new QuotaReading{Provider=provider,Status=Interlocked.Increment(ref attempts)==1?failure:"Live"})) {
                 retry.Enable("Claude",true);Pump(retry,now,()=>retry.Readings[0].Status==failure);

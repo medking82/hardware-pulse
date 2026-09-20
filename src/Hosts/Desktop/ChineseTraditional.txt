@@ -66,6 +66,7 @@ Reset time unavailable|重設時間無法取得
 5-hour|5 小時
 Weekly|每週
 Login required|需要登入
+Quota access denied|額度存取被拒絕
 Unavailable|無法使用
 Refreshing|正在更新
 Refresh pending|等待更新

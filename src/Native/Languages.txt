@@ -11,6 +11,7 @@ Login in Codex or Claude Code first. Keep Antigravity open. Pulse never changes 
 Refresh Quota|刷新额度|更新額度
 Refresh pending|等待刷新|等待更新
 Login required|需要登录或重新登录|需要登入或重新登入
+Quota access denied|额度访问被拒绝|額度存取被拒絕
 Login unavailable|无法读取登录信息|無法讀取登入資訊
 Quota unavailable|额度暂时不可用|額度暫時無法使用
 Quota stale|额度数据已过期|額度資料已過期
