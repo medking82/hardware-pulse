@@ -12,6 +12,7 @@ public interface IMonitorSource {
 public sealed class MonitorSource : IMonitorSource {
     readonly bool demo;
     readonly ReadingSession? cpu,memory;
+    readonly ReadingSession? hardware;
     ReadingSession? network;
     string? selected;
     LinuxHwmonReadings? hwmon;
@@ -22,7 +23,10 @@ public sealed class MonitorSource : IMonitorSource {
         this.demo=demo;
         if(demo)return;
         if(OperatingSystem.IsLinux())cpu=memory=new ReadingSession(new LinuxReadings().Read);
-        else if(OperatingSystem.IsWindows())cpu=memory=new ReadingSession(new WindowsSystemReadings().Read);
+        else if(OperatingSystem.IsWindows()) {
+            cpu=memory=new ReadingSession(new WindowsSystemReadings().Read);
+            hardware=new ReadingSession(WindowsSnapshotReadings.Default().Read);
+        }
         else if(OperatingSystem.IsMacOS()) {
             cpu=new ReadingSession(new MacCpuReadings().Read);
             memory=new ReadingSession(new MacMemoryReadings().Read);
@@ -34,7 +38,7 @@ public sealed class MonitorSource : IMonitorSource {
         catch(NetworkInformationException){return [];}
     }
     public MonitorSnapshot Poll(string? name) {
-        if(demo)return new("24.0%","7.5 / 16.0 GiB · 46.9%","124.5 KiB/s","8.2 KiB/s",true,true) {PeakCpu="42.0%",PeakDownload="256.0 KiB/s",PeakUpload="16.0 KiB/s"};
+        if(demo)return new("24.0%","7.5 / 16.0 GiB · 46.9%","124.5 KiB/s","8.2 KiB/s",true,true) {NetworkName=name,PeakCpu="42.0%",PeakDownload="256.0 KiB/s",PeakUpload="16.0 KiB/s"};
         var now=DateTimeOffset.UtcNow;
         cpu!.Poll(now);if(memory!=cpu)memory!.Poll(now);
         if(selected!=name) {
@@ -43,8 +47,11 @@ public sealed class MonitorSource : IMonitorSource {
                 ?new LinuxNetworkReadings(name).Read:OperatingSystem.IsWindows()?new WindowsNetworkReadings(name).Read:new MacNetworkReadings(name).Read);
         }
         network?.Poll(now);
+        hardware?.Poll(now);
         var sensors=ReadSensors(now);
-        return MonitorSnapshot.Capture(cpu,memory!,network) with {Sensors=sensors.Current,PeakSensors=sensors.Peaks,SensorsSupported=OperatingSystem.IsLinux()};
+        return MonitorSnapshot.Capture(cpu,memory!,network) with {
+            NetworkName=name,Hardware=hardware?.Latest,HardwarePeaks=hardware?.Peaks.ToDictionary(x=>x.Key,x=>x.Value)??new(),
+            Sensors=sensors.Current,PeakSensors=sensors.Peaks,SensorsSupported=OperatingSystem.IsLinux()};
     }
     (HardwareSensorSnapshot[] Current,HardwareSensorSnapshot[] Peaks) ReadSensors(DateTimeOffset now) {
         if(!OperatingSystem.IsLinux())return ([],[]);

@@ -32,10 +32,11 @@ static class Tests {
         foreach(int width in new[]{800,360,1200}) {
             window.Width=width;window.Height=700;Dispatcher.UIThread.RunJobs();
             AvaloniaHeadlessPlatform.ForceRenderTimerTick();
-            var cards=window.GetVisualDescendants().OfType<Grid>().First(x=>x.Children.OfType<Border>().Count()==4);
-            Check(cards.ColumnDefinitions.Count==(width>=660?2:1),"Responsive columns");
-            foreach(var value in window.GetVisualDescendants().OfType<TextBlock>())
-                Check(value.Bounds.Width<=width,"Text exceeds window width");
+            var cards=window.GetVisualDescendants().OfType<Grid>().Single(x=>x.Name=="ReadingCards");
+            Check(cards.ColumnDefinitions.Count==(width==1200?3:width==800?2:1),"WPF device cards use one to three responsive columns");
+            // Collapsed platform-only sections retain their previous arrange size.
+            foreach(var value in window.GetVisualDescendants().OfType<TextBlock>().Where(x=>x.IsEffectivelyVisible))
+                Check(value.Bounds.Width<=width,$"Text exceeds window width: {value.Text}; {value.Bounds.Width} > {width}");
             Check(window.GetVisualDescendants().OfType<TextBlock>().Any(x=>x.Text=="24.0%"),"CPU value preserved");
             if(args.Length==1) {
                 using var frame=window.CaptureRenderedFrame();
@@ -63,6 +64,8 @@ static class Tests {
         QuotaPanelTests.Run(args.Length==1?args[0]:null);
         SettingsTests.Run(args.Length==1?args[0]:null);
         AppMaterialTests.Run();
+        WindowsSnapshotTests.Run();
+        DeviceCardsTests.Run(args.Length==1?args[0]:null);
         MeasurementTests.Run();
         TrayTests.Run();
         FloatingMonitorTests.Run(args.Length==1?args[0]:null);

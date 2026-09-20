@@ -1,6 +1,7 @@
 Pulse · Desktop preview|Pulse · 桌面預覽版
 Solid background|不透明背景
 App background opacity|應用背景不透明度
+Hardware readings unavailable. Waiting for the collector.|硬體讀數無法使用，正在等待收集器。
 Starting…|正在啟動…
 Select network interface|選擇網路介面
 Refresh interfaces|重新整理網路介面
@@ -82,3 +83,30 @@ Lock floating monitor|鎖定浮動監控視窗
 Reopen from Monitor or the tray to unlock.|從主介面或系統匣重新開啟即可解鎖。
 Locked · Reopen from Monitor or the tray to unlock.|已鎖定 · 從主介面或系統匣重新開啟即可解鎖。
 Could not change window lock. Reopen the floating monitor and try again.|無法變更視窗鎖定狀態，請重新開啟浮動監控視窗後重試。
+Details|明細
+Airflow|散熱
+Processor|處理器
+Graphics|顯示卡
+Utilization|使用率
+Vcore · Motherboard|核心電壓 · 主機板
+VRAM Junction|顯存溫度
+Core Voltage|核心電壓
+Fan Speed|風扇轉速
+CPU Fan|CPU 風扇
+System Fan 1|系統風扇 1
+System Fan 2|系統風扇 2
+Module 1|記憶體模組 1
+Module 2|記憶體模組 2
+Drive 1|磁碟 1
+Drive 2|磁碟 2
+NVMe · Composite Temperature|NVMe · 綜合溫度
+Case / Motherboard|機殼 / 主機板
+Active adapter|作用中網卡
+Load|負載
+Vcore|核心電壓
+Fan|風扇
+VRAM Temp|顯存溫度
+Voltage|電壓
+LAN Link Speed|LAN 連線速率
+Wi-Fi Link Speed|Wi-Fi 連線速率
+Wi-Fi Signal|Wi-Fi 訊號

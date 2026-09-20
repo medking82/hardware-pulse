@@ -13,10 +13,12 @@ public sealed class MonitorWindow : Window {
     readonly bool smoke;
     readonly bool measure;
     readonly CancellationTokenSource stop=new();
-    readonly TextBlock cpu=Value(),ram=Value(),down=Value(),up=Value();
     readonly TextBlock status=new(){Text="Starting…",TextWrapping=TextWrapping.Wrap};
-    readonly Grid cards=new(){ColumnDefinitions=new("*,*"),RowDefinitions=new("Auto,Auto")};
-    readonly Border[] panels;
+    readonly TextBlock hardwareStatus=new(){Name="HardwareStatus",TextWrapping=TextWrapping.Wrap,IsVisible=false};
+    readonly Grid cards=new(){Name="ReadingCards",ColumnSpacing=10,RowSpacing=6};
+    readonly DeviceCard[] panels;
+    readonly CheckBox details=new(){Name="Details",Content="Details"};
+    int cardColumns,cardVisibility=-1;
     readonly ComboBox interfaces=new(){HorizontalAlignment=HorizontalAlignment.Stretch,PlaceholderText="Select network interface"};
     readonly Button refreshInterfaces=new(){Name="RefreshInterfaces",Content="Refresh interfaces"};
     readonly TextBlock networkStatus=new(){Name="NetworkStatus",TextWrapping=TextWrapping.Wrap};
@@ -36,6 +38,7 @@ public sealed class MonitorWindow : Window {
     readonly TextBlock opacityValue=new(){Name="AppOpacityValue"};
     readonly IPlatformSettings? materialPlatform=Application.Current?.PlatformSettings;
     readonly Border settingsSurface=new(){Name="SettingsSurface"};
+    readonly DockPanel viewport=new(){Name="Viewport"};
     bool loadingNetwork;
     public Task Sampling {get;private set;}=Task.CompletedTask;
     public MonitorWindow(IMonitorSource source,bool smoke=false,bool start=true,PreviewSettingsStore? store=null,bool measure=false) {
@@ -47,16 +50,20 @@ public sealed class MonitorWindow : Window {
         Title="Pulse · Desktop preview";Width=settings.Width;Height=settings.Height;MinWidth=360;MinHeight=400;
         FontSize=15;
         var heading=Language.Set(new TextBlock{FontSize=32,FontWeight=FontWeight.SemiBold},"Pulse");
-        panels=[Card("CPU",cpu,"System load","cpu"),Card("Memory",ram,OperatingSystem.IsMacOS()?"Used memory estimate":"Host memory","memory"),Card("Download",down,"Selected interface","down"),Card("Upload",up,"Selected interface","up")];
+        panels=new[]{"CPU","GPU","Memory","NVMe","Airflow","Network"}.Select(key=>new DeviceCard(key,Language)).ToArray();
         foreach(var panel in panels)cards.Children.Add(panel);
         var body=new StackPanel{Spacing=16,Margin=new Thickness(24)};
-        body.Children.Add(readingMode);body.Children.Add(status);body.Children.Add(cards);body.Children.Add(pause);
+        var modes=new StackPanel{Orientation=Orientation.Horizontal,Spacing=8};modes.Children.Add(readingMode);modes.Children.Add(Language.Set(details,"Details"));
+        body.Children.Add(modes);body.Children.Add(status);body.Children.Add(hardwareStatus);body.Children.Add(cards);body.Children.Add(pause);
+        details.IsChecked=settings.Details;
+        details.IsCheckedChanged+=(_,_)=>{settings.Details=details.IsChecked==true;if(latestSnapshot!=null)Render(latestSnapshot);SaveLater();};
+        Language.Changed+=()=>{if(latestSnapshot!=null)Render(latestSnapshot);};
         var floating=Language.Set(new Button{Name="OpenFloatingMonitor"},"Open floating monitor");
         floating.Click+=(_,_)=>OpenFloatingMonitor();body.Children.Add(floating);
         readingMode.SelectionChanged+=(_,_)=>{if(latestSnapshot!=null)Render(latestSnapshot);};
         body.Children.Add(sensors);
         quota=new CodexQuotaPanel(source.IsDemo,inlineSettings:false,language:Language);body.Children.Add(quota);
-        body.Children.Add(Language.Set(new TextBlock{TextWrapping=TextWrapping.Wrap,Opacity=.75},"Preview · FPS and Desktop overlay are not connected yet. Hardware support depends on the platform and device."));
+        body.Children.Add(Language.Set(new TextBlock{TextWrapping=TextWrapping.Wrap},"Preview · FPS and Desktop overlay are not connected yet. Hardware support depends on the platform and device."));
         var network=new StackPanel{Spacing=12,Margin=new Thickness(20)};
         network.Children.Add(Language.Set(new TextBlock{FontSize=21,FontWeight=FontWeight.SemiBold},"Network interface"));network.Children.Add(interfaces);
         network.Children.Add(refreshInterfaces);network.Children.Add(networkStatus);
@@ -71,7 +78,7 @@ public sealed class MonitorWindow : Window {
         appearance.Children.Add(solid);
         appearance.Children.Add(Language.Set(new TextBlock(),"App background opacity"));
         appOpacity.Value=settings.AppOpacity;appearance.Children.Add(appOpacity);appearance.Children.Add(opacityValue);
-        appOpacity.ValueChanged+=(_,_)=>{settings.AppOpacity=appOpacity.Value;ApplyMaterial();SaveLater();};
+        appOpacity.ValueChanged+=(_,_)=>{settings.AppOpacity=appOpacity.Value;RequestMaterial();SaveLater();};
         solid.IsCheckedChanged+=(_,_)=>{settings.Solid=solid.IsChecked==true;RequestMaterial();SaveLater();};
         appearance.Children.Add(Language.Set(new TextBlock(),"Language"));
         var languageChoice=new ComboBox{Name="PreviewLanguage",ItemsSource=new[]{"Auto (System)","English","简体中文","繁體中文"},SelectedIndex=settings.Language=="en"?1:settings.Language=="zh-CN"?2:settings.Language=="zh-TW"?3:0,HorizontalAlignment=HorizontalAlignment.Stretch,ItemTemplate=Language.Choices()};
@@ -84,7 +91,7 @@ public sealed class MonitorWindow : Window {
         settingsBody.Children.Add(settingsTabs);settingsBody.Children.Add(saveStatus);
         settingsSurface.Child=settingsBody;
         var tabs=new TabControl{Name="MainTabs",ItemsSource=new[]{Language.Set(new TabItem{Content=Scroll(body)},"Monitor"),Language.Set(new TabItem{Content=Scroll(settingsSurface)},"Settings")}};
-        var root=new DockPanel();DockPanel.SetDock(heading,Dock.Top);heading.Margin=new Thickness(24,20,24,12);root.Children.Add(heading);root.Children.Add(tabs);Content=root;
+        DockPanel.SetDock(heading,Dock.Top);heading.Margin=new Thickness(24,20,24,12);viewport.Children.Add(heading);viewport.Children.Add(tabs);Content=viewport;
         Language.Set(this,"Pulse · Desktop preview");Language.Set(status,"Starting…");Language.Set(pause,"Pause hardware monitoring");Language.Set(refreshInterfaces,"Refresh interfaces");
         theme.ItemTemplate=Language.Choices();readingMode.ItemTemplate=Language.Choices();
         void Placeholder()=>interfaces.PlaceholderText=Language.T("Select network interface");
@@ -101,6 +108,7 @@ public sealed class MonitorWindow : Window {
         saveTimer.Tick+=(_,_)=>SaveNow();
         SizeChanged+=(_,_)=>{LayoutCards();if(WindowState==WindowState.Normal){settings.Width=Width;settings.Height=Height;SaveLater();}};LayoutCards();
         Opened+=(_,_)=>{
+            ApplyMaterial();
             var screen=Screens.ScreenFromWindow(this);
             if(screen!=null){Width=Math.Max(MinWidth,Math.Min(Width,screen.WorkingArea.Width/screen.Scaling));Height=Math.Max(MinHeight,Math.Min(Height,screen.WorkingArea.Height/screen.Scaling));}
         };
@@ -122,19 +130,31 @@ public sealed class MonitorWindow : Window {
     void ApplyTheme(){RequestedThemeVariant=settings.Theme=="Dark"?ThemeVariant.Dark:settings.Theme=="Light"?ThemeVariant.Light:ThemeVariant.Default;if(FloatingMonitor!=null)FloatingMonitor.RequestedThemeVariant=RequestedThemeVariant;}
     void RequestMaterial() {
         bool highContrast=materialPlatform?.GetColorValues().ContrastPreference==ColorContrastPreference.High;
-        TransparencyLevelHint=settings.Solid||highContrast?[WindowTransparencyLevel.None]:[WindowTransparencyLevel.AcrylicBlur,WindowTransparencyLevel.Blur,WindowTransparencyLevel.Transparent];
+        // Native/Backdrop.cs deliberately avoids focus-dependent system Acrylic.
+        TransparencyLevelHint=settings.Solid||highContrast?[WindowTransparencyLevel.None]:
+            OperatingSystem.IsWindows()||settings.AppOpacity==0?[WindowTransparencyLevel.Transparent]:[WindowTransparencyLevel.Blur];
         ApplyMaterial();
     }
     void ApplyMaterial() {
         bool highContrast=materialPlatform?.GetColorValues().ContrastPreference==ColorContrastPreference.High;
         var policy=new HardwarePulse.MaterialPolicy(settings.AppOpacity,false,false,settings.Solid,highContrast);
         bool supported=ActualTransparencyLevel!=WindowTransparencyLevel.None;
+        // Avalonia's Windows Blur hint can fall back to plain transparency. Reuse
+        // the original WPF backdrop owner; a transparent surface alone is not blur.
+        if(OperatingSystem.IsWindows()) {
+            var handle=TryGetPlatformHandle();
+            supported=supported&&handle?.HandleDescriptor=="HWND"&&handle.Handle!=IntPtr.Zero&&PulseBackdrop.ApplyStable(handle.Handle,policy.Solid,policy.Clear);
+        }
         double opacity=policy.EffectiveOpacity(supported);
         bool light=ActualThemeVariant==ThemeVariant.Light;
         // Match WPF Controls.ApplyMaterial: tint alpha changes, never the whole window.
         var tint=Color.Parse(light?"#F4F6F8":"#35383B");
         Background=new SolidColorBrush(Color.FromArgb((byte)Math.Round(255*opacity),tint.R,tint.G,tint.B));
         Foreground=Brush.Parse(light?"#17202B":"#F0F5FA");
+        viewport.Background=new RadialGradientBrush {
+            Center=new RelativePoint(.1,0,RelativeUnit.Relative),GradientOrigin=new RelativePoint(0,0,RelativeUnit.Relative),
+            RadiusX=new RelativeScalar(1.3,RelativeUnit.Relative),RadiusY=new RelativeScalar(1,RelativeUnit.Relative),Opacity=opacity,
+            GradientStops=[new GradientStop(Color.Parse("#404C9DAD"),0),new GradientStop(Color.Parse("#05152136"),.6),new GradientStop(Color.Parse("#302C3C68"),1)]};
         // WPF keeps Settings opaque even when the monitoring surface is clear.
         settingsSurface.Background=Brush.Parse(light?"#F4F6F8":"#202831");
         appOpacity.IsEnabled=policy.CanAdjustOpacity(supported);
@@ -142,29 +162,26 @@ public sealed class MonitorWindow : Window {
     }
     void SaveLater(){if(store==null)return;saveTimer.Stop();saveTimer.Start();}
     void SaveNow(){saveTimer.Stop();if(store!=null)Language.Set(saveStatus,store.Save(settings)?"Changes saved.":store.Error);}
-    static TextBlock Value()=>new(){Text="—",FontSize=23,FontWeight=FontWeight.SemiBold,TextWrapping=TextWrapping.Wrap};
-    Border Card(string title,TextBlock value,string detail,string icon) {
-        var stack=new StackPanel{Spacing=10};
-        var header=new StackPanel{Orientation=Orientation.Horizontal,Spacing=10};
-        header.Children.Add(AppIcon.Create(icon));
-        header.Children.Add(Language.Set(new TextBlock{FontWeight=FontWeight.SemiBold,VerticalAlignment=VerticalAlignment.Center},title));
-        stack.Children.Add(header);stack.Children.Add(value);
-        stack.Children.Add(Language.Set(new TextBlock{Opacity=.75,TextWrapping=TextWrapping.Wrap},detail));
-        return new Border{Child=stack,Padding=new Thickness(20),Margin=new Thickness(0,0,12,12),CornerRadius=new CornerRadius(14),BorderThickness=new Thickness(1),BorderBrush=Brushes.Gray};
-    }
     void LayoutCards() {
-        int count=ClientSize.Width>=660?2:1;
-        cards.ColumnDefinitions=new(count==2?"*,*":"*");
-        cards.RowDefinitions=new(count==2?"Auto,Auto":"Auto,Auto,Auto,Auto");
-        for(int i=0;i<panels.Length;i++){Grid.SetRow(panels[i],i/count);Grid.SetColumn(panels[i],i%count);}
+        int count=Math.Clamp((int)((ClientSize.Width-48)/270),1,3);
+        int visibility=0;for(int i=0;i<panels.Length;i++)if(panels[i].IsVisible)visibility|=1<<i;
+        if(cardColumns==count&&cardVisibility==visibility)return;
+        cardColumns=count;cardVisibility=visibility;
+        var visible=panels.Where(x=>x.IsVisible).ToArray();
+        cards.ColumnDefinitions=new(string.Join(",",Enumerable.Repeat("*",count)));
+        cards.RowDefinitions=new(string.Join(",",Enumerable.Repeat("Auto",Math.Max(1,(visible.Length+count-1)/count))));
+        for(int i=0;i<visible.Length;i++){Grid.SetRow(visible[i],i/count);Grid.SetColumn(visible[i],i%count);}
     }
     public void Present(MonitorSnapshot snapshot) {
         latestSnapshot=snapshot;Render(snapshot);
     }
     void Render(MonitorSnapshot snapshot) {
         bool max=readingMode.SelectedIndex==1;
-        cpu.Text=max?snapshot.PeakCpu:snapshot.Cpu;ram.Text=snapshot.Memory;
-        down.Text=max?snapshot.PeakDownload:snapshot.Download;up.Text=max?snapshot.PeakUpload:snapshot.Upload;
+        foreach(var panel in panels)panel.Present(snapshot,max,details.IsChecked==true);
+        LayoutCards();
+        hardwareStatus.IsVisible=snapshot.Hardware!=null&&snapshot.Hardware.state!="LIVE";
+        Language.Set(hardwareStatus,"Hardware readings unavailable. Waiting for the collector.");
+        sensors.IsVisible=snapshot.SensorsSupported;
         sensors.Present(max?snapshot.PeakSensors:snapshot.Sensors,snapshot.SensorsSupported);
         FloatingMonitor?.Present(snapshot,max);
         Language.Set(status,samplingFailed?"Monitoring unavailable. Retrying…":max?(source.IsDemo?"Demo · ":"")+"Session Max · Memory and quota remain current":source.IsDemo?"Demo · Sample values":snapshot.CpuReady&&snapshot.MemoryReady?"Live · Refreshes every second":"Waiting for available readings…");
@@ -210,6 +227,7 @@ public sealed class MonitorWindow : Window {
                     samplingFailed=true;
                     var previous=latestSnapshot??new MonitorSnapshot("—","—","—","—",false,false);
                     Present(previous with {Cpu="—",Memory="—",Download="—",Upload="—",CpuReady=false,MemoryReady=false,
+                        Hardware=previous.Hardware==null?null:new Reading{available=previous.Hardware.available,names=previous.Hardware.names,gpuFanCount=previous.Hardware.gpuFanCount},
                         Sensors=previous.Sensors.Select(sensor=>sensor with {Value="—"}).ToArray()});
                     continue;
                 }

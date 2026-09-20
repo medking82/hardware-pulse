@@ -8,7 +8,7 @@ namespace HardwarePulse.Desktop;
 // UI-thread owner. Reuse text controls during normal polling; rebuild only on topology change.
 public sealed class HardwareSensorPanel : Border {
     readonly StackPanel rows=new(){Spacing=12};
-    readonly TextBlock status=new(){TextWrapping=TextWrapping.Wrap,Opacity=.75};
+    readonly TextBlock status=new(){TextWrapping=TextWrapping.Wrap};
     readonly Dictionary<string,(TextBlock Label,TextBlock Value)> controls=new();
     string[] order=[];
     readonly UiLanguage language;

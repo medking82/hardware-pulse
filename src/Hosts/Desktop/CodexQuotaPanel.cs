@@ -34,7 +34,7 @@ public sealed class CodexQuotaPanel : UserControl,IDisposable {
         header.Children.Add(new TextBlock{Text="Codex",FontSize=21,FontWeight=FontWeight.SemiBold});
         body.Children.Add(header);
         var settings=new StackPanel{Spacing=12};settings.Children.Add(enabled);
-        settings.Children.Add(this.language.Set(new TextBlock{TextWrapping=TextWrapping.Wrap,Opacity=.75},demo?"Demo · Sample quota only. No account is accessed.":"Uses your existing Codex file login. Refreshes every five minutes while enabled. This choice is remembered. Login and token refresh stay in Codex."));
+        settings.Children.Add(this.language.Set(new TextBlock{TextWrapping=TextWrapping.Wrap},demo?"Demo · Sample quota only. No account is accessed.":"Uses your existing Codex file login. Refreshes every five minutes while enabled. This choice is remembered. Login and token refresh stay in Codex."));
         SettingsContent=settings;if(inlineSettings)body.Children.Add(settings);
         if(!inlineSettings)this.language.Set(status,"Off · Enable in Settings → Codex");
         body.Children.Add(refresh);body.Children.Add(status);body.Children.Add(windows);
@@ -78,7 +78,7 @@ public sealed class CodexQuotaPanel : UserControl,IDisposable {
             item.Children.Add(new TextBlock{Text=language.T(row.Label),FontWeight=FontWeight.SemiBold,TextWrapping=TextWrapping.Wrap});
             item.Children.Add(new TextBlock{Text=row.Remaining.HasValue?string.Format(language.T("{0}% left"),row.Remaining.Value.ToString("F1")):"—",FontSize=20});
             if(row.Remaining.HasValue)item.Children.Add(new ProgressBar{Minimum=0,Maximum=100,Value=row.Remaining.Value,Height=4});
-            item.Children.Add(new TextBlock{Text=row.Reset.HasValue?string.Format(language.T("Resets {0}"),row.Reset.Value.ToLocalTime().ToString("g")):language.T("Reset time unavailable"),Opacity=.75,TextWrapping=TextWrapping.Wrap});
+            item.Children.Add(new TextBlock{Text=row.Reset.HasValue?string.Format(language.T("Resets {0}"),row.Reset.Value.ToLocalTime().ToString("g")):language.T("Reset time unavailable"),TextWrapping=TextWrapping.Wrap});
             windows.Children.Add(item);
         }
     }

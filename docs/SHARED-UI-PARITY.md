@@ -54,11 +54,14 @@ General Settings). They establish the original hierarchy; they do not prove
 shared-host parity. No complete parity row above is accepted yet.
 
 App material implementation now uses the existing Core MaterialPolicy. New
-preview profiles start dark with 30% background opacity; existing explicit
+preview profiles start dark with 85% background opacity, following the user's
+explicit preference for a deeper readable glass surface; existing explicit
 Light/System/Dark preferences remain supported. Solid mode and an unsupported
 platform produce an opaque background without overwriting the preference or
 fading foreground text. Settings content remains opaque. The native request
-prefers AcrylicBlur, then Blur, then transparency. High contrast requests an
+now reuses `Native/Backdrop.cs` through the Windows adapter on an HWND surface;
+other platforms request Blur without silently accepting plain transparency.
+Zero opacity explicitly allows clear transparency. High contrast requests an
 opaque surface; native high-contrast appearance still requires acceptance.
 
 Build, headless Desktop regression, and Windows native-session regression pass.
@@ -70,6 +73,47 @@ isolated Windows demo was visually inspected: the backdrop is active, but the
 old preview card hierarchy and navigation visibly remain. Do not label this
 as WPF visual parity. The demo was closed without changing installed profiles.
 
+### Readability regression: bounded Windows correction
+
+The later native reproduction showed sharp underlying text through the window:
+Avalonia's Blur hint had fallen back to ordinary transparency. The original
+`PulseBackdrop.ApplyStable` owner restores visible blur in the Windows demo.
+The original radial viewport gradient is also restored. A failed native backdrop
+application uses an opaque tint, and headless handles never call the HWND API.
+No original WPF source, installed settings, collector or release is modified.
+
+White text at 30% opacity had insufficient contrast over bright content. The user
+chose deeper default glass while retaining light text and the opacity slider.
+New profiles now use 85%; explicit saved values remain unchanged. Small device
+values inherit the main text color; large hero readings and original icons retain
+hardware accents. Secondary device text uses #DDE9F0, and status/reset text is no
+longer faded independently. The black/white backdrop compositing regression reports
+4.96:1 minimum for main and secondary text across the viewport gradient stops.
+This is palette evidence, not a claim about every control or arbitrary saved opacity.
+
+The Windows demo was inspected focused and unfocused, plus opaque Settings. Blur
+remains active on focus changes and light text is visibly separated from the
+background. Low explicit opacity remains user-controlled and can reduce contrast.
+Installed WPF settings were not migrated. Full Settings/Desktop parity and other
+platform material acceptance remain outstanding.
+
+### Device-card migration boundary
+
+The shared Monitor now groups readings into CPU, GPU, Memory, NVMe, Airflow and
+Network cards using the original SVGs. WindowsSnapshotReadings reads the existing
+per-user collector snapshot with bounded input and the original SensorProfile
+parser. It starts no collector, driver or elevated process. MonitorSource owns
+the existing polling worker; cards do not poll. Missing/stale readings are shown
+as unavailable while capability layout and Session Max survive. The selected
+traffic interface, rather than the collector's default interface, labels rates.
+
+Synthetic checks cover parser parity/freshness, capability layout, Details,
+one-to-three columns, stable controls and peak/current behavior. Allowed surfaces
+are the modern Windows adapter, shared host and their tests; original WPF sources,
+assets, personal profiles, installer and release remain protected. Compact density,
+card reordering/visibility, shell navigation and full Settings/Desktop presentation
+still require migration. This partial card port is not release acceptance.
+
 The Windows input fixture passed once and later failed its immediate red-pixel
 assertion after pass-through hit testing succeeded. The fixture now waits up
 to its existing five-second deadline for that exact red pixel and rechecks
@@ -77,4 +121,4 @@ pass-through afterwards. The subsequent native suite passed. This addresses
 the compositor observation timing, without relaxing the pixel or ownership
 assertion; it is not evidence for other machines or platforms.
 
-<!-- sop-risk-classification: {"facts":{"blast_radius":"isolated","change_kind":"implementation","data_boundary":"ordinary","destructive":"no","failure_cost":"low","irreversibility":"reversible","operational_controls":"not_applicable","privilege_boundary":"unchanged","project_policy":"default","rollback":"easy","scope_knowledge":"known","uncertainty":"low","verification":"deterministic"},"formal_review":"not_required","kind":"risk-classification-assessment","reasons":{"formal_review":["routine_no_review"],"risk":["no_high_risk_signal"]},"risk":"routine","schema_version":2} -->
+<!-- sop-risk-classification: {"facts":{"blast_radius":"shared","change_kind":"implementation","data_boundary":"ordinary","destructive":"no","failure_cost":"low","irreversibility":"reversible","operational_controls":"not_applicable","privilege_boundary":"unchanged","project_policy":"default","rollback":"easy","scope_knowledge":"known","uncertainty":"low","verification":"semantic"},"formal_review":"not_required","kind":"risk-classification-assessment","reasons":{"formal_review":["routine_no_review"],"risk":["no_high_risk_signal"]},"risk":"routine","schema_version":2} -->

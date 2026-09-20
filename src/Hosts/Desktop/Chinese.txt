@@ -1,6 +1,7 @@
 Pulse · Desktop preview|Pulse · 桌面预览版
 Solid background|不透明背景
 App background opacity|应用背景不透明度
+Hardware readings unavailable. Waiting for the collector.|硬件读数不可用，正在等待采集器。
 Starting…|正在启动…
 Select network interface|选择网卡
 Refresh interfaces|刷新网卡列表
@@ -82,3 +83,30 @@ Lock floating monitor|锁定浮动监控窗口
 Reopen from Monitor or the tray to unlock.|从主界面或托盘重新打开即可解锁。
 Locked · Reopen from Monitor or the tray to unlock.|已锁定 · 从主界面或托盘重新打开即可解锁。
 Could not change window lock. Reopen the floating monitor and try again.|无法更改窗口锁定状态，请重新打开浮动监控窗口后重试。
+Details|明细
+Airflow|散热
+Processor|处理器
+Graphics|显卡
+Utilization|使用率
+Vcore · Motherboard|核心电压 · 主板
+VRAM Junction|显存温度
+Core Voltage|核心电压
+Fan Speed|风扇转速
+CPU Fan|CPU 风扇
+System Fan 1|系统风扇 1
+System Fan 2|系统风扇 2
+Module 1|内存条 1
+Module 2|内存条 2
+Drive 1|硬盘 1
+Drive 2|硬盘 2
+NVMe · Composite Temperature|NVMe · 综合温度
+Case / Motherboard|机箱 / 主板
+Active adapter|活动网卡
+Load|负载
+Vcore|核心电压
+Fan|风扇
+VRAM Temp|显存温度
+Voltage|电压
+LAN Link Speed|LAN 连接速率
+Wi-Fi Link Speed|Wi-Fi 连接速率
+Wi-Fi Signal|Wi-Fi 信号
