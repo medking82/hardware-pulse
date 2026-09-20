@@ -32,6 +32,7 @@ static class Tests {
         AppBuilder.Configure<PulseApplication>().With(DesktopFonts.Options()).UseSkia().UseHeadless(new(){UseHeadlessDrawing=false}).SetupWithoutStarting();
         if(args.Length>=1&&args[0]=="--fps") {FpsPanelTests.Run(args.Length==2?args[1]:null);return;}
         if(args.Length>=1&&args[0]=="--game-overlay") {GameOverlayTests.Run(args.Length==2?args[1]:null);return;}
+        if(args.SequenceEqual(new[]{"--palette"})) {ReadingPaletteTests.Run();return;}
         var source=new MonitorSource(true);
         var window=new MonitorWindow(source,start:false);
         window.Show();window.Present(source.Poll(null));
@@ -77,6 +78,7 @@ static class Tests {
         GameOverlayTests.Run(args.Length==1?args[0]:null);
         ReorderHandleTests.Run();DesktopMetricPreferenceTests.Run(args.Length==1?args[0]:null);DesktopGeometryTests.Run();SettingsTests.Run(args.Length==1?args[0]:null);
         AppMaterialTests.Run();DesktopModeTests.Run();
+        ReadingPaletteTests.Run(args.Length==1?args[0]:null);
         WindowsSnapshotTests.Run();WindowsQuotaTests.Run();
         DeviceCardsTests.Run(args.Length==1?args[0]:null);
         CardPreferenceTests.Run(args.Length==1?args[0]:null);

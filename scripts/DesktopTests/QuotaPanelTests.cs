@@ -41,6 +41,10 @@ static class QuotaPanelTests {
         Check(reads==0&&!refresh.IsEnabled,"Disabled quota must not read credentials");
         enable.Focus();window.KeyPress(Key.Space,RawInputModifiers.None,PhysicalKey.Space," ");window.KeyRelease(Key.Space,RawInputModifiers.None,PhysicalKey.Space," ");
         Until(()=>Text(window).Any(x=>x.Text=="54.0% left"),"Essential quota shown by default");
+        var priorTheme=window.RequestedThemeVariant;window.RequestedThemeVariant=Avalonia.Styling.ThemeVariant.Dark;
+        panel.ApplyReadingPalette(new(true,"#80D4FA"));Dispatcher.UIThread.RunJobs();
+        Check(window.GetVisualDescendants().OfType<ProgressBar>().All(x=>((Avalonia.Media.ISolidColorBrush)x.Foreground!).Color==Avalonia.Media.Color.Parse("#80D4FA"))&&reads==1,"Quota palette update must recolor existing bars without another provider read");
+        panel.ApplyReadingPalette(new());window.RequestedThemeVariant=priorTheme;
         Check(!Text(window).Any(x=>x.Text=="72.5% left"),"Additional pools hidden in essential mode");
         panel.ShowAll=true;Dispatcher.UIThread.RunJobs();
         Check(Text(window).Any(x=>x.Text=="72.5% left"),"AllWindows includes additional quota pools when selected");

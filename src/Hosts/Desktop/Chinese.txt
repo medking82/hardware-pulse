@@ -196,3 +196,10 @@ Top right|右上
 Bottom left|左下
 Bottom center|底部居中
 Bottom right|右下
+Colors|颜色
+Hardware Colors|硬件配色
+Unified Color|统一颜色
+Monitor icons and temperatures share this palette. Labels stay neutral.|Monitor 图标与温度共用此配色，标签保持中性色。
+Icons follow App colors|图标跟随 App 配色
+When off, icons match Desktop text color.|关闭后，图标使用 Desktop 文字颜色。
+Text Color|文字颜色

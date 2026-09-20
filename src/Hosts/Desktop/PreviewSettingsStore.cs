@@ -22,6 +22,9 @@ public sealed class PreviewSettings {
     public double DesktopBackgroundOpacity=86,DesktopOverlayOpacity=55,DesktopTextOpacity=100;
     public bool Solid;
     public bool Details;
+    public bool UnifiedReadingColors;
+    public string ReadingColor="#DDE9F0",DesktopColor="#F5F7FA";
+    public bool DesktopAppIconColors=true;
     public bool Topmost,LockPosition;
     public string Language="auto";
     public string? Network;
@@ -88,6 +91,11 @@ public sealed class PreviewSettingsStore {
             string network=values.Text("network");settings.Network=network.Length>0&&network.Length<=256&&!network.Any(char.IsControl)?network:null;
             settings.Codex=values.Flag("codex");settings.Claude=values.Flag("claude");settings.Antigravity=values.Flag("antigravity");
             settings.QuotaFull=values.Flag("quotaFull");
+            settings.UnifiedReadingColors=values.Flag("unifiedReadingColors");
+            settings.DesktopAppIconColors=values.Flag("desktopAppIconColors",true);
+            string readingColor=values.Text("readingColor","#DDE9F0"),desktopColor=values.Text("desktopColor","#F5F7FA");
+            if(ReadingPalette.IsColor(readingColor))settings.ReadingColor=readingColor;
+            if(ReadingPalette.IsColor(desktopColor))settings.DesktopColor=desktopColor;
             settings.Fps=values.Flag("fps");
             if(fields.TryGetValue("gameOverlay",out var overlay))settings.GameOverlay=GameOverlayOptions.Read(overlay);
             string fpsTarget=values.Text("fpsTarget","");
@@ -113,6 +121,8 @@ public sealed class PreviewSettingsStore {
                 ["appOpacity"]=JsonSerializer.SerializeToElement(settings.AppOpacity),["solid"]=JsonSerializer.SerializeToElement(settings.Solid),
                 ["details"]=JsonSerializer.SerializeToElement(settings.Details),
                 ["quotaFull"]=JsonSerializer.SerializeToElement(settings.QuotaFull),
+                ["unifiedReadingColors"]=JsonSerializer.SerializeToElement(settings.UnifiedReadingColors),["readingColor"]=JsonSerializer.SerializeToElement(settings.ReadingColor),
+                ["desktopAppIconColors"]=JsonSerializer.SerializeToElement(settings.DesktopAppIconColors),["desktopColor"]=JsonSerializer.SerializeToElement(settings.DesktopColor),
                 ["fps"]=JsonSerializer.SerializeToElement(settings.Fps),["fpsTarget"]=JsonSerializer.SerializeToElement(settings.FpsTarget),
                 ["gameOverlay"]=JsonSerializer.SerializeToElement(settings.GameOverlay),
                 ["fontSize"]=JsonSerializer.SerializeToElement(settings.FontSize),

@@ -120,6 +120,15 @@ public sealed class MonitorWindow : Window {
         appOpacity.Value=settings.AppOpacity;appearance.Children.Add(appOpacity);
         appOpacity.ValueChanged+=(_,_)=>{settings.AppOpacity=appOpacity.Value;RequestMaterial();SaveLater();};
         solid.IsCheckedChanged+=(_,_)=>{settings.Solid=solid.IsChecked==true;RequestMaterial();SaveLater();};
+        appearance.Children.Add(Language.Set(new TextBlock{FontWeight=FontWeight.SemiBold},"Colors"));
+        var hardwareColors=Language.Set(new RadioButton{Name="HardwareReadingColors",GroupName="ReadingColors",IsChecked=!settings.UnifiedReadingColors},"Hardware Colors");
+        var unifiedColors=Language.Set(new RadioButton{Name="UnifiedReadingColors",GroupName="ReadingColors",IsChecked=settings.UnifiedReadingColors},"Unified Color");
+        var readingColor=ColorSetting("ReadingColorPicker",settings.ReadingColor,value=>{settings.ReadingColor=value;ApplyMaterial();SaveLater();});
+        readingColor.IsVisible=settings.UnifiedReadingColors;
+        hardwareColors.IsCheckedChanged+=(_,_)=>{if(hardwareColors.IsChecked!=true)return;settings.UnifiedReadingColors=false;readingColor.IsVisible=false;ApplyMaterial();SaveLater();};
+        unifiedColors.IsCheckedChanged+=(_,_)=>{if(unifiedColors.IsChecked!=true)return;settings.UnifiedReadingColors=true;readingColor.IsVisible=true;ApplyMaterial();SaveLater();};
+        appearance.Children.Add(hardwareColors);appearance.Children.Add(unifiedColors);appearance.Children.Add(readingColor);
+        appearance.Children.Add(Language.Set(new TextBlock{TextWrapping=TextWrapping.Wrap},"Monitor icons and temperatures share this palette. Labels stay neutral."));
         network.Children.Add(Language.Set(new TextBlock(),"Language"));
         var languageChoice=new ComboBox{Name="PreviewLanguage",ItemsSource=new[]{"Auto (System)","English","简体中文","繁體中文"},SelectedIndex=settings.Language=="en"?1:settings.Language=="zh-CN"?2:settings.Language=="zh-TW"?3:0,HorizontalAlignment=HorizontalAlignment.Stretch,ItemTemplate=Language.Choices()};
         network.Children.Add(languageChoice);
@@ -247,6 +256,7 @@ public sealed class MonitorWindow : Window {
         if(FloatingMonitor==null) {
             FloatingMonitor=new FloatingMonitorWindow(Language);
             FloatingMonitor.ApplyPreferences(settings);
+            FloatingMonitor.ApplyAppPalette(new(settings.UnifiedReadingColors,settings.ReadingColor),ActualThemeVariant==ThemeVariant.Light);
             var desktop=FloatingMonitor;bool tracking=false;
             void RememberGeometry(){if(!tracking||desktop.WindowState!=WindowState.Normal)return;settings.DesktopWidth=desktop.Width;settings.DesktopHeight=desktop.Height;settings.DesktopX=desktop.Position.X;settings.DesktopY=desktop.Position.Y;SaveLater();}
             desktop.Opened+=(_,_)=>{tracking=false;desktop.RestoreGeometry(settings);tracking=true;RememberGeometry();};
@@ -297,6 +307,10 @@ public sealed class MonitorWindow : Window {
         panel.Children.Add(enabled);panel.Children.Add(edit);
         panel.Children.Add(Language.Set(new TextBlock{TextWrapping=TextWrapping.Wrap,FontSize=11},"Select Edit Desktop, then move or resize the panel. Lock it directly on the desktop."));
         void Apply(){FloatingMonitor?.ApplyPreferences(settings);SaveLater();}
+        var follow=Language.Set(new CheckBox{Name="DesktopAppIconColors",IsChecked=settings.DesktopAppIconColors},"Icons follow App colors");
+        follow.IsCheckedChanged+=(_,_)=>{settings.DesktopAppIconColors=follow.IsChecked==true;Apply();};
+        appearance.Children.Add(follow);
+        appearance.Children.Add(Language.Set(new TextBlock{TextWrapping=TextWrapping.Wrap},"When off, icons match Desktop text color."));
         void Number(string name,string label,double value,double min,double max,Action<double> set,string unit=" DIP") {
 
             var slider=new Slider{Name=name,Minimum=min,Maximum=max,TickFrequency=1,IsSnapToTickEnabled=true,Value=value};
@@ -310,6 +324,8 @@ public sealed class MonitorWindow : Window {
         Number("DesktopBackgroundOpacity","Desktop background opacity",settings.DesktopBackgroundOpacity,0,100,value=>settings.DesktopBackgroundOpacity=value,"%");
         Number("DesktopOverlayOpacity","Always on Top background opacity",settings.DesktopOverlayOpacity,0,100,value=>settings.DesktopOverlayOpacity=value,"%");
         Number("DesktopTextOpacity","Text opacity",settings.DesktopTextOpacity,0,100,value=>settings.DesktopTextOpacity=value,"%");
+        appearance.Children.Add(Language.Set(new TextBlock(),"Text Color"));
+        appearance.Children.Add(ColorSetting("DesktopColor",settings.DesktopColor,value=>{settings.DesktopColor=value;Apply();}));
         panel.Children.Add(Language.Set(new TextBlock(),"Columns"));
         var columns=new ComboBox{Name="DesktopColumns",ItemsSource=new[]{"Auto","1","2","3"},SelectedIndex=settings.DesktopColumns,ItemTemplate=Language.Choices(),HorizontalAlignment=HorizontalAlignment.Stretch};
         columns.SelectionChanged+=(_,_)=>{settings.DesktopColumns=Math.Max(0,columns.SelectedIndex);FloatingMonitor?.ApplyPreferences(settings,fitColumns:true);SaveLater();};panel.Children.Add(columns);
@@ -416,6 +432,11 @@ public sealed class MonitorWindow : Window {
         Action("Close","close","Close widget",2,Close);
         return bar;
     }
+    static ColorPicker ColorSetting(string name,string value,Action<string> changed) {
+        var picker=new ColorPicker{Name=name,Color=Color.Parse(value),Content=value,IsAlphaEnabled=false,IsAlphaVisible=false,HorizontalAlignment=HorizontalAlignment.Stretch};
+        picker.ColorChanged+=(_,_)=>{var color=picker.Color;string hex=$"#{color.R:X2}{color.G:X2}{color.B:X2}";picker.Content=hex;changed(hex);};
+        return picker;
+    }
     void ApplyMaterial() {
         bool highContrast=materialPlatform?.GetColorValues().ContrastPreference==ColorContrastPreference.High;
         var policy=new HardwarePulse.MaterialPolicy(settings.AppOpacity,settings.LockPosition,settingsVisible,settings.Solid,highContrast);
@@ -428,6 +449,10 @@ public sealed class MonitorWindow : Window {
         }
         double opacity=policy.EffectiveOpacity(supported);
         bool light=ActualThemeVariant==ThemeVariant.Light;
+        var palette=new ReadingPalette(highContrast||settings.UnifiedReadingColors,highContrast?(light?"#17202B":"#F0F5FA"):settings.ReadingColor);
+        foreach(var card in panels)card.ApplyReadingPalette(palette);
+        quota.ApplyReadingPalette(palette);claude.ApplyReadingPalette(palette);antigravity.ApplyReadingPalette(palette);
+        FloatingMonitor?.ApplyAppPalette(palette,light);
         // Match WPF Controls.ApplyMaterial: tint alpha changes, never the whole window.
         var tint=Color.Parse(light?"#F4F6F8":"#35383B");
         Background=new SolidColorBrush(Color.FromArgb((byte)Math.Round(255*opacity),tint.R,tint.G,tint.B));

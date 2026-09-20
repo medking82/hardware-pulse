@@ -10,7 +10,8 @@ namespace HardwarePulse.Desktop;
 // Presentation only: no collector, timer or provider calls.
 sealed class DeviceCard : Border {
     sealed record Metric(string Key,string Label,string ShortLabel,string Unit);
-    readonly string key,accent;
+    readonly string key;
+    ReadingPalette palette=new();
     public string Key=>key;
     readonly UiLanguage language;
     readonly TextBlock subtitle=new(){Name="DeviceSubtitle",FontSize=10,Foreground=Brush.Parse("#DDE9F0"),Margin=new(0,3,0,6)};
@@ -28,7 +29,7 @@ sealed class DeviceCard : Border {
     readonly string? heroKey,usageKey;
     public DeviceCard(string key,UiLanguage language) {
         this.key=key;this.language=language;Name="Card"+key;
-        accent=key switch {"CPU"=>"#A5E7D5","GPU"=>"#A7CBFF","Memory"=>"#E7C5A4","NVMe"=>"#B9B7ED","Airflow"=>"#A8D4D0",_=>"#A9D8E8"};
+        string accent=palette.ForIcon(key.ToLowerInvariant());
         heroKey=key switch {"CPU"=>"cpu","GPU"=>"gpu","Airflow"=>"system",_=>null};
         usageKey=key=="GPU"?"vram":key=="Memory"?"ram":null;
         CornerRadius=new(14);Padding=new(10,7);BorderThickness=new(1);
@@ -97,14 +98,16 @@ sealed class DeviceCard : Border {
         }
         Reflow(width);
     }
+    public void ApplyReadingPalette(ReadingPalette value){palette=value;ApplyPalette();}
     void ApplyPalette() {
         bool light=ActualThemeVariant==ThemeVariant.Light;
-        var color=Brush.Parse(light?"#17202B":accent);
+        var color=Brush.Parse(palette.ForIcon(key.ToLowerInvariant(),light));
         Background=Brush.Parse(light?"#DDEEF1F4":"#3031485B");
         subtitle.Foreground=Brush.Parse(light?"#17202B":"#DDE9F0");hero.Foreground=color;
         icon.Stroke=icon.Stroke==null?null:color;icon.Fill=icon.Fill==null?null:color;
-        // Keep hardware accents on large hero readings and icons. Small values
-        // inherit the high-contrast text color instead of the lower-contrast accent.
+        ((Border)usageBar.Children[0]).Background=color;
+        foreach(var item in metrics)if(item.Metric.Unit=="°C")item.Value.Foreground=color;
+        // Labels and non-temperature measurements retain neutral foregrounds.
     }
     public void Present(MonitorSnapshot snapshot,bool maximum,bool details) {
         bool modeChanged=displayedDetails!=details;

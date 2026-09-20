@@ -26,7 +26,7 @@ static class SettingsSectionTests {
             }
             var appearance=sections[1];var slider=appearance.GetVisualDescendants().OfType<Slider>().Single(x=>x.Name=="DesktopFontSize");
             slider.Value=19;
-            var header=appearance.GetVisualDescendants().OfType<ToggleButton>().Single();header.Focus();
+            var header=appearance.GetVisualDescendants().OfType<ToggleButton>().Single(x=>x.Name=="SectionHeader");header.Focus();
             owner.KeyPress(Key.Space,RawInputModifiers.None,PhysicalKey.Space," ");owner.KeyRelease(Key.Space,RawInputModifiers.None,PhysicalKey.Space," ");Dispatcher.UIThread.RunJobs();
             Check(!appearance.IsExpanded&&!slider.IsEffectivelyVisible,"Keyboard collapses section content");
             header.Focus();owner.KeyPress(Key.Space,RawInputModifiers.None,PhysicalKey.Space," ");owner.KeyRelease(Key.Space,RawInputModifiers.None,PhysicalKey.Space," ");Dispatcher.UIThread.RunJobs();

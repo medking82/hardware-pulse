@@ -15,6 +15,9 @@ public sealed class FloatingMonitorWindow : Window {
     readonly Border surface=new(){Name="DesktopSurface",CornerRadius=new CornerRadius(16)};
     readonly IPlatformSettings? materialPlatform=Application.Current?.PlatformSettings;
     double backgroundOpacity=86,overlayOpacity=55,textOpacity=100;
+    string textColor="#F5F7FA";
+    bool appIconColors=true,appLight;
+    ReadingPalette palette=new();
     readonly DockPanel rows=new(){Margin=new Thickness(16)};
     readonly Dictionary<string,(Grid Row,TextBlock Label,TextBlock Value)> readings=new();
     MonitorSnapshot? snapshot;
@@ -104,6 +107,8 @@ public sealed class FloatingMonitorWindow : Window {
             Math.Clamp(position.Y,area.Y,Math.Max(area.Y,area.Bottom-(int)Math.Ceiling(Height*scale))));
     }
     public void ApplyPreferences(PreviewSettings settings,bool fitColumns=false) {
+        textColor=settings.DesktopColor;appIconColors=settings.DesktopAppIconColors;
+        palette=new(settings.UnifiedReadingColors,settings.ReadingColor);
         metricOrder=settings.DesktopOrder.ToArray();metricVisibility=new(settings.DesktopVisible);
         FontSize=settings.DesktopFontSize;sensors.RowSpacing=settings.DesktopSpacing;
         backgroundOpacity=settings.DesktopBackgroundOpacity;overlayOpacity=settings.DesktopOverlayOpacity;textOpacity=settings.DesktopTextOpacity;
@@ -129,6 +134,7 @@ public sealed class FloatingMonitorWindow : Window {
         // Keep controls readable when the user deliberately fades the metric layer.
         surface.Background=new SolidColorBrush(Color.FromArgb((byte)Math.Round(255*Math.Clamp(alpha,0,100)/100),20,29,38));
         Foreground=Brush.Parse("#F5F7FA");sensors.Opacity=highContrast?1:Math.Clamp(textOpacity/100,0,1);
+        foreach(var item in readings.Values)ColorRow(item.Row);
     }
     void LayoutReadings() {
         var layout=new ColumnLayout(Math.Max(1,Bounds.Width-32),Math.Max(280,24*FontSize),requestedColumns,layoutColumns);
@@ -174,10 +180,17 @@ public sealed class FloatingMonitorWindow : Window {
     }
     void ColorIcon(Grid row) {
         var icon=(Avalonia.Controls.Shapes.Path)((Viewbox)row.Children[0]).Child!;
-        var brush=Brush.Parse((row.Tag as string) switch {
-            "claude"=>"#E7B497","cpu"=>"#A5E7D5","gpu"=>"#A7CBFF","memory"=>"#E7C5A4","nvme"=>"#B9B7ED","airflow"=>"#A8D4D0","network"=>"#A9D8E8",_=>"#A5E7D5"});
+        bool highContrast=materialPlatform?.GetColorValues().ContrastPreference==ColorContrastPreference.High;
+        var brush=Brush.Parse(highContrast?"#F5F7FA":appIconColors?palette.ForIcon(row.Tag as string??"",appLight,textColor):textColor);
         if(icon.Stroke!=null)icon.Stroke=brush;if(icon.Fill!=null)icon.Fill=brush;
     }
+    void ColorRow(Grid row) {
+        bool highContrast=materialPlatform?.GetColorValues().ContrastPreference==ColorContrastPreference.High;
+        var brush=Brush.Parse(highContrast?"#F5F7FA":textColor);
+        foreach(var text in row.Children.OfType<TextBlock>())text.Foreground=brush;
+        ColorIcon(row);
+    }
+    public void ApplyAppPalette(ReadingPalette value,bool light){palette=value;appLight=light;foreach(var item in readings.Values)ColorIcon(item.Row);}
     static string QuotaGroup(string key)=>key.StartsWith("quotaCodex:")?"quotaCodex":key.StartsWith("quotaClaude:")?"quotaClaude":key.StartsWith("quotaAntigravity:")?"quotaAntigravity":key;
     public void Present(MonitorSnapshot snapshot,bool peaks=false) {
         this.snapshot=snapshot;this.peaks=peaks;
@@ -192,8 +205,8 @@ public sealed class FloatingMonitorWindow : Window {
                 var value=new TextBlock{VerticalAlignment=VerticalAlignment.Center,TextWrapping=TextWrapping.Wrap,TextAlignment=TextAlignment.Right};
                 var icon=AppIcon.Create(metric.Icon);
                 row.Children.Add(new Viewbox{Width=18,Height=18,Child=icon,VerticalAlignment=VerticalAlignment.Center});
-                ColorIcon(row);
                 Grid.SetColumn(label,1);row.Children.Add(label);Grid.SetColumn(value,2);row.Children.Add(value);
+                ColorRow(row);
                 row.SizeChanged+=(_,_)=>value.MaxWidth=Math.Max(1,(row.Bounds.Width-34)*.65);
                 item=(row,label,value);readings.Add(metric.Key,item);sensors.Children.Add(row);
             }

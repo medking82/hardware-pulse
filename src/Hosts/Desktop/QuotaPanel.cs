@@ -28,6 +28,8 @@ public sealed class QuotaPanel : UserControl,IDisposable {
     QuotaReading? shown;
     bool disposed;
     bool showAll;
+    ReadingPalette palette=new();
+    public void ApplyReadingPalette(ReadingPalette value){palette=value;ApplyPalette();}
     public bool ShowAll {get=>showAll;set{if(showAll==value)return;showAll=value;if(shown!=null)Render(shown);}}
     public Control SettingsContent {get;}
     public event Action<bool>? EnabledChanged;
@@ -78,7 +80,7 @@ public sealed class QuotaPanel : UserControl,IDisposable {
     void ApplyPalette() {
         bool light=ActualThemeVariant==ThemeVariant.Light;
         card.Background=Brush.Parse(light?"#DDEEF1F4":"#3031485B");
-        var accent=Brush.Parse(light?"#17202B":provider=="Claude"?"#E7B497":provider=="Antigravity"?"#A7CBFF":"#A5E7D5");
+        var accent=Brush.Parse(palette.ForIcon(provider.ToLowerInvariant(),light));
         icon.Stroke=icon.Stroke==null?null:accent;icon.Fill=icon.Fill==null?null:accent;
         foreach(var bar in windows.Children.OfType<StackPanel>().SelectMany(x=>x.Children).OfType<ProgressBar>())bar.Foreground=accent;
     }

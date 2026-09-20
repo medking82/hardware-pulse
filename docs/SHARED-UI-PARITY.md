@@ -913,3 +913,29 @@ packet 5244387a169c3a6cc9fcc538ad2aeba7217fcbac24bc57ab443c4d7fe0612a77 complete
 with zero findings against tree 1ccf455d2c17cc3baa30ed327cabf3754d564dd2. Commit
 bf17d75 contains that exact tree. This closes the quota integration review step,
 not real-account, native macOS, performance or release acceptance.
+
+### App and Desktop reading colors
+
+The shared ReadingPalette now owns the original hardware/unified palette used by
+DeviceCard, QuotaPanel and Desktop icons. App Appearance restores Hardware Colors,
+Unified Color and its color picker. Temperature values follow the selected palette;
+labels and other small values remain neutral. Desktop restores its independent
+text color picker and Icons follow App colors switch; turning it off makes icons
+match Desktop text. Text opacity, background opacity, geometry and sampling are
+unchanged. The editor controls keep their readable foreground regardless of the
+selected metric color. This does not implement Auto Contrast or Local Contrast.
+
+The change is limited to shared presentation, optional profile fields and tests.
+Invalid hex colors fall back independently, and unknown profile fields survive.
+No WPF source, installed profile, credential reader or release is changed. Rollback
+is the corresponding palette commit. Risk classification is routine (known shared
+presentation, deterministic checks, easy rollback, ordinary data, unchanged
+privilege boundary); no independent model review is required.
+
+ReadingPaletteTests and all three provider fixtures verify live recoloring without
+another poll, independent Desktop text, topmost retention and persistence. The
+complete shared headless suite and repository Validate.ps1 passed; Monitor and
+Desktop palette renders were inspected. The Settings keyboard fixture now selects
+the named section header because the restored checkbox also inherits ToggleButton.
+This preserves its collapse/focus assertions. These checks do not close the full
+UI parity or installed performance gates.
