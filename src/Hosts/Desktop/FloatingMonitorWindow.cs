@@ -115,16 +115,16 @@ public sealed class FloatingMonitorWindow : Window {
     public void RestoreGeometry(PreviewSettings settings) {
         Width=settings.DesktopWidth;Height=settings.DesktopHeight;
         var position=settings.DesktopX is int x&&settings.DesktopY is int y?new PixelPoint(x,y):WindowGeometry.LegacyPosition(this,settings.LegacyDesktopLeft,settings.LegacyDesktopTop);
-        if(position is PixelPoint saved)Position=saved;
-        KeepOnScreen(position==null);
+        KeepOnScreen(position==null,position);
     }
-    public void KeepOnScreen(bool reset=false) {
-        var screen=reset?Screens.Primary:Screens.ScreenFromWindow(this)??Screens.Primary;
-        if(screen==null)return;
+    public void KeepOnScreen(bool reset=false)=>KeepOnScreen(reset,null);
+    void KeepOnScreen(bool reset,PixelPoint? requested) {
+        var screen=reset?Screens.Primary:requested is PixelPoint saved?Screens.ScreenFromPoint(saved)??Screens.Primary:Screens.ScreenFromWindow(this)??Screens.Primary;
+        if(screen==null){if(requested is PixelPoint savedPoint)Position=savedPoint;return;}
         var area=screen.WorkingArea;double scale=screen.Scaling;
         Width=Math.Max(MinWidth,Math.Min(Width,area.Width/scale-32));
         Height=Math.Max(MinHeight,Math.Min(Height,area.Height/scale-32));
-        var position=reset?new PixelPoint(area.X+(int)(40*scale),area.Y+(int)(100*scale)):Position;
+        var position=reset?new PixelPoint(area.X+(int)(40*scale),area.Y+(int)(100*scale)):requested??Position;
         Position=new PixelPoint(Math.Clamp(position.X,area.X,Math.Max(area.X,area.Right-(int)Math.Ceiling(Width*scale))),
             Math.Clamp(position.Y,area.Y,Math.Max(area.Y,area.Bottom-(int)Math.Ceiling(Height*scale))));
     }

@@ -36,8 +36,11 @@ static class AppMaterialTests {
             if(output!=null){using var frame=window.CaptureRenderedFrame();frame!.Save(Path.Combine(output,"app-custom-background-dark.png"),Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);}
             window.GetVisualDescendants().OfType<Button>().Single(x=>x.Name=="ResetBackgroundColor").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));Dispatcher.UIThread.RunJobs();
             Check(((ISolidColorBrush)window.Background!).Color.R==53,"Reset background must restore theme tint");
+            byte themeAlpha=((ISolidColorBrush)window.Background!).Color.A;
             theme.SelectedItem="Light";Dispatcher.UIThread.RunJobs();
-            Check(((ISolidColorBrush)window.Background!).Color==Color.Parse("#F4F6F8"),"Explicit theme choice must restore its default background");
+            var lightTint=((ISolidColorBrush)window.Background!).Color;
+            Check(lightTint.R==244&&lightTint.G==246&&lightTint.B==248,"Explicit theme choice must restore its default background tint");
+            Check(lightTint.A==themeAlpha,"Theme choice must preserve background opacity independently of its tint");
             theme.SelectedItem="Dark";Dispatcher.UIThread.RunJobs();
             Check(slider.Value==35,"Restore saved App opacity independently from theme");
             solid.IsChecked=true;

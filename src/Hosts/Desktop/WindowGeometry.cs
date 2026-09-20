@@ -18,13 +18,14 @@ public static class WindowGeometry {
         window.Screens.All.Select(screen=>(screen.Bounds,screen.Scaling)),window.Screens.Primary?.Scaling??1);
     public static void RestoreApp(Window window,PreviewSettings settings) {
         var position=settings.AppX is int x&&settings.AppY is int y?new PixelPoint(x,y):LegacyPosition(window,settings.LegacyLeft,settings.LegacyTop);
-        if(position is PixelPoint saved)window.Position=saved;
-        var screen=window.Screens.ScreenFromPoint(window.Position)??window.Screens.Primary;
-        if(screen==null)return;
+        var screen=window.Screens.ScreenFromPoint(position??window.Position)??window.Screens.Primary;
+        if(screen==null){if(position is PixelPoint saved)window.Position=saved;return;}
         var area=screen.WorkingArea;double scale=screen.Scaling;
         window.Width=Math.Max(window.MinWidth,Math.Min(window.Width,area.Width/scale));
         window.Height=Math.Max(window.MinHeight,Math.Min(window.Height,area.Height/scale));
-        if(position!=null)window.Position=new PixelPoint(Math.Clamp(window.Position.X,area.X,Math.Max(area.X,area.Right-(int)Math.Ceiling(window.Width*scale))),
-            Math.Clamp(window.Position.Y,area.Y,Math.Max(area.Y,area.Bottom-(int)Math.Ceiling(window.Height*scale))));
+        // A mapped X11 window reports its old Position until ConfigureNotify.
+        // Clamp the requested point before sending one move, not a stale getter.
+        if(position is PixelPoint target)window.Position=new PixelPoint(Math.Clamp(target.X,area.X,Math.Max(area.X,area.Right-(int)Math.Ceiling(window.Width*scale))),
+            Math.Clamp(target.Y,area.Y,Math.Max(area.Y,area.Bottom-(int)Math.Ceiling(window.Height*scale))));
     }
 }
