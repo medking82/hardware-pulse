@@ -256,3 +256,8 @@ GPU Name|GPU 名称
 Memory Name|内存名称
 NVMe Name|NVMe 名称
 CPU Fan Name|CPU 风扇名称
+Codex · Weekly|Codex · 每周
+Claude · 5-hour|Claude · 5 小时
+Claude · Weekly|Claude · 每周
+Gemini · 5-hour|Gemini · 5 小时
+Gemini · Weekly|Gemini · 每周

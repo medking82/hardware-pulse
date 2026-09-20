@@ -40,6 +40,7 @@ static class Tests {
         AppBuilder.Configure<PulseApplication>().With(DesktopFonts.Options()).UseSkia().UseHeadless(new(){UseHeadlessDrawing=false}).SetupWithoutStarting();
         if(args.SequenceEqual(new[]{"--startup"})) {DesktopStartupTests.Run();return;}
         if(args.SequenceEqual(new[]{"--delivery"})) {DesktopUpdateTests.Run();ProfileMigrationTests.Run();HardwareNameTests.Run();return;}
+        if(args.Length>=1&&args[0]=="--quota-preferences") {DesktopMetricPreferenceTests.Run(args.Length==2?args[1]:null);ProfileMigrationTests.Run();QuotaPanelTests.Run(null);return;}
         if(args.Length>=1&&args[0]=="--fps") {FpsPanelTests.Run(args.Length==2?args[1]:null);return;}
         if(args.Length>=1&&args[0]=="--game-overlay") {GameOverlayTests.Run(args.Length==2?args[1]:null);return;}
         if(args.SequenceEqual(new[]{"--palette"})) {ReadingPaletteTests.Run();return;}

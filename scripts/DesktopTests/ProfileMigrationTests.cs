@@ -28,7 +28,7 @@ static class ProfileMigrationTests {
                  "desktopEnabled":true,"desktopLocked":false,"desktopWidth":690,"desktopHeight":520,"desktopLeft":-800,"desktopTop":50,
                  "desktopFontSize":22,"desktopSpacing":34,"desktopTextOpacity":70,"desktopBackgroundOpacity":25,"desktopOverlayOpacity":44,
                  "desktopAutoContrast":false,"desktopColor":"#123456","desktopLocalContrast":true,"desktopAlwaysOnTop":true,"desktopAppIconColors":false,"desktopColumns":2,
-                 "desktopOrder":["GPU","CPU"],"desktopVisible":{"CPU":false,"fps":true},"desktopShortcutEnabled":false,"desktopShortcut":"Ctrl+Alt+F9",
+                 "desktopOrder":["GPU","quotaClaude1","CPU","quotaClaude0"],"desktopVisible":{"CPU":false,"fps":true,"quotaClaude0":false,"quotaClaude1":true},"desktopShortcutEnabled":false,"desktopShortcut":"Ctrl+Alt+F9",
                  "quotaClaude":true,"quotaCodex":false,"quotaAntigravity":false,"quotaFull":true,"names":{"CPU":"Desk CPU"},
                  "overlay":{"enabled":true,"fps":true,"detail":true,"cpu":false,"gpu":true,"memory":false,"fans":true,"storage":true,"position":"bottom-right","background":"#132435","opacity":66,"processName":"game"},
                  "autoUpdates":true,"autoDownload":false,"privateUnknown":"never-copy-this"}
@@ -44,6 +44,7 @@ static class ProfileMigrationTests {
             Check(settings.DesktopFontSize==22&&settings.DesktopSpacing==34&&settings.DesktopTextOpacity==70&&settings.DesktopBackgroundOpacity==25&&settings.DesktopOverlayOpacity==44,"Independent Desktop appearance");
             Check(!settings.DesktopAutoContrast&&settings.DesktopLocalContrast&&settings.DesktopTopmost&&!settings.DesktopAppIconColors&&settings.DesktopColor=="#123456"&&settings.DesktopColumns==2,"Desktop flags");
             Check(settings.DesktopOrder[0]=="GPU"&&!settings.DesktopVisible["CPU"]&&!settings.DesktopShortcutEnabled&&settings.DesktopShortcut=="Ctrl+Alt+F9","Desktop order/visibility/shortcut");
+            Check(settings.DesktopOrder.Take(4).SequenceEqual(new[]{"GPU","quotaClaude1","CPU","quotaClaude0"})&&!settings.DesktopVisible["quotaClaude0"]&&settings.DesktopVisible["quotaClaude1"],"WPF quota window preferences remain active, not merely retained as raw JSON");
             var overlay=settings.GameOverlay;
             Check(overlay.Enabled&&overlay.Detailed&&!overlay.Cpu&&overlay.Gpu&&!overlay.Memory&&overlay.Fans&&overlay.Storage&&overlay.Position=="bottom-right"&&overlay.Opacity==66&&overlay.Background=="#132435","Overlay appearance and visibility");
             Check(settings.Claude&&!settings.Codex&&!settings.Antigravity&&settings.QuotaFull&&settings.Fps&&settings.FpsTarget=="game"&&settings.AutoUpdates&&!settings.AutoDownload,"Independent opt-ins");

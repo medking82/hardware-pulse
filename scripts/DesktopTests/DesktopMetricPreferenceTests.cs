@@ -8,6 +8,7 @@ using HardwarePulse.Desktop;
 static class DesktopMetricPreferenceTests {
     static void Check(bool ok,string reason){if(!ok)throw new Exception(reason);}
     public static void Run(string? output=null) {
+        QuotaWindows();
         string directory=Directory.CreateTempSubdirectory("pulse-desktop-metrics-").FullName;
         MonitorWindow? owner=null;
         try {
@@ -27,7 +28,8 @@ static class DesktopMetricPreferenceTests {
             Check(ReferenceEquals(cpu,Row("CPU"))&&cpu.IsVisible,"Visibility update and polling reuse metric controls");
             owner.GetVisualDescendants().OfType<Button>().Single(x=>x.Name=="MoveDesktopDownMemory").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Dispatcher.UIThread.RunJobs();
             Check(Grid.GetRow(cpu)==0&&Grid.GetRow(Row("Memory"))==1,"Metric ordering applies to existing Desktop");
-            if(output!=null){owner.Width=360;owner.Height=650;Dispatcher.UIThread.RunJobs();Show("CPU").BringIntoView();Dispatcher.UIThread.RunJobs();using var frame=owner.CaptureRenderedFrame();frame!.Save(Path.Combine(output,"desktop-metric-settings.png"),Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);}
+            if(output!=null){owner.Width=360;owner.Height=650;Dispatcher.UIThread.RunJobs();Show("CPU").BringIntoView();Dispatcher.UIThread.RunJobs();using var frame=owner.CaptureRenderedFrame();frame!.Save(Path.Combine(output,"desktop-metric-settings.png"),Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
+                Show("quotaClaude1").BringIntoView();Dispatcher.UIThread.RunJobs();using var quotas=owner.CaptureRenderedFrame();quotas!.Save(Path.Combine(output,"desktop-quota-preferences.png"),Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);}
             foreach(string key in PreviewSettings.DesktopKeys)Show(key).IsChecked=false;Dispatcher.UIThread.RunJobs();
             Check(desktop.GetVisualDescendants().OfType<TextBlock>().Single(x=>x.Name=="DesktopEmpty").IsVisible,"All-hidden editor has recovery guidance");
             Show("Memory").IsChecked=true;owner.Present(sample);Dispatcher.UIThread.RunJobs();
@@ -38,5 +40,33 @@ static class DesktopMetricPreferenceTests {
             Check(saved.HiddenCards.Count==0&&saved.CardOrder.SequenceEqual(PreviewSettings.CardKeys),"Desktop preferences do not change App cards");
             Console.WriteLine("PASS Desktop metric preferences: normalization, visibility, order, reuse, empty recovery and independent persistence");
         } finally {owner?.Close();Directory.Delete(directory,true);}
+    }
+    static void QuotaWindows() {
+        string directory=Directory.CreateTempSubdirectory("pulse-quota-preferences-").FullName;
+        var desktop=new FloatingMonitorWindow(new UiLanguage("en"));
+        try {
+            string path=Path.Combine(directory,"settings.json");
+            File.WriteAllText(path,"""{"desktopOrder":["quotaClaude1","CPU","quotaClaude0"],"desktopVisible":{"quotaClaude0":false,"quotaClaude1":true}}""");
+            var store=new PreviewSettingsStore(path);var settings=store.Load();
+            Check(settings.DesktopOrder.Take(3).SequenceEqual(new[]{"quotaClaude1","CPU","quotaClaude0"}),"Original per-window order must survive loading");
+            var live=new HardwarePulse.QuotaReading{Provider="Claude",Status="Live",Observed=DateTimeOffset.UtcNow,Windows=[new(){Label="5-hour",Remaining=30},new(){Label="Weekly",Remaining=70}]};
+            var snapshot=new MonitorSnapshot("21%","4 GiB","—","—",true,true){ClaudeQuota=live};
+            desktop.ApplyPreferences(settings);desktop.Show();desktop.Present(snapshot);Dispatcher.UIThread.RunJobs();
+            Grid Row(string key)=>desktop.GetVisualDescendants().OfType<Grid>().Single(x=>x.Name=="DesktopMetric"+key);
+            Check(Row("quotaClaude1").IsVisible&&!Row("quotaClaude0").IsVisible&&Grid.GetRow(Row("quotaClaude1"))==0,"Weekly independently visible and ordered before CPU");
+            settings.DesktopVisible["quotaClaude0"]=true;settings.DesktopVisible["quotaClaude1"]=false;desktop.ApplyPreferences(settings);
+            Check(Row("quotaClaude0").IsVisible&&!Row("quotaClaude1").IsVisible,"Independent 5-hour toggle");
+            Check(store.Save(settings),"Save quota preferences");settings=store.Load();desktop.ApplyPreferences(settings);
+            Check(Row("quotaClaude0").IsVisible&&!Row("quotaClaude1").IsVisible,"Per-window visibility survives restart");
+            settings.DesktopVisible["quotaClaude0"]=false;desktop.ApplyPreferences(settings);
+            desktop.Present(snapshot with{ClaudeQuota=new(){Provider="Claude",Status="Login required"}});
+            Check(!Row("quotaClaude").IsVisible,"Login failure cannot resurrect a fully hidden provider");
+            settings.DesktopVisible["quotaClaude1"]=true;desktop.ApplyPreferences(settings);
+            Check(Row("quotaClaude").IsVisible,"Login status remains visible when one quota window is enabled");
+            File.WriteAllText(path,"""{"desktopOrder":["quotaClaude","CPU"],"desktopVisible":{"quotaClaude":false,"quotaClaude:1":true}}""");
+            settings=store.Load();desktop.ApplyPreferences(settings);desktop.Present(snapshot);
+            Check(settings.DesktopOrder.Take(3).SequenceEqual(new[]{"quotaClaude0","quotaClaude1","CPU"})&&
+                !Row("quotaClaude0").IsVisible&&Row("quotaClaude1").IsVisible,"Existing shared group/colon preferences remain compatible");
+        } finally{desktop.Close();Directory.Delete(directory,true);}
     }
 }

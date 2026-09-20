@@ -4,7 +4,7 @@ namespace HardwarePulse.Desktop;
 
 public sealed class PreviewSettings {
     public static readonly string[] CardKeys=["CPU","GPU","Memory","NVMe","Airflow","Network"];
-    public static readonly string[] DesktopKeys=["CPU","GPU","vram","Memory","diskC","diskD","cpuFan","gpuFan","gpuFan2","bottom","top","netConnection","lanLink","wifiLink","wifiSignal","netSignal","netDown","netUp","fps","quotaCodex","quotaClaude","quotaAntigravity"];
+    public static readonly string[] DesktopKeys=["CPU","GPU","vram","Memory","diskC","diskD","cpuFan","gpuFan","gpuFan2","bottom","top","netConnection","lanLink","wifiLink","wifiSignal","netSignal","netDown","netUp","fps","quotaCodex0","quotaAntigravity0","quotaAntigravity1","quotaClaude0","quotaClaude1"];
     public List<string> DesktopOrder=new(DesktopKeys);
     public Dictionary<string,bool> DesktopVisible=new(StringComparer.Ordinal);
     public List<string> CardOrder=new(CardKeys);
@@ -107,7 +107,7 @@ public sealed class PreviewSettingsStore {
                 ?list.EnumerateArray().Where(x=>x.ValueKind==JsonValueKind.String).Select(x=>x.GetString()!).Where(PreviewSettings.CardKeys.Contains).Distinct().ToArray():[];
             settings.DesktopOrder=new(PreviewSettings.DesktopKeys);
             if(fields.TryGetValue("desktopOrder",out var order)&&order.ValueKind==JsonValueKind.Array)
-                settings.DesktopOrder=order.EnumerateArray().Where(x=>x.ValueKind==JsonValueKind.String).Select(x=>x.GetString()!).Where(PreviewSettings.DesktopKeys.Contains).Concat(PreviewSettings.DesktopKeys).Distinct().ToList();
+                settings.DesktopOrder=order.EnumerateArray().Where(x=>x.ValueKind==JsonValueKind.String).SelectMany(x=>DesktopQuotaPreferences.Expand(x.GetString()!)).Where(PreviewSettings.DesktopKeys.Contains).Concat(PreviewSettings.DesktopKeys).Distinct().ToList();
             if(fields.TryGetValue("desktopVisible",out var visible)&&visible.ValueKind==JsonValueKind.Object)
                 foreach(var item in visible.EnumerateObject())if(item.Value.ValueKind is JsonValueKind.True or JsonValueKind.False)settings.DesktopVisible[item.Name]=item.Value.GetBoolean();
             settings.CardOrder=Cards("cardOrder").Concat(PreviewSettings.CardKeys).Distinct().ToList();

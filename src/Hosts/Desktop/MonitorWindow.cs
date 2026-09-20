@@ -391,13 +391,13 @@ public sealed class MonitorWindow : Window {
     Control CreateDesktopMetricSettings() {
         var list=new StackPanel{Name="DesktopMetricPreferences",Spacing=6};
         var entries=new Dictionary<string,Grid>();var buttons=new Dictionary<string,(Button Up,Button Down)>();
-        string Title(string key)=>key switch {"fps"=>"FPS / AVG / MIN","quotaCodex"=>"Codex quota","quotaClaude"=>"Claude quota","quotaAntigravity"=>"Antigravity quota","vram"=>"VRAM","diskC"=>"Drive 1","diskD"=>"Drive 2","cpuFan"=>"CPU Fan","gpuFan"=>"GPU Fan 1","gpuFan2"=>"GPU Fan 2","bottom"=>"System Fan 1","top"=>"System Fan 2","netConnection"=>"Connection","lanLink"=>"LAN Link Speed","wifiLink"=>"Wi-Fi Link Speed","wifiSignal" or "netSignal"=>"Wi-Fi Signal","netDown"=>"Download","netUp"=>"Upload",_=>key};
+        string Title(string key)=>key switch {"fps"=>"FPS / AVG / MIN","quotaCodex0"=>"Codex · Weekly","quotaClaude0"=>"Claude · 5-hour","quotaClaude1"=>"Claude · Weekly","quotaAntigravity0"=>"Gemini · 5-hour","quotaAntigravity1"=>"Gemini · Weekly","vram"=>"VRAM","diskC"=>"Drive 1","diskD"=>"Drive 2","cpuFan"=>"CPU Fan","gpuFan"=>"GPU Fan 1","gpuFan2"=>"GPU Fan 2","bottom"=>"System Fan 1","top"=>"System Fan 2","netConnection"=>"Connection","lanLink"=>"LAN Link Speed","wifiLink"=>"Wi-Fi Link Speed","wifiSignal" or "netSignal"=>"Wi-Fi Signal","netDown"=>"Download","netUp"=>"Upload",_=>key};
         void Refresh(){list.Children.Clear();for(int i=0;i<settings.DesktopOrder.Count;i++){string key=settings.DesktopOrder[i];list.Children.Add(entries[key]);buttons[key].Up.IsEnabled=i>0;buttons[key].Down.IsEnabled=i<settings.DesktopOrder.Count-1;}}
         void Apply(){FloatingMonitor?.ApplyPreferences(settings);SaveLater();}
         void Move(string key,int delta){int from=settings.DesktopOrder.IndexOf(key),to=from+delta;if(to<0||to>=settings.DesktopOrder.Count)return;(settings.DesktopOrder[from],settings.DesktopOrder[to])=(settings.DesktopOrder[to],settings.DesktopOrder[from]);Refresh();Apply();var button=delta<0?buttons[key].Up:buttons[key].Down;if(button.IsEnabled)button.Focus();else entries[key].Children[0].Focus();}
         foreach(string key in PreviewSettings.DesktopKeys) {
             var row=new Grid{Tag=key,ColumnDefinitions=new("Auto,*,Auto,Auto"),ColumnSpacing=6};entries[key]=row;
-            var show=Language.Set(new CheckBox{Name="ShowDesktop"+key,IsChecked=settings.DesktopVisible.GetValueOrDefault(key,true)},Title(key));
+            var show=Language.Set(new CheckBox{Name="ShowDesktop"+key,IsChecked=DesktopQuotaPreferences.Visible(settings.DesktopVisible,key)},Title(key));
             show.IsCheckedChanged+=(_,_)=>{settings.DesktopVisible[key]=show.IsChecked==true;Apply();};Grid.SetColumn(show,1);row.Children.Add(show);
             var handle=ReorderHandle.Create(list,row,"DragDesktop"+key,()=>{settings.DesktopOrder=list.Children.Select(item=>(string)item.Tag!).ToList();Refresh();Apply();});row.Children.Add(handle);
             var up=new Button{Name="MoveDesktopUp"+key,Content="↑",Padding=new Thickness(8,3)};var down=new Button{Name="MoveDesktopDown"+key,Content="↓",Padding=new Thickness(8,3)};

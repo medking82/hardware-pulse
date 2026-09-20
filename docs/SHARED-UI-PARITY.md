@@ -1197,3 +1197,29 @@ rejected against Native/DesktopMode.cs: 0.6.27 deliberately uses translated
 category labels there, while disks/fans consume device names. The shared host
 preserves that behavior, now covered by a focused UI assertion. Delivery tests
 passed again after that assertion; no production behavior changed after review.
+
+### Desktop quota window preferences
+
+The original DesktopOrder/LayoutSettings owners define separate Codex Weekly,
+Gemini 5-hour/Weekly and Claude 5-hour/Weekly identities. Shared settings had
+collapsed those into provider groups, so imported window order/visibility was
+retained in JSON but ignored by presentation. Restore the original identities in
+the shared settings list and DesktopReadings, with one presentation helper for
+ordering, visibility and earlier shared group/colon aliases. Provider error
+status is visible only if at least one corresponding window is enabled.
+
+Boundary: shared Desktop preference loading/controls/rendering, language entries
+and synthetic UI/import tests. Keep quota readers, authentication, Core session
+lifetime, source profile bytes, installed files and App quota display unchanged.
+No new persisted schema is introduced. Revert this source batch to roll back.
+Verification: focused quota preference/import/provider UI fixtures, full shared
+regression/render and repository Validate.ps1. Installer and real-account gates
+remain separate; per-window UI checks do not prove reader reliability.
+
+<!-- sop-risk-classification: {"facts":{"blast_radius":"shared","change_kind":"implementation","data_boundary":"ordinary","destructive":"no","failure_cost":"low","irreversibility":"reversible","operational_controls":"not_applicable","privilege_boundary":"unchanged","project_policy":"default","rollback":"easy","scope_knowledge":"known","uncertainty":"low","verification":"deterministic"},"formal_review":"not_required","kind":"risk-classification-assessment","reasons":{"formal_review":["routine_no_review"],"risk":["no_high_risk_signal"]},"risk":"routine","schema_version":2} -->
+
+Focused fixtures, full shared regression and Validate.ps1 passed. Inspected the
+360-DIP Desktop Settings render: all five quota window controls, reorder handles,
+up/down buttons and fixed Back remain visible/reachable with scrolling. Original
+per-window import/order/visibility, restart persistence, provider failure hiding
+and earlier shared group/colon aliases are exercised with synthetic readings.

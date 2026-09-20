@@ -226,10 +226,9 @@ public sealed class FloatingMonitorWindow : Window {
         }
     }
     public void ApplyAppPalette(ReadingPalette value,bool light){palette=value;appLight=light;foreach(var item in readings.Values)ColorIcon(item.Row);}
-    static string QuotaGroup(string key)=>key.StartsWith("quotaCodex:")?"quotaCodex":key.StartsWith("quotaClaude:")?"quotaClaude":key.StartsWith("quotaAntigravity:")?"quotaAntigravity":key;
     public void Present(MonitorSnapshot snapshot,bool peaks=false) {
         this.snapshot=snapshot;this.peaks=peaks;
-        var metrics=DesktopReadings.Create(snapshot,peaks,language,contrastSettings.Names).OrderBy(metric=>{int index=Array.IndexOf(metricOrder,QuotaGroup(metric.Key));return index<0?int.MaxValue:index;}).ToArray();
+        var metrics=DesktopReadings.Create(snapshot,peaks,language,contrastSettings.Names).OrderBy(metric=>DesktopQuotaPreferences.Order(metricOrder,metric.Key)).ToArray();
         var active=metrics.Select(x=>x.Key).ToHashSet();
         foreach(string key in readings.Keys.Where(key=>!active.Contains(key)).ToArray()){sensors.Children.Remove(readings[key].Row);readings.Remove(key);}
         for(int i=0;i<metrics.Length;i++) {
@@ -246,7 +245,7 @@ public sealed class FloatingMonitorWindow : Window {
                 row.SizeChanged+=(_,_)=>value.MaxWidth=Math.Max(1,(row.Bounds.Width-34)*.65);
                 item=(row,label,value);readings.Add(metric.Key,item);sensors.Children.Add(row);
             }
-            item.Row.IsVisible=metric.Key=="status"||metricVisibility.GetValueOrDefault(metric.Key,metricVisibility.GetValueOrDefault(QuotaGroup(metric.Key),true));item.Label.Text=metric.Title;item.Value.Text=metric.Value;
+            item.Row.IsVisible=metric.Key=="status"||DesktopQuotaPreferences.Visible(metricVisibility,metric.Key);item.Label.Text=metric.Title;item.Value.Text=metric.Value;
             ToolTip.SetTip(item.Label,metric.Title);ToolTip.SetTip(item.Value,metric.Value);
             int old=sensors.Children.IndexOf(item.Row);if(old!=i){sensors.Children.RemoveAt(old);sensors.Children.Insert(i,item.Row);}
         }
