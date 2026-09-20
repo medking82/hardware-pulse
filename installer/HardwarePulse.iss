@@ -48,7 +48,13 @@ OutputBaseFilename=HardwarePulse-0.6.27-Setup
 #endif
 SetupIconFile=..\assets\pulse.ico
 UninstallDisplayIcon={app}\HardwarePulse.exe
+#ifdef SharedDesktop
+; Match repeated data across the two full CJK fonts and bundled runtime.
+; This affects installer compression/decompression only, not application memory.
+Compression=lzma2/ultra64
+#else
 Compression=lzma2
+#endif
 SolidCompression=yes
 WizardStyle=modern
 CloseApplications=yes
