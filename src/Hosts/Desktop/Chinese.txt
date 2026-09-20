@@ -136,3 +136,4 @@ Reset position|重置位置
 Drag the center to move. Drag any edge or corner to resize.|拖动中间区域移动，拖动边缘或角落调整大小。
 No metrics shown. Choose metrics in Settings.|未显示读数，请在设置中选择。
 Drag To Reorder (Esc To Cancel)|拖动排序（Esc 取消）
+Network Speed Unit|网络速度单位

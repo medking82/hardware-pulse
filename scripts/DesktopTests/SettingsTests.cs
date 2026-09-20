@@ -86,6 +86,16 @@ static class SettingsTests {
             desktopPin.IsChecked=false;Check(background.IsEnabled&&!overlay.IsEnabled,"Desktop restores its background control");background.Value=88;
             desktopPin.IsChecked=true;
             if(output!=null){Dispatcher.UIThread.RunJobs();using var frame=window.CaptureRenderedFrame();frame!.Save(Path.Combine(output,"desktop-settings.png"),Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);}
+            groups.SelectedIndex=3;Dispatcher.UIThread.RunJobs();
+            var unit=window.GetVisualDescendants().OfType<ComboBox>().Single(x=>x.Name=="NetworkUnit");
+            window.Present(new MonitorSnapshot("10%","1 GiB","old download","old upload",true,true){DownloadBytes=125000,UploadBytes=250000,PeakDownloadBytes=1000000,PeakUploadBytes=2000000});
+            unit.SelectedIndex=3;Dispatcher.UIThread.RunJobs();
+            Check(desktop.GetVisualDescendants().OfType<TextBlock>().Any(x=>x.Text=="1 Mbit/s"),"Unit change immediately updates open Desktop");
+            window.GetVisualDescendants().OfType<Button>().Single(x=>x.Name=="Back").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));Dispatcher.UIThread.RunJobs();
+            Check(window.GetVisualDescendants().OfType<TextBlock>().Any(x=>x.Text=="1 Mbit/s"),"Monitor and Desktop use same selected unit");
+            window.GetVisualDescendants().OfType<Button>().Single(x=>x.Name=="SessionMax").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));Dispatcher.UIThread.RunJobs();
+            Check(window.GetVisualDescendants().OfType<TextBlock>().Any(x=>x.Text=="8 Mbit/s")&&desktop.GetVisualDescendants().OfType<TextBlock>().Any(x=>x.Text=="8 Mbit/s"),"Session Max uses raw peak in selected unit in both views");
+            window.GetVisualDescendants().OfType<Button>().Single(x=>x.Name=="OpenSettings").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));Dispatcher.UIThread.RunJobs();
             groups.SelectedIndex=4;Dispatcher.UIThread.RunJobs();
             var quota=window.GetVisualDescendants().OfType<CheckBox>().Single(x=>x.Name=="EnableCodexQuota");Check(quota.IsChecked==true,"Quota choice restored with explicit demo reader");quota.IsChecked=false;
             if(output!=null){window.Width=360;Dispatcher.UIThread.RunJobs();using var frame=window.CaptureRenderedFrame();frame!.Save(Path.Combine(output,"settings-360.png"),Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);}
@@ -93,6 +103,7 @@ static class SettingsTests {
             var saved=new PreviewSettingsStore(path).Load();Check(saved.Theme=="Dark"&&!saved.Codex&&saved.Network=="missing-interface","Choices survive close");
             Check(saved.Topmost&&saved.LockPosition,"Window preferences survive close");
             Check(saved.FontSize==16,"Font size persists");
+            Check(saved.NetworkUnit=="Mbit/s","Network unit persists");
             Check(saved.DesktopBackgroundOpacity==88&&saved.DesktopOverlayOpacity==72&&saved.DesktopTextOpacity==80,"Independent Desktop opacity preferences persist");
             Check(saved.DesktopFontSize==20&&saved.DesktopSpacing==24&&saved.DesktopColumns==2&&saved.DesktopTopmost,"Desktop preferences persist");
             var reopened=new MonitorWindow(new MonitorSource(true),start:false,store:new PreviewSettingsStore(path));

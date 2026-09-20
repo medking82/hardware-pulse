@@ -11,6 +11,8 @@ static class SessionMaxTests {
         var snapshot=MonitorSnapshot.Capture(session,session,session);
         Check(snapshot.Cpu=="20.0%"&&snapshot.PeakCpu=="80.0%","Core peak distinct from current CPU");
         Check(snapshot.Download=="1.0 KiB/s"&&snapshot.PeakDownload=="2.0 KiB/s"&&snapshot.PeakUpload=="1.0 MiB/s","Network peaks keep byte-rate units");
+        Check(snapshot.WithNetworkUnit("KB/s").Download==NetworkRate.Format(1024,"KB/s")&&snapshot.WithNetworkUnit("Mbit/s").PeakUpload==NetworkRate.Format(1048576,"Mbit/s"),"Units use raw current and peak bytes without reparsing formatted text");
+        Check((snapshot with {DownloadBytes=double.NaN}).WithNetworkUnit("MB/s").Download=="—","Invalid raw rate stays unavailable");
         Check(snapshot.Memory=="4.0 / 16.0 GiB · 25.0%","RAM remains current, not a synthetic mix of peaks");
         reading=new();session.Poll(DateTimeOffset.UtcNow);
         snapshot=MonitorSnapshot.Capture(session,session,session);

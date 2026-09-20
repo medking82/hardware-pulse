@@ -24,6 +24,7 @@ public sealed class PreviewSettings {
     public bool Topmost,LockPosition;
     public string Language="auto";
     public string? Network;
+    public string NetworkUnit="auto";
     public bool Codex;
 }
 
@@ -77,6 +78,7 @@ public sealed class PreviewSettingsStore {
                 foreach(var item in visible.EnumerateObject())if(item.Value.ValueKind is JsonValueKind.True or JsonValueKind.False)settings.DesktopVisible[item.Name]=item.Value.GetBoolean();
             settings.CardOrder=Cards("cardOrder").Concat(PreviewSettings.CardKeys).Distinct().ToList();
             settings.HiddenCards=new(Cards("hiddenCards"),StringComparer.Ordinal);
+            string unit=values.Text("networkUnit","auto");settings.NetworkUnit=unit is "KB/s" or "MB/s" or "Mbit/s"?unit:"auto";
             string network=values.Text("network");settings.Network=network.Length>0&&network.Length<=256&&!network.Any(char.IsControl)?network:null;
             settings.Codex=values.Flag("codex");
             string language=values.Text("language","auto");settings.Language=language is "en" or "zh-CN" or "zh-TW"?language:"auto";
@@ -94,6 +96,7 @@ public sealed class PreviewSettingsStore {
             var updated=new Dictionary<string,JsonElement>(fields){
                 ["schema"]=JsonSerializer.SerializeToElement(1),["width"]=JsonSerializer.SerializeToElement(settings.Width),
                 ["height"]=JsonSerializer.SerializeToElement(settings.Height),["theme"]=JsonSerializer.SerializeToElement(settings.Theme),
+                ["networkUnit"]=JsonSerializer.SerializeToElement(settings.NetworkUnit),
                 ["network"]=JsonSerializer.SerializeToElement(settings.Network),["codex"]=JsonSerializer.SerializeToElement(settings.Codex),
                 ["language"]=JsonSerializer.SerializeToElement(settings.Language),
                 ["appOpacity"]=JsonSerializer.SerializeToElement(settings.AppOpacity),["solid"]=JsonSerializer.SerializeToElement(settings.Solid),

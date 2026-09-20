@@ -576,3 +576,27 @@ passes and the narrow render was inspected. This is navigation placement parity;
 wallpaper-layer mode, complete Settings and native pointer acceptance remain open.
 Routine isolated presentation scope and source-only rollback are unchanged.
 Full scripts/Validate.ps1 passed for Desktop quick action placement.
+
+### Network rate unit parity
+
+The original App Cards Network Speed Unit setting (auto, KB/s, MB/s, Mbit/s)
+is now persisted by the isolated shared settings owner. MonitorSnapshot carries
+nullable current/peak byte rates from the existing selected-interface session;
+its presentation projection uses Core NetworkRate.Format. Monitor and Desktop
+consume the same projected snapshot, including an already-open Desktop and
+Session Max. No additional sampler, credential access or timer is introduced.
+Failure clears current raw rates as well as text; historical peaks stay separate.
+Demo raw values match its existing sample strings. String-only external fixtures
+retain their supplied text instead of guessing/parsing numeric rates.
+
+Headless and Windows native-session settings tests verify immediate changes in
+both views, peak conversion and persistence. Core-session fixture verifies raw
+conversion and invalid-rate handling; transient sampling regression still passes.
+The App Cards render was inspected. English/SC/TC catalogs and font coverage pass.
+The first localization run caught a blank catalog line introduced by the edit;
+that line was removed and the full suite rerun successfully. Existing reorder,
+visibility, network selection and settings error-preservation checks still pass.
+Scope is shared presentation/preferences with ordinary data and unchanged platform
+sampling/privilege boundaries; routine admission and source-only rollback apply.
+Installed WPF profiles, original source/assets and release state remain protected.
+Full scripts/Validate.ps1 passed for network rate unit parity. Protected baseline diff remains empty.

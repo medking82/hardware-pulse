@@ -204,7 +204,7 @@ public sealed class MonitorWindow : Window {
             };
             FloatingMonitor.Closed+=(_,_)=>FloatingMonitor=null;
         }
-        if(latestSnapshot!=null)FloatingMonitor.Present(latestSnapshot,sessionMax);
+        if(latestSnapshot!=null)FloatingMonitor.Present(latestSnapshot.WithNetworkUnit(settings.NetworkUnit),sessionMax);
         FloatingMonitor.Show();if(!FloatingMonitor.SetLocked(false))return;
         if(FloatingMonitor.WindowState==WindowState.Minimized)FloatingMonitor.WindowState=WindowState.Normal;
         FloatingMonitor.Activate();
@@ -299,7 +299,11 @@ public sealed class MonitorWindow : Window {
             Language.Changed+=Labels;Labels();up.Click+=(_,_)=>Move(key,-1);down.Click+=(_,_)=>Move(key,1);
             moves[key]=(up,down);Grid.SetColumn(visible,1);row.Children.Add(visible);Grid.SetColumn(up,2);row.Children.Add(up);Grid.SetColumn(down,3);row.Children.Add(down);
         }
-        list.AttachedToVisualTree+=(_,_)=>RefreshOrder();RefreshOrder();return list;
+        list.AttachedToVisualTree+=(_,_)=>RefreshOrder();RefreshOrder();
+        var units=new[]{"auto","KB/s","MB/s","Mbit/s"};
+        var choice=new ComboBox{Name="NetworkUnit",ItemsSource=new[]{"Auto","KB/s","MB/s","Mbit/s"},SelectedIndex=Array.IndexOf(units,settings.NetworkUnit),HorizontalAlignment=HorizontalAlignment.Stretch,ItemTemplate=Language.Choices()};
+        choice.SelectionChanged+=(_,_)=>{if(choice.SelectedIndex<0)return;settings.NetworkUnit=units[choice.SelectedIndex];if(latestSnapshot!=null)Render(latestSnapshot);SaveLater();};
+        var panel=new StackPanel{Spacing=10};panel.Children.Add(list);panel.Children.Add(Language.Set(new TextBlock{TextWrapping=TextWrapping.Wrap},"Network Speed Unit"));panel.Children.Add(choice);return panel;
     }
     void ApplyWindowPreferences() {
         Topmost=settings.Topmost;CanResize=!settings.LockPosition;
@@ -376,6 +380,7 @@ public sealed class MonitorWindow : Window {
         latestSnapshot=snapshot;Render(snapshot);
     }
     void Render(MonitorSnapshot snapshot) {
+        snapshot=snapshot.WithNetworkUnit(settings.NetworkUnit);
         bool max=sessionMax;
         foreach(var panel in panels){panel.Present(snapshot,max,details.IsChecked==true);panel.IsVisible&=!settings.HiddenCards.Contains(panel.Key);}
         cardsEmpty.IsVisible=panels.All(x=>!x.IsVisible);
@@ -428,7 +433,7 @@ public sealed class MonitorWindow : Window {
                     if(stop.IsCancellationRequested)return;
                     samplingFailed=true;
                     var previous=latestSnapshot??new MonitorSnapshot("—","—","—","—",false,false);
-                    Present(previous with {Cpu="—",Memory="—",Download="—",Upload="—",CpuReady=false,MemoryReady=false,
+                    Present(previous with {Cpu="—",Memory="—",Download="—",Upload="—",DownloadBytes=null,UploadBytes=null,CpuReady=false,MemoryReady=false,
                         Hardware=previous.Hardware==null?null:new Reading{available=previous.Hardware.available,names=previous.Hardware.names,gpuFanCount=previous.Hardware.gpuFanCount},
                         Sensors=previous.Sensors.Select(sensor=>sensor with {Value="—"}).ToArray()});
                     continue;

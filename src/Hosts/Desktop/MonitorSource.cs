@@ -38,7 +38,7 @@ public sealed class MonitorSource : IMonitorSource {
         catch(NetworkInformationException){return [];}
     }
     public MonitorSnapshot Poll(string? name) {
-        if(demo)return new("24.0%","7.5 / 16.0 GiB · 46.9%","124.5 KiB/s","8.2 KiB/s",true,true) {NetworkName=name,PeakCpu="42.0%",PeakDownload="256.0 KiB/s",PeakUpload="16.0 KiB/s"};
+        if(demo)return new("24.0%","7.5 / 16.0 GiB · 46.9%","124.5 KiB/s","8.2 KiB/s",true,true) {DownloadBytes=124.5*1024,UploadBytes=8.2*1024,PeakDownloadBytes=256*1024,PeakUploadBytes=16*1024,NetworkName=name,PeakCpu="42.0%",PeakDownload="256.0 KiB/s",PeakUpload="16.0 KiB/s"};
         var now=DateTimeOffset.UtcNow;
         cpu!.Poll(now);if(memory!=cpu)memory!.Poll(now);
         if(selected!=name) {
