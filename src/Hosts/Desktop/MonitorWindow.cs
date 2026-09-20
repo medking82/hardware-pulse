@@ -171,6 +171,11 @@ public sealed class MonitorWindow : Window {
             FloatingMonitor=new FloatingMonitorWindow(Language){RequestedThemeVariant=RequestedThemeVariant};
             FloatingMonitor.ApplyPreferences(settings);
             FloatingMonitor.TopmostChanged+=value=>{settings.DesktopTopmost=value;if(desktopPin!=null)desktopPin.IsChecked=value;SaveLater();};
+            FloatingMonitor.ReturnRequested+=()=>{
+                FloatingMonitor?.Close();
+                if(stop.IsCancellationRequested)return;
+                Show();if(WindowState==WindowState.Minimized)WindowState=WindowState.Normal;Activate();
+            };
             FloatingMonitor.Closed+=(_,_)=>FloatingMonitor=null;
         }
         if(latestSnapshot!=null)FloatingMonitor.Present(latestSnapshot,sessionMax);

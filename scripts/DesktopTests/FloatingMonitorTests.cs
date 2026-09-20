@@ -6,6 +6,7 @@ using Avalonia.Media;
 using HardwarePulse.Desktop;
 
 static class FloatingMonitorTests {
+    [System.Runtime.InteropServices.DllImport("user32.dll")] static extern nint GetWindowLongPtrW(nint window,int index);
     static void Check(bool ok,string reason){if(!ok)throw new Exception(reason);}
     public static void Run(string? output=null) {
         var owner=new MonitorWindow(new MonitorSource(true),start:false);
@@ -37,8 +38,13 @@ static class FloatingMonitorTests {
             floating.Hide();open.Command.Execute(null);Check(ReferenceEquals(floating,owner.FloatingMonitor)&&floating.IsVisible,"Tray did not restore same floating window");
             if(floating.CanLock) {
                 Check(floating.SetLocked(true)&&floating.IsLocked,"Native floating lock failed");
+                if(OperatingSystem.IsWindows()&&floating.TryGetPlatformHandle()?.HandleDescriptor=="HWND")
+                    Check((GetWindowLongPtrW(floating.TryGetPlatformHandle()!.Handle,-20).ToInt64()&0x08080020)==0x08080020,"Chrome changes preserve native pass-through and no-activate bits");
+                Check(!floating.CanResize&&!floating.ShowInTaskbar&&floating.WindowDecorations==WindowDecorations.None,"Locked Desktop removes window chrome and resize");
+                Check(!floating.GetVisualDescendants().OfType<StackPanel>().Single(x=>x.Name=="DesktopEditor").IsVisible,"Locked Desktop hides editor");
                 floating.Hide();
                 open.Command.Execute(null);Check(!floating.IsLocked&&ReferenceEquals(floating,owner.FloatingMonitor),"Tray did not unlock existing window");
+                Check(floating.CanResize&&floating.ShowInTaskbar&&floating.GetVisualDescendants().OfType<StackPanel>().Single(x=>x.Name=="DesktopEditor").IsVisible,"Reopen restores editor and resize");
             }
             Check(floating.GetVisualDescendants().OfType<TextBlock>().Any(x=>x.Text=="21.0%"),"Floating window lost existing snapshot");
             var hardware=new HardwarePulse.Reading{state="LIVE",gpuFanCount=2,values={{"cpu",55},{"cpuLoad",12},{"gpu",40},{"gpuLoad",20},{"gpuFan",600},{"gpuFan2",700},{"diskC",43},{"lanLink",1000000000},{"netDown",999999}}};
@@ -81,7 +87,9 @@ static class FloatingMonitorTests {
             Console.WriteLine($"FLOATING_RESIZE settled client={floating.ClientSize.Width} widest={floating.GetVisualDescendants().OfType<TextBlock>().Max(x=>x.Bounds.Width)}");
             Check(Math.Abs(floating.ClientSize.Width-360)<=1,"Floating native resize was not acknowledged");
             Check(floating.GetVisualDescendants().OfType<TextBlock>().All(x=>x.Bounds.Width<=360),"Floating text overflow");
-            floating.Close();Check(owner.FloatingMonitor==null&&owner.IsVisible,"Floating close ended Monitor");
+            owner.Hide();
+            floating.GetVisualDescendants().OfType<Button>().Single(x=>x.Name=="ReturnToApp").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+            Check(owner.FloatingMonitor==null&&owner.IsVisible&&!floating.IsVisible,"Return restores App and closes only Desktop");
             owner.OpenFloatingMonitor();floating=owner.FloatingMonitor!;
             owner.Close();Check(!floating.IsVisible&&owner.FloatingMonitor==null,"Owner close left floating window alive");
             Check(!open.Command.CanExecute(null),"Disposed tray still offers floating action");open.Command.Execute(null);

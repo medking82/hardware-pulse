@@ -364,3 +364,25 @@ mode switching, fallback and persistence in headless/native Windows sessions.
 Full Desktop editor/layer, native glass visual acceptance, custom color/contrast,
 geometry, quota/FPS and exact original styling remain separate open requirements.
 Headless and Windows native regressions passed; the narrow Desktop render was inspected. Full scripts/Validate.ps1 passed. Native composition over real wallpaper and high-contrast visual acceptance remain unverified.
+
+### Desktop editor completion and return
+
+The original DesktopView editor visibility and Return to App interaction are now
+represented in the shared floating view. Done locks via the existing native input
+adapter, hides editor controls and taskbar entry, disables resize and removes the
+OS frame. Monitor/tray reopening unlocks the same view and restores its editor.
+Return to App closes only the floating view and restores the existing Monitor,
+including recovery when it was hidden. Unsupported lock platforms retain an
+operable editor; no new input hooks or privilege boundary are introduced.
+
+A new Windows native assertion caught Avalonia replacing extended input styles
+when chrome changed after pass-through. Chrome now changes before enabling native
+pass-through; unlocking removes pass-through before restoring editor chrome.
+Regression covers preserved layered/transparent/no-activate flags, editor state,
+tray restoration, Return from a hidden Monitor and existing shutdown/singleton
+behavior. Scope is shared view/lifecycle/localization and tests; original WPF,
+assets, collectors and installed profiles remain protected. The same isolated,
+ordinary, reversible routine classification applies. Full borderless editing,
+wallpaper layer placement, saved geometry and Mac/Linux native acceptance remain
+open; this is not full Desktop mode acceptance.
+Headless, Windows native and full scripts/Validate.ps1 passed for this editor/lifecycle change. The narrow editing render was inspected; no Mac/Linux native or real-wallpaper visual acceptance is claimed.

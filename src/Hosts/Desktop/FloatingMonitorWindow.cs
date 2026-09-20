@@ -19,6 +19,8 @@ public sealed class FloatingMonitorWindow : Window {
     bool peaks;
     readonly Grid sensors=new(){ColumnSpacing=ColumnLayout.Gap,RowSpacing=14};
     readonly CheckBox topmost;
+    readonly StackPanel editor=new(){Name="DesktopEditor",Spacing=8};
+    public event Action? ReturnRequested;
     int requestedColumns,layoutColumns;
     public event Action<bool>? TopmostChanged;
     readonly TextBlock lockStatus=new(){TextWrapping=TextWrapping.Wrap,IsVisible=false};
@@ -32,11 +34,14 @@ public sealed class FloatingMonitorWindow : Window {
         language.Set(this,"Floating monitor");
         topmost=language.Set(new CheckBox{Name="FloatingTopmost"},"Always on top");
         topmost.IsCheckedChanged+=(_,_)=>{Topmost=topmost.IsChecked==true;ApplyMaterial();TopmostChanged?.Invoke(Topmost);};
-        var lockButton=language.Set(new Button{Name="LockFloatingMonitor",IsVisible=false},"Lock floating monitor");
+        var lockButton=language.Set(new Button{Name="LockFloatingMonitor",IsVisible=false},"Done");
         lockButton.Click+=(_,_)=>SetLocked(true);
-        var toolbar=new StackPanel{Spacing=8};toolbar.Children.Add(topmost);toolbar.Children.Add(lockButton);toolbar.Children.Add(lockStatus);
+        var back=language.Set(new Button{Name="ReturnToApp"},"Return to App");
+        back.Click+=(_,_)=>ReturnRequested?.Invoke();
+        var actions=new WrapPanel();lockButton.Margin=new Thickness(0,0,8,0);actions.Children.Add(lockButton);actions.Children.Add(back);
+        editor.Children.Add(topmost);editor.Children.Add(actions);editor.Children.Add(lockStatus);
         language.Set(lockStatus,"Reopen from Monitor or the tray to unlock.");
-        rows.Children.Add(toolbar);
+        rows.Children.Add(editor);
         Opened+=(_,_)=>{
             var handle=TryGetPlatformHandle();
             if(OperatingSystem.IsWindows()&&handle?.HandleDescriptor=="HWND") {
@@ -97,12 +102,22 @@ public sealed class FloatingMonitorWindow : Window {
         if(input==null)return !locked;
         if(IsLocked==locked)return true;
         try {
+            // Avalonia rewrites extended styles when changing chrome. Configure it
+            // before enabling native pass-through; remove pass-through before restore.
+            if(locked)SetEditorChrome(false);
             input(locked);IsLocked=locked;
+            if(!locked)SetEditorChrome(true);
+            editor.IsVisible=!locked;
             language.Set(lockStatus,locked?"Locked · Reopen from Monitor or the tray to unlock.":"Reopen from Monitor or the tray to unlock.");
             return true;
         } catch(Exception e) when(e is System.ComponentModel.Win32Exception or InvalidOperationException) {
+            if(!IsLocked)SetEditorChrome(true);
             language.Set(lockStatus,"Could not change window lock. Reopen the floating monitor and try again.");return false;
         }
+    }
+    void SetEditorChrome(bool editing) {
+        CanResize=editing;ShowInTaskbar=editing;
+        WindowDecorations=editing?WindowDecorations.Full:WindowDecorations.None;
     }
     void Localize() {
         if(snapshot!=null)Present(snapshot,peaks);
