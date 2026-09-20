@@ -10,7 +10,9 @@
 
 **[下载 Windows 稳定版 0.6.35](https://github.com/medking82/hardware-pulse/releases/download/v0.6.35/HardwarePulse-Setup.exe)**
 
-另有面向 Windows、Linux、macOS 的 x64／ARM64 [实验性跨平台预发布版 0.7.0-preview.1](https://github.com/medking82/hardware-pulse/releases/tag/v0.7.0-preview.1)，功能尚未与 Windows 稳定版对等，不替代现有安装程序。
+macOS 可测试 [0.7.0-macos-rc.1 — Apple Silicon／Intel](https://github.com/medking82/hardware-pulse/releases/tag/v0.7.0-macos-rc.1)。此 RC 尚未完成 Developer ID signing 与 notarization，真实 Mac 的 Gatekeeper、温度和风扇 acceptance 仍未完成，不是 macOS stable release。
+
+另保留面向 Windows、Linux、macOS 的 x64／ARM64 [早期实验性跨平台预发布版 0.7.0-preview.1](https://github.com/medking82/hardware-pulse/releases/tag/v0.7.0-preview.1)，功能尚未与 Windows 稳定版对等，不替代现有安装程序。
 
 ### 更新与桌面位置
 
@@ -36,6 +38,18 @@
 - 毛玻璃在非活动状态时保持透明；不支持的桌面合成使用纯色回退背景。
 - DIMM 和两块 NVMe 采用等宽列。RAM/VRAM 用量在本次峰值中仍实时更新；GB 使用二进制单位，分母为操作系统/驱动报告的可用容量，可能小于实际安装的容量。
 - **GPU 风扇转速** 显示的是 RPM 遥测通道，不代表实体风扇的数量。
+
+### AI Quota
+
+在 Settings → AI Quota 分别启用 Codex、Antigravity 和 Claude；默认均关闭。
+Monitor 和 Desktop Mode 只显示剩余百分比与 reset 时间，正常每五分钟刷新，
+无需运行 Token Monitor。Codex／Claude Code 需先登录，过期登录仍由对应 app 更新。
+
+Antigravity 优先读取正在运行的 Desktop session。没有可用 Desktop session 时，
+Pulse 可通过已经安装并登录的 Antigravity CLI 读取 `/usage`，无需打开或保持
+terminal window。此来源标注为 `CLI`，其 account 可能与 Desktop 不同。已识别的
+Desktop session 出现 authentication、access 或 network failure 时，不会自动
+切换到 CLI account。两个来源都不可用时，需要打开 Antigravity。
 
 ### 硬件发现与范围
 

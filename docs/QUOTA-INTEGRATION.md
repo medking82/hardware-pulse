@@ -18,7 +18,7 @@ its CSRF token to loopback. No Token Monitor process or PowerShell/Node runtime.
 Only fixed provider HTTPS endpoints; disable redirects. Loopback TLS exceptions
 are request scoped. No global certificate bypass. Providers are independently opt-in.
 
-## Windows Antigravity CLI fallback (next iteration)
+## Windows Antigravity CLI fallback
 
 When no usable current-user Desktop language server is found, use an existing
 `LocalAppData/agy/bin/agy.exe` with the fixed native `/usage` command. Do not
@@ -190,7 +190,31 @@ unidentified installed-app network failure.
 
 Resolution: the user restored Bitdefender firewall rules to defaults. The installed app then showed You are up to date and live Codex; Claude showed Login required. Collector was restored through its unchanged owned scheduled task and consecutive advancing snapshots plus live UI were verified. No security rules were changed by the agent.
 
-## Recovery regression evidence (Windows 0.6.31)
+## Recovery validation
+
+### Real-provider cadence observation (Windows 0.6.35)
+
+On 2026-09-21 (UTC+8), a bounded probe used the release's actual QuotaSession and
+Windows adapter assemblies for 1,560 seconds. It enabled the three providers,
+ticked the session normally and issued no manual Refresh calls. All 18 completed
+reads (six per provider) returned `Live`: Codex exposed one window, Claude two,
+and Antigravity two through its installed CLI. Completion intervals were about
+301 seconds for Codex/Claude and 304 seconds for Antigravity, including request
+time. The observation did not shorten the normal polling interval.
+
+Dispose left zero active readers; the probe exited successfully. No `agy` or
+language-server process was present at the checked between-refresh point, and
+no `agy` process remained at final cleanup. Logs retained only provider, status,
+source, window count, elapsed time and retry deadline; no token, account identity
+or response body was logged. Raw local evidence is
+`vendor/quota-cadence-0.6.35.log`; the isolated probe is not shipped.
+
+This is a 26-minute successful-refresh observation, not an installed-UI soak,
+forced-outage test, credential-expiry test, or proof of indefinite login. Claude's
+expiry metadata was beyond this observation window. Synthetic recovery and
+cancellation checks remain separate evidence; real token renewal is unverified.
+
+### Simulated lifecycle coverage (Windows 0.6.31)
 
 QuotaSession coalesces manual Refresh clicks received during a pending request into
 one follow-up read. Provider requests remain serialized, disabled generations cannot

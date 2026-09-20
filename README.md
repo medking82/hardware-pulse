@@ -14,7 +14,9 @@
 
 [Dependency maintenance and Linux/macOS roadmap](docs/DEPENDENCIES.md)
 
-**Experimental shared Desktop:** [0.7.0-preview.1 — Windows / Linux / macOS, x64 / ARM64](https://github.com/medking82/hardware-pulse/releases/tag/v0.7.0-preview.1). Self-contained downloads with live CPU/RAM/network and opt-in Codex quota. This preview does not replace the stable Windows App; [feature gaps, signing status and launch guide](docs/DESKTOP-PREVIEW.md).
+**macOS Release Candidate:** [0.7.0-macos-rc.1 — Apple Silicon / Intel](https://github.com/medking82/hardware-pulse/releases/tag/v0.7.0-macos-rc.1). This prerelease is unsigned and unnotarized; real-Mac Gatekeeper and temperature/fan acceptance remain incomplete. It is not a macOS stable release.
+
+**Earlier experimental shared Desktop:** [0.7.0-preview.1 — Windows / Linux / macOS, x64 / ARM64](https://github.com/medking82/hardware-pulse/releases/tag/v0.7.0-preview.1). Self-contained downloads with live CPU/RAM/network and opt-in Codex quota. This preview does not replace the stable Windows App; [feature gaps, signing status and launch guide](docs/DESKTOP-PREVIEW.md).
 
 **[Download 0.6.35 EXE](https://github.com/medking82/hardware-pulse/releases/download/v0.6.35/HardwarePulse-Setup.exe)** · [0.6.35 release notes](https://github.com/medking82/hardware-pulse/releases/tag/v0.6.35)
 
@@ -30,9 +32,16 @@ Appearance → Colors selects Hardware Colors or a custom Unified Color for Moni
 
 Settings in 0.6.35: Settings → AI Quota enables independent Codex,
 Antigravity and Claude quota readings in Monitor and Desktop Mode. Only remaining
-percentages and reset times are read, every five minutes. Token Monitor is not
-required. Sign in through Codex/Claude Code first; keep Antigravity running.
-Each provider is off by default. Expired login must be renewed in its owning app.
+percentages and reset times are read, normally every five minutes. Token Monitor
+is not required. Sign in through Codex/Claude Code first. Each provider is off by
+default. Expired login must be renewed in its owning app.
+
+Antigravity uses its running Desktop session first. When no usable Desktop session
+is found, Pulse can read `/usage` through an already installed and signed-in
+Antigravity CLI, without opening or keeping a terminal window. The reading is
+labeled `CLI`, whose account may differ from Desktop. A detected Desktop session's
+authentication, access or network failure does not silently switch to the CLI.
+Without either source, open Antigravity to make quota available.
 
 Version 0.6.35 also displays negotiated Network Link Speed for the selected
 adapter, in Mbit/s or Gbit/s. This is the adapter connection rate, not a measured

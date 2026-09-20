@@ -498,3 +498,44 @@ the interval), and working set still grew within each run. Endpoint differences
 do not establish lower steady-state RAM or absence of a leak. Longer runs and
 real desktop/GPU environments remain unmeasured. Hardware renderer policy and
 the shipped Windows WPF runtime are unchanged.
+
+## Windows WPF 0.6.35 ten-minute UI observation
+
+Measured on 2026-09-21 (UTC+8), release source `a42a809`, with 16 logical
+processors. Run `scripts/Measure-NativeUi.ps1 -AppDirectory build/native/app
+-Seconds 600 -Scene monitor` through the Windows hidden runner after building
+the native app and test harness. The isolated state uses synthetic hardware
+snapshots updated every two seconds; hardware collection, FPS and quota reads
+are disabled. The window is 310 x 690 DIP (465 x 1035 pixels), over the host
+desktop, with Local Contrast disabled. No user settings are changed.
+
+After ten seconds of warm-up, 300 samples covered 605.43 seconds. CPU is
+normalized over all logical processors; memory is process memory, not managed
+heap size. No forced GC or working-set trimming was used.
+
+| Measurement | Observation |
+| --- | ---: |
+| Average CPU, percent of whole machine | 0.1092% |
+| Mean working set | 123.88 MiB |
+| Working set range | 123.21–124.25 MiB |
+| Mean private memory | 94.12 MiB |
+| Private memory range | 93.68–94.77 MiB |
+| First / last 30 samples, mean working set | 123.45 / 124.22 MiB |
+| First / last 30 samples, mean private memory | 94.10 / 94.18 MiB |
+
+The harness completed successfully and its owned process exited. This single
+short observation does not demonstrate long-term absence of leaks, an
+improvement over 0.6.27, total installed-app cost, real collector cost, quota
+process cost, desktop-layer integration, or gaming impact. It is a baseline for
+future matched measurements, not a performance guarantee.
+
+Evidence identity (SHA-256):
+
+- Application: `4A7884F6150925FD31B3C08DEB0AE8972E66F7338394E3AC35FE5BB8B059F057`
+- Core: `D3F1733880E98C71352E747B071E75760B6BF4481388E75902484E50D687939F`
+- Windows adapter: `6E406D6591F9B2C8135B997CA34C792C29B911FF95F755D74FD61E7A2F56247F`
+- Harness: `E02DE3A4AF4DA329F1766E236B25700D9B47F2F8D9A0E9BECAE41FCAB8F1A491`
+
+Raw local results and samples are retained in
+`vendor/ui-measure-fb29c783e54b41159aaa61dc6f888a75`; these machine-local artifacts
+are not distributed in the installer or committed to Git.
