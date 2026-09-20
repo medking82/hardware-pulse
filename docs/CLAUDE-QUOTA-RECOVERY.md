@@ -1,7 +1,11 @@
 # Claude quota recovery investigation
 
-Status-line integration: design only; not included in Windows 0.6.32.
+Status-line integration: pure snapshot decoder implemented; receiver and opt-in
+source integration remain pending. Not included in Windows 0.6.32.
 User direction: pursue both independent refresh and an optional status-line source.
+
+Decoder-only admission (reclassify when adding runtime/configuration integration):
+<!-- sop-risk-classification: {"facts":{"blast_radius":"isolated","change_kind":"implementation","data_boundary":"ordinary","destructive":"no","failure_cost":"low","irreversibility":"reversible","operational_controls":"not_applicable","privilege_boundary":"unchanged","project_policy":"default","rollback":"easy","scope_knowledge":"known","uncertainty":"low","verification":"deterministic"},"formal_review":"not_required","kind":"risk-classification-assessment","reasons":{"formal_review":["routine_no_review"],"risk":["no_high_risk_signal"]},"risk":"routine","schema_version":2} -->
 
 ## Verified integration option
 
@@ -46,6 +50,24 @@ selection and stale behavior. Then verify one real CLI-produced observation with
 generating an extra model turn solely to populate quota.
 
 ## Remaining requirements
+
+`src/Core/ClaudeStatusLineSnapshot.cs` now decodes only the two documented windows
+from an already parsed input graph. It accepts finite numeric percentages and
+integral Unix-second resets in the future, bounded by the window duration. It
+retains no input graph or non-quota fields and returns detached window copies.
+Each unchanged window keeps its first reception time independently, even when
+another window changes. At ten minutes or its reset deadline, values are hidden.
+Clock rollback also hides values. Available values are labeled `CLI snapshot`,
+never `Live`; receipt is not proof of a new API observation.
+
+Core tests cover zero/full, missing/invalid values, strict reset units and bounds,
+repeat renders, partial window changes, stale deadlines and mutation isolation.
+This is a pure decoder boundary only: bounded stdin parsing, atomic persistence,
+concurrent-session ownership, explicit source selection and real CLI acceptance
+are not implemented or proven by these tests. The existing HTTP source and user
+configuration are unchanged. The implementation boundary for this step is the
+Core decoder, its existing test suite and this document; rollback removes these
+additions without changing installed/runtime state.
 
 This is not a complete solution for quota updates while every Claude client is
 closed, nor proof of automatic renewal across credential expiry. Keep those
