@@ -68,6 +68,10 @@ static class SettingsTests {
             window.GetVisualDescendants().OfType<Slider>().Single(x=>x.Name=="DesktopFontSize").Value=20;
             window.GetVisualDescendants().OfType<Slider>().Single(x=>x.Name=="DesktopSpacing").Value=24;
             window.GetVisualDescendants().OfType<ComboBox>().Single(x=>x.Name=="DesktopColumns").SelectedIndex=2;
+            var screen=desktop.Screens.ScreenFromWindow(desktop)??desktop.Screens.Primary;
+            double desired=20*24*2+10+34;
+            double expectedWidth=screen==null?desired:Math.Min(desired,Math.Max(desktop.MinWidth,screen.WorkingArea.Width/screen.Scaling-32));
+            Check(Math.Abs(desktop.Width-expectedWidth)<1,"Selecting explicit Desktop columns expands to original cell width within working area");
             var desktopPin=window.GetVisualDescendants().OfType<CheckBox>().Single(x=>x.Name=="DesktopAlwaysOnTop");desktopPin.IsChecked=true;
             Check(desktop.FontSize==20&&desktop.Topmost&&window.FontSize==16,"Desktop preferences apply independently of App");
             desktop.GetVisualDescendants().OfType<CheckBox>().Single(x=>x.Name=="FloatingTopmost").IsChecked=false;

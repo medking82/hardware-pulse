@@ -71,11 +71,21 @@ public sealed class FloatingMonitorWindow : Window {
         PropertyChanged+=(_,e)=>{if(e.Property==ActualThemeVariantProperty)foreach(var item in readings.Values)ColorIcon(item.Row);};
         Closed+=(_,_)=>{language.Changed-=Localize;input=null;inputLifetime?.Dispose();inputLifetime=null;};
     }
-    public void ApplyPreferences(PreviewSettings settings) {
+    public void ApplyPreferences(PreviewSettings settings,bool fitColumns=false) {
         FontSize=settings.DesktopFontSize;sensors.RowSpacing=settings.DesktopSpacing;
         backgroundOpacity=settings.DesktopBackgroundOpacity;overlayOpacity=settings.DesktopOverlayOpacity;textOpacity=settings.DesktopTextOpacity;
         requestedColumns=settings.DesktopColumns;topmost.IsChecked=settings.DesktopTopmost;
         ApplyMaterial();
+        if(fitColumns&&requestedColumns>0) {
+            double wanted=Math.Max(280,24*FontSize)*requestedColumns+ColumnLayout.Gap*(requestedColumns-1)+34;
+            var screen=Screens.ScreenFromWindow(this)??Screens.Primary;
+            double scale=screen?.Scaling??RenderScaling;
+            Width=screen==null?wanted:Math.Min(wanted,Math.Max(MinWidth,screen.WorkingArea.Width/scale-32));
+            if(screen!=null) {
+                int right=screen.WorkingArea.Right-(int)Math.Ceiling(Width*scale);
+                Position=new PixelPoint(Math.Clamp(Position.X,screen.WorkingArea.X,Math.Max(screen.WorkingArea.X,right)),Position.Y);
+            }
+        }
         LayoutReadings();
     }
     void ApplyMaterial() {

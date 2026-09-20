@@ -386,3 +386,21 @@ ordinary, reversible routine classification applies. Full borderless editing,
 wallpaper layer placement, saved geometry and Mac/Linux native acceptance remain
 open; this is not full Desktop mode acceptance.
 Headless, Windows native and full scripts/Validate.ps1 passed for this editor/lifecycle change. The narrow editing render was inspected; no Mac/Linux native or real-wallpaper visual acceptance is claimed.
+
+### Explicit Desktop columns resize
+
+Selecting 1/2/3 Desktop columns now uses the original DesktopMode cell-width
+formula to resize the existing view; reopening applies the saved explicit count.
+Auto keeps the current width. Ordinary opacity/font updates do not force a resize.
+The current screen working area and scaling bound the width, and the horizontal
+position is clamped after expansion. Core ColumnLayout still falls back to fewer
+columns when the screen cannot fit the requested count. This is shared window
+presentation only; installed profiles and original WPF/assets remain untouched.
+
+Settings regression covers the requested expansion and working-area cap in
+headless and Windows native sessions. An additional native regression confirms
+changing topmost while locked preserves pass-through/no-activate flags and does
+not unlock the Desktop; no production change was needed for that behavior.
+Saved Desktop geometry, actual multi-monitor moves and platform acceptance remain
+open. Same routine isolated/reversible presentation boundary; rollback source-only.
+Full scripts/Validate.ps1 passed for explicit-column resizing.

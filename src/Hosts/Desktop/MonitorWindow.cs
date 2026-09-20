@@ -169,7 +169,7 @@ public sealed class MonitorWindow : Window {
         if(stop.IsCancellationRequested)return;
         if(FloatingMonitor==null) {
             FloatingMonitor=new FloatingMonitorWindow(Language){RequestedThemeVariant=RequestedThemeVariant};
-            FloatingMonitor.ApplyPreferences(settings);
+            FloatingMonitor.ApplyPreferences(settings,fitColumns:true);
             FloatingMonitor.TopmostChanged+=value=>{settings.DesktopTopmost=value;if(desktopPin!=null)desktopPin.IsChecked=value;SaveLater();};
             FloatingMonitor.ReturnRequested+=()=>{
                 FloatingMonitor?.Close();
@@ -200,7 +200,7 @@ public sealed class MonitorWindow : Window {
         Number("DesktopTextOpacity","Text opacity",settings.DesktopTextOpacity,0,100,value=>settings.DesktopTextOpacity=value,"%");
         panel.Children.Add(Language.Set(new TextBlock(),"Columns"));
         var columns=new ComboBox{Name="DesktopColumns",ItemsSource=new[]{"Auto","1","2","3"},SelectedIndex=settings.DesktopColumns,ItemTemplate=Language.Choices(),HorizontalAlignment=HorizontalAlignment.Stretch};
-        columns.SelectionChanged+=(_,_)=>{settings.DesktopColumns=Math.Max(0,columns.SelectedIndex);Apply();};panel.Children.Add(columns);
+        columns.SelectionChanged+=(_,_)=>{settings.DesktopColumns=Math.Max(0,columns.SelectedIndex);FloatingMonitor?.ApplyPreferences(settings,fitColumns:true);SaveLater();};panel.Children.Add(columns);
         desktopPin=Language.Set(new CheckBox{Name="DesktopAlwaysOnTop",IsChecked=settings.DesktopTopmost},"Always on Top");
         void OpacityControls(){foreach(var control in panel.Children.OfType<Slider>()){if(control.Name=="DesktopBackgroundOpacity")control.IsEnabled=!settings.DesktopTopmost;if(control.Name=="DesktopOverlayOpacity")control.IsEnabled=settings.DesktopTopmost;}}
         desktopPin.IsCheckedChanged+=(_,_)=>{settings.DesktopTopmost=desktopPin.IsChecked==true;OpacityControls();Apply();};panel.Children.Add(desktopPin);OpacityControls();

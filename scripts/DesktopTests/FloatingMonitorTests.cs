@@ -42,6 +42,12 @@ static class FloatingMonitorTests {
                     Check((GetWindowLongPtrW(floating.TryGetPlatformHandle()!.Handle,-20).ToInt64()&0x08080020)==0x08080020,"Chrome changes preserve native pass-through and no-activate bits");
                 Check(!floating.CanResize&&!floating.ShowInTaskbar&&floating.WindowDecorations==WindowDecorations.None,"Locked Desktop removes window chrome and resize");
                 Check(!floating.GetVisualDescendants().OfType<StackPanel>().Single(x=>x.Name=="DesktopEditor").IsVisible,"Locked Desktop hides editor");
+                var lockedPin=floating.GetVisualDescendants().OfType<CheckBox>().Single(x=>x.Name=="FloatingTopmost");
+                lockedPin.IsChecked=true;Dispatcher.UIThread.RunJobs();
+                if(OperatingSystem.IsWindows()&&floating.TryGetPlatformHandle()?.HandleDescriptor=="HWND")
+                    Check((GetWindowLongPtrW(floating.TryGetPlatformHandle()!.Handle,-20).ToInt64()&0x08080020)==0x08080020,"Changing topmost while locked preserves native pass-through");
+                Check(floating.IsLocked&&!floating.CanResize,"Topmost change does not unlock Desktop");
+                lockedPin.IsChecked=false;
                 floating.Hide();
                 open.Command.Execute(null);Check(!floating.IsLocked&&ReferenceEquals(floating,owner.FloatingMonitor),"Tray did not unlock existing window");
                 Check(floating.CanResize&&floating.ShowInTaskbar&&floating.GetVisualDescendants().OfType<StackPanel>().Single(x=>x.Name=="DesktopEditor").IsVisible,"Reopen restores editor and resize");
