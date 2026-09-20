@@ -20,6 +20,7 @@ public sealed class QuotaPanel : UserControl,IDisposable {
     readonly Border card=new(){Padding=new Thickness(12),CornerRadius=new CornerRadius(14),BorderThickness=new Thickness(1),BorderBrush=Brush.Parse("#426D8B9F")};
     readonly Avalonia.Controls.Shapes.Path icon;
     readonly bool demo;
+    readonly bool inlineSettings;
     readonly string provider;
     readonly UiLanguage language;
     readonly Func<DateTimeOffset> utcNow;
@@ -44,6 +45,8 @@ public sealed class QuotaPanel : UserControl,IDisposable {
         if(provider is not ("Codex" or "Claude" or "Antigravity"))throw new ArgumentOutOfRangeException(nameof(provider));
         this.provider=provider;enabled.Name="Enable"+provider+"Quota";refresh.Name="Refresh"+provider+"Quota";
         this.demo=demo;
+        this.inlineSettings=inlineSettings;
+        IsVisible=inlineSettings;
         this.utcNow=utcNow??(()=>DateTimeOffset.UtcNow);
         this.language=language??new UiLanguage();
         this.language.Set(enabled,"Show "+provider+" quota");this.language.Set(refresh,"Refresh");this.language.Set(status,"Off");
@@ -82,6 +85,7 @@ public sealed class QuotaPanel : UserControl,IDisposable {
     void SetEnabled() {
         if(disposed)return;
         bool on=enabled.IsChecked==true;
+        IsVisible=inlineSettings||on;
         session.Enable(provider,on);refresh.IsEnabled=on;shown=null;windows.Children.Clear();
         if(on){timer.Start();Tick();}else{timer.Stop();language.Set(status,"Off");ReadingChanged?.Invoke();}
         EnabledChanged?.Invoke(on);

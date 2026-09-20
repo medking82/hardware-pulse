@@ -21,6 +21,7 @@ static class QuotaPanelTests {
         return new(){Provider=provider,Status="Live",Observed=DateTimeOffset.UtcNow,Windows=[main],AllWindows=[main,new(){Label="Additional model pool · 5-hour",Remaining=72.5},new(){Label="Unknown availability",Remaining=null}]};
     }
     public static void Run(string? output,string provider="Codex") {
+        MonitorVisibility(provider);
         int reads=0;using var canceled=new ManualResetEventSlim();using var release=new ManualResetEventSlim();
         var panel=new QuotaPanel(false,cancel=>{
             int call=Interlocked.Increment(ref reads);
@@ -83,6 +84,23 @@ static class QuotaPanelTests {
         Freshness(provider);
         Console.WriteLine("PASS "+provider+" UI opt-in, complete windows, missing values, retry, stale result rejection and cancellation; synthetic reader only");
         if(provider=="Codex"){Run(output,"Claude");Run(output,"Antigravity");}
+    }
+    static void MonitorVisibility(string provider) {
+        int reads=0;
+        using var panel=new QuotaPanel(false,_=>{Interlocked.Increment(ref reads);return Result(provider);},inlineSettings:false,provider:provider);
+        var monitor=new Window{Content=panel};
+        var settings=new Window{Content=panel.SettingsContent};
+        monitor.Show();settings.Show();Dispatcher.UIThread.RunJobs();
+        try {
+            var toggle=settings.GetVisualDescendants().OfType<CheckBox>().Single();
+            Check(!panel.IsVisible&&reads==0,"Disabled Monitor quota must occupy no card space or start IO");
+            Check(toggle.IsEffectivelyVisible,"Hidden Monitor card must retain its Settings toggle");
+            toggle.IsChecked=true;
+            Until(()=>panel.CurrentReading?.Status=="Live","Settings enables Monitor quota");
+            Check(panel.IsEffectivelyVisible&&reads==1,"Enabled quota card appears with one reader");
+            toggle.IsChecked=false;Dispatcher.UIThread.RunJobs();
+            Check(!panel.IsVisible&&panel.CurrentReading==null&&toggle.IsEffectivelyVisible,"Disabling removes the card while Settings remains reachable");
+        } finally {monitor.Close();settings.Close();}
     }
     static void Freshness(string provider) {
         var now=DateTimeOffset.UtcNow;int reads=0;
