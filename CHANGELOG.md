@@ -6,7 +6,6 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 
 ## Unreleased
 
-- Windows WPF skips invisible Monitor card updates while Settings is open. Collector, quota and Desktop updates continue; returning to Monitor renders the latest readings immediately.
 
 
 - Shared Linux X11 floating monitor adds mouse-through locking with XFixes. Unlock restores the default input region and window frame; native x64/ARM64 checks pass. Native Wayland locking is not implemented.
@@ -22,6 +21,10 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 - Shared Desktop embeds pinned Noto Sans CJK SC/TC fonts for Chinese UI on systems without CJK fonts. Build preparation verifies size and SHA-256, packages include the OFL notice, and native smoke fails on missing catalog glyphs. No system font installation or runtime download is needed.
 
 - Shared Desktop supports Auto (System), English and Simplified/Traditional Chinese UI, including Monitor, Settings, sensor status, Codex quota and tray actions. Language switches immediately without restarting sampling or refreshing credentials and is saved in the isolated preview profile. Auto respects Chinese script and region preferences.
+
+## 0.6.30 — 2026-09-20
+
+- Windows WPF skips invisible Monitor card updates while Settings is open. Collector, quota and Desktop updates continue; returning to Monitor renders the latest readings immediately.
 
 ## 0.6.29 — 2026-09-20
 
