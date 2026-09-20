@@ -6,7 +6,6 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 
 ## Unreleased
 
-- Claude quota reads recover once from HTTP 401 if the existing credential owner has already replaced the access token. Unchanged tokens, 403, 429 and transport failures are not retried. No credential renewal or writes are added.
 
 
 
@@ -25,6 +24,13 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 - Shared Desktop embeds pinned Noto Sans CJK SC/TC fonts for Chinese UI on systems without CJK fonts. Build preparation verifies size and SHA-256, packages include the OFL notice, and native smoke fails on missing catalog glyphs. No system font installation or runtime download is needed.
 
 - Shared Desktop supports Auto (System), English and Simplified/Traditional Chinese UI, including Monitor, Settings, sensor status, Codex quota and tray actions. Language switches immediately without restarting sampling or refreshing credentials and is saved in the isolated preview profile. Auto respects Chinese script and region preferences.
+
+## 0.6.34 — 2026-09-21
+
+- Claude quota reads recover once from HTTP 401 when the credential owner has already replaced the access token. Unchanged tokens, 403, 429 and transport failures do not trigger retries. This does not renew credentials or eliminate required login after expiry.
+- Windows pins the selected credential file or Credential Manager target throughout that request/retry pair. A missing selected source fails without switching to another source; explicit environment tokens retain precedence.
+- Added English and Simplified Chinese guides for optional Claude status-line setup and rollback. This source remains experimental; real CLI delivery acceptance is pending.
+- Keeps the WPF glass UI, Desktop mode, settings and lightweight Framework package. Full validation, .NET 10 Core checks and an independent review of credential-source pinning passed. Synthetic recovery tests do not establish long-term live token renewal.
 
 ## 0.6.33 — 2026-09-21
 

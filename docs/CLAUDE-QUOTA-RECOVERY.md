@@ -209,7 +209,7 @@ and UTF-16 BOMs, oversized/missing files and partial JSON using isolated synthet
 data. No real credential values or files are used. The pre-fix sharing test failed;
 the corrected adapter passed. This does not establish provider token-expiry recovery.
 
-## Owner-rotated token recovery (after 0.6.33, not yet released)
+## Owner-rotated token recovery (Windows 0.6.34)
 
 Local token-monitor source at commit `1e2c03d2a55b5eef97c7732341281415c2a3d7ea`
 uses direct OAuth refresh and credential persistence on Windows; its macOS path

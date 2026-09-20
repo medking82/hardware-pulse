@@ -6,7 +6,6 @@
 
 ## 未发布
 
-- Claude quota read 收到 HTTP 401 后，如果既有 credential owner 已替换 access token，会重读并重试一次。Token 未变化、403、429 和 transport failure 不会重试；不新增 credential renewal 或写入。
 
 
 
@@ -25,6 +24,13 @@
 - 跨平台桌面版内嵌固定版本的 Noto Sans CJK 简体和繁体字体，解决未安装中文字体的系统上界面缺字的问题。构建时校验文件大小和 SHA-256，安装包附带 OFL 许可；原生启动检查会将界面文案缺字判为失败。无需安装系统字体，也不会在运行时下载字体。
 
 - 共享桌面应用支持自动跟随系统、英语、简体中文和繁体中文，覆盖监控、设置、传感器状态、Codex 额度与托盘操作。语言即时切换，不重启采样或重新读取登录信息，并保存到独立的预览版设置中。自动模式会区分中文书写体系和地区。
+
+## 0.6.34 — 2026-09-21
+
+- Claude quota read 收到 HTTP 401 后，如果 credential owner 已替换 access token，会重读并重试一次。Token 未变化、403、429 和 transport failure 不会触发 retry；此项不提供 credential renewal，也不能免除过期后的必要 login。
+- Windows 在同一次 request／retry 中固定原 credential file 或 Credential Manager target。所选 source 消失时明确失败，不切换其他 source；显式 environment token 保持优先。
+- 新增 English 和简体中文 Claude status-line setup／rollback guide。该可选 source 仍为 experimental，真实 CLI delivery acceptance 尚待完成。
+- 保留 WPF glass UI、Desktop mode、settings 和轻量 Framework package。完整 validation、.NET 10 Core checks 和 credential-source pinning 的 independent review 已通过；synthetic recovery tests 不代表长期 live token renewal 已验证。
 
 ## 0.6.33 — 2026-09-21
 
