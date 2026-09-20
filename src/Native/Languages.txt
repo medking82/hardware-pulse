@@ -291,3 +291,5 @@ Waiting for the next CLI session. Other sessions will be rejected.|等待下一�
 Snapshot busy; try again.|Snapshot 正在写入，请重试。|Snapshot 正在寫入，請重試。
 Command copied. Set it as Claude Code statusLine.command; preserve any existing command.|Command 已复制。将它配置为 Claude Code statusLine.command；请先保留原有 command。|Command 已複製。將它設定為 Claude Code statusLine.command；請先保留原有 command。
 Clipboard busy; try again.|Clipboard 忙碌，请重试。|Clipboard 忙碌，請重試。
+Git Bash installed|已安装 Git Bash|已安裝 Git Bash
+PowerShell (without Git Bash)|PowerShell（未安装 Git Bash）|PowerShell（未安裝 Git Bash）

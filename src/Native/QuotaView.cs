@@ -31,8 +31,12 @@ namespace HardwarePulse {
                 }else Text("ClaudeSnapshotSetupStatus",language.T("Snapshot busy; try again."));
             });
             Click("ClaudeSnapshotCommand",delegate{
-                try{Clipboard.SetText("\""+paths.Exe.Replace('\\','/')+"\" --claude-statusline");Text("ClaudeSnapshotSetupStatus",language.T("Command copied. Set it as Claude Code statusLine.command; preserve any existing command."));}
-                catch(System.Runtime.InteropServices.ExternalException){Text("ClaudeSnapshotSetupStatus",language.T("Clipboard busy; try again."));}
+                var button=Control<Button>("ClaudeSnapshotCommand");var menu=new ContextMenu{PlacementTarget=button,Placement=PlacementMode.Bottom};
+                foreach(bool usePowerShell in new[]{false,true}){
+                    bool selected=usePowerShell;var item=new MenuItem{Header=language.T(selected?"PowerShell (without Git Bash)":"Git Bash installed")};
+                    item.Click+=delegate{CopyClaudeStatusLineCommand(selected);};menu.Items.Add(item);
+                }
+                button.ContextMenu=menu;menu.IsOpen=true;
             });
             var mode=Control<ComboBox>("QuotaDisplay");mode.SelectedIndex=settings.Flag("quotaFull")?1:0;
             mode.SelectionChanged+=delegate{settings.Data["quotaFull"]=mode.SelectedIndex==1;RenderQuota();QueueSave();};
@@ -40,6 +44,10 @@ namespace HardwarePulse {
                 control.Click+=delegate{settings.Data["quota"+name]=control.IsChecked==true;quotas.Enable(name,control.IsChecked==true);if(!isolated)quotas.Tick(DateTimeOffset.UtcNow);RenderQuota();UpdateDesktop();QueueSave();};
             }
             Click("QuotaRefresh",delegate{quotas.Refresh();if(!isolated)quotas.Tick(DateTimeOffset.UtcNow);RenderQuota();});
+        }
+        void CopyClaudeStatusLineCommand(bool powershell){
+            try{Clipboard.SetText(ClaudeStatusLineCommand.Create(paths.Exe,powershell));Text("ClaudeSnapshotSetupStatus",language.T("Command copied. Set it as Claude Code statusLine.command; preserve any existing command."));}
+            catch(System.Runtime.InteropServices.ExternalException){Text("ClaudeSnapshotSetupStatus",language.T("Clipboard busy; try again."));}
         }
         QuotaReading ReadQuota(string provider,System.Threading.CancellationToken token){token.ThrowIfCancellationRequested();return provider=="Claude"&&claudeSnapshotSource?ClaudeStatusLineReceiver.Read(paths.State,DateTimeOffset.UtcNow):QuotaProviders.Read(provider,token);}
         bool QuotaFresh(QuotaReading r){var age=DateTimeOffset.UtcNow-r.Observed;return (r.Status=="Live"||r.Status=="CLI snapshot")&&age>=TimeSpan.Zero&&age<TimeSpan.FromMinutes(10);}

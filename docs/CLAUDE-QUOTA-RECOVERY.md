@@ -142,6 +142,28 @@ from `Test-SettingsQuota.ps1` cover the code boundary. Screenshot inspection con
 the source controls and footer remain reachable at 340 DIP with no horizontal
 overflow. Live configuration and real CLI acceptance remain separate gates.
 
+## Windows command compatibility
+
+The official status-line Windows contract selects Git Bash when installed and
+PowerShell otherwise. A quoted EXE path followed by arguments works as a Bash
+command but is a string expression, not an invocation, in PowerShell. The initial
+copy-command implementation therefore failed on the PowerShell route. Double
+quotes also allowed Bash expansion inside an executable path containing `$`.
+
+`ClaudeStatusLineCommand.Create` now builds literal-path commands separately for
+the two shells: Bash single-quote escaping, or PowerShell's call operator with
+single-quote escaping. The copy action presents both documented shell routes
+without changing the Settings layout. It does not guess from Pulse's environment
+which shell an independently launched Claude session uses.
+
+`ClaudeStatusLineTests` reproduces failure of the original command in actual
+Windows PowerShell, then verifies the new commands in actual Windows PowerShell
+and Git Bash, using a windowless receiver fixture, redirected JSON stdin and an
+executable path containing spaces, `$` and an apostrophe. Only synthetic input and
+isolated state are used. Git Bash reports an explicit skip if unavailable; both
+shells were available and passed on this workstation. This proves shell invocation
+and pipe delivery, not a real Claude-produced quota observation or token renewal.
+
 This is not a complete solution for quota updates while every Claude client is
 closed, nor proof of automatic renewal across credential expiry. Keep those
 requirements open. Existing HTTP reading remains available; do not rotate Claude

@@ -89,6 +89,8 @@ internal static class NativeQuotaTests {
                 Check(!Labels(claudeCard).Any(s=>s.Contains("74%"))&&Labels(claudeCard).Any(s=>s.Contains("96%")),"reset snapshot window hides values independently");
                 source.SelectedIndex=1;
                 Check(shell.Control<StackPanel>("ClaudeSnapshotTools").Visibility==Visibility.Visible&&fake.Readings.Single(r=>r.Provider=="Claude").Status=="Refresh pending","source switch invalidates prior result immediately");
+                var commandButton=shell.Control<Button>("ClaudeSnapshotCommand");commandButton.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+                Check(commandButton.ContextMenu!=null&&commandButton.ContextMenu.Items.Count==2,"command copy must expose both documented Windows shells");commandButton.ContextMenu.IsOpen=false;
                 Check((bool)typeof(Shell).GetField("claudeSnapshotSource",BindingFlags.NonPublic|BindingFlags.Instance).GetValue(shell),"snapshot route is selected before local-only probe");
                 var paths=(PulsePaths)typeof(Shell).GetField("paths",BindingFlags.NonPublic|BindingFlags.Instance).GetValue(shell);
                 var received=DateTimeOffset.UtcNow;long reset=(long)(received.AddHours(1)-new DateTimeOffset(1970,1,1,0,0,0,TimeSpan.Zero)).TotalSeconds;
