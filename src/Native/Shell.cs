@@ -74,8 +74,8 @@ namespace HardwarePulse {
             if(!isolated&&File.Exists(paths.Stop)&&File.GetLastWriteTimeUtc(paths.Stop).Ticks!=ignoredStop){Exit();return;}
             readings.Poll(DateTimeOffset.Now);if(!isolated)quotas.Tick(DateTimeOffset.UtcNow);UpdateDesktop();
             // Keep collection, peaks, stale-state detection and STOP handling active
-            // while the tray/minimized window has no visible cards to render.
-            if(Window.IsVisible&&Window.WindowState!=WindowState.Minimized)RenderPanel();
+            // while Settings or the tray/minimized window has no visible cards to render.
+            if(Window.IsVisible&&Window.WindowState!=WindowState.Minimized&&!settingsVisible)RenderPanel();
             if(loaded)Json.WriteAtomic(Path.Combine(paths.State,"view-status.json"),new {updated=DateTimeOffset.Now.ToString("o"),state=readings.Latest.state,mode=maximum?"max":"live",sensors=readings.Latest.values.Count});
         }
         void RenderPanel(){

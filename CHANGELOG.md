@@ -6,6 +6,8 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 
 ## Unreleased
 
+- Windows WPF skips invisible Monitor card updates while Settings is open. Collector, quota and Desktop updates continue; returning to Monitor renders the latest readings immediately.
+
 
 - Shared Linux X11 floating monitor adds mouse-through locking with XFixes. Unlock restores the default input region and window frame; native x64/ARM64 checks pass. Native Wayland locking is not implemented.
 

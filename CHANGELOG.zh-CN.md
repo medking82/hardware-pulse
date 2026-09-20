@@ -6,6 +6,8 @@
 
 ## 未发布
 
+- Windows WPF 在 Settings 打开时跳过不可见的 Monitor card 更新；collector、quota 和 Desktop 继续刷新，返回 Monitor 时立即显示最新读数。
+
 
 - Linux X11 浮动窗口新增基于 XFixes 的鼠标穿透锁定，解锁时恢复默认输入区域及窗口边框。x64/ARM64 原生检查已通过，尚未实现原生 Wayland 锁定。
 

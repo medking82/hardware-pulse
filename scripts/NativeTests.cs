@@ -185,13 +185,13 @@ internal static class NativeTests {
                 using(var shell=new Shell(paths,true)){
                     shell.Window.ShowInTaskbar=false;shell.Window.ShowActivated=false;shell.Window.Width=310;shell.Window.Height=690;shell.Show();Pump();
                     Field<DispatcherTimer>(shell,"poll").Stop();
-                    foreach(bool hidden in new[]{false,true}){
-                        if(hidden)shell.Window.Hide();
+                    foreach(string scene in new[]{"monitor","settings","tray"}){
+                        bool hidden=scene=="tray";shell.ShowSettings(scene=="settings");if(hidden)shell.Window.Hide();
                         for(int i=0;i<20;i++){shell.UpdatePanel();Pump();}
                         long allocated=AppDomain.CurrentDomain.MonitoringTotalAllocatedMemorySize;var process=Process.GetCurrentProcess();var cpu=process.TotalProcessorTime;var elapsed=Stopwatch.StartNew();
                         for(int i=0;i<300;i++){var snapshot=Snapshot();snapshot.sequence=i+2;snapshot.sensors[0].value=50+i%40;Json.WriteAtomic(paths.Snapshot,snapshot);shell.UpdatePanel();Pump();}
                         elapsed.Stop();process.Refresh();
-                        Console.WriteLine(Json.Serializer().Serialize(new {hidden=hidden,updates=300,allocatedBytes=AppDomain.CurrentDomain.MonitoringTotalAllocatedMemorySize-allocated,cpuMs=(process.TotalProcessorTime-cpu).TotalMilliseconds,elapsedMs=elapsed.Elapsed.TotalMilliseconds,workingSet=process.WorkingSet64,privateBytes=process.PrivateMemorySize64}));
+                        Console.WriteLine(Json.Serializer().Serialize(new {scene=scene,hidden=hidden,updates=300,allocatedBytes=AppDomain.CurrentDomain.MonitoringTotalAllocatedMemorySize-allocated,cpuMs=(process.TotalProcessorTime-cpu).TotalMilliseconds,elapsedMs=elapsed.Elapsed.TotalMilliseconds,workingSet=process.WorkingSet64,privateBytes=process.PrivateMemorySize64}));
                     }
                     shell.Show();Pump();Assert(shell.Control<TextBlock>("Status").Text.Contains("Live"),"Restore must display fresh readings");shell.Exit();
                 }app.Shutdown();return 0;
@@ -378,6 +378,16 @@ internal static class NativeTests {
                     }
                 }
                 shell.Control<Slider>("FontSizeSlider").Value=12;shell.Window.Width=310;Pump();Click(shell,"Details");Capture(shell,Path.Combine(state,"native-details.png"));Click(shell,"Details");Capture(shell,Path.Combine(state,"native-compact.png"));
+                shell.ShowSettings(false);shell.UpdatePanel();
+                var monitorText=Tree(shell.Control<StackPanel>("Cards")).OfType<TextBlock>().Select(t=>t.Text).ToArray();
+                shell.ShowSettings(true);
+                var settingsSnapshot=Snapshot();settingsSnapshot.sequence=987;settingsSnapshot.sensors[0].value=87;
+                Json.WriteAtomic(paths.Snapshot,settingsSnapshot);shell.UpdatePanel();Pump();
+                Assert(Tree(shell.Control<StackPanel>("Cards")).OfType<TextBlock>().Select(t=>t.Text).SequenceEqual(monitorText),"Settings rebuilt invisible monitor readings");
+                Assert(Field<ReadingSession>(shell,"readings").Latest.values["cpu"]==87,"Settings paused hardware polling");
+                shell.ShowSettings(false);Pump();
+                Assert(Tree(shell.Control<StackPanel>("Cards")).OfType<TextBlock>().Any(t=>t.Text=="87.0 °C"),"Returning from Settings did not render latest readings immediately");
+                Json.WriteAtomic(paths.Snapshot,Snapshot());shell.UpdatePanel();
                 LayoutChecks(shell,state);
                 // Desktop mode owns separate layout preferences and reuses this ReadingSession.
                 double originalFont=shell.Window.FontSize,originalLeft=shell.Window.Left;
