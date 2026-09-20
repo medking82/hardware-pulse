@@ -29,8 +29,14 @@ namespace HardwarePulse {
 
     // Called serially by the UI context. Owns no WPF controls, timers or settings.
     public sealed class UpdateCoordinator : IDisposable {
+#if NET
+#pragma warning disable CS0649 // Populated by the release metadata serializer.
+#endif
         sealed class ReleaseAsset {public string name,browser_download_url,digest;public long size;}
         sealed class ReleaseInfo {public bool draft,prerelease;public string tag_name;public ReleaseAsset[] assets;}
+#if NET
+#pragma warning restore CS0649
+#endif
         readonly IUpdateClient client;
         readonly Version installed;
         readonly bool legacyWindows;
@@ -55,7 +61,11 @@ namespace HardwarePulse {
             Checking=true;NextCheck=now.AddHours(6);StatusKey="Checking for updates…";VersionText=null;asset=null;
             try {
                 string json=await client.CheckAsync();if(disposed)return;
+#if NET
+                var release=System.Text.Json.JsonSerializer.Deserialize<ReleaseInfo>(json,new System.Text.Json.JsonSerializerOptions{IncludeFields=true,MaxDepth=64});Version remote;
+#else
                 var release=Json.Serializer().Deserialize<ReleaseInfo>(json);Version remote;
+#endif
                 if(release==null||release.draft||release.prerelease||!Version.TryParse((release.tag_name??"").TrimStart('v'),out remote))throw new InvalidDataException("Not a stable release");
                 if(remote>installed){
                     var assets=(release.assets??new ReleaseAsset[0]).Where(a=>a!=null&&a.name==UpdateCheck.AssetName(legacyWindows)).ToArray();

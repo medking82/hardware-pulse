@@ -114,8 +114,9 @@ public sealed class FloatingMonitorWindow : Window {
     }
     public void RestoreGeometry(PreviewSettings settings) {
         Width=settings.DesktopWidth;Height=settings.DesktopHeight;
-        if(settings.DesktopX is int x&&settings.DesktopY is int y)Position=new PixelPoint(x,y);
-        KeepOnScreen(settings.DesktopX==null||settings.DesktopY==null);
+        var position=settings.DesktopX is int x&&settings.DesktopY is int y?new PixelPoint(x,y):WindowGeometry.LegacyPosition(this,settings.LegacyDesktopLeft,settings.LegacyDesktopTop);
+        if(position is PixelPoint saved)Position=saved;
+        KeepOnScreen(position==null);
     }
     public void KeepOnScreen(bool reset=false) {
         var screen=reset?Screens.Primary:Screens.ScreenFromWindow(this)??Screens.Primary;
@@ -228,7 +229,7 @@ public sealed class FloatingMonitorWindow : Window {
     static string QuotaGroup(string key)=>key.StartsWith("quotaCodex:")?"quotaCodex":key.StartsWith("quotaClaude:")?"quotaClaude":key.StartsWith("quotaAntigravity:")?"quotaAntigravity":key;
     public void Present(MonitorSnapshot snapshot,bool peaks=false) {
         this.snapshot=snapshot;this.peaks=peaks;
-        var metrics=DesktopReadings.Create(snapshot,peaks,language).OrderBy(metric=>{int index=Array.IndexOf(metricOrder,QuotaGroup(metric.Key));return index<0?int.MaxValue:index;}).ToArray();
+        var metrics=DesktopReadings.Create(snapshot,peaks,language,contrastSettings.Names).OrderBy(metric=>{int index=Array.IndexOf(metricOrder,QuotaGroup(metric.Key));return index<0?int.MaxValue:index;}).ToArray();
         var active=metrics.Select(x=>x.Key).ToHashSet();
         foreach(string key in readings.Keys.Where(key=>!active.Contains(key)).ToArray()){sensors.Children.Remove(readings[key].Row);readings.Remove(key);}
         for(int i=0;i<metrics.Length;i++) {

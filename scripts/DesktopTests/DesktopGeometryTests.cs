@@ -13,6 +13,7 @@ static class DesktopGeometryTests {
             string path=Path.Combine(directory,"settings.json");
             File.WriteAllText(path,"{\"desktopWidth\":500,\"desktopHeight\":300,\"desktopX\":99999,\"desktopY\":99999}");
             owner=new MonitorWindow(new MonitorSource(true),start:false,store:new PreviewSettingsStore(path));owner.Show();owner.OpenFloatingMonitor();Pump();
+            owner.Position=new PixelPoint(owner.Position.X+5,owner.Position.Y+7);Pump();var appPosition=owner.Position;
             var desktop=owner.FloatingMonitor!;var screen=desktop.Screens.ScreenFromWindow(desktop)??desktop.Screens.Primary;
             Check(desktop.MinWidth==280&&desktop.MinHeight==140,"Original Desktop minimum size");
             if(screen!=null) {
@@ -23,8 +24,10 @@ static class DesktopGeometryTests {
             var position=desktop.Position;double width=desktop.Width,height=desktop.Height;
             desktop.Close();owner.Close();owner=null;
             var saved=new PreviewSettingsStore(path).Load();
+            Check(saved.AppX==appPosition.X&&saved.AppY==appPosition.Y,"App position was not persisted independently");
             Check(Math.Abs(saved.DesktopWidth-width)<1&&Math.Abs(saved.DesktopHeight-height)<1&&saved.DesktopX==position.X&&saved.DesktopY==position.Y,"Desktop geometry saved on resize/move/close");
             owner=new MonitorWindow(new MonitorSource(true),start:false,store:new PreviewSettingsStore(path));owner.Show();owner.OpenFloatingMonitor();Pump();desktop=owner.FloatingMonitor!;
+            Check(owner.Position==appPosition,"App position lost on owner restart");
             Check(Math.Abs(desktop.Width-width)<1&&Math.Abs(desktop.Height-height)<1&&desktop.Position==position,"Desktop geometry survives owner restart");
             desktop.Width=300;desktop.Height=180;Pump();
             Check(desktop.Width==300&&desktop.Height==180,"Original compact Desktop size remains usable");

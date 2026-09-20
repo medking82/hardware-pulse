@@ -17,6 +17,7 @@ static class Tests {
         if(args.SequenceEqual(new[]{"--native-desktop-layer"})) {HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();DesktopLayerTests.Native();return;}
         if(args.SequenceEqual(new[]{"--native-desktop-shortcut"})) {HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();DesktopShortcutTests.Native();return;}
         if(args.SequenceEqual(new[]{"--native-desktop-parity"})) {HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();DesktopShortcutTests.Native();DesktopLayerTests.Native();DesktopAutoContrastTests.Run();FloatingMonitorTests.Run();TrayTests.Run(native:true);LocalContrastTests.Native();return;}
+        if(args.SequenceEqual(new[]{"--native-delivery"})) {HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();DesktopUpdateTests.Run();ProfileMigrationTests.Run();HardwareNameTests.Run();DesktopGeometryTests.Run();return;}
         if(args.Length>=1&&args[0]=="--native-game-overlay") {HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();GameOverlayTests.Native(args.Length==2?args[1]:null);return;}
         if(args.SequenceEqual(new[]{"--native-session"})) {
             HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();
@@ -38,6 +39,7 @@ static class Tests {
         }
         AppBuilder.Configure<PulseApplication>().With(DesktopFonts.Options()).UseSkia().UseHeadless(new(){UseHeadlessDrawing=false}).SetupWithoutStarting();
         if(args.SequenceEqual(new[]{"--startup"})) {DesktopStartupTests.Run();return;}
+        if(args.SequenceEqual(new[]{"--delivery"})) {DesktopUpdateTests.Run();ProfileMigrationTests.Run();HardwareNameTests.Run();return;}
         if(args.Length>=1&&args[0]=="--fps") {FpsPanelTests.Run(args.Length==2?args[1]:null);return;}
         if(args.Length>=1&&args[0]=="--game-overlay") {GameOverlayTests.Run(args.Length==2?args[1]:null);return;}
         if(args.SequenceEqual(new[]{"--palette"})) {ReadingPaletteTests.Run();return;}
@@ -96,6 +98,7 @@ static class Tests {
         DesktopShortcutTests.Settings();
         DesktopAutoContrastTests.Run();
         DesktopStartupTests.Run();
+        DesktopUpdateTests.Run();ProfileMigrationTests.Run();HardwareNameTests.Run();
         WindowsSnapshotTests.Run();WindowsQuotaTests.Run();
         DeviceCardsTests.Run(args.Length==1?args[0]:null);
         CardPreferenceTests.Run(args.Length==1?args[0]:null);

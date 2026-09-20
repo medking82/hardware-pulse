@@ -1142,3 +1142,58 @@ mutex/runtime. Legacy WPF/startup regression also passed. The 360-DIP General
 Settings render was inspected: controls fit and existing navigation/language
 controls remain available. These checks do not establish installed upgrade
 acceptance or authorize a stable release.
+
+### Shared updater and profile boundary
+
+Reuse UpdateCoordinator and UpdateCheck for both Framework and modern Windows.
+Only the serializer/compilation bridge changes; stable exact-asset selection,
+HTTPS/redirect restrictions, size/digest verification, six-hour cadence and
+explicit installer launch remain owned by those existing classes. Shared General
+Settings and the compact Home action consume one coordinator. Demo, smoke,
+measurement, development and prerelease builds cannot start update transport.
+
+The rebuilt stable host uses `HardwarePulse/shared-ui-settings.json`, deliberately
+distinct from the withdrawn host's `shared-settings.json`. Its only first-run
+import source is the WPF `widget-settings.json`, read-only and size/depth bounded.
+Import copies recognized presentation preferences only, preserves source bytes,
+rejects linked paths and malformed source/target, and never falls back over an
+existing destination. The first imported save uses create-only rename so a
+concurrently created profile wins. Future unknown destination fields survive.
+No credentials, unrelated legacy fields or withdrawn shared layout are imported.
+Geometry restore now distinguishes WPF DIP coordinates from the shared host's
+physical pixel coordinates, uses the target monitor scale and clamps to a live
+working area. The first displayed window then persists physical coordinates.
+Mixed-DPI real-machine acceptance and remaining per-quota preference parity must
+still be accepted before stable identity is enabled; preserve recognized legacy
+values rather than silently treating an incomplete migration as release-ready.
+
+Hardware Names are restored in the original App Cards category, with the same
+12 editable identities and 160-character bound. App cards and Desktop consume
+the shared preferences without changing sampler metadata; clearing a name
+restores the automatic label. Names therefore import into their live preference
+owner rather than an unused legacy copy.
+
+Allowed changes: shared profile/store/import and App/Desktop geometry restore,
+Hardware Names controls and their
+App/Desktop presentation consumers, updater panel/owner integration,
+catalogs/tests, and conditional modern compilation in the existing updater
+owners. No current install, scheduled task, personal profile or public release
+is changed. Verify fake-client updater lifecycle/metadata rejection, profile
+source preservation and concurrent create, demo gate, narrow render, full shared
+regression and legacy Validate.ps1. Rollback is removal of this source change;
+all development profile tests use synthetic temporary files.
+
+<!-- sop-risk-classification: {"facts":{"blast_radius":"shared","change_kind":"schema_or_data_migration","data_boundary":"ordinary","destructive":"no","failure_cost":"material","irreversibility":"reversible","operational_controls":"not_applicable","privilege_boundary":"unchanged","project_policy":"default","rollback":"easy","scope_knowledge":"known","uncertainty":"low","verification":"deterministic"},"formal_review":"required","kind":"risk-classification-assessment","reasons":{"formal_review":["high_risk_requires_review"],"risk":["schema_or_data_migration"]},"risk":"high","schema_version":2} -->
+
+Focused delivery tests, full shared regression and Validate.ps1 passed. The
+native delivery fixture also passed update UI state, profile guards, Hardware
+Names consumers and independent App/Desktop geometry persistence/restart. The
+360-DIP General and 840-DIP App Cards/Hardware Names renders were inspected;
+navigation, scrolling and independent sections remain intact. WPF source and
+installed profiles were not used as mutable test fixtures. The ordinary worker
+startup batch is committed separately as d992c9d. The updater/profile frozen-diff
+review completed. Its proposed Desktop CPU/GPU/Memory custom-name change was
+rejected against Native/DesktopMode.cs: 0.6.27 deliberately uses translated
+category labels there, while disks/fans consume device names. The shared host
+preserves that behavior, now covered by a focused UI assertion. Delivery tests
+passed again after that assertion; no production behavior changed after review.

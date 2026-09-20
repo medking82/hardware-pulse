@@ -3,10 +3,10 @@ namespace HardwarePulse.Desktop;
 // Original DesktopMode metric grouping, using only the owner's published snapshot.
 internal sealed record DesktopReading(string Key,string Title,string Value,string Icon);
 internal static class DesktopReadings {
-    public static IReadOnlyList<DesktopReading> Create(MonitorSnapshot snapshot,bool peaks,UiLanguage language) {
+    public static IReadOnlyList<DesktopReading> Create(MonitorSnapshot snapshot,bool peaks,UiLanguage language,IReadOnlyDictionary<string,string>? names=null) {
         var result=new List<DesktopReading>();var hardware=snapshot.Hardware;
         bool Has(string key)=>hardware?.available?.GetValueOrDefault(key)==true||hardware?.values.ContainsKey(key)==true;
-        string Name(string key,string fallback)=>hardware?.names.GetValueOrDefault(key)??language.T(fallback);
+        string Name(string key,string fallback)=>HardwareNames.Get(names,key)??hardware?.names.GetValueOrDefault(key)??language.T(fallback);
         string Value(string key,string unit,bool current=false) {
             var values=peaks&&!current?snapshot.HardwarePeaks:hardware?.state=="LIVE"?hardware.values:null;
             return values?.TryGetValue(key,out double value)==true?ReadingFormat.SensorNumber(value,unit)+unit:"—";

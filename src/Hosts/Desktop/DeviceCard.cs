@@ -109,12 +109,12 @@ sealed class DeviceCard : Border {
         foreach(var item in metrics)if(item.Metric.Unit=="°C")item.Value.Foreground=color;
         // Labels and non-temperature measurements retain neutral foregrounds.
     }
-    public void Present(MonitorSnapshot snapshot,bool maximum,bool details) {
+    public void Present(MonitorSnapshot snapshot,bool maximum,bool details,IReadOnlyDictionary<string,string>? names=null) {
         bool modeChanged=displayedDetails!=details;
         displayedDetails=details;
         var reading=snapshot.Hardware;
         bool Has(string metric)=>reading?.values.ContainsKey(metric)==true||reading?.available?.GetValueOrDefault(metric)==true;
-        string NameOf(string metric,string fallback)=>reading?.names.GetValueOrDefault(metric)??language.T(fallback);
+        string NameOf(string metric,string fallback)=>HardwareNames.Get(names,metric)??reading?.names.GetValueOrDefault(metric)??language.T(fallback);
         string Value(string metric,string unit) {
             if(metric=="cpuLoad"&&!Has(metric))return maximum?snapshot.PeakCpu:snapshot.Cpu;
             if(metric=="netDown")return maximum?snapshot.PeakDownload:snapshot.Download;

@@ -232,3 +232,27 @@ Startup change could not be verified.|无法确认启动设置已更改。
 Startup is enabled.|已启用随系统启动。
 Startup is disabled.|已关闭随系统启动。
 Hardware collector start requested.|已请求启动硬件采样器。
+Automatically check for updates|自动检查更新
+Automatically download verified updates|自动下载经验证的更新
+Check for updates|检查更新
+Download update|下载更新
+Install and restart|安装并重启
+Updates require the installed stable Windows version.|更新需要已安装的 Windows 正式版。
+Installing update…|正在安装更新…
+Checking for updates…|正在检查更新…
+Downloading update|正在下载更新
+Update available|有可用更新
+Update ready to install|更新已准备好安装
+You are up to date|已是最新版本
+Update check failed; try again|检查更新失败，请重试
+Update download failed; try again|下载更新失败，请重试
+Installation canceled or failed; try again|安装已取消或失败，请重试
+Retry update|重试更新
+Update to|更新至
+Preferences imported from 0.6.27. Original settings are preserved.|已从 0.6.27 导入偏好设置。原始设置已保留。
+Hardware Names|硬件名称
+CPU Name|CPU 名称
+GPU Name|GPU 名称
+Memory Name|内存名称
+NVMe Name|NVMe 名称
+CPU Fan Name|CPU 风扇名称

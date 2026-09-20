@@ -5,6 +5,10 @@ using System.IO;
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
+#if NET
+// Keep existing transport/redirect/hash behavior shared with the Framework host.
+#pragma warning disable SYSLIB0014
+#endif
 public sealed class UpdateCheck {
     readonly bool legacyWindows;
     public UpdateCheck(bool legacyWindows=false){this.legacyWindows=legacyWindows;}

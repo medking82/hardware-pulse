@@ -42,6 +42,7 @@ public sealed class MonitorWindow : Window {
     readonly GameOverlayPanel gameOverlay;
     readonly HardwareSensorPanel sensors;
     readonly DesktopStartupPanel startup;
+    readonly DesktopUpdatePanel updates;
     public UiLanguage Language {get;}
     readonly PreviewSettingsStore? store;
     readonly PreviewSettings settings;
@@ -63,7 +64,7 @@ public sealed class MonitorWindow : Window {
         Language=new UiLanguage(settings.Language);sensors=new HardwareSensorPanel(Language);
         void ApplyLanguageFont(){var family=DesktopFonts.ForLanguage(Language.EffectiveLanguage);if(family is null)ClearValue(FontFamilyProperty);else FontFamily=family;}
         Language.Changed+=ApplyLanguageFont;ApplyLanguageFont();
-        Title="Pulse · Desktop preview";Width=settings.Width;Height=settings.Height;MinWidth=240;MinHeight=340;
+        Title=DesktopProfile.DisplayName;Width=settings.Width;Height=settings.Height;MinWidth=240;MinHeight=340;
         FontSize=settings.FontSize;
         WindowDecorations=WindowDecorations.None;
         var heading=Language.Set(new TextBlock{FontSize=22,FontWeight=FontWeight.SemiBold},"Pulse");
@@ -104,6 +105,9 @@ public sealed class MonitorWindow : Window {
         network.Children.Add(Language.Set(new TextBlock{TextWrapping=TextWrapping.Wrap},"Download and upload show the selected interface. A missing saved interface stays unselected until you choose another."));
         startup=new DesktopStartupPanel(Language,demo:source.IsDemo||smoke||measure);
         network.Children.Add(startup);
+        updates=new DesktopUpdatePanel(Language,settings,SaveLater,demo:source.IsDemo||smoke||measure);
+        network.Children.Add(updates);
+        if(store?.LegacyImported==true)network.Children.Add(Language.Set(new TextBlock{Name="ImportedSettingsNotice",TextWrapping=TextWrapping.Wrap},"Preferences imported from 0.6.27. Original settings are preserved."));
         var appearance=new StackPanel{Spacing=10};
         var windowPreferences=new StackPanel{Spacing=10};
         var theme=new ComboBox{Name="PreviewTheme",ItemsSource=new[]{"System","Light","Dark"},SelectedItem=settings.Theme,HorizontalAlignment=HorizontalAlignment.Stretch};
@@ -150,7 +154,7 @@ public sealed class MonitorWindow : Window {
         var settingsTabs=new TabControl{Name="SettingsTabs",ItemsSource=new[]{
             Language.Set(new TabItem{Content=Scroll(SectionPage(("General",network)))},"General"),Language.Set(new TabItem{Content=Scroll(SectionPage(("App Appearance",appearance),("Window",windowPreferences)))},"App Appearance"),
             Language.Set(new TabItem{Content=Scroll(CreateDesktopSettings())},"Desktop"),
-            Language.Set(new TabItem{Content=Scroll(SectionPage(("App Cards",CreateCardSettings())))},"App Cards"),
+            Language.Set(new TabItem{Content=Scroll(SectionPage(("App Cards",CreateCardSettings()),("Hardware Names",CreateHardwareNames())))},"App Cards"),
             Language.Set(new TabItem{Content=Scroll(SectionPage(("AI Quota",quotaSettings)))},"AI Quota"),Language.Set(new TabItem{Content=Scroll(SectionPage(("FPS",fps.SettingsContent),("Game Overlay",gameOverlay)))},"FPS")}};
         foreach(var tab in settingsTabs.Items.OfType<TabItem>()){tab.FontSize=12;tab.Padding=new Thickness(10,5);tab.MinHeight=34;ApplySettingsTabStyle(tab);}
         settingsTabs.Margin=new Thickness(12,0,12,0);
@@ -168,7 +172,9 @@ public sealed class MonitorWindow : Window {
         openSettings.Content=new Viewbox{Width=20,Height=20,Child=settingsIcon};
         void SettingsLabel(){ToolTip.SetTip(openSettings,Language.T("Settings"));Avalonia.Automation.AutomationProperties.SetName(openSettings,Language.T("Settings"));}
         Language.Changed+=SettingsLabel;SettingsLabel();
-        var footer=new Border{Name="MonitorFooter",Margin=new Thickness(14,4,20,10),Child=openSettings};
+        var footerControls=new Grid{ColumnDefinitions=new("*,Auto"),ColumnSpacing=8};
+        footerControls.Children.Add(updates.HomeAction);Grid.SetColumn(openSettings,1);footerControls.Children.Add(openSettings);
+        var footer=new Border{Name="MonitorFooter",Margin=new Thickness(14,4,20,10),Child=footerControls};
         var monitorHeader=new StackPanel{Spacing=4,Margin=new Thickness(14,0,14,8)};monitorHeader.Children.Add(modes);monitorHeader.Children.Add(status);
         var monitorPage=new DockPanel{Name="MonitorPage"};
         DockPanel.SetDock(monitorHeader,Dock.Top);monitorPage.Children.Add(monitorHeader);
@@ -201,18 +207,21 @@ public sealed class MonitorWindow : Window {
         antigravity.EnabledChanged+=on=>{settings.Antigravity=on;SaveLater();};antigravity.QuotaEnabled=settings.Antigravity;
         saveTimer.Tick+=(_,_)=>SaveNow();
         SizeChanged+=(_,_)=>{LayoutCards();ApplyCardDensity();if(WindowState==WindowState.Normal){settings.Width=Width;settings.Height=Height;SaveLater();}};LayoutCards();
+        bool appGeometryReady=false;
         Opened+=(_,_)=>{
             ApplyMaterial();
-            var screen=Screens.ScreenFromWindow(this);
-            if(screen!=null){Width=Math.Max(MinWidth,Math.Min(Width,screen.WorkingArea.Width/screen.Scaling));Height=Math.Max(MinHeight,Math.Min(Height,screen.WorkingArea.Height/screen.Scaling));}
+            WindowGeometry.RestoreApp(this,settings);
+            settings.AppX=Position.X;settings.AppY=Position.Y;
+            appGeometryReady=true;
         };
+        PositionChanged+=(_,_)=>{if(appGeometryReady&&IsVisible&&WindowState==WindowState.Normal){settings.AppX=Position.X;settings.AppY=Position.Y;SaveLater();}};
         Opened+=(_,_)=>{
             if(desktopStartupRestored)return;
             desktopStartupRestored=true;
             if(settings.DesktopEnabled){bool locked=settings.DesktopLocked;OpenFloatingMonitor();if(locked&&FloatingMonitor?.SetLocked(true)==true)Hide();}
         };
         if(start)Opened+=(_,_)=>{if(!samplingStarted){samplingStarted=true;Sampling=SampleAsync();}};
-        Closed+=(_,_)=>{if(materialPlatform!=null)materialPlatform.ColorValuesChanged-=ColorsChanged;stop.Cancel();FloatingMonitor?.Close();quota.Dispose();claude.Dispose();antigravity.Dispose();gameOverlay.Dispose();fps.Dispose();startup.Dispose();SaveNow();};
+        Closed+=(_,_)=>{if(materialPlatform!=null)materialPlatform.ColorValuesChanged-=ColorsChanged;stop.Cancel();FloatingMonitor?.Close();quota.Dispose();claude.Dispose();antigravity.Dispose();gameOverlay.Dispose();fps.Dispose();startup.Dispose();updates.Dispose();SaveNow();};
     }
     static void ApplySettingsTabStyle(TabItem tab) {
         tab.Margin=new Thickness(0,0,6,6);
@@ -453,6 +462,18 @@ public sealed class MonitorWindow : Window {
         choice.SelectionChanged+=(_,_)=>{if(choice.SelectedIndex<0)return;settings.NetworkUnit=units[choice.SelectedIndex];if(latestSnapshot!=null)Render(latestSnapshot);SaveLater();};
         var panel=new StackPanel{Spacing=10};panel.Children.Add(list);panel.Children.Add(Language.Set(new TextBlock{TextWrapping=TextWrapping.Wrap},"Network Speed Unit"));panel.Children.Add(choice);return panel;
     }
+    Control CreateHardwareNames() {
+        var panel=new StackPanel{Name="HardwareNames",Spacing=8};
+        foreach(var (key,label) in HardwareNames.Fields) {
+            panel.Children.Add(Language.Set(new TextBlock{TextWrapping=TextWrapping.Wrap},label));
+            var editor=new TextBox{Name="HardwareName"+key,MaxLength=160,Text=settings.Names.GetValueOrDefault(key,""),HorizontalAlignment=HorizontalAlignment.Stretch};
+            Avalonia.Automation.AutomationProperties.SetName(editor,Language.T(label));
+            Language.Changed+=()=>Avalonia.Automation.AutomationProperties.SetName(editor,Language.T(label));
+            editor.TextChanged+=(_,_)=>{string value=HardwareNames.Normalize(editor.Text);if(value.Length==0)settings.Names.Remove(key);else settings.Names[key]=value;if(latestSnapshot!=null)Render(latestSnapshot);SaveLater();};
+            panel.Children.Add(editor);
+        }
+        return panel;
+    }
     void ApplyWindowPreferences() {
         Topmost=settings.Topmost;CanResize=!settings.LockPosition;
         if(titleDrag!=null)titleDrag.Cursor=new Cursor(settings.LockPosition?StandardCursorType.Arrow:StandardCursorType.SizeAll);
@@ -534,12 +555,12 @@ public sealed class MonitorWindow : Window {
         } finally {measuringDensity=false;}
     }
     public void Present(MonitorSnapshot snapshot) {
-        latestSnapshot=snapshot;Render(snapshot);
+        latestSnapshot=snapshot;Render(snapshot);updates.Poll(DateTime.UtcNow);
     }
     void Render(MonitorSnapshot snapshot) {
         snapshot=snapshot.WithNetworkUnit(settings.NetworkUnit) with {CodexQuota=quota.CurrentReading,ClaudeQuota=claude.CurrentReading,AntigravityQuota=antigravity.CurrentReading,Fps=fps.Current};
         bool max=sessionMax;
-        foreach(var panel in panels){panel.Present(snapshot,max,details.IsChecked==true);panel.IsVisible&=!settings.HiddenCards.Contains(panel.Key);}
+        foreach(var panel in panels){panel.Present(snapshot,max,details.IsChecked==true,settings.Names);panel.IsVisible&=!settings.HiddenCards.Contains(panel.Key);}
         cardsEmpty.IsVisible=panels.All(x=>!x.IsVisible);
         LayoutCards();
         ApplyCardDensity();
