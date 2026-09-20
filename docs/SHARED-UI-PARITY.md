@@ -110,9 +110,33 @@ traffic interface, rather than the collector's default interface, labels rates.
 Synthetic checks cover parser parity/freshness, capability layout, Details,
 one-to-three columns, stable controls and peak/current behavior. Allowed surfaces
 are the modern Windows adapter, shared host and their tests; original WPF sources,
-assets, personal profiles, installer and release remain protected. Compact density,
+assets, personal profiles, installer and release remain protected. Height-driven compact density,
 card reordering/visibility, shell navigation and full Settings/Desktop presentation
 still require migration. This partial card port is not release acceptance.
+
+### Compact card flow
+
+DeviceCard now follows Native/Cards.ApplyDensity for width-driven flow: compact
+metrics share two columns when their measured text fits, otherwise they use one;
+Airflow and Details retain full-width rows. A hero reading stacks below its title
+when the header cannot fit on one line. Existing controls and fixed grid definitions
+are reused across sampling, resize and Details changes. Memory/NVMe pairs retain
+their separate layout. This does not yet port the original height-driven density
+levels or font-size setting.
+
+A regression assertion failed on the previous shared layout because Load and
+Vcore always occupied different rows. It now passes, together with a narrow-card
+single-column/header-stacking check, Details restoration and text-bound checks at
+360/800/1200 widths. Compact and Details renders were inspected. The full headless
+suite and Windows native-session regression pass; these checks do not establish
+full App/Desktop or Settings parity.
+
+The first repository validation attempt in this slice failed the unchanged WPF
+Desktop native hit-test at 30% opacity after its fixed 300 ms wait. An isolated
+diagnostic rerun kept every assertion and reported the expected HWND at both
+sample points for 0% and 30%, then passed. The cause of the first observation is
+not established; neither the WPF implementation nor that test was changed.
+The subsequent complete `scripts/Validate.ps1` run passed, including that fixture.
 
 The Windows input fixture passed once and later failed its immediate red-pixel
 assertion after pass-through hit testing succeeded. The fixture now waits up
@@ -121,4 +145,4 @@ pass-through afterwards. The subsequent native suite passed. This addresses
 the compositor observation timing, without relaxing the pixel or ownership
 assertion; it is not evidence for other machines or platforms.
 
-<!-- sop-risk-classification: {"facts":{"blast_radius":"shared","change_kind":"implementation","data_boundary":"ordinary","destructive":"no","failure_cost":"low","irreversibility":"reversible","operational_controls":"not_applicable","privilege_boundary":"unchanged","project_policy":"default","rollback":"easy","scope_knowledge":"known","uncertainty":"low","verification":"semantic"},"formal_review":"not_required","kind":"risk-classification-assessment","reasons":{"formal_review":["routine_no_review"],"risk":["no_high_risk_signal"]},"risk":"routine","schema_version":2} -->
+<!-- sop-risk-classification: {"facts":{"blast_radius":"isolated","change_kind":"implementation","data_boundary":"ordinary","destructive":"no","failure_cost":"low","irreversibility":"reversible","operational_controls":"not_applicable","privilege_boundary":"unchanged","project_policy":"default","rollback":"easy","scope_knowledge":"known","uncertainty":"low","verification":"semantic"},"formal_review":"not_required","kind":"risk-classification-assessment","reasons":{"formal_review":["routine_no_review"],"risk":["no_high_risk_signal"]},"risk":"routine","schema_version":2} -->

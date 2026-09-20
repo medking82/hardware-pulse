@@ -14,7 +14,10 @@ sealed class DeviceCard : Border {
     readonly UiLanguage language;
     readonly TextBlock subtitle=new(){Name="DeviceSubtitle",FontSize=10,Foreground=Brush.Parse("#DDE9F0"),Margin=new(0,3,0,6)};
     readonly TextBlock hero=new(){FontSize=21,HorizontalAlignment=HorizontalAlignment.Right};
-    readonly StackPanel rows=new();
+    readonly Grid rows=new(){Name="DeviceMetrics",ColumnDefinitions=new("*,*"),ColumnSpacing=10};
+    readonly Grid header=new(){ColumnDefinitions=new("*,Auto"),RowDefinitions=new("Auto,Auto"),ColumnSpacing=10};
+    readonly StackPanel titleRow=new(){Orientation=Orientation.Horizontal,Spacing=8};
+    bool? displayedDetails;
     readonly Grid? pairs;
     readonly Avalonia.Controls.Shapes.Path icon;
     readonly List<(Metric Metric,Grid Row,TextBlock Label,TextBlock Value)> metrics=new();
@@ -28,8 +31,7 @@ sealed class DeviceCard : Border {
         usageKey=key=="GPU"?"vram":key=="Memory"?"ram":null;
         CornerRadius=new(14);Padding=new(10,7);BorderThickness=new(1);
         BorderBrush=Brush.Parse("#426D8B9F");Background=Brush.Parse("#3031485B");
-        var body=new StackPanel();var header=new Grid{ColumnDefinitions=new("*,Auto"),ColumnSpacing=10};
-        var titleRow=new StackPanel{Orientation=Orientation.Horizontal,Spacing=8};
+        var body=new StackPanel();
         icon=AppIcon.Create(key.ToLowerInvariant());
         icon.Stroke=icon.Stroke==null?null:Brush.Parse(accent);icon.Fill=icon.Fill==null?null:Brush.Parse(accent);
         titleRow.Children.Add(new Viewbox{Width=18,Height=18,Child=icon});
@@ -42,9 +44,10 @@ sealed class DeviceCard : Border {
             "Memory"=>[new("ramA","Module 1","Module 1","°C"),new("ramB","Module 2","Module 2","°C")],
             "NVMe"=>[new("diskC","Drive 1","Drive 1","°C"),new("diskD","Drive 2","Drive 2","°C")],
             "Airflow"=>[new("bottom","System Fan 1","System Fan 1","RPM"),new("top","System Fan 2","System Fan 2","RPM")],
-            _=>[new("lanLink","LAN Link Speed","LAN","link"),new("wifiLink","Wi-Fi Link Speed","Wi-Fi","link"),new("wifiSignal","Wi-Fi Signal","Signal","%"),new("netDown","Download","Download","rate"),new("netUp","Upload","Upload","rate")]
+            _=>[new("lanLink","LAN Link Speed","LAN Link Speed","link"),new("wifiLink","Wi-Fi Link Speed","Wi-Fi Link Speed","link"),new("wifiSignal","Wi-Fi Signal","Wi-Fi Signal","%"),new("netDown","Download","Download","rate"),new("netUp","Upload","Upload","rate")]
         };
-        if(key is "Memory" or "NVMe") {pairs=new Grid{ColumnDefinitions=new("*,*"),ColumnSpacing=6};rows.Children.Add(pairs);}
+        rows.RowDefinitions=new(string.Join(",",Enumerable.Repeat("Auto",definitions.Length)));
+        if(key is "Memory" or "NVMe") {pairs=new Grid{ColumnDefinitions=new("*,*"),ColumnSpacing=6};Grid.SetColumnSpan(pairs,2);rows.Children.Add(pairs);}
         foreach(var metric in definitions) {
             var row=new Grid{ColumnDefinitions=new("*,Auto"),ColumnSpacing=10,Margin=new(0,2)};
             var label=new TextBlock{TextWrapping=TextWrapping.Wrap};
@@ -59,7 +62,26 @@ sealed class DeviceCard : Border {
         }
         usageBar.Foreground=Brush.Parse(accent);usageBar.Background=Brush.Parse("#203C5266");
         body.Children.Add(usage);body.Children.Add(usageBar);Child=body;
+        SizeChanged+=(_,_)=>Reflow(Bounds.Width);
         PropertyChanged+=(_,e)=>{if(e.Property==ThemeVariantScope.ActualThemeVariantProperty)ApplyPalette();};ApplyPalette();
+    }
+    void Reflow(double availableWidth) {
+        if(availableWidth<=0)return;
+        double width=Math.Max(0,availableWidth-Padding.Left-Padding.Right-BorderThickness.Left-BorderThickness.Right);
+        var unbounded=new Size(double.PositiveInfinity,double.PositiveInfinity);
+        titleRow.Measure(unbounded);hero.Measure(unbounded);
+        bool stacked=hero.IsVisible&&titleRow.DesiredSize.Width+hero.DesiredSize.Width+header.ColumnSpacing>width;
+        Grid.SetRow(hero,stacked?1:0);Grid.SetColumn(hero,stacked?0:1);Grid.SetColumnSpan(hero,stacked?2:1);
+        hero.HorizontalAlignment=stacked?HorizontalAlignment.Left:HorizontalAlignment.Right;
+        hero.Margin=new Thickness(0,stacked?3:0,0,0);
+        if(pairs==null) {
+            var visible=metrics.Where(x=>x.Row.IsVisible).ToArray();
+            bool compact=displayedDetails!=true&&key!="Airflow";
+            double widest=0;
+            if(compact)foreach(var item in visible){item.Row.Measure(unbounded);widest=Math.Max(widest,item.Row.DesiredSize.Width);}
+            int columns=compact&&2*widest+10<=width?2:1;
+            for(int i=0;i<visible.Length;i++){Grid.SetRow(visible[i].Row,i/columns);Grid.SetColumn(visible[i].Row,i%columns);Grid.SetColumnSpan(visible[i].Row,columns==1?2:1);}
+        }
     }
     void ApplyPalette() {
         bool light=ActualThemeVariant==ThemeVariant.Light;
@@ -71,6 +93,8 @@ sealed class DeviceCard : Border {
         // inherit the high-contrast text color instead of the lower-contrast accent.
     }
     public void Present(MonitorSnapshot snapshot,bool maximum,bool details) {
+        bool modeChanged=displayedDetails!=details;
+        displayedDetails=details;
         var reading=snapshot.Hardware;
         bool Has(string metric)=>reading?.values.ContainsKey(metric)==true||reading?.available?.GetValueOrDefault(metric)==true;
         string NameOf(string metric,string fallback)=>reading?.names.GetValueOrDefault(metric)??language.T(fallback);
@@ -88,8 +112,11 @@ sealed class DeviceCard : Border {
         hero.IsVisible=heroKey!=null&&Has(heroKey);hero.Text=heroKey==null?"":Value(heroKey,"°C");hero.FontSize=details?23:21;
         foreach(var (metric,row,label,value) in metrics) {
             row.IsVisible=metric.Key is "cpuLoad" or "netDown" or "netUp"||Has(metric.Key);
-            label.Text=details?NameOf(metric.Key,metric.Label):language.T(metric.ShortLabel);
-            label.FontSize=details?12:10;value.FontSize=details?12:11;value.Text=Value(metric.Key,metric.Unit);
+            bool full=details||key=="Airflow";
+            label.Text=full?NameOf(metric.Key,metric.Label):language.T(metric.ShortLabel);
+            label.FontSize=full?12:10;value.FontSize=full?12:11;value.Text=Value(metric.Key,metric.Unit);
+            label.TextWrapping=full?TextWrapping.Wrap:TextWrapping.NoWrap;
+            if(pairs==null&&modeChanged){row.ColumnDefinitions[0].Width=full?new GridLength(1,GridUnitType.Star):GridLength.Auto;row.ColumnSpacing=full?10:4;}
             if(pairs!=null) {
                 label.FontSize=10;value.FontSize=details?21:18;value.Margin=new(0,details?6:0,0,0);
                 pairs.ColumnDefinitions[Grid.GetColumn(row)].Width=row.IsVisible?new GridLength(1,GridUnitType.Star):new GridLength(0);
@@ -98,11 +125,13 @@ sealed class DeviceCard : Border {
         }
         usage.IsVisible=usageBar.IsVisible=usageKey!=null;
         if(usageKey!=null) {
+            usage.Margin=new Thickness(0,details?8:3,0,2);
             var current=reading?.state=="LIVE"?reading.usage.GetValueOrDefault(usageKey):null;
             usage.Text=current!=null?language.T(usageKey.ToUpperInvariant())+" "+ReadingFormat.UsageText(current):usageKey=="ram"?"RAM "+snapshot.Memory:"VRAM —";
             usageBar.Value=current?.percent??0;
             usageBar.IsVisible=current!=null;
         }
         IsVisible=key is "CPU" or "Memory" or "Network"||heroKey!=null&&Has(heroKey)||metrics.Any(x=>Has(x.Metric.Key))||reading?.usage.ContainsKey(usageKey??"")==true;
+        Reflow(Bounds.Width);
     }
 }
