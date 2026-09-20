@@ -61,6 +61,9 @@ static class ClaudeQuotaTests {
             handler.Reply=(_,_)=>Task.FromResult(Response(200,body));
             Check(client.Read(CancellationToken.None).Status=="Quota unavailable","Malformed/oversize response rejected");
         }
+        handler.Reply=(_,_)=>{var response=Response(429,"{}");response.Headers.RetryAfter=new System.Net.Http.Headers.RetryConditionHeaderValue(TimeSpan.FromMinutes(10));return Task.FromResult(response);};
+        reading=client.Read(CancellationToken.None);
+        Check(reading.Status=="Refresh rate limited"&&reading.RetryAt>DateTimeOffset.UtcNow.AddMinutes(9)&&reading.RetryAt<DateTimeOffset.UtcNow.AddMinutes(11),"Claude Retry-After reaches scheduler metadata");
         using(var cancelled=new CancellationTokenSource()) {
             cancelled.Cancel();int before=reads;
             try{client.Read(cancelled.Token);throw new Exception("Expected cancellation");}catch(OperationCanceledException){}

@@ -54,7 +54,7 @@ namespace HardwarePulse {
                 }else throw new QuotaFailure("Quota unavailable");
                 cancel.ThrowIfCancellationRequested();return QuotaDecoder.Decode(provider,body,DateTimeOffset.UtcNow);
             }catch(OperationCanceledException){throw;}
-            catch(QuotaFailure e){return new QuotaReading{Provider=provider,Status=e.Status,Observed=DateTimeOffset.UtcNow};}
+            catch(QuotaFailure e){return new QuotaReading{Provider=provider,Status=e.Status,Observed=DateTimeOffset.UtcNow,RetryAt=e.RetryAt};}
             catch{cancel.ThrowIfCancellationRequested();return new QuotaReading{Provider=provider,Status="Quota unavailable",Observed=DateTimeOffset.UtcNow};}
         }
         static object RequestCodex(string token,string account,CancellationToken cancel){
@@ -82,7 +82,7 @@ namespace HardwarePulse {
                             return QuotaData.Parse(Encoding.UTF8.GetString(memory.ToArray()));
                         }
                     }
-                }catch(WebException e){cancel.ThrowIfCancellationRequested();using(var response=e.Response as HttpWebResponse){int status=response==null?0:(int)response.StatusCode;throw new QuotaFailure(status==401?"Login required":status==403?"Quota access denied":status==429?"Refresh rate limited":"Quota unavailable");}}
+                }catch(WebException e){cancel.ThrowIfCancellationRequested();using(var response=e.Response as HttpWebResponse){int status=response==null?0:(int)response.StatusCode;throw new QuotaFailure(status==401?"Login required":status==403?"Quota access denied":status==429?"Refresh rate limited":"Quota unavailable",status==429?QuotaFailure.ParseRetryAfter(response.Headers["Retry-After"],DateTimeOffset.UtcNow):null);}}
             }
         }
     }

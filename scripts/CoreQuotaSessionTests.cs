@@ -62,6 +62,22 @@ internal static class CoreQuotaSessionTests {
             }
         }
         calls=0;CancellationToken captured=CancellationToken.None;
+        // The provider requests ten minutes, longer than our default two-minute backoff.
+        using(var premature=new ManualResetEventSlim()){
+            int attempts=0;
+            using(var retry=new QuotaSession((provider,cancel)=>{
+                if(Interlocked.Increment(ref attempts)>1){premature.Set();return new QuotaReading{Provider=provider,Status="Live"};}
+                return new QuotaReading{Provider=provider,Status="Refresh rate limited",RetryAt=now.AddMinutes(10)};
+            })){
+                retry.Enable("Claude",true);Pump(retry,now,()=>retry.Readings[0].Status=="Refresh rate limited");
+                retry.Tick(now.AddMinutes(2));
+                Check(!premature.Wait(200),"Server Retry-After must prevent the default two-minute retry");
+                retry.Refresh();retry.Tick(now.AddMinutes(9));
+                Check(!premature.Wait(200),"Manual Refresh must not bypass server Retry-After");
+                Pump(retry,now.AddMinutes(10),()=>retry.Readings[0].Status=="Live");
+                Check(attempts==2,"Server deadline launches one recovery request");
+            }
+        }
         foreach(string failure in new[]{"Quota unavailable","Refresh rate limited","Login required","Quota access denied"}) {
             int attempts=0;int delay=failure=="Quota unavailable"?30:failure=="Refresh rate limited"?120:300;
             using(var retry=new QuotaSession((provider,cancel)=>new QuotaReading{Provider=provider,Status=Interlocked.Increment(ref attempts)==1?failure:"Live"})) {

@@ -77,7 +77,9 @@ rejects late results. Clear old windows on failures/account transitions; no fabr
 HTTP status presentation distinguishes missing/rejected authentication (401,
 `Login required`) from forbidden access (403, `Quota access denied`). A 403 does
 not prove the login expired. Both retain the normal five-minute retry cadence;
-429 keeps the two-minute backoff and transient failures retry after 30 seconds.
+429 keeps a two-minute minimum automatic backoff, extended by a valid server
+Retry-After deadline. Manual Refresh also respects that server deadline. Missing
+or invalid headers retain the two-minute default; transient failures retry after 30 seconds.
 This classification does not refresh tokens, change endpoints or grant access.
 
 ## Codex managed-client recovery (implementation in progress)

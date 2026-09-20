@@ -19,12 +19,25 @@ namespace HardwarePulse {
                 cancel.ThrowIfCancellationRequested();
                 return QuotaDecoder.Decode("Codex",body,DateTimeOffset.UtcNow);
             }catch(OperationCanceledException){throw;}
-            catch(QuotaFailure e){return new QuotaReading {Provider="Codex",Status=e.Status,Observed=DateTimeOffset.UtcNow};}
+            catch(QuotaFailure e){return new QuotaReading {Provider="Codex",Status=e.Status,Observed=DateTimeOffset.UtcNow,RetryAt=e.RetryAt};}
             catch{cancel.ThrowIfCancellationRequested();return new QuotaReading {Provider="Codex",Status="Quota unavailable",Observed=DateTimeOffset.UtcNow};}
         }
     }
     public sealed class QuotaFailure:Exception {
         public readonly string Status;
         public QuotaFailure(string status){Status=status;}
+        public readonly DateTimeOffset? RetryAt;
+        public QuotaFailure(string status,DateTimeOffset? retryAt):this(status){RetryAt=retryAt;}
+        public static DateTimeOffset? ParseRetryAfter(string value,DateTimeOffset now){
+            if(string.IsNullOrWhiteSpace(value)||value.Length>128)return null;
+            value=value.Trim();long seconds;
+            if(long.TryParse(value,System.Globalization.NumberStyles.None,System.Globalization.CultureInfo.InvariantCulture,out seconds)){
+                if(seconds<0||seconds>(DateTimeOffset.MaxValue-now).TotalSeconds)return null;
+                try{return now.AddSeconds(seconds);}catch(ArgumentOutOfRangeException){return null;}
+            }
+            DateTimeOffset date;
+            if(DateTimeOffset.TryParseExact(value,"r",System.Globalization.CultureInfo.InvariantCulture,System.Globalization.DateTimeStyles.AssumeUniversal,out date))return date;
+            return null;
+        }
     }
 }

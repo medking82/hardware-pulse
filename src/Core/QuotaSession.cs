@@ -24,6 +24,7 @@ namespace HardwarePulse {
                     // on the normal cadence and rate limiting receives its own backoff.
                     bool overdue=slot.Reading.Status=="Live"&&slot.Reading.Observed!=default(DateTimeOffset)&&now-slot.Reading.Observed>=TimeSpan.FromMinutes(5)&&now>=slot.Next;
                     slot.Next=now.AddSeconds(slot.Reading.Status=="Quota unavailable"?30:slot.Reading.Status=="Refresh rate limited"?120:300);
+                    if(slot.Reading.Status=="Refresh rate limited"&&slot.Reading.RetryAt.HasValue&&slot.Reading.RetryAt.Value>slot.Next)slot.Next=slot.Reading.RetryAt.Value;
                     // A completed pre-sleep observation must not postpone wake recovery.
                     if(overdue)slot.Next=now;
                     if(slot.RefreshQueued&&slot.Reading.Status!="Refresh rate limited")slot.Next=now;
@@ -31,6 +32,7 @@ namespace HardwarePulse {
                 slot.RefreshQueued=false;slot.Pending=null;slot.Cancel.Dispose();slot.Cancel=null;
             }
             if(!slot.Enabled||slot.Pending!=null||now<slot.Next)continue;
+            if(slot.Reading.Status=="Refresh rate limited"&&slot.Reading.RetryAt.HasValue&&now<slot.Reading.RetryAt.Value)continue;
             slot.Next=now.AddMinutes(5);slot.Cancel=new CancellationTokenSource(TimeSpan.FromSeconds(30));slot.PendingVersion=slot.Version;string provider=pair.Key;var token=slot.Cancel.Token;
             slot.Pending=Task.Run(()=>read(provider,token));
         }}

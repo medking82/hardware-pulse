@@ -11,6 +11,7 @@ namespace HardwarePulse {
         public string Provider,Status="Quota unavailable";
         public string Source;
         public DateTimeOffset Observed;
+        public DateTimeOffset? RetryAt;
         public List<QuotaWindow> Windows=new List<QuotaWindow>();
         public List<QuotaWindow> AllWindows=new List<QuotaWindow>();
     }

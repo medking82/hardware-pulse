@@ -38,6 +38,9 @@ static class FileCodexQuotaTests {
                 Check(reading.Status=="Live"&&reading.Windows[0].Remaining==64,"File to HTTP to shared decoder");
                 File.WriteAllText(path,login,new System.Text.UTF8Encoding(true));
                 Check(adapter.Read(CancellationToken.None).Status=="Live","UTF-8 BOM login accepted");
+                handler.Reply=(r,c)=>{var response=Response(429,"{}");response.Headers.RetryAfter=new System.Net.Http.Headers.RetryConditionHeaderValue(TimeSpan.FromMinutes(10));return Task.FromResult(response);};
+                reading=adapter.Read(CancellationToken.None);
+                Check(reading.Status=="Refresh rate limited"&&reading.RetryAt>DateTimeOffset.UtcNow.AddMinutes(9)&&reading.RetryAt<DateTimeOffset.UtcNow.AddMinutes(11),"Codex Retry-After reaches scheduler metadata");
                 foreach(int status in new[]{301,302,307,308,401,403,429,500}){
                     handler.Reply=(r,c)=>{var response=Response(status,"{}");response.Headers.Location=new Uri("https://example.invalid/no-credentials");return Task.FromResult(response);};
                     int calls=handler.Calls;
