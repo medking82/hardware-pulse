@@ -6,6 +6,8 @@
 
 ## 未发布
 
+- Antigravity Desktop quota probe 保留 HTTP 429 backoff 和 HTTP 403 access-denied 状态，不再将其转成普通 transport failure；credential／source 和 UI 保持不变。
+
 
 
 

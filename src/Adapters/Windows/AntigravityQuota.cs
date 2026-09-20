@@ -45,13 +45,22 @@ namespace HardwarePulse {
                     failure="Quota unavailable";
                     foreach(int port in Ports(pid))foreach(string scheme in new[]{"https","http"}){
                         deadline.Token.ThrowIfCancellationRequested();if(!Ports(pid).Contains(port))continue;
-                        try{var body=QuotaProviders.Request(scheme+"://127.0.0.1:"+port+"/exa.language_server_pb.LanguageServerService/RetrieveUserQuotaSummary",new Dictionary<string,string>{{"x-codeium-csrf-token",token},{"connect-protocol-version","1"}},"{\"forceRefresh\":true}",deadline.Token,true);
-                            if(QuotaDecoder.Decode("Antigravity",body,DateTimeOffset.UtcNow).Status=="Live")return body;
-                        }catch(QuotaFailure error){if(error.Status=="Login required")failure=error.Status;}
+                        var body=TryReadEndpoint(()=>QuotaProviders.Request(scheme+"://127.0.0.1:"+port+"/exa.language_server_pb.LanguageServerService/RetrieveUserQuotaSummary",new Dictionary<string,string>{{"x-codeium-csrf-token",token},{"connect-protocol-version","1"}},"{\"forceRefresh\":true}",deadline.Token,true),ref failure);
+                        if(body!=null)return body;
                     }
                 }
             }
             throw new QuotaFailure(failure);
+        }
+        internal static object TryReadEndpoint(Func<object> request,ref string failure){
+            try{var body=request();if(QuotaDecoder.Decode("Antigravity",body,DateTimeOffset.UtcNow).Status=="Live")return body;}
+            catch(QuotaFailure error){
+                // A server backoff/access decision is not a failed port or scheme
+                // probe. Preserve it for QuotaSession instead of probing again.
+                if(error.Status=="Refresh rate limited"||error.Status=="Quota access denied")throw;
+                if(error.Status=="Login required")failure=error.Status;
+            }
+            return null;
         }
     }
 }

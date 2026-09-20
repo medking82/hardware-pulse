@@ -6,6 +6,8 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 
 ## Unreleased
 
+- Antigravity Desktop quota probes now preserve HTTP 429 backoff and HTTP 403 access-denied status instead of converting them into ordinary transport failures. No credential/source or UI change.
+
 
 
 

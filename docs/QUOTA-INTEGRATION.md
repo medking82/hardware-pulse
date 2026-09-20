@@ -82,6 +82,23 @@ Retry-After deadline. Manual Refresh respects both the minimum and server deadli
 or invalid headers retain the two-minute default; transient failures retry after 30 seconds.
 This classification does not refresh tokens, change endpoints or grant access.
 
+### Antigravity Desktop probe error propagation (after 0.6.34)
+
+The Windows Desktop endpoint loop previously preserved 401 but swallowed 429 and
+403 as ordinary probe failures. A synthetic response reproduced loss of the
+rate-limit exception and its RetryAt. The loop now propagates those two decisions
+immediately to QuotaProviders and the existing QuotaSession backoff policy. It
+does not try another port, scheme or CLI account after either decision.
+
+TryReadEndpoint owns only response decoding and probe-error classification;
+process ownership, PID-owned port rechecks, CSRF headers and fixed endpoints stay
+in the existing caller. Ordinary transport failures and 401 retain their previous
+probe behavior. No credentials, CLI configuration, UI or hardware behavior change.
+AntigravityEndpointTests uses injected synthetic responses to check preserved
+exception identity/deadline, forbidden access, transport/auth failures, valid and
+missing data, and cancellation. It failed on the original swallowing behavior and
+passed after correction; no live provider rate limit was intentionally triggered.
+
 ## Codex managed-client recovery (implementation in progress)
 
 After `Login required` only, Windows may use the current user's installed
