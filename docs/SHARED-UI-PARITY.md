@@ -1023,3 +1023,29 @@ lock/edit, Return, unsupported/demo rejection, singleton and lifetime checks.
 Screenshot capture/recovery itself retains the separate native evidence and the
 unattributed intermittent failure recorded above. Installed state is unchanged.
 Repository Validate.ps1 passed after the tray changes; the focused native fixture exercised the real window lock/edit/restore transitions.
+
+### Windows Desktop placement
+
+WindowsDesktopLayer ports the original own-window z-order policy to the modern
+Windows adapter. It discovers the visible Explorer icon host, positions the
+locked readout immediately above that host and below ordinary apps, and honors
+Always on Top. It never reparents into Explorer, changes wallpaper or mutates a
+foreign window. Foreground events request a coalesced UI refresh; the existing
+snapshot cadence provides recovery without another polling timer. Editing keeps
+normal activation and placement. Demo/smoke/measurement sessions remain isolated.
+
+Native tests cover foreign-window rejection, below-app placement, no focus steal,
+topmost on/off, unchanged bounds, unlocked editing and callback disposal. A red
+fixture hid only the owned test window and found that an already-correct z-order
+skipped visibility restoration. Refresh now restores that window without
+reordering; the same fixture passes. This does not claim actual Show Desktop or
+Explorer-restart acceptance, which remain separate system interaction gates.
+
+Scope is the Windows placement adapter, shared Desktop lifecycle and native test
+entrypoints. No installed state or original WPF source changed. Risk classifier:
+routine / not_required (known shared scope, deterministic native verification,
+easy rollback, material failure cost, ordinary data, unchanged privileges).
+Rollback removes this source integration; no Explorer recovery is needed because
+Explorer is only read. Native placement and native Desktop/tray regression passed;
+full shared regression and repository validation are in progress.
+The final shared headless regression and repository Validate.ps1 both passed for the placement change.

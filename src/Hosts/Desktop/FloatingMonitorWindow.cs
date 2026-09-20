@@ -20,6 +20,7 @@ public sealed class FloatingMonitorWindow : Window {
     ReadingPalette palette=new();
     PreviewSettings contrastSettings=new();
     readonly WindowsLocalContrast? contrast;
+    WindowsDesktopLayer? desktopLayer;
     public event Action? ContrastChanged;
     public bool CanBeginScreenshot=>contrast!=null&&contrastSettings.DesktopLocalContrast&&IsVisible;
     public Color ContrastBackground=>(surface.Background as ISolidColorBrush)?.Color??Colors.Transparent;
@@ -45,14 +46,14 @@ public sealed class FloatingMonitorWindow : Window {
     IDisposable? inputLifetime;
     public bool IsLocked {get;private set;}
     public bool CanLock=>input!=null;
-    public FloatingMonitorWindow(UiLanguage language,bool captureAllowed=true) {
+    public FloatingMonitorWindow(UiLanguage language,bool nativeEffectsAllowed=true) {
         this.language=language;
         RequestedThemeVariant=ThemeVariant.Dark; // Desktop owns a dark backing, including editor controls.
         Width=466;Height=400;MinWidth=280;MinHeight=140;FontSize=16;
         WindowDecorations=WindowDecorations.None;
         language.Set(this,"Floating monitor");
         topmost=language.Set(new CheckBox{Name="FloatingTopmost"},"Always on top");
-        topmost.IsCheckedChanged+=(_,_)=>{Topmost=topmost.IsChecked==true;ApplyMaterial();TopmostChanged?.Invoke(Topmost);};
+        topmost.IsCheckedChanged+=(_,_)=>{Topmost=topmost.IsChecked==true;ApplyMaterial();RefreshDesktopLayer();TopmostChanged?.Invoke(Topmost);};
         var lockButton=language.Set(new Button{Name="LockFloatingMonitor",IsVisible=false},"Done");
         lockButton.Click+=(_,_)=>SetLocked(true);
         var back=language.Set(new Button{Name="ReturnToApp"},"Return to App");
@@ -67,6 +68,7 @@ public sealed class FloatingMonitorWindow : Window {
             var handle=TryGetPlatformHandle();
             if(OperatingSystem.IsWindows()&&handle?.HandleDescriptor=="HWND") {
                 input??=new WindowsWindowInput(handle.Handle).SetPassThrough;
+                if(nativeEffectsAllowed)desktopLayer??=new WindowsDesktopLayer(handle.Handle,action=>Avalonia.Threading.Dispatcher.UIThread.Post(action),RefreshDesktopLayer);
             }
             else if(OperatingSystem.IsMacOS()&&handle?.HandleDescriptor=="NSWindow"&&input==null) {
                 var adapter=new MacWindowInput(handle.Handle);input=adapter.SetPassThrough;inputLifetime=adapter;
@@ -97,13 +99,13 @@ public sealed class FloatingMonitorWindow : Window {
         ApplyMaterial();
         language.Changed+=Localize;Localize();
         PropertyChanged+=(_,e)=>{if(e.Property==ActualThemeVariantProperty)foreach(var item in readings.Values)ColorIcon(item.Row);};
-        if(captureAllowed&&WindowsBackgroundCapture.Supported) {
+        if(nativeEffectsAllowed&&WindowsBackgroundCapture.Supported) {
             contrast=new WindowsLocalContrast(this,sensors,()=>contrastSettings,ResetContrast);
             contrast.Changed+=()=>ContrastChanged?.Invoke();
             Opened+=(_,_)=>UpdateLocalContrast();
             PropertyChanged+=(_,e)=>{if(e.Property==IsVisibleProperty)UpdateLocalContrast();};
         }
-        Closed+=(_,_)=>contrast?.Dispose();
+        Closed+=(_,_)=>{contrast?.Dispose();desktopLayer?.Dispose();desktopLayer=null;};
         Closed+=(_,_)=>{language.Changed-=Localize;input=null;inputLifetime?.Dispose();inputLifetime=null;};
     }
     public void RestoreGeometry(PreviewSettings settings) {
@@ -179,6 +181,7 @@ public sealed class FloatingMonitorWindow : Window {
             editor.IsVisible=!locked;
             language.Set(lockStatus,locked?"Locked · Reopen from Monitor or the tray to unlock.":"Reopen from Monitor or the tray to unlock.");
             LockedChanged?.Invoke(locked);
+            RefreshDesktopLayer();
             return true;
         } catch(Exception e) when(e is System.ComponentModel.Win32Exception or InvalidOperationException) {
             if(!IsLocked)SetEditorChrome(true);
@@ -240,5 +243,11 @@ public sealed class FloatingMonitorWindow : Window {
         }
         empty.IsVisible=!readings.Values.Any(item=>item.Row.IsVisible);
         LayoutReadings();
+        RefreshDesktopLayer();
+    }
+    void RefreshDesktopLayer(){
+        if(!IsLocked||desktopLayer==null)return;
+        if(desktopLayer.Refresh(Topmost)){if(!IsVisible){Show();desktopLayer.Refresh(Topmost);}}
+        else if(IsVisible)Hide(); // the existing snapshot/foreground refresh retries after Explorer returns
     }
 }

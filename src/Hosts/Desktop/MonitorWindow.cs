@@ -265,7 +265,7 @@ public sealed class MonitorWindow : Window {
     public void OpenFloatingMonitor() {
         if(stop.IsCancellationRequested)return;
         if(FloatingMonitor==null) {
-            FloatingMonitor=new FloatingMonitorWindow(Language,captureAllowed:!source.IsDemo&&!smoke&&!measure);
+            FloatingMonitor=new FloatingMonitorWindow(Language,nativeEffectsAllowed:!source.IsDemo&&!smoke&&!measure);
             FloatingMonitor.ApplyPreferences(settings);
             FloatingMonitor.ApplyAppPalette(new(settings.UnifiedReadingColors,settings.ReadingColor),ActualThemeVariant==ThemeVariant.Light);
             var desktop=FloatingMonitor;bool tracking=false;

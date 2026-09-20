@@ -14,10 +14,12 @@ static class Tests {
         Check(expected==null||expected==System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture.ToString(),"Architecture mismatch");
         if(args.SequenceEqual(new[]{"--native-contrast"})) {HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();WindowsCaptureTests.Native();LocalContrastTests.Native();return;}
         if(args.SequenceEqual(new[]{"--native-desktop-tray"})) {HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();FloatingMonitorTests.Run();TrayTests.Run(native:true);return;}
+        if(args.SequenceEqual(new[]{"--native-desktop-layer"})) {HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();DesktopLayerTests.Native();return;}
         if(args.Length>=1&&args[0]=="--native-game-overlay") {HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();GameOverlayTests.Native(args.Length==2?args[1]:null);return;}
         if(args.SequenceEqual(new[]{"--native-session"})) {
             HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();
             WindowsCaptureTests.Native();LocalContrastTests.Native();
+            DesktopLayerTests.Native();
             GameOverlayTests.Native();
             DesktopMetricPreferenceTests.Run();DesktopGeometryTests.Run();SettingsTests.Run(null);
             FpsPanelTests.Owner();
