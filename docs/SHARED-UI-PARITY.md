@@ -1,5 +1,22 @@
 # Shared host migration acceptance
 
+## Current delivery decision (2026-09-20)
+
+The user prioritizes Windows package size, resource use and the v0.6.27 UI over
+sharing the Windows and macOS UI host. Windows stable delivery therefore uses
+the v0.6.27 WPF host as its baseline. Do not promote the shared Windows RC into
+the stable channel. Preserve App, Desktop and Settings behavior; improve the
+default dark background for readable light text without resetting saved choices.
+Core and adapter logic may remain shared where useful, but shared presentation
+is no longer a Windows release requirement. macOS continues independently as RC
+until its own acceptance gates pass. The withdrawn v0.7.0 remains withdrawn.
+
+The sections below record the earlier shared-host migration work and its checks.
+They are not authorization to replace the WPF Windows host. See the current
+scope in [release readiness](RELEASE-READINESS.md).
+
+## Historical shared-host scope
+
 The product reference is Windows WPF v0.6.27, commit
 `ccf2a1e411767e16981091e164f27b7cb130fb9a`. The destination is the shared
 host, not a replacement WPF maintenance release. The withdrawn v0.7.0 must

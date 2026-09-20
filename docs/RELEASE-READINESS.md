@@ -1,10 +1,27 @@
 # Multi-platform stable release readiness
 
 The delivery target is a public stable release with usable, verified packages,
-not merely pushed adapters or a renamed experimental release. Existing Windows
-WPF v0.6.26 remains stable; v0.7.0-preview.1 is still experimental.
+not merely pushed adapters or a renamed experimental release. The Windows
+reference is WPF v0.6.27. The withdrawn v0.7.0 must not be reused.
 
 ## Scope decision
+
+Current user decision (2026-09-20): prioritize a lightweight Windows build over
+a shared Windows/macOS UI host. Iterate the original v0.6.27 WPF App, Desktop
+and Settings for Windows stable delivery. Retain useful shared Core/adapter
+logic without forcing the Avalonia host or its self-contained runtime/fonts
+into the Windows installer. macOS packaging and UI may evolve independently;
+its release stays RC until the platform gates are verified.
+
+Preserve saved user preferences, geometry and the original visual design.
+New/default appearance should retain light text with a deeper background for
+readability, keeping the opacity control. Quota reliability and measured
+CPU/RAM remain delivery work. Compare the final Windows installer and workload
+against v0.6.27; compression alone does not establish runtime improvements.
+The shared Windows 0.7.1-rc.1 build is experimental evidence, not the chosen
+Windows stable deliverable. Do not publish it as the final Windows update.
+
+## Earlier scope and validation history
 
 Latest priority (2026-09-16, after the Win7 test publication): the user requests
 Windows 10/11 and macOS stable delivery as soon as possible. Ship Windows
