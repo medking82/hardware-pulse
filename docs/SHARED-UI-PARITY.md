@@ -541,3 +541,21 @@ inspected. Existing font-scale checks at 10/12/16 also pass. This closes the tra
 overflow defect, not complete card/Settings/native-material parity. Routine
 isolated reversible implementation; existing admission facts remain applicable.
 Full scripts/Validate.ps1 passed for device usage track fidelity; protected baseline source/assets diff remains empty.
+
+### Monitor mode control appearance
+
+Live, Session Max and Details now use the original Panel.xaml rounded plate
+(radius 15, minimum height 28, border #496F829A), Shell's selected #607898A8
+background and original hover/pressed/focus colors. Their existing ToggleButton
+semantics remain; the custom template binds the plate/content to the owner.
+Scope is these three Monitor controls only, not all Settings buttons. Existing
+routine presentation risk facts and source-only rollback still apply; original
+WPF/assets, sampling, providers and installed profiles are protected.
+
+The 240px render was inspected. Headless keyboard regression verifies exclusive
+Live/Session Max, repeated active Live activation, both Details transitions and
+actual rendered plate selection/radius, alongside fixed Settings/Back navigation.
+An initial assertion incorrectly compared transparent RGB channels; it now checks
+zero alpha for the transparent state, while requiring the exact selected color.
+Headless suite and full scripts/Validate.ps1 pass. Native pointer hover/pressed
+and high-contrast visual acceptance remain open, as does full UI parity.

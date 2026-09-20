@@ -14,6 +14,20 @@ static class NavigationTests {
         try {
             T Find<T>(string name) where T:Control=>window.GetVisualDescendants().OfType<T>().Single(x=>x.Name==name);
             void Press(Button button){button.Focus();window.KeyPress(Key.Space,RawInputModifiers.None,PhysicalKey.Space," ");window.KeyRelease(Key.Space,RawInputModifiers.None,PhysicalKey.Space," ");Dispatcher.UIThread.RunJobs();}
+            var live=Find<Avalonia.Controls.Primitives.ToggleButton>("Live");
+            var max=Find<Avalonia.Controls.Primitives.ToggleButton>("SessionMax");
+            var details=Find<Avalonia.Controls.Primitives.ToggleButton>("Details");
+            void SelectedPlate(Avalonia.Controls.Primitives.ToggleButton button,bool selected) {
+                var plate=button.GetVisualDescendants().OfType<Border>().Single(x=>x.Name=="ModePlate");
+                Check(plate.CornerRadius==new CornerRadius(15),"Original rounded mode plate");
+                var color=((Avalonia.Media.ISolidColorBrush)plate.Background!).Color;
+                Check(selected?color==Avalonia.Media.Color.Parse("#607898A8"):color.A==0,"Mode plate reflects selection without Fluent accent");
+            }
+            SelectedPlate(live,true);SelectedPlate(max,false);SelectedPlate(details,false);
+            Press(max);Check(max.IsChecked==true&&live.IsChecked==false,"Keyboard selects exclusive Session Max");SelectedPlate(max,true);SelectedPlate(live,false);
+            Press(live);Press(live);Check(live.IsChecked==true&&max.IsChecked==false,"Active Live remains selected on repeated keyboard activation");
+            Press(details);Check(details.IsChecked==true,"Keyboard enables Details");SelectedPlate(details,true);
+            Press(details);Check(details.IsChecked==false,"Keyboard disables Details");SelectedPlate(details,false);
             var cards=Find<Grid>("ReadingCards");var settings=Find<Button>("OpenSettings");
             var monitorScroll=window.GetVisualDescendants().OfType<ScrollViewer>().Single();
             var before=settings.TranslatePoint(new Point(),window)!.Value;

@@ -66,7 +66,7 @@ public sealed class MonitorWindow : Window {
         foreach(var panel in panels)cards.Children.Add(panel);
         var body=new StackPanel{Spacing=16,Margin=new Thickness(24)};
         var modes=new WrapPanel{Name="MonitorControls",Orientation=Orientation.Horizontal};
-        foreach(var control in new[]{Language.Set(liveMode,"Live"),Language.Set(maxMode,"Session Max"),Language.Set(details,"Details")}){control.Margin=new Thickness(0,0,6,6);modes.Children.Add(control);}
+        foreach(var control in new[]{Language.Set(liveMode,"Live"),Language.Set(maxMode,"Session Max"),Language.Set(details,"Details")}){ApplyModeStyle(control);control.Margin=new Thickness(0,0,6,6);modes.Children.Add(control);}
         body.Children.Add(hardwareStatus);body.Children.Add(cards);body.Children.Add(Language.Set(cardsEmpty,"No cards shown. Choose cards in Settings."));body.Children.Add(pause);
         details.IsChecked=settings.Details;
         details.IsCheckedChanged+=(_,_)=>{settings.Details=details.IsChecked==true;if(latestSnapshot!=null)Render(latestSnapshot);SaveLater();};
@@ -160,6 +160,27 @@ public sealed class MonitorWindow : Window {
         };
         if(start)Opened+=(_,_)=>Sampling=SampleAsync();
         Closed+=(_,_)=>{if(materialPlatform!=null)materialPlatform.ColorValuesChanged-=ColorsChanged;stop.Cancel();FloatingMonitor?.Close();quota.Dispose();SaveNow();};
+    }
+    static void ApplyModeStyle(ToggleButton control) {
+        control.MinHeight=28;control.CornerRadius=new CornerRadius(15);
+        control.SetValue(BackgroundProperty,Brushes.Transparent,Avalonia.Data.BindingPriority.Style);control.SetValue(BorderBrushProperty,Brush.Parse("#496F829A"),Avalonia.Data.BindingPriority.Style);control.BorderThickness=new Thickness(1);
+        control.Template=new Avalonia.Controls.Templates.FuncControlTemplate<ToggleButton>((button,scope)=>{
+            var content=new Avalonia.Controls.Presenters.ContentPresenter {HorizontalContentAlignment=HorizontalAlignment.Center,VerticalContentAlignment=VerticalAlignment.Center};
+            content.Bind(Avalonia.Controls.Presenters.ContentPresenter.ContentProperty,button.GetObservable(ContentControl.ContentProperty));
+            var plate=new Border{Name="ModePlate",CornerRadius=new CornerRadius(15),Child=content};
+            plate.Bind(Border.BackgroundProperty,button.GetObservable(BackgroundProperty));
+            plate.Bind(Border.BorderBrushProperty,button.GetObservable(BorderBrushProperty));
+            plate.Bind(Border.BorderThicknessProperty,button.GetObservable(BorderThicknessProperty));
+            plate.Bind(Border.PaddingProperty,button.GetObservable(PaddingProperty));
+            return plate;
+        });
+        // Template parts follow the original Panel.xaml plate states without Fluent accents.
+        foreach(var state in new[]{(":checked","#607898A8"),(":pointerover","#505E829D"),(":pressed","#8078A5B9")}) {
+            var style=new Style(x=>x.OfType<ToggleButton>().Class(state.Item1));
+            style.Setters.Add(new Setter(BackgroundProperty,Brush.Parse(state.Item2)));control.Styles.Add(style);
+        }
+        var focus=new Style(x=>x.OfType<ToggleButton>().Class(":focus-visible"));
+        focus.Setters.Add(new Setter(BorderBrushProperty,Brush.Parse("#BFEAF9")));control.Styles.Add(focus);
     }
     void SelectMode(bool max) {
         sessionMax=max;liveMode.IsChecked=!max;maxMode.IsChecked=max;
