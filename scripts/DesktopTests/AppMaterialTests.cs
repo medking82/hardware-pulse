@@ -16,8 +16,8 @@ static class AppMaterialTests {
             File.WriteAllText(path,"{\"schema\":1,\"appOpacity\":35,\"solid\":false,\"future\":17}");
             var window=new MonitorWindow(new MonitorSource(true),start:false,store:new PreviewSettingsStore(path));
             window.Show();Dispatcher.UIThread.RunJobs();
-            var main=window.GetVisualDescendants().OfType<TabControl>().Single(x=>x.Name=="MainTabs");
-            main.SelectedIndex=1;Dispatcher.UIThread.RunJobs();
+            var main=window.GetVisualDescendants().OfType<Button>().Single(x=>x.Name=="OpenSettings");
+            main.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));Dispatcher.UIThread.RunJobs();
             var groups=window.GetVisualDescendants().OfType<TabControl>().Single(x=>x.Name=="SettingsTabs");
             groups.SelectedIndex=1;Dispatcher.UIThread.RunJobs();
             var slider=window.GetVisualDescendants().OfType<Slider>().Single(x=>x.Name=="AppOpacity");

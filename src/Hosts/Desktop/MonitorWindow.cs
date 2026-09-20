@@ -52,13 +52,13 @@ public sealed class MonitorWindow : Window {
         Language.Changed+=ApplyLanguageFont;ApplyLanguageFont();
         Title="Pulse · Desktop preview";Width=settings.Width;Height=settings.Height;MinWidth=360;MinHeight=400;
         FontSize=15;
-        var heading=Language.Set(new TextBlock{FontSize=32,FontWeight=FontWeight.SemiBold},"Pulse");
+        var heading=Language.Set(new TextBlock{FontSize=22,FontWeight=FontWeight.SemiBold},"Pulse");
         panels=new[]{"CPU","GPU","Memory","NVMe","Airflow","Network"}.Select(key=>new DeviceCard(key,Language)).ToArray();
         foreach(var panel in panels)cards.Children.Add(panel);
         var body=new StackPanel{Spacing=16,Margin=new Thickness(24)};
         var modes=new WrapPanel{Name="MonitorControls",Orientation=Orientation.Horizontal};
         foreach(var control in new[]{Language.Set(liveMode,"Live"),Language.Set(maxMode,"Session Max"),Language.Set(details,"Details")}){control.Margin=new Thickness(0,0,6,6);modes.Children.Add(control);}
-        body.Children.Add(modes);body.Children.Add(status);body.Children.Add(hardwareStatus);body.Children.Add(cards);body.Children.Add(pause);
+        body.Children.Add(hardwareStatus);body.Children.Add(cards);body.Children.Add(pause);
         details.IsChecked=settings.Details;
         details.IsCheckedChanged+=(_,_)=>{settings.Details=details.IsChecked==true;if(latestSnapshot!=null)Render(latestSnapshot);SaveLater();};
         Language.Changed+=()=>{if(latestSnapshot!=null)Render(latestSnapshot);};
@@ -93,9 +93,27 @@ public sealed class MonitorWindow : Window {
             new TabItem{Header="Codex",Content=new Border{Padding=new Thickness(20),Child=quota.SettingsContent}}}};
         var settingsBody=new StackPanel{Spacing=12,Margin=new Thickness(12)};
         settingsBody.Children.Add(settingsTabs);settingsBody.Children.Add(saveStatus);
-        settingsSurface.Child=settingsBody;
-        var tabs=new TabControl{Name="MainTabs",ItemsSource=new[]{Language.Set(new TabItem{Content=Scroll(body)},"Monitor"),Language.Set(new TabItem{Content=Scroll(settingsSurface)},"Settings")}};
-        DockPanel.SetDock(heading,Dock.Top);heading.Margin=new Thickness(24,20,24,12);viewport.Children.Add(heading);viewport.Children.Add(tabs);Content=viewport;
+        var back=Language.Set(new Button{Name="Back",Padding=new Thickness(10,5)},"Back");
+        var settingsTitle=Language.Set(new TextBlock{Name="SettingsTitle",FontWeight=FontWeight.SemiBold,VerticalAlignment=VerticalAlignment.Center},"Settings");
+        var toolbar=new StackPanel{Name="SettingsToolbar",Orientation=Orientation.Horizontal,Spacing=10,Margin=new Thickness(14,8)};
+        toolbar.Children.Add(back);toolbar.Children.Add(settingsTitle);
+        var settingsPage=new DockPanel();DockPanel.SetDock(toolbar,Dock.Top);settingsPage.Children.Add(toolbar);settingsPage.Children.Add(Scroll(settingsBody));
+        settingsSurface.Child=settingsPage;
+        var openSettings=new Button{Name="OpenSettings",Width=36,Height=36,Padding=new Thickness(8),HorizontalAlignment=HorizontalAlignment.Right};
+        var settingsIcon=AppIcon.Create("settings");
+        settingsIcon.Bind(Avalonia.Controls.Shapes.Shape.FillProperty,this.GetObservable(ForegroundProperty));
+        openSettings.Content=new Viewbox{Width=20,Height=20,Child=settingsIcon};
+        void SettingsLabel(){ToolTip.SetTip(openSettings,Language.T("Settings"));Avalonia.Automation.AutomationProperties.SetName(openSettings,Language.T("Settings"));}
+        Language.Changed+=SettingsLabel;SettingsLabel();
+        var footer=new Border{Name="MonitorFooter",Margin=new Thickness(14,4,20,10),Child=openSettings};
+        var monitorHeader=new StackPanel{Spacing=4,Margin=new Thickness(14,0,14,8)};monitorHeader.Children.Add(modes);monitorHeader.Children.Add(status);
+        var monitorPage=new DockPanel{Name="MonitorPage"};
+        DockPanel.SetDock(monitorHeader,Dock.Top);monitorPage.Children.Add(monitorHeader);
+        DockPanel.SetDock(footer,Dock.Bottom);monitorPage.Children.Add(footer);monitorPage.Children.Add(Scroll(body));
+        var pages=new ContentControl{Name="AppPage",HorizontalContentAlignment=HorizontalAlignment.Stretch,VerticalContentAlignment=VerticalAlignment.Stretch,Content=monitorPage};
+        openSettings.Click+=(_,_)=>{pages.Content=settingsSurface;back.Focus();};
+        back.Click+=(_,_)=>{pages.Content=monitorPage;openSettings.Focus();};
+        DockPanel.SetDock(heading,Dock.Top);heading.Margin=new Thickness(14,10,14,8);viewport.Children.Add(heading);viewport.Children.Add(pages);Content=viewport;
         Language.Set(this,"Pulse · Desktop preview");Language.Set(status,"Starting…");Language.Set(pause,"Pause hardware monitoring");Language.Set(refreshInterfaces,"Refresh interfaces");
         theme.ItemTemplate=Language.Choices();
         void Placeholder()=>interfaces.PlaceholderText=Language.T("Select network interface");

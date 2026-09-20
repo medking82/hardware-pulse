@@ -163,3 +163,26 @@ native regression passes, and the compact render was inspected. The large previe
 heading, main tabs, complete original Settings and Desktop still need migration;
 this step is not full UI or release acceptance.
 Repository scripts/Validate.ps1 also passed for this control change.
+
+### Compact heading and original page navigation
+
+The shared Monitor no longer uses top-level Monitor/Settings tabs. It has a 22 DIP
+Pulse heading, fixed monitoring controls/status, and a bottom-right Settings button
+using the original settings.svg. Settings has a fixed Back/title toolbar above its
+scrolling content. Page changes restore keyboard focus to Back or Settings and retain
+the existing controls, selected category and ongoing reading updates. The same shared
+presentation serves all platforms; no Windows-only presentation fork was introduced.
+
+The boundary remains shared presentation, embedded original asset references,
+localization and corresponding tests. Native/WPF sources, original asset files,
+installed profiles, data owners, credentials and releases are protected. Reverting
+this source diff is sufficient rollback. Headless navigation checks exercise keyboard
+activation, fixed controls under scroll, focus restoration, control identity, and
+readings delivered while Settings is open. Compact Monitor and scrolled Settings
+renders were inspected; the Windows native regression also passes.
+
+This does not yet restore custom titlebar/window controls, 240 DIP minimum width,
+all six original Settings categories, or the full Desktop. Existing three Settings
+categories remain functional; their headers still scroll and require the subsequent
+original-category migration. Full visual parity and stable release remain unaccepted.
+Full scripts/Validate.ps1 passed for the navigation change.

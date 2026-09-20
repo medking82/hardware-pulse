@@ -35,7 +35,7 @@ static class SettingsTests {
 
             // Explicit temporary profile and demo reader: never touch personal settings or login.
             var window=new MonitorWindow(new MonitorSource(true),store:new PreviewSettingsStore(path));window.Show();
-            var main=window.GetVisualDescendants().OfType<TabControl>().Single(x=>x.Name=="MainTabs");main.SelectedIndex=1;
+            var main=window.GetVisualDescendants().OfType<Button>().Single(x=>x.Name=="OpenSettings");main.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
             Dispatcher.UIThread.RunJobs();
             var groups=window.GetVisualDescendants().OfType<TabControl>().Single(x=>x.Name=="SettingsTabs");
             var network=window.GetVisualDescendants().OfType<ComboBox>().Single();

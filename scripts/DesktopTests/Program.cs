@@ -71,6 +71,7 @@ static class Tests {
         AppMaterialTests.Run();
         WindowsSnapshotTests.Run();
         DeviceCardsTests.Run(args.Length==1?args[0]:null);
+        NavigationTests.Run(args.Length==1?args[0]:null);
         MeasurementTests.Run();
         TrayTests.Run();
         FloatingMonitorTests.Run(args.Length==1?args[0]:null);

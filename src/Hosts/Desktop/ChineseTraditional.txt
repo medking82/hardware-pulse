@@ -110,3 +110,4 @@ Voltage|電壓
 LAN Link Speed|LAN 連線速率
 Wi-Fi Link Speed|Wi-Fi 連線速率
 Wi-Fi Signal|Wi-Fi 訊號
+Back|返回
