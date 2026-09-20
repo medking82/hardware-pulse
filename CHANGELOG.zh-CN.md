@@ -6,9 +6,15 @@
 
 ## 未发布
 
-- 跨平台主窗口隐藏及重新显示时保留同一个采样任务，避免每次打开都增加轮询循环。
+## 0.7.0 — 2026-09-20
 
-- 跨平台版的 Windows/macOS 主窗口关闭时隐藏到可用托盘或菜单栏，保留采样和浮动窗口；打开操作恢复同一个窗口，退出及系统关闭仍会结束程序。Linux 尚未确认托盘可达性，保留关闭即退出。自动启动检查和性能测量仍按原有方式结束。
+Windows x64 正式版改用 shared Desktop host。Windows ARM64、Linux 和 macOS 不属于本次正式发布范围。
+
+- 将 Windows hardware collector、GPU／温度／风扇／NVMe 读数、RAM／VRAM 使用量、选定网络详情、FPS capture 和 overlay 接入 shared Monitor 与 Desktop。
+- Codex、Antigravity 和 Claude quota 可独立开启；默认关闭，并复用各自应用程序的本地登录状态。
+- 新增可保存的 Monitor／Desktop layout、cards、语言、tray、shortcut、锁定、位置、不透明度、颜色、Local Contrast 和 startup controls。
+- Monitor 隐藏及重新显示时保留同一个 sampling worker，避免增加轮询任务；Windows 关闭主窗口时隐藏到 tray，Quit 及系统关闭仍会退出。
+- 提供 self-contained x64 UI 和独立的 .NET Framework 4.8 collector worker。verified installer 保留现有 preferences 及既有 AppId。installer 尚无 public certificate trust，详见 [signing 状态](SIGNING.md)。
 
 ## 0.7.0-preview.3 — 2026-09-16
 

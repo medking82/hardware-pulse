@@ -305,6 +305,7 @@ internal static class NativeTests {
                 }
             }
             Json.WriteAtomic(Path.Combine(state,"widget-settings.json"),new {width=310,height=690,left=90,top=70,fontSize=12,language="en",unknownMigrationField="keep",overlay=new {enabled=true,processName="PulseTestGameNotRunning",background="#223344",opacity=37},cardOrder=new[]{"GPU","CPU","Memory","NVMe","Airflow"}});
+            Json.WriteAtomic(paths.Snapshot,Snapshot());
             using(var shell=new Shell(paths,true)){
                 shell.Window.ShowInTaskbar=false;shell.Window.ShowActivated=false;shell.Show();Pump();shell.UpdatePanel();Pump();
                 Assert(shell.Control<TextBlock>("Status").Text.Contains("7 "),"Native mapped sensor count");

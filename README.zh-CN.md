@@ -8,9 +8,9 @@
 
 [更新记录](CHANGELOG.zh-CN.md) · [操作示意图](docs/QUICKSTART.zh-CN.md)
 
-**[下载 Windows 稳定版 0.6.27](https://github.com/medking82/hardware-pulse/releases/download/v0.6.27/HardwarePulse-Setup.exe)**
+**[下载 Windows x64 稳定版 0.7.0](https://github.com/medking82/hardware-pulse/releases/download/v0.7.0/HardwarePulse-Setup.exe)**
 
-另有面向 Windows x64、Linux x64／ARM64、macOS Intel／Apple Silicon [实验性跨平台预发布版 0.7.0-preview.3](https://github.com/medking82/hardware-pulse/releases/tag/v0.7.0-preview.3)，功能尚未与 Windows 稳定版对等，不替代现有安装程序。
+Windows x64 稳定版 0.7.0 使用 shared Desktop host，包含硬件监控、FPS、Desktop mode 及可独立开启的 AI quota。Windows ARM64、Linux 和 macOS 不属于本次稳定发布范围。
 
 ### 更新与桌面位置
 
@@ -18,7 +18,7 @@
 - **锁定位置与大小** 禁用移动、调整大小和卡片排序。锁定监控页面的背景不透明度降为原设置的四分之一并关闭模糊；设置保持可读。从托盘或设置解锁后恢复；纯色／高对比度设置优先。这还不是桌面层嵌入。
 - 应用程序默认 **自动（跟随系统）**，安装程序也根据 Windows UI 语言预选英语、简体或繁体中文。
 
-当前版本为 **0.6.27**，新增窗口吸附的 WPF DPI 回退、明确的系统能力检查及独立的旧系统更新安装包选择。Windows 10/11 保留硬件采集、FPS、桌面模式和应用图标配色。使用上方下载链接获取最新安装程序。
+当前版本为 **0.7.0**，Windows x64 稳定版改用 shared Desktop host，并保留硬件采集、FPS、桌面集成和现有 preferences。使用上方下载链接获取最新 installer。
 
 适用于 **Windows 10 22H2 / Windows 11 x64** 的轻量桌面硬件组件，集中显示 CPU、GPU、内存、NVMe 和风扇读数，以及实时 RAM/VRAM 用量。
 

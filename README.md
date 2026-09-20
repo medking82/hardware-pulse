@@ -14,17 +14,17 @@
 
 [Dependency maintenance and Linux/macOS roadmap](docs/DEPENDENCIES.md)
 
-**Experimental shared Desktop:** [0.7.0-preview.3 — Windows x64 / Linux x64 + ARM64 / macOS Intel + Apple Silicon](https://github.com/medking82/hardware-pulse/releases/tag/v0.7.0-preview.3). Self-contained downloads with live CPU/RAM/network and opt-in Codex quota. This preview does not replace the stable Windows App; [feature gaps, signing status and launch guide](docs/DESKTOP-PREVIEW.md).
+**Windows x64 stable:** [Hardware Pulse 0.7.0](https://github.com/medking82/hardware-pulse/releases/tag/v0.7.0) uses the shared Desktop host with hardware monitoring, FPS, Desktop mode and independent AI quota controls.
 
-**[Download 0.6.27 EXE](https://github.com/medking82/hardware-pulse/releases/download/v0.6.27/HardwarePulse-Setup.exe)** · [0.6.27 release notes](https://github.com/medking82/hardware-pulse/releases/tag/v0.6.27)
+**[Download 0.7.0 Windows x64 installer](https://github.com/medking82/hardware-pulse/releases/download/v0.7.0/HardwarePulse-Setup.exe)** · [0.7.0 release notes](https://github.com/medking82/hardware-pulse/releases/tag/v0.7.0)
 
-**0.5.0** migrates the installed UI, collector and startup helpers to C#/.NET without a PowerShell runtime dependency. [Measured comparison](docs/PERFORMANCE-0.5.0.md). The installer remains self-signed; SignPath approval is pending.
+**0.5.0** migrates the installed UI, collector and startup helpers to C#/.NET without a PowerShell runtime dependency. [Measured comparison](docs/PERFORMANCE-0.5.0.md). The installer remains self-signed; the SignPath Foundation application was rejected. See the [signing status](SIGNING.md).
 
 See [Desktop Mode](docs/DESKTOP-MODE.md) for wallpaper integration, appearance controls and validation limits.
 
 Use **Ctrl+Alt+F10** to show/hide Desktop without opening App. Customize or disable it in Settings → Desktop; enable Always on top for games.
 
-Latest: **0.6.27** adds a WPF DPI fallback for window snapping, explicit OS capability guards, and separate legacy update asset selection. Windows 10/11 keeps its hardware collector, FPS, Desktop mode and App icon colors.
+Latest: **0.7.0** moves the Windows x64 stable release to the shared Desktop host while retaining hardware monitoring, FPS, Desktop integration and existing preferences.
 
 Appearance → Colors selects Hardware Colors or a custom Unified Color for Monitor icons and temperatures. Cards → Network Speed Unit selects Auto, KB/s, MB/s or Mbit/s (decimal units; 1 MB/s = 8 Mbit/s). Network shows the busiest adapter by combined download/upload rate, with its name visible, and is not the sum of all adapters. Desktop reading order includes Download and Upload.
 

@@ -6,9 +6,15 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 
 ## Unreleased
 
-- Preserve one shared Monitor sampling worker across hide/show cycles; reopening no longer creates extra polling loops.
+## 0.7.0 — 2026-09-20
 
-- Shared Windows/macOS Monitor close requests hide to an available tray/menu bar, preserving sampling and the floating monitor. Open restores the same window; Quit and OS/application shutdown still close it. Linux retains close-to-exit while tray reachability is not established. Smoke/measurement runs retain their bounded shutdown behavior.
+Windows x64 stable release using the shared Desktop host. Windows ARM64, Linux and macOS remain outside this stable release.
+
+- Bring the Windows hardware collector, GPU/temperature/fan/NVMe readings, RAM/VRAM usage, selected-network details, FPS capture and overlay into shared Monitor and Desktop views.
+- Add independent Codex, Antigravity and Claude quota controls; providers remain off by default and reuse their owning applications' local sign-in state.
+- Add persisted Monitor/Desktop layout, cards, language, tray, shortcut, lock, placement, opacity, colors, Local Contrast and startup controls.
+- Preserve one Monitor sampling worker across hide/show cycles; reopening no longer creates extra polling loops. Closing on Windows hides to the tray while Quit and OS shutdown still close the application.
+- Ship a self-contained x64 UI with a dedicated .NET Framework 4.8 collector worker. The verified installer preserves existing preferences and keeps the established AppId. The installer remains without public certificate trust; see [signing status](SIGNING.md).
 
 ## 0.7.0-preview.3 — 2026-09-16
 
