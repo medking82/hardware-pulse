@@ -16,6 +16,12 @@ static class FloatingMonitorTests {
         open.Command!.Execute(null);var floating=owner.FloatingMonitor!;
         try {
             owner.OpenFloatingMonitor();Check(ReferenceEquals(floating,owner.FloatingMonitor),"Repeated open created another floating window");
+            owner.GetVisualDescendants().OfType<Button>().Single(x=>x.Name=="OpenFloatingMonitor").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+            if(floating.CanLock)Check(floating.IsLocked&&!owner.IsVisible,"Desktop quick action enters locked Desktop and hides App");
+            else Check(owner.IsVisible&&!floating.IsLocked,"Unsupported pass-through keeps App and editor available");
+            ((NativeMenuItem)tray.Menu.Items[0]).Command!.Execute(null);
+            Check(owner.IsVisible&&ReferenceEquals(floating,owner.FloatingMonitor),"Tray restores App without replacing Desktop");
+            open.Command.Execute(null);Check(!floating.IsLocked,"Tray edit reopens unlocked Desktop");
             var materialWindow=new FloatingMonitorWindow(owner.Language);
             materialWindow.Present(new("21.0%","4.0 / 16.0 GiB","1 KiB/s","2 KiB/s",true,true));materialWindow.Show();
             try {

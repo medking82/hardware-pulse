@@ -138,3 +138,10 @@ No metrics shown. Choose metrics in Settings.|未顯示讀數，請在設定中�
 Drag To Reorder (Esc To Cancel)|拖曳排序（Esc 取消）
 Network Speed Unit|網路速度單位
 Codex quota|Codex 配額
+Desktop Mode|桌面模式
+Edit Desktop Position|編輯桌面位置
+Select Edit Desktop, then move or resize the panel. Lock it directly on the desktop.|選擇編輯桌面，然後移動面板或調整大小。在桌面上直接鎖定。
+Desktop Layout|桌面佈局
+Desktop Appearance|桌面外觀
+Desktop Readings|桌面讀數
+Window|視窗

@@ -26,6 +26,7 @@ public sealed class FloatingMonitorWindow : Window {
     readonly CheckBox topmost;
     readonly StackPanel editor=new(){Name="DesktopEditor",Spacing=8};
     public event Action? ReturnRequested;
+    public event Action<bool>? LockedChanged;
     int requestedColumns,layoutColumns;
     public event Action<bool>? TopmostChanged;
     readonly TextBlock lockStatus=new(){TextWrapping=TextWrapping.Wrap,IsVisible=false};
@@ -154,6 +155,7 @@ public sealed class FloatingMonitorWindow : Window {
             if(!locked)SetEditorChrome(true);
             editor.IsVisible=!locked;
             language.Set(lockStatus,locked?"Locked · Reopen from Monitor or the tray to unlock.":"Reopen from Monitor or the tray to unlock.");
+            LockedChanged?.Invoke(locked);
             return true;
         } catch(Exception e) when(e is System.ComponentModel.Win32Exception or InvalidOperationException) {
             if(!IsLocked)SetEditorChrome(true);

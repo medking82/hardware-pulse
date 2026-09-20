@@ -15,7 +15,7 @@ static class Tests {
         if(args.SequenceEqual(new[]{"--native-session"})) {
             HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();
             DesktopMetricPreferenceTests.Run();DesktopGeometryTests.Run();SettingsTests.Run(null);
-            AppMaterialTests.Run();
+            AppMaterialTests.Run();DesktopModeTests.Run();
             LocalizationTests.Run(null,native:true);
             TrayTests.Run(native:true);
             TitlebarTests.Run();
@@ -69,11 +69,11 @@ static class Tests {
         Check(live.Sampling.IsCompletedSuccessfully,"Close cancels and completes sampling");
         QuotaPanelTests.Run(args.Length==1?args[0]:null);
         ReorderHandleTests.Run();DesktopMetricPreferenceTests.Run(args.Length==1?args[0]:null);DesktopGeometryTests.Run();SettingsTests.Run(args.Length==1?args[0]:null);
-        AppMaterialTests.Run();
+        AppMaterialTests.Run();DesktopModeTests.Run();
         WindowsSnapshotTests.Run();
         DeviceCardsTests.Run(args.Length==1?args[0]:null);
         CardPreferenceTests.Run(args.Length==1?args[0]:null);
-        NavigationTests.Run(args.Length==1?args[0]:null);
+        NavigationTests.Run(args.Length==1?args[0]:null);SettingsSectionTests.Run(args.Length==1?args[0]:null);
         TitlebarTests.Run();
         MeasurementTests.Run();
         TrayTests.Run();

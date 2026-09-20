@@ -35,7 +35,7 @@ static class ReorderHandleTests {
             tabs.SelectedIndex=2;Dispatcher.UIThread.RunJobs();
             var desktopList=owner.GetVisualDescendants().OfType<StackPanel>().Single(x=>x.Name=="DesktopMetricPreferences");
             var desktopCpu=owner.GetVisualDescendants().OfType<Border>().Single(x=>x.Name=="DragDesktopCPU");
-            var scroll=desktopCpu.GetVisualAncestors().OfType<ScrollViewer>().First();scroll.Offset=new Vector(0,desktopList.Bounds.Y);Dispatcher.UIThread.RunJobs();
+            var scroll=desktopCpu.GetVisualAncestors().OfType<ScrollViewer>().First();scroll.Offset=new Vector(0,desktopList.TranslatePoint(new Point(0,0),(Control)scroll.Content!)!.Value.Y);Dispatcher.UIThread.RunJobs();
             var desktopMemory=owner.GetVisualDescendants().OfType<Border>().Single(x=>x.Name=="DragDesktopMemory");
             start=Point(desktopCpu);end=Point(desktopMemory)+new Vector(0,10);
             owner.MouseDown(start,MouseButton.Left);owner.MouseMove(end,RawInputModifiers.LeftMouseButton);owner.MouseUp(end,MouseButton.Left);Dispatcher.UIThread.RunJobs();

@@ -36,7 +36,9 @@ static class SettingsTests {
             Check(!Directory.GetFiles(directory,".settings-*.tmp").Any(),"No temporary save debris");
 
             // Explicit temporary profile and demo reader: never touch personal settings or login.
-            var window=new MonitorWindow(new MonitorSource(true),store:new PreviewSettingsStore(path));window.Show();
+            var fixtureSource=new MonitorSource(true);
+            // Manual readings keep preference assertions independent of the sampling timer.
+            var window=new MonitorWindow(fixtureSource,start:false,store:new PreviewSettingsStore(path));window.Show();window.Present(fixtureSource.Poll(null));window.PresentInterfaces(fixtureSource.Interfaces());
             var main=window.GetVisualDescendants().OfType<Button>().Single(x=>x.Name=="OpenSettings");main.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
             Dispatcher.UIThread.RunJobs();
             var groups=window.GetVisualDescendants().OfType<TabControl>().Single(x=>x.Name=="SettingsTabs");
@@ -66,7 +68,9 @@ static class SettingsTests {
             Check(window.GetVisualDescendants().OfType<Border>().Where(x=>x.Name?.StartsWith("Resize")==true).All(x=>!x.IsVisible),"Lock removes all resize regions without disabling Settings");
             Until(()=>new PreviewSettingsStore(path).Load().Theme=="Dark");
             groups.SelectedIndex=2;Dispatcher.UIThread.RunJobs();
-            window.OpenFloatingMonitor();var desktop=window.FloatingMonitor!;
+            theme.SelectedItem="Light";window.OpenFloatingMonitor();var desktop=window.FloatingMonitor!;
+            Check(desktop.RequestedThemeVariant==ThemeVariant.Dark,"Desktop editor keeps dark theme when opened from Light App");
+            theme.SelectedItem="System";Check(desktop.RequestedThemeVariant==ThemeVariant.Dark,"App theme changes do not override dark Desktop editor");theme.SelectedItem="Dark";
             Until(()=>desktop.GetVisualDescendants().OfType<TextBlock>().Any(x=>x.Text?.StartsWith("72.5% left")==true));
             window.GetVisualDescendants().OfType<Slider>().Single(x=>x.Name=="DesktopFontSize").Value=20;
             window.GetVisualDescendants().OfType<Slider>().Single(x=>x.Name=="DesktopSpacing").Value=24;

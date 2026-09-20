@@ -18,6 +18,7 @@ public sealed class PreviewSettings {
     public double DesktopWidth=466,DesktopHeight=400;
     public int? DesktopX,DesktopY;
     public bool DesktopTopmost;
+    public bool DesktopEnabled,DesktopLocked=true;
     public double DesktopBackgroundOpacity=86,DesktopOverlayOpacity=55,DesktopTextOpacity=100;
     public bool Solid;
     public bool Details;
@@ -65,6 +66,7 @@ public sealed class PreviewSettingsStore {
             settings.DesktopSpacing=values.Number("desktopSpacing",14,4,40);
             settings.DesktopColumns=(int)values.Number("desktopColumns",0,0,3);
             settings.DesktopTopmost=values.Flag("desktopAlwaysOnTop");
+            settings.DesktopEnabled=values.Flag("desktopEnabled");settings.DesktopLocked=values.Flag("desktopLocked",true);
             settings.DesktopBackgroundOpacity=values.Number("desktopBackgroundOpacity",86,0,100);
             settings.DesktopOverlayOpacity=values.Number("desktopOverlayOpacity",55,0,100);
             settings.DesktopTextOpacity=values.Number("desktopTextOpacity",100,0,100);
@@ -109,6 +111,7 @@ public sealed class PreviewSettingsStore {
                 ["desktopSpacing"]=JsonSerializer.SerializeToElement(settings.DesktopSpacing),
                 ["desktopColumns"]=JsonSerializer.SerializeToElement(settings.DesktopColumns),
                 ["desktopAlwaysOnTop"]=JsonSerializer.SerializeToElement(settings.DesktopTopmost),
+                ["desktopEnabled"]=JsonSerializer.SerializeToElement(settings.DesktopEnabled),["desktopLocked"]=JsonSerializer.SerializeToElement(settings.DesktopLocked),
                 ["desktopBackgroundOpacity"]=JsonSerializer.SerializeToElement(settings.DesktopBackgroundOpacity),
                 ["desktopOverlayOpacity"]=JsonSerializer.SerializeToElement(settings.DesktopOverlayOpacity),
                 ["desktopTextOpacity"]=JsonSerializer.SerializeToElement(settings.DesktopTextOpacity),
