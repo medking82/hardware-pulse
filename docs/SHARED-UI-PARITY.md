@@ -321,3 +321,24 @@ row/grid preference, metric visibility/order, quotas/FPS, local contrast, edit/r
 flow and dedicated Settings still require migration. WPF, installed profiles,
 collectors and releases remain unchanged; rollback is source-only.
 Full scripts/Validate.ps1 passed for the Desktop metric mapping.
+
+### Desktop appearance and layout preferences
+
+Desktop Settings now exposes the original font range 10–32 DIP (default 16),
+row spacing 4–40 DIP (default 14), Auto/1/2/3 columns and independent Always on Top.
+PreviewSettingsStore owns persistence; MonitorWindow applies it to the existing
+floating view. Its toolbar topmost control synchronizes the Settings control and
+saved preference without changing App topmost. Core ColumnLayout selects the
+columns that fit; row controls and the single owner snapshot stream remain shared.
+
+The change is confined to shared presentation, preview preferences, localization
+and regression fixtures. Original WPF/assets, installed profiles, hardware and
+credential boundaries are unchanged. Rollback is source-only. Verification covers
+live controls, close/reopen persistence, independent App preferences, toolbar sync,
+three-column layout and narrow resizing in headless and native Windows sessions.
+The initial resize regression exposed stale width during child SizeChanged; layout
+now follows the window SizeChanged event. Settings and three-column renders were
+inspected. This does not complete Desktop parity: explicit-column auto-expansion,
+geometry, wallpaper layer/material, metric visibility/order, quota/FPS, local
+contrast, and edit/return flow remain open.
+Full scripts/Validate.ps1 passed for Desktop appearance/layout preferences.

@@ -13,7 +13,10 @@ public sealed class FloatingMonitorWindow : Window {
     readonly Dictionary<string,(Grid Row,TextBlock Label,TextBlock Value)> readings=new();
     MonitorSnapshot? snapshot;
     bool peaks;
-    readonly StackPanel sensors=new(){Spacing=8};
+    readonly Grid sensors=new(){ColumnSpacing=ColumnLayout.Gap,RowSpacing=14};
+    readonly CheckBox topmost;
+    int requestedColumns,layoutColumns;
+    public event Action<bool>? TopmostChanged;
     readonly TextBlock lockStatus=new(){TextWrapping=TextWrapping.Wrap,IsVisible=false};
     Action<bool>? input;
     IDisposable? inputLifetime;
@@ -23,8 +26,8 @@ public sealed class FloatingMonitorWindow : Window {
         this.language=language;
         Width=440;Height=420;MinWidth=360;MinHeight=240;FontSize=15;
         language.Set(this,"Floating monitor");
-        var topmost=language.Set(new CheckBox{Name="FloatingTopmost"},"Always on top");
-        topmost.IsCheckedChanged+=(_,_)=>Topmost=topmost.IsChecked==true;
+        topmost=language.Set(new CheckBox{Name="FloatingTopmost"},"Always on top");
+        topmost.IsCheckedChanged+=(_,_)=>{Topmost=topmost.IsChecked==true;TopmostChanged?.Invoke(Topmost);};
         var lockButton=language.Set(new Button{Name="LockFloatingMonitor",IsVisible=false},"Lock floating monitor");
         lockButton.Click+=(_,_)=>SetLocked(true);
         var toolbar=new StackPanel{Spacing=8};toolbar.Children.Add(topmost);toolbar.Children.Add(lockButton);toolbar.Children.Add(lockStatus);
@@ -46,10 +49,27 @@ public sealed class FloatingMonitorWindow : Window {
         };
 
         rows.Children.Add(sensors);
+        SizeChanged+=(_,_)=>LayoutReadings();
         Content=new ScrollViewer{Content=rows,HorizontalScrollBarVisibility=Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled};
         language.Changed+=Localize;Localize();
         PropertyChanged+=(_,e)=>{if(e.Property==ActualThemeVariantProperty)foreach(var item in readings.Values)ColorIcon(item.Row);};
         Closed+=(_,_)=>{language.Changed-=Localize;input=null;inputLifetime?.Dispose();inputLifetime=null;};
+    }
+    public void ApplyPreferences(PreviewSettings settings) {
+        FontSize=settings.DesktopFontSize;sensors.RowSpacing=settings.DesktopSpacing;
+        requestedColumns=settings.DesktopColumns;topmost.IsChecked=settings.DesktopTopmost;
+        LayoutReadings();
+    }
+    void LayoutReadings() {
+        var layout=new ColumnLayout(Math.Max(1,Bounds.Width-32),Math.Max(280,24*FontSize),requestedColumns,layoutColumns);
+        if(layout.Columns!=layoutColumns){layoutColumns=layout.Columns;sensors.ColumnDefinitions=new(string.Join(",",Enumerable.Repeat("*",layoutColumns)));}
+        int count=(sensors.Children.Count+layoutColumns-1)/layoutColumns;
+        while(sensors.RowDefinitions.Count<count)sensors.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
+        while(sensors.RowDefinitions.Count>count)sensors.RowDefinitions.RemoveAt(sensors.RowDefinitions.Count-1);
+        for(int i=0;i<sensors.Children.Count;i++) {
+            var row=(Grid)sensors.Children[i];Grid.SetRow(row,i/layoutColumns);Grid.SetColumn(row,i%layoutColumns);
+            var icon=(Viewbox)row.Children[0];icon.Width=icon.Height=FontSize*1.2;
+        }
     }
     public bool SetLocked(bool locked) {
         if(input==null)return !locked;
@@ -96,5 +116,6 @@ public sealed class FloatingMonitorWindow : Window {
             ToolTip.SetTip(item.Label,metric.Title);ToolTip.SetTip(item.Value,metric.Value);
             int old=sensors.Children.IndexOf(item.Row);if(old!=i){sensors.Children.RemoveAt(old);sensors.Children.Insert(i,item.Row);}
         }
+        LayoutReadings();
     }
 }

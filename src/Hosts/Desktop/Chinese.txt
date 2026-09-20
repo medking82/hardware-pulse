@@ -123,3 +123,7 @@ Font size|字体大小
 General|常规
 App Appearance|App 外观
 AI Quota|AI 配额
+Desktop|桌面
+Row spacing|行间距
+Columns|列数
+Auto|自动

@@ -49,6 +49,7 @@ public sealed class MonitorWindow : Window {
     readonly Border settingsSurface=new(){Name="SettingsSurface"};
     readonly DockPanel viewport=new(){Name="Viewport"};
     bool loadingNetwork;
+    CheckBox? desktopPin;
     public Task Sampling {get;private set;}=Task.CompletedTask;
     public MonitorWindow(IMonitorSource source,bool smoke=false,bool start=true,PreviewSettingsStore? store=null,bool measure=false) {
         this.source=source;this.smoke=smoke;this.measure=measure;
@@ -107,6 +108,7 @@ public sealed class MonitorWindow : Window {
         languageChoice.SelectionChanged+=(_,_)=>{settings.Language=languageChoice.SelectedIndex==1?"en":languageChoice.SelectedIndex==2?"zh-CN":languageChoice.SelectedIndex==3?"zh-TW":"auto";Language.Select(settings.Language);SaveLater();};
         var settingsTabs=new TabControl{Name="SettingsTabs",ItemsSource=new[]{
             Language.Set(new TabItem{Content=Scroll(network)},"General"),Language.Set(new TabItem{Content=Scroll(appearance)},"App Appearance"),
+            Language.Set(new TabItem{Content=Scroll(CreateDesktopSettings())},"Desktop"),
             Language.Set(new TabItem{Content=Scroll(CreateCardSettings())},"App Cards"),
             Language.Set(new TabItem{Content=Scroll(new Border{Padding=new Thickness(20),Child=quota.SettingsContent})},"AI Quota")}};
         foreach(var tab in settingsTabs.Items.OfType<TabItem>()){tab.FontSize=12;tab.Padding=new Thickness(10,5);tab.MinHeight=34;}
@@ -167,6 +169,8 @@ public sealed class MonitorWindow : Window {
         if(stop.IsCancellationRequested)return;
         if(FloatingMonitor==null) {
             FloatingMonitor=new FloatingMonitorWindow(Language){RequestedThemeVariant=RequestedThemeVariant};
+            FloatingMonitor.ApplyPreferences(settings);
+            FloatingMonitor.TopmostChanged+=value=>{settings.DesktopTopmost=value;if(desktopPin!=null)desktopPin.IsChecked=value;SaveLater();};
             FloatingMonitor.Closed+=(_,_)=>FloatingMonitor=null;
         }
         if(latestSnapshot!=null)FloatingMonitor.Present(latestSnapshot,sessionMax);
@@ -175,6 +179,25 @@ public sealed class MonitorWindow : Window {
         FloatingMonitor.Activate();
     }
     static ScrollViewer Scroll(Control content)=>new(){Content=content,HorizontalScrollBarVisibility=Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled};
+    Control CreateDesktopSettings() {
+        var panel=new StackPanel{Spacing=12,Margin=new Thickness(20)};
+        void Apply(){FloatingMonitor?.ApplyPreferences(settings);SaveLater();}
+        void Number(string name,string label,double value,double min,double max,Action<double> set) {
+            panel.Children.Add(Language.Set(new TextBlock(),label));
+            var slider=new Slider{Name=name,Minimum=min,Maximum=max,TickFrequency=1,IsSnapToTickEnabled=true,Value=value};
+            var text=new TextBlock{Text=value.ToString("0")+" DIP"};panel.Children.Add(slider);panel.Children.Add(text);
+            slider.ValueChanged+=(_,_)=>{set(slider.Value);text.Text=slider.Value.ToString("0")+" DIP";Apply();};
+        }
+        Number("DesktopFontSize","Font size",settings.DesktopFontSize,10,32,value=>settings.DesktopFontSize=value);
+        Number("DesktopSpacing","Row spacing",settings.DesktopSpacing,4,40,value=>settings.DesktopSpacing=value);
+        panel.Children.Add(Language.Set(new TextBlock(),"Columns"));
+        var columns=new ComboBox{Name="DesktopColumns",ItemsSource=new[]{"Auto","1","2","3"},SelectedIndex=settings.DesktopColumns,ItemTemplate=Language.Choices(),HorizontalAlignment=HorizontalAlignment.Stretch};
+        columns.SelectionChanged+=(_,_)=>{settings.DesktopColumns=Math.Max(0,columns.SelectedIndex);Apply();};panel.Children.Add(columns);
+        desktopPin=Language.Set(new CheckBox{Name="DesktopAlwaysOnTop",IsChecked=settings.DesktopTopmost},"Always on Top");
+        desktopPin.IsCheckedChanged+=(_,_)=>{settings.DesktopTopmost=desktopPin.IsChecked==true;Apply();};panel.Children.Add(desktopPin);
+        var open=Language.Set(new Button(),"Open floating monitor");open.Click+=(_,_)=>OpenFloatingMonitor();panel.Children.Add(open);
+        return panel;
+    }
     void ApplyTheme(){RequestedThemeVariant=settings.Theme=="Dark"?ThemeVariant.Dark:settings.Theme=="Light"?ThemeVariant.Light:ThemeVariant.Default;if(FloatingMonitor!=null)FloatingMonitor.RequestedThemeVariant=RequestedThemeVariant;}
     void RequestMaterial() {
         bool highContrast=materialPlatform?.GetColorValues().ContrastPreference==ColorContrastPreference.High;

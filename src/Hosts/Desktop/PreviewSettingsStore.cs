@@ -10,6 +10,9 @@ public sealed class PreviewSettings {
     public string Theme="Dark";
     public double AppOpacity=85;
     public double FontSize=12;
+    public double DesktopFontSize=16,DesktopSpacing=14;
+    public int DesktopColumns;
+    public bool DesktopTopmost;
     public bool Solid;
     public bool Details;
     public bool Topmost,LockPosition;
@@ -49,6 +52,10 @@ public sealed class PreviewSettingsStore {
             settings.AppOpacity=values.Number("appOpacity",settings.AppOpacity,0,100);settings.Solid=values.Flag("solid");
             settings.Details=values.Flag("details");
             settings.FontSize=values.Number("fontSize",12,10,16);
+            settings.DesktopFontSize=values.Number("desktopFontSize",16,10,32);
+            settings.DesktopSpacing=values.Number("desktopSpacing",14,4,40);
+            settings.DesktopColumns=(int)values.Number("desktopColumns",0,0,3);
+            settings.DesktopTopmost=values.Flag("desktopAlwaysOnTop");
             settings.Topmost=values.Flag("topmost");settings.LockPosition=values.Flag("lockPosition");
             string[] Cards(string name)=>fields.TryGetValue(name,out var list)&&list.ValueKind==JsonValueKind.Array
                 ?list.EnumerateArray().Where(x=>x.ValueKind==JsonValueKind.String).Select(x=>x.GetString()!).Where(PreviewSettings.CardKeys.Contains).Distinct().ToArray():[];
@@ -76,6 +83,10 @@ public sealed class PreviewSettingsStore {
                 ["appOpacity"]=JsonSerializer.SerializeToElement(settings.AppOpacity),["solid"]=JsonSerializer.SerializeToElement(settings.Solid),
                 ["details"]=JsonSerializer.SerializeToElement(settings.Details),
                 ["fontSize"]=JsonSerializer.SerializeToElement(settings.FontSize),
+                ["desktopFontSize"]=JsonSerializer.SerializeToElement(settings.DesktopFontSize),
+                ["desktopSpacing"]=JsonSerializer.SerializeToElement(settings.DesktopSpacing),
+                ["desktopColumns"]=JsonSerializer.SerializeToElement(settings.DesktopColumns),
+                ["desktopAlwaysOnTop"]=JsonSerializer.SerializeToElement(settings.DesktopTopmost),
                 ["cardOrder"]=JsonSerializer.SerializeToElement(settings.CardOrder),["hiddenCards"]=JsonSerializer.SerializeToElement(settings.HiddenCards),
                 ["topmost"]=JsonSerializer.SerializeToElement(settings.Topmost),["lockPosition"]=JsonSerializer.SerializeToElement(settings.LockPosition)};
             var bytes=JsonSerializer.SerializeToUtf8Bytes(updated);

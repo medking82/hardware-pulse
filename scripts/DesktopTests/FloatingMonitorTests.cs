@@ -34,6 +34,18 @@ static class FloatingMonitorTests {
             Check(!Text("40.0 °C   20.0%")&&ReferenceEquals(gpu,floating.GetVisualDescendants().OfType<Grid>().Single(x=>x.Name=="DesktopMetricGPU")),"Stale hardware clears values while reusing capability rows");
             owner.Present(sample);Dispatcher.UIThread.RunJobs();
             if(output!=null){floating.Width=360;Dispatcher.UIThread.RunJobs();using var frame=floating.CaptureRenderedFrame();frame!.Save(Path.Combine(output,"floating-360.png"),Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);}
+            floating.ApplyPreferences(new PreviewSettings{DesktopFontSize=10,DesktopSpacing=24,DesktopColumns=3});
+            floating.Width=1000;
+            var layoutDeadline=DateTime.UtcNow.AddSeconds(3);
+            while(floating.ClientSize.Width<990&&DateTime.UtcNow<layoutDeadline){using var slice=new CancellationTokenSource(TimeSpan.FromMilliseconds(20));Dispatcher.UIThread.MainLoop(slice.Token);}
+            Dispatcher.UIThread.RunJobs();
+            var cpu=floating.GetVisualDescendants().OfType<Grid>().Single(x=>x.Name=="DesktopMetricCPU");
+            var metricGrid=(Grid)cpu.Parent!;
+            Console.WriteLine($"DESKTOP_LAYOUT client={floating.ClientSize.Width} bounds={floating.Bounds.Width} grid={metricGrid.Bounds.Width} columns={metricGrid.ColumnDefinitions.Count} spacing={metricGrid.RowSpacing}");
+            Check(metricGrid.ColumnDefinitions.Count==3&&metricGrid.RowSpacing==24,"Desktop uses requested columns and row spacing when space permits");
+            Check(Grid.GetColumn(gpu)==1&&Grid.GetRow(gpu)==0,"Desktop metric order flows across columns");
+            if(output!=null){using var frame=floating.CaptureRenderedFrame();frame!.Save(Path.Combine(output,"desktop-three-columns.png"),Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);}
+            floating.ApplyPreferences(new PreviewSettings());
             var top=floating.GetVisualDescendants().OfType<CheckBox>().Single();
             top.IsChecked=true;Check(floating.Topmost,"Topmost not applied");top.IsChecked=false;Check(!floating.Topmost,"Topmost not reversible");
             owner.Present(new("—","—","—","—",false,false));
