@@ -43,4 +43,4 @@ foreach($file in Get-ChildItem -LiteralPath $app -Recurse -File | Sort-Object Fu
 }
 @{schema=1;kind=$kind;version=$version;commit=$commit;dirty=$dirty;rid='win-x64';files=$files} | ConvertTo-Json -Depth 4 | Set-Content "$app/manifest.json" -Encoding utf8NoBOM
 & "$PSScriptRoot/Test-WindowsShared.ps1"
-"Built shared Windows x64 development payload: $app"
+"Built shared Windows x64 $kind payload: $app"
