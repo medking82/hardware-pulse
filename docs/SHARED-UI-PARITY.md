@@ -10,6 +10,9 @@ after acceptance. Existing published preview packages are not stable evidence.
 
 Keep `src/Panel.xaml`, `src/Native`, original SVG assets and installed user
 profiles intact while porting. Work starts on `codex/iterate-0.6.27`.
+The delivery integration below permits a bounded `Native/Startup.cs` backend
+extension while retaining the legacy constructor and WPF behavior. UI reference
+files remain protected; the worker reuses the same task-policy owner.
 The separate dirty main checkout is preserved and is not the migration input.
 Read `docs/RUNTIME-BOUNDARIES.md` for Core/platform boundaries.
 
@@ -1091,3 +1094,51 @@ repository Validate.ps1 passed for the final batch. EN/SC/TC font coverage has n
 missing glyphs. The 840-DIP Desktop Settings render was inspected; the existing
 section hierarchy and scroll layout remain intact. This closes implementation
 checks for this batch, not the remaining release or physical-machine gates.
+
+### Shared Windows startup and collector delivery boundary
+
+General Settings -> DesktopStartupPanel -> WindowsStartupManagement -> the
+fixed protected `worker/HardwarePulse.Collector.exe` -> Startup/SchedulerStore
+is the management path. Collector remains the original read-only sampler and
+FPS server, with the unchanged UI peer path and schema-2 snapshot. The shared
+UI does not load the driver or construct Task Scheduler XML. Existing backend
+work from a2867ab is reused selectively, without its discarded UI or release.
+
+Allowed surfaces are the startup backend, dedicated worker/build/tests, modern
+Windows management adapter, General Settings controls, catalogs and fixtures.
+The legacy Startup constructor and task names are retained. Shared installation
+may migrate only the exact same-user legacy collector action at the same UI
+path; other paths, arguments, principals or privilege levels fail before writes.
+Enable/disable/start/remove do not implicitly migrate legacy tasks. Task enabled
+preferences are preserved individually, including mixed preferences.
+
+Before task mutation, capture and validate both task definitions. Compare each
+definition again before replacing it. Verify ownership and enabled state after
+registration. On registration failure restore changed definitions in reverse
+order, preserving exact original XML; on uncertain launch failure stop only the
+still-owned new collector before restoring definitions. Missing original tasks
+are removed on rollback. Concurrent foreign replacements are never overwritten
+or stopped; cleanup failures are reported as aggregate failures, not success.
+Management queries are bounded; elevated transactions are not killed mid-rollback.
+
+Tests use an in-memory task store and a driver-free collector with its own
+temporary paths and mutex. No installed task, profile, collector, driver or
+release asset is modified during development verification. UI tests cover
+readback, canceled elevation, serialization, development-path rejection and
+late completion after close. Run Test-WindowsCollector.ps1, DesktopTests
+--startup, full Desktop regression and Validate.ps1 before review/commit.
+Actual installed upgrade and installer rollback remain later release gates.
+
+<!-- sop-risk-classification: {"facts":{"blast_radius":"shared","change_kind":"implementation","data_boundary":"ordinary","destructive":"no","failure_cost":"material","irreversibility":"reversible","operational_controls":"not_applicable","privilege_boundary":"changed","project_policy":"default","rollback":"easy","scope_knowledge":"known","uncertainty":"low","verification":"deterministic"},"formal_review":"required","kind":"risk-classification-assessment","reasons":{"formal_review":["high_risk_requires_review"],"risk":["privilege_boundary_change"]},"risk":"high","schema_version":2} -->
+
+This boundary requires one independent frozen-diff review after deterministic
+checks. It is implementation work, not authorization to alter installed tasks
+during tests. Development worker identity is not a stable release identity.
+
+Test-WindowsCollector.ps1, focused startup controls, full shared headless
+regression and repository Validate.ps1 passed. The worker test executed the
+actual built worker assembly and two driver-free snapshots with an isolated
+mutex/runtime. Legacy WPF/startup regression also passed. The 360-DIP General
+Settings render was inspected: controls fit and existing navigation/language
+controls remain available. These checks do not establish installed upgrade
+acceptance or authorize a stable release.

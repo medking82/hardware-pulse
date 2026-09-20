@@ -36,8 +36,14 @@ namespace HardwarePulse {
     }
     public sealed class Startup {
         public const string Widget="Hardware Pulse Widget",CollectorTask="Hardware Pulse Collector";
-        readonly ITaskStore store;readonly string exe,sid;
-        public Startup(ITaskStore store,string exe,string sid){this.store=store;this.exe=Path.GetFullPath(exe);this.sid=sid;}
+        readonly ITaskStore store;readonly string exe,sid,collectorExe;
+        public Startup(ITaskStore store,string exe,string sid):this(store,exe,sid,false){}
+        Startup(ITaskStore store,string exe,string sid,bool shared){this.store=store;this.exe=Path.GetFullPath(exe);this.sid=sid;collectorExe=shared?Path.Combine(Path.GetDirectoryName(this.exe),"worker","HardwarePulse.Collector.exe"):this.exe;}
+        public static Startup Shared(ITaskStore store,string exe,string sid){
+            if(!string.Equals(Path.GetFileName(exe),"HardwarePulse.exe",StringComparison.OrdinalIgnoreCase))throw new InvalidDataException("Unexpected shared UI executable");
+            return new Startup(store,exe,sid,true);
+        }
+        string Executable(string name){return name==CollectorTask?collectorExe:exe;}
         static XmlDocument Parse(string xml){var doc=new XmlDocument();doc.XmlResolver=null;doc.LoadXml(xml);return doc;}
         static XmlNamespaceManager Ns(XmlDocument doc){var ns=new XmlNamespaceManager(doc.NameTable);ns.AddNamespace("t","http://schemas.microsoft.com/windows/2004/02/mit/task");return ns;}
         static string Value(XmlDocument doc,string path){var node=doc.SelectSingleNode(path,Ns(doc));return node==null?"":node.InnerText;}
@@ -63,7 +69,7 @@ namespace HardwarePulse {
             string principal=Value(doc,"/t:Task/t:Principals/t:Principal/@id"),context=Value(doc,"/t:Task/t:Actions/@Context");
             if(context.Length>0&&context!=principal)throw new InvalidDataException("Startup action principal mismatch");
             string command=Value(doc,"/t:Task/t:Actions/t:Exec/t:Command"),args=Value(doc,"/t:Task/t:Actions/t:Exec/t:Arguments");
-            if(doc.SelectNodes("/t:Task/t:Actions/*",ns).Count!=1||!string.Equals(command,exe,StringComparison.OrdinalIgnoreCase)||args!=(name==CollectorTask?"--collector":""))throw new InvalidDataException("Startup task action ownership mismatch");
+            if(doc.SelectNodes("/t:Task/t:Actions/*",ns).Count!=1||!string.Equals(command,Executable(name),StringComparison.OrdinalIgnoreCase)||args!=(name==CollectorTask?"--collector":""))throw new InvalidDataException("Startup task action ownership mismatch");
             if(ResolveSid(Value(doc,"/t:Task/t:Principals/t:Principal/t:UserId"))!=sid)throw new InvalidDataException("Startup task user ownership mismatch");
             if(doc.SelectNodes("/t:Task/t:Triggers/*",ns).Count!=1||doc.SelectNodes("/t:Task/t:Triggers/t:LogonTrigger",ns).Count!=1)throw new InvalidDataException("Unexpected startup trigger");
             string triggerUser=Value(doc,"/t:Task/t:Triggers/t:LogonTrigger/t:UserId");
@@ -77,26 +83,46 @@ namespace HardwarePulse {
         public void StartCollector(){string xml=store.Get(CollectorTask);if(xml==null)throw new InvalidDataException("Collector task missing");Validate(CollectorTask,xml);store.Run(CollectorTask);}
         static string Escape(string s){return System.Security.SecurityElement.Escape(s);}
         string NewXml(string name,bool enabled){
-            bool collector=name==CollectorTask;
+            bool collector=name==CollectorTask;string exe=Executable(name);
             return "<Task version=\"1.2\" xmlns=\"http://schemas.microsoft.com/windows/2004/02/mit/task\"><RegistrationInfo><Description>"+(collector?"Hardware Pulse read-only local sensor collector.":"Hardware Pulse desktop widget for the current interactive user.")+"</Description></RegistrationInfo><Triggers><LogonTrigger><Enabled>"+(enabled?"true":"false")+"</Enabled><UserId>"+Escape(sid)+"</UserId>"+(collector?"":"<Delay>PT10S</Delay>")+"</LogonTrigger></Triggers><Principals><Principal id=\"Author\"><UserId>"+Escape(sid)+"</UserId><LogonType>InteractiveToken</LogonType><RunLevel>"+(collector?"HighestAvailable":"LeastPrivilege")+"</RunLevel></Principal></Principals><Settings><MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy><DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries><StopIfGoingOnBatteries>false</StopIfGoingOnBatteries><AllowStartOnDemand>true</AllowStartOnDemand><Enabled>true</Enabled><ExecutionTimeLimit>PT0S</ExecutionTimeLimit></Settings><Actions Context=\"Author\"><Exec><Command>"+Escape(exe)+"</Command>"+(collector?"<Arguments>--collector</Arguments>":"")+"<WorkingDirectory>"+Escape(Path.GetDirectoryName(exe))+"</WorkingDirectory></Exec></Actions></Task>";
         }
-        Dictionary<string,string> OwnedTasks(bool required){
-            var result=new Dictionary<string,string>();foreach(string name in new[]{Widget,CollectorTask}){string xml=store.Get(name);if(xml==null&&required)throw new InvalidDataException("Startup task missing");if(xml!=null)Validate(name,xml);result[name]=xml;}return result;
+        void ValidateOwned(string name,string xml,bool migration){
+            try{Validate(name,xml);}
+            catch(InvalidDataException){
+                if(!migration||name!=CollectorTask||collectorExe==exe)throw;
+                new Startup(store,exe,sid).Validate(name,xml);
+            }
         }
-        void Commit(Dictionary<string,string> before,Dictionary<string,string> after){
-            var changed=new List<string>();
-            try{foreach(var entry in after){changed.Add(entry.Key);store.Put(entry.Key,entry.Value);string actual=store.Get(entry.Key);Validate(entry.Key,actual);if(Enabled(actual)!=Enabled(entry.Value))throw new IOException("Startup state did not change");}}
+        Dictionary<string,string> OwnedTasks(bool required,bool migration=false){
+            var result=new Dictionary<string,string>();foreach(string name in new[]{Widget,CollectorTask}){string xml=store.Get(name);if(xml==null&&required)throw new InvalidDataException("Startup task missing");if(xml!=null)ValidateOwned(name,xml,migration);result[name]=xml;}return result;
+        }
+        void Commit(Dictionary<string,string> before,Dictionary<string,string> after,bool migration=false,bool startCollector=false){
+            var changed=new List<string>();bool launchAttempted=false;
+            try{
+                foreach(var entry in after){if(store.Get(entry.Key)!=before[entry.Key])throw new IOException("Startup task changed during registration");changed.Add(entry.Key);store.Put(entry.Key,entry.Value);string actual=store.Get(entry.Key);Validate(entry.Key,actual);if(Enabled(actual)!=Enabled(entry.Value))throw new IOException("Startup state did not change");}
+                if(startCollector){launchAttempted=true;StartCollector();}
+            }
             catch(Exception original){
                 var failures=new List<Exception>();failures.Add(original);
-                for(int i=changed.Count-1;i>=0;i--){string name=changed[i];try{string current=store.Get(name);if(current!=null)Validate(name,current);if(before[name]==null){if(current!=null)store.Delete(name);}else store.Put(name,before[name]);}catch(Exception rollback){failures.Add(rollback);}}
+                // A failed COM Run can have an uncertain outcome. Stop only the
+                // validated new collector task before restoring prior definitions.
+                if(launchAttempted){try{Validate(CollectorTask,store.Get(CollectorTask));store.Stop(CollectorTask);}catch(Exception cleanup){failures.Add(cleanup);}}
+                for(int i=changed.Count-1;i>=0;i--){string name=changed[i];try{string current=store.Get(name);if(current!=null)ValidateOwned(name,current,migration);if(before[name]==null){if(current!=null)store.Delete(name);if(store.Get(name)!=null)throw new IOException("Startup rollback did not remove new task");}else{store.Put(name,before[name]);string restored=store.Get(name);ValidateOwned(name,restored,migration);if(Enabled(restored)!=Enabled(before[name]))throw new IOException("Startup rollback did not restore preference");}}catch(Exception rollback){failures.Add(rollback);}}
                 if(failures.Count>1)throw new AggregateException("Startup change and rollback failed",failures);throw;
             }
         }
         public void SetEnabled(bool enabled){var before=OwnedTasks(true);var after=new Dictionary<string,string>();foreach(var entry in before){var doc=Parse(entry.Value);Set(doc,"/t:Task/t:Settings/t:Enabled","true");Set(doc,"/t:Task/t:Triggers/t:LogonTrigger/t:Enabled",enabled?"true":"false");after[entry.Key]=doc.OuterXml;}Commit(before,after);}
-        public void Install(){
+        public void Install(){Install(false);}
+        public void InstallAndStartCollector(){Install(true);}
+        public void ValidateInstall(){InstallationPreimage();}
+        Dictionary<string,string> InstallationPreimage(){
             string prefix=Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles).TrimEnd('\\')+"\\";
             if(!exe.StartsWith(prefix,StringComparison.OrdinalIgnoreCase))throw new InvalidOperationException("Startup registration requires a Program Files installation.");
-            var before=OwnedTasks(false);var after=new Dictionary<string,string>();foreach(var entry in before)after[entry.Key]=NewXml(entry.Key,entry.Value==null||Enabled(entry.Value));Commit(before,after);
+            return OwnedTasks(false,collectorExe!=exe);
+        }
+        void Install(bool startCollector){
+            bool migration=collectorExe!=exe;
+            var before=InstallationPreimage();var after=new Dictionary<string,string>();foreach(var entry in before)after[entry.Key]=NewXml(entry.Key,entry.Value==null||Enabled(entry.Value));Commit(before,after,migration,startCollector);
         }
         public void Remove(){var before=OwnedTasks(false);foreach(var entry in before)if(entry.Value!=null){store.Stop(entry.Key);store.Delete(entry.Key);}}
     }

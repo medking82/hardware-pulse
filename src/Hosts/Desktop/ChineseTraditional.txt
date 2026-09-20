@@ -221,3 +221,14 @@ Desktop shortcut is unavailable in this session.|目前工作階段無法使用�
 Auto Contrast|自動對比度
 Auto Contrast adjusts colors. Background and text opacity always follow your sliders.|自動對比度調整配色。背景與文字不透明度始終按滑桿設定生效。
 Use Recommended Style|使用建議樣式
+Start with Windows|隨 Windows 啟動
+Refresh startup status|重新整理啟動狀態
+Start hardware collector|啟動硬體採樣器
+Startup management requires the installed Windows version.|啟動管理需要已安裝的 Windows 版本。
+Checking startup status…|正在檢查啟動狀態…
+Startup change canceled.|已取消啟動設定變更。
+Startup action failed; refresh status or reinstall to repair.|啟動操作失敗；請重新整理狀態或重新安裝以修復。
+Startup change could not be verified.|無法確認啟動設定已變更。
+Startup is enabled.|已啟用隨系統啟動。
+Startup is disabled.|已關閉隨系統啟動。
+Hardware collector start requested.|已要求啟動硬體採樣器。

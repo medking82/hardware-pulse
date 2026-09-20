@@ -37,6 +37,7 @@ static class Tests {
             return;
         }
         AppBuilder.Configure<PulseApplication>().With(DesktopFonts.Options()).UseSkia().UseHeadless(new(){UseHeadlessDrawing=false}).SetupWithoutStarting();
+        if(args.SequenceEqual(new[]{"--startup"})) {DesktopStartupTests.Run();return;}
         if(args.Length>=1&&args[0]=="--fps") {FpsPanelTests.Run(args.Length==2?args[1]:null);return;}
         if(args.Length>=1&&args[0]=="--game-overlay") {GameOverlayTests.Run(args.Length==2?args[1]:null);return;}
         if(args.SequenceEqual(new[]{"--palette"})) {ReadingPaletteTests.Run();return;}
@@ -94,6 +95,7 @@ static class Tests {
         LocalContrastTests.Settings();
         DesktopShortcutTests.Settings();
         DesktopAutoContrastTests.Run();
+        DesktopStartupTests.Run();
         WindowsSnapshotTests.Run();WindowsQuotaTests.Run();
         DeviceCardsTests.Run(args.Length==1?args[0]:null);
         CardPreferenceTests.Run(args.Length==1?args[0]:null);

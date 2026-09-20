@@ -41,6 +41,7 @@ public sealed class MonitorWindow : Window {
     readonly FpsPanel fps;
     readonly GameOverlayPanel gameOverlay;
     readonly HardwareSensorPanel sensors;
+    readonly DesktopStartupPanel startup;
     public UiLanguage Language {get;}
     readonly PreviewSettingsStore? store;
     readonly PreviewSettings settings;
@@ -101,6 +102,8 @@ public sealed class MonitorWindow : Window {
         network.Children.Add(refreshInterfaces);network.Children.Add(networkStatus);
         refreshInterfaces.Click+=async (_,_)=>await RefreshInterfacesAsync();
         network.Children.Add(Language.Set(new TextBlock{TextWrapping=TextWrapping.Wrap},"Download and upload show the selected interface. A missing saved interface stays unselected until you choose another."));
+        startup=new DesktopStartupPanel(Language,demo:source.IsDemo||smoke||measure);
+        network.Children.Add(startup);
         var appearance=new StackPanel{Spacing=10};
         var windowPreferences=new StackPanel{Spacing=10};
         var theme=new ComboBox{Name="PreviewTheme",ItemsSource=new[]{"System","Light","Dark"},SelectedItem=settings.Theme,HorizontalAlignment=HorizontalAlignment.Stretch};
@@ -209,7 +212,7 @@ public sealed class MonitorWindow : Window {
             if(settings.DesktopEnabled){bool locked=settings.DesktopLocked;OpenFloatingMonitor();if(locked&&FloatingMonitor?.SetLocked(true)==true)Hide();}
         };
         if(start)Opened+=(_,_)=>{if(!samplingStarted){samplingStarted=true;Sampling=SampleAsync();}};
-        Closed+=(_,_)=>{if(materialPlatform!=null)materialPlatform.ColorValuesChanged-=ColorsChanged;stop.Cancel();FloatingMonitor?.Close();quota.Dispose();claude.Dispose();antigravity.Dispose();gameOverlay.Dispose();fps.Dispose();SaveNow();};
+        Closed+=(_,_)=>{if(materialPlatform!=null)materialPlatform.ColorValuesChanged-=ColorsChanged;stop.Cancel();FloatingMonitor?.Close();quota.Dispose();claude.Dispose();antigravity.Dispose();gameOverlay.Dispose();fps.Dispose();startup.Dispose();SaveNow();};
     }
     static void ApplySettingsTabStyle(TabItem tab) {
         tab.Margin=new Thickness(0,0,6,6);

@@ -221,3 +221,14 @@ Desktop shortcut is unavailable in this session.|当前会话无法使用桌面�
 Auto Contrast|自动对比度
 Auto Contrast adjusts colors. Background and text opacity always follow your sliders.|自动对比度调整配色。背景与文字不透明度始终按滑块设置生效。
 Use Recommended Style|使用推荐样式
+Start with Windows|随 Windows 启动
+Refresh startup status|刷新启动状态
+Start hardware collector|启动硬件采样器
+Startup management requires the installed Windows version.|启动管理需要已安装的 Windows 版本。
+Checking startup status…|正在检查启动状态…
+Startup change canceled.|已取消启动设置更改。
+Startup action failed; refresh status or reinstall to repair.|启动操作失败；请刷新状态或重新安装以修复。
+Startup change could not be verified.|无法确认启动设置已更改。
+Startup is enabled.|已启用随系统启动。
+Startup is disabled.|已关闭随系统启动。
+Hardware collector start requested.|已请求启动硬件采样器。
