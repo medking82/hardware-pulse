@@ -426,3 +426,25 @@ Physical multi-monitor removal/reconnection, mixed-DPI movement and macOS/Linux
 native sessions remain unverified. Full Desktop layer, borderless editing and
 original Settings styling remain open. Rollback is source-only.
 Full scripts/Validate.ps1 passed for Desktop geometry persistence.
+
+### Shared borderless Desktop editor
+
+Monitor and Desktop now consume the same WindowChrome resize regions. The helper
+owns only eight edge/corner hit targets and their enabled/normal-window visibility;
+window state, native input policy and persistence stay with each existing host.
+Desktop is borderless both while editing and locked. Center dragging uses the
+host BeginMoveDrag and excludes buttons, scrollbars and thumbs. The original move
+hint is localized. Editor controls stay outside the readings ScrollViewer so long
+lists cannot scroll Return to App out of reach. Locked resize grips are hidden.
+
+Headless and Windows native regressions pass for shared grips, locking, reopening,
+return, geometry, App titlebar and native pass-through flags. An isolated --demo
+Windows computer-use session verified center drag from screen origin (60,150) to
+(240,240), SE-corner resize from 466x400 to 416x350 DIP, Done hiding the editor,
+Monitor reopening the same editor and Return to App. The session was closed with
+exit 0 and used no personal profile. The narrow editor render was inspected.
+Other edges, real wallpaper-layer placement, mixed-DPI monitors and native Mac/Linux
+remain outside this acceptance. Original WPF/assets and installed profiles remain
+unchanged. This is routine reversible shared presentation work; no data or privilege
+boundary changed. Rollback is source-only.
+Full scripts/Validate.ps1 passed for the shared borderless editor.

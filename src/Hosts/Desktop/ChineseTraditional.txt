@@ -133,3 +133,4 @@ Text opacity|文字不透明度
 Done|完成
 Return to App|返回應用
 Reset position|重設位置
+Drag the center to move. Drag any edge or corner to resize.|拖曳中間區域移動，拖曳邊緣或角落調整大小。

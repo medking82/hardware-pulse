@@ -4,6 +4,8 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Styling;
 using Avalonia.Platform;
+using Avalonia.Input;
+using Avalonia.VisualTree;
 
 namespace HardwarePulse.Desktop;
 
@@ -13,7 +15,7 @@ public sealed class FloatingMonitorWindow : Window {
     readonly Border surface=new(){Name="DesktopSurface",CornerRadius=new CornerRadius(16)};
     readonly IPlatformSettings? materialPlatform=Application.Current?.PlatformSettings;
     double backgroundOpacity=86,overlayOpacity=55,textOpacity=100;
-    readonly StackPanel rows=new(){Spacing=8,Margin=new Thickness(16)};
+    readonly DockPanel rows=new(){Margin=new Thickness(16)};
     readonly Dictionary<string,(Grid Row,TextBlock Label,TextBlock Value)> readings=new();
     MonitorSnapshot? snapshot;
     bool peaks;
@@ -31,6 +33,7 @@ public sealed class FloatingMonitorWindow : Window {
     public FloatingMonitorWindow(UiLanguage language) {
         this.language=language;
         Width=466;Height=400;MinWidth=280;MinHeight=140;FontSize=16;
+        WindowDecorations=WindowDecorations.None;
         language.Set(this,"Floating monitor");
         topmost=language.Set(new CheckBox{Name="FloatingTopmost"},"Always on top");
         topmost.IsCheckedChanged+=(_,_)=>{Topmost=topmost.IsChecked==true;ApplyMaterial();TopmostChanged?.Invoke(Topmost);};
@@ -39,9 +42,10 @@ public sealed class FloatingMonitorWindow : Window {
         var back=language.Set(new Button{Name="ReturnToApp"},"Return to App");
         back.Click+=(_,_)=>ReturnRequested?.Invoke();
         var actions=new WrapPanel();lockButton.Margin=new Thickness(0,0,8,0);actions.Children.Add(lockButton);actions.Children.Add(back);
+        editor.Children.Add(language.Set(new TextBlock{Name="DesktopMoveHint",FontSize=12,TextWrapping=TextWrapping.Wrap},"Drag the center to move. Drag any edge or corner to resize."));
         editor.Children.Add(topmost);editor.Children.Add(actions);editor.Children.Add(lockStatus);
         language.Set(lockStatus,"Reopen from Monitor or the tray to unlock.");
-        rows.Children.Add(editor);
+        DockPanel.SetDock(editor,Dock.Top);editor.Margin=new Thickness(0,0,0,12);rows.Children.Add(editor);
         Opened+=(_,_)=>{
             var handle=TryGetPlatformHandle();
             if(OperatingSystem.IsWindows()&&handle?.HandleDescriptor=="HWND") {
@@ -57,9 +61,16 @@ public sealed class FloatingMonitorWindow : Window {
             lockButton.IsVisible=lockStatus.IsVisible=input!=null;
         };
 
-        rows.Children.Add(sensors);
+        rows.Children.Add(new ScrollViewer{Content=sensors,HorizontalScrollBarVisibility=Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled});
         SizeChanged+=(_,_)=>LayoutReadings();
-        surface.Child=new ScrollViewer{Content=rows,HorizontalScrollBarVisibility=Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled};Content=surface;
+        surface.Child=rows;
+        var frame=new Grid();frame.Children.Add(surface);WindowChrome.AddResizeEdges(this,frame);Content=frame;
+        surface.AddHandler(InputElement.PointerPressedEvent,(_,e)=>{
+            if(IsLocked||!e.GetCurrentPoint(surface).Properties.IsLeftButtonPressed)return;
+            for(var node=e.Source as Visual;node!=null&&node!=surface;node=node.GetVisualParent())
+                if(node is Button or Avalonia.Controls.Primitives.ScrollBar or Avalonia.Controls.Primitives.Thumb)return;
+            BeginMoveDrag(e);e.Handled=true;
+        },Avalonia.Interactivity.RoutingStrategies.Tunnel);
         Background=Brushes.Transparent;TransparencyLevelHint=[WindowTransparencyLevel.Transparent];
         void ColorsChanged(object? sender,PlatformColorValues colors)=>ApplyMaterial();
         if(materialPlatform!=null)materialPlatform.ColorValuesChanged+=ColorsChanged;
@@ -142,7 +153,7 @@ public sealed class FloatingMonitorWindow : Window {
     }
     void SetEditorChrome(bool editing) {
         CanResize=editing;ShowInTaskbar=editing;
-        WindowDecorations=editing?WindowDecorations.Full:WindowDecorations.None;
+        WindowDecorations=WindowDecorations.None;
     }
     void Localize() {
         if(snapshot!=null)Present(snapshot,peaks);

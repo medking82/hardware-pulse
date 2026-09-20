@@ -35,11 +35,15 @@ static class FloatingMonitorTests {
             }
             materialWindow.ApplyPreferences(new PreviewSettings());
             } finally {materialWindow.Close();}
+            Check(floating.WindowDecorations==WindowDecorations.None,"Desktop editor has no OS titlebar");
+            var resizeEdges=floating.GetVisualDescendants().OfType<Border>().Where(x=>x.Name?.StartsWith("Resize")==true).ToArray();
+            Check(resizeEdges.Length==8&&resizeEdges.All(x=>x.IsVisible),"Desktop editor has all shared resize edges");
             floating.Hide();open.Command.Execute(null);Check(ReferenceEquals(floating,owner.FloatingMonitor)&&floating.IsVisible,"Tray did not restore same floating window");
             if(floating.CanLock) {
                 Check(floating.SetLocked(true)&&floating.IsLocked,"Native floating lock failed");
                 if(OperatingSystem.IsWindows()&&floating.TryGetPlatformHandle()?.HandleDescriptor=="HWND")
                     Check((GetWindowLongPtrW(floating.TryGetPlatformHandle()!.Handle,-20).ToInt64()&0x08080020)==0x08080020,"Chrome changes preserve native pass-through and no-activate bits");
+                Check(resizeEdges.All(x=>!x.IsVisible),"Locked Desktop has no resize hit regions");
                 Check(!floating.CanResize&&!floating.ShowInTaskbar&&floating.WindowDecorations==WindowDecorations.None,"Locked Desktop removes window chrome and resize");
                 Check(!floating.GetVisualDescendants().OfType<StackPanel>().Single(x=>x.Name=="DesktopEditor").IsVisible,"Locked Desktop hides editor");
                 var lockedPin=floating.GetVisualDescendants().OfType<CheckBox>().Single(x=>x.Name=="FloatingTopmost");
@@ -50,6 +54,7 @@ static class FloatingMonitorTests {
                 lockedPin.IsChecked=false;
                 floating.Hide();
                 open.Command.Execute(null);Check(!floating.IsLocked&&ReferenceEquals(floating,owner.FloatingMonitor),"Tray did not unlock existing window");
+                Check(resizeEdges.All(x=>x.IsVisible),"Reopened editor restores shared resize edges");
                 Check(floating.CanResize&&floating.ShowInTaskbar&&floating.GetVisualDescendants().OfType<StackPanel>().Single(x=>x.Name=="DesktopEditor").IsVisible,"Reopen restores editor and resize");
             }
             Check(floating.GetVisualDescendants().OfType<TextBlock>().Any(x=>x.Text=="21.0%"),"Floating window lost existing snapshot");
@@ -60,6 +65,9 @@ static class FloatingMonitorTests {
             bool Text(string text)=>floating.GetVisualDescendants().OfType<TextBlock>().Any(x=>x.IsEffectivelyVisible&&x.Text==text);
             Check(Text("55.0 °C   12.0%")&&Text("40.0 °C   20.0%")&&Text("600 RPM")&&Text("700 RPM")&&Text("43.0 °C"),"Desktop receives grouped CPU/GPU, separate fans and drive readings from shared hardware snapshot");
             Check(Text("1.0 KiB/s"),"Desktop traffic uses selected-interface snapshot, not collector default");
+            var editor=floating.GetVisualDescendants().OfType<StackPanel>().Single(x=>x.Name=="DesktopEditor");
+            var scroll=floating.GetVisualDescendants().OfType<ScrollViewer>().Single();
+            Check(!editor.GetVisualAncestors().Contains(scroll),"Desktop editor remains outside scrolling readings");
             var gpu=floating.GetVisualDescendants().OfType<Grid>().Single(x=>x.Name=="DesktopMetricGPU");
             floating.Present(sample,true);Check(Text("65.0 °C   22.0%")&&Text(sample.Memory),"Desktop peak mode retains current memory");
             owner.Present(sample with {Hardware=new HardwarePulse.Reading{state="STALE",available=hardware.available}});
