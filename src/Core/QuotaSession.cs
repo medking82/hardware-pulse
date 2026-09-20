@@ -19,6 +19,11 @@ namespace HardwarePulse {
             if(slot.Pending!=null&&slot.Pending.IsCompleted){
                 if(slot.Pending.Status==TaskStatus.RanToCompletion&&slot.Enabled&&slot.Version==slot.PendingVersion)slot.Reading=slot.Pending.Result;
                 else{var ignored=slot.Pending.Exception;if(slot.Enabled&&slot.Version==slot.PendingVersion)slot.Reading=new QuotaReading{Provider=pair.Key,Status="Quota unavailable",Observed=now};}
+                if(slot.Enabled&&slot.Version==slot.PendingVersion) {
+                    // Transient transport failures retry sooner; authentication stays
+                    // on the normal cadence and rate limiting receives its own backoff.
+                    slot.Next=now.AddSeconds(slot.Reading.Status=="Quota unavailable"?30:slot.Reading.Status=="Refresh rate limited"?120:300);
+                }
                 slot.Pending=null;slot.Cancel.Dispose();slot.Cancel=null;
             }
             if(!slot.Enabled||slot.Pending!=null||now<slot.Next)continue;
