@@ -11,6 +11,7 @@ namespace HardwarePulse.Desktop;
 sealed class DeviceCard : Border {
     sealed record Metric(string Key,string Label,string ShortLabel,string Unit);
     readonly string key,accent;
+    public string Key=>key;
     readonly UiLanguage language;
     readonly TextBlock subtitle=new(){Name="DeviceSubtitle",FontSize=10,Foreground=Brush.Parse("#DDE9F0"),Margin=new(0,3,0,6)};
     readonly TextBlock hero=new(){FontSize=21,HorizontalAlignment=HorizontalAlignment.Right};

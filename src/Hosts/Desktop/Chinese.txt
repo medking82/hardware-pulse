@@ -115,3 +115,7 @@ Minimize|最小化
 Close widget|关闭组件
 Always on Top|始终置顶
 Lock Position and Size|锁定位置和大小
+App Cards|App 卡片
+No cards shown. Choose cards in Settings.|未显示卡片。请在设置中选择卡片。
+Move up|上移
+Move down|下移

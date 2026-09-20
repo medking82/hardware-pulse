@@ -234,3 +234,22 @@ close/reopen, resize availability, Settings access and lock/Settings opacity tra
 Full OS-level move prevention, multi-monitor behavior, visual locked-mode acceptance,
 tray preference commands and the rest of Settings/Desktop parity remain outstanding.
 Headless regression and full scripts/Validate.ps1 also passed for this change.
+
+### App Cards visibility and order
+
+Shared Settings now has an App Cards page for the six hardware groups. Visibility
+and order are independent saved preferences; invalid/duplicate order entries are
+normalized, and missing known cards are appended in original order. Visibility is
+applied after capability mapping on every presentation, so polling cannot re-enable
+a hidden card. Re-enabling uses the current snapshot. Moving reuses existing card
+instances and updates both visual/control order. Original lock blocks order changes.
+All-hidden state retains Settings access and explains how to restore cards.
+
+The allowed boundary is shared preferences/presentation/localization and tests;
+original WPF/assets, collector sessions, quotas, installed profiles and releases are
+unchanged. Added profile keys are optional and unknown fields remain preserved.
+Headless tests cover malformed preferences, ordering, repeated polling, all-hidden
+recovery, control reuse and persistence. The 360 DIP App Cards render was inspected;
+Windows native regression passes. Original drag grips, hardware-name customization,
+font/density controls, full six-category Settings and Desktop remain incomplete.
+Full scripts/Validate.ps1 also passed for App Cards preferences.

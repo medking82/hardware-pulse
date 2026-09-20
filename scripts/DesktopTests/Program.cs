@@ -72,6 +72,7 @@ static class Tests {
         AppMaterialTests.Run();
         WindowsSnapshotTests.Run();
         DeviceCardsTests.Run(args.Length==1?args[0]:null);
+        CardPreferenceTests.Run(args.Length==1?args[0]:null);
         NavigationTests.Run(args.Length==1?args[0]:null);
         TitlebarTests.Run();
         MeasurementTests.Run();

@@ -19,6 +19,7 @@ public sealed class MonitorWindow : Window {
     readonly TextBlock hardwareStatus=new(){Name="HardwareStatus",TextWrapping=TextWrapping.Wrap,IsVisible=false};
     readonly Grid cards=new(){Name="ReadingCards",ColumnSpacing=10,RowSpacing=6};
     readonly DeviceCard[] panels;
+    readonly TextBlock cardsEmpty=new(){Name="CardsEmpty",TextWrapping=TextWrapping.Wrap,IsVisible=false};
     readonly ToggleButton details=new(){Name="Details",Content="Details",Padding=new Thickness(7,5)};
     int cardColumns,cardVisibility=-1;
     readonly ComboBox interfaces=new(){HorizontalAlignment=HorizontalAlignment.Stretch,PlaceholderText="Select network interface"};
@@ -57,12 +58,12 @@ public sealed class MonitorWindow : Window {
         FontSize=15;
         WindowDecorations=WindowDecorations.None;
         var heading=Language.Set(new TextBlock{FontSize=22,FontWeight=FontWeight.SemiBold},"Pulse");
-        panels=new[]{"CPU","GPU","Memory","NVMe","Airflow","Network"}.Select(key=>new DeviceCard(key,Language)).ToArray();
+        panels=settings.CardOrder.Select(key=>new DeviceCard(key,Language)).ToArray();
         foreach(var panel in panels)cards.Children.Add(panel);
         var body=new StackPanel{Spacing=16,Margin=new Thickness(24)};
         var modes=new WrapPanel{Name="MonitorControls",Orientation=Orientation.Horizontal};
         foreach(var control in new[]{Language.Set(liveMode,"Live"),Language.Set(maxMode,"Session Max"),Language.Set(details,"Details")}){control.Margin=new Thickness(0,0,6,6);modes.Children.Add(control);}
-        body.Children.Add(hardwareStatus);body.Children.Add(cards);body.Children.Add(pause);
+        body.Children.Add(hardwareStatus);body.Children.Add(cards);body.Children.Add(Language.Set(cardsEmpty,"No cards shown. Choose cards in Settings."));body.Children.Add(pause);
         details.IsChecked=settings.Details;
         details.IsCheckedChanged+=(_,_)=>{settings.Details=details.IsChecked==true;if(latestSnapshot!=null)Render(latestSnapshot);SaveLater();};
         Language.Changed+=()=>{if(latestSnapshot!=null)Render(latestSnapshot);};
@@ -99,7 +100,8 @@ public sealed class MonitorWindow : Window {
         languageChoice.SelectionChanged+=(_,_)=>{settings.Language=languageChoice.SelectedIndex==1?"en":languageChoice.SelectedIndex==2?"zh-CN":languageChoice.SelectedIndex==3?"zh-TW":"auto";Language.Select(settings.Language);SaveLater();};
         var settingsTabs=new TabControl{Name="SettingsTabs",ItemsSource=new[]{
             Language.Set(new TabItem{Content=network},"Network"),Language.Set(new TabItem{Content=appearance},"Appearance"),
-            new TabItem{Header="Codex",Content=new Border{Padding=new Thickness(20),Child=quota.SettingsContent}}}};
+            new TabItem{Header="Codex",Content=new Border{Padding=new Thickness(20),Child=quota.SettingsContent}},
+            Language.Set(new TabItem{Content=CreateCardSettings()},"App Cards")}};
         var settingsBody=new StackPanel{Spacing=12,Margin=new Thickness(12)};
         settingsBody.Children.Add(settingsTabs);settingsBody.Children.Add(saveStatus);
         var back=Language.Set(new Button{Name="Back",Padding=new Thickness(10,5)},"Back");
@@ -171,6 +173,39 @@ public sealed class MonitorWindow : Window {
         TransparencyLevelHint=settings.Solid||highContrast?[WindowTransparencyLevel.None]:
             OperatingSystem.IsWindows()||settings.AppOpacity==0||(settings.LockPosition&&!settingsVisible)?[WindowTransparencyLevel.Transparent]:[WindowTransparencyLevel.Blur];
         ApplyMaterial();
+    }
+    Control CreateCardSettings() {
+        var list=new StackPanel{Name="CardPreferences",Spacing=8,Margin=new Thickness(20)};
+        var rows=new Dictionary<string,Grid>();
+        var moves=new Dictionary<string,(Button Up,Button Down)>();
+        void RefreshOrder() {
+            list.Children.Clear();
+            for(int i=0;i<settings.CardOrder.Count;i++) {
+                string key=settings.CardOrder[i];list.Children.Add(rows[key]);
+                moves[key].Up.IsEnabled=i>0&&!settings.LockPosition;moves[key].Down.IsEnabled=i<settings.CardOrder.Count-1&&!settings.LockPosition;
+            }
+        }
+        void Move(string key,int delta) {
+            if(settings.LockPosition)return;
+            int index=settings.CardOrder.IndexOf(key),target=index+delta;if(target<0||target>=panels.Length)return;
+            (settings.CardOrder[index],settings.CardOrder[target])=(settings.CardOrder[target],settings.CardOrder[index]);
+            Array.Sort(panels,(a,b)=>settings.CardOrder.IndexOf(a.Key).CompareTo(settings.CardOrder.IndexOf(b.Key)));
+            cards.Children.Clear();foreach(var panel in panels)cards.Children.Add(panel);
+            cardVisibility=-1;LayoutCards();RefreshOrder();SaveLater();
+            var action=delta<0?moves[key].Up:moves[key].Down;
+            if(action.IsEnabled)action.Focus();else rows[key].Children[0].Focus();
+        }
+        foreach(string key in PreviewSettings.CardKeys) {
+            var row=new Grid{ColumnDefinitions=new("*,Auto,Auto"),ColumnSpacing=6};rows[key]=row;
+            var visible=Language.Set(new CheckBox{Name="ShowCard"+key,IsChecked=!settings.HiddenCards.Contains(key)},key);
+            visible.IsCheckedChanged+=(_,_)=>{if(visible.IsChecked==true)settings.HiddenCards.Remove(key);else settings.HiddenCards.Add(key);if(latestSnapshot!=null)Render(latestSnapshot);SaveLater();};
+            var up=new Button{Name="MoveCardUp"+key,Content="↑",Padding=new Thickness(8,3)};
+            var down=new Button{Name="MoveCardDown"+key,Content="↓",Padding=new Thickness(8,3)};
+            void Labels(){Avalonia.Automation.AutomationProperties.SetName(up,Language.T("Move up")+" · "+Language.T(key));Avalonia.Automation.AutomationProperties.SetName(down,Language.T("Move down")+" · "+Language.T(key));}
+            Language.Changed+=Labels;Labels();up.Click+=(_,_)=>Move(key,-1);down.Click+=(_,_)=>Move(key,1);
+            moves[key]=(up,down);row.Children.Add(visible);Grid.SetColumn(up,1);row.Children.Add(up);Grid.SetColumn(down,2);row.Children.Add(down);
+        }
+        list.AttachedToVisualTree+=(_,_)=>RefreshOrder();RefreshOrder();return list;
     }
     void ApplyWindowPreferences() {
         Topmost=settings.Topmost;CanResize=!settings.LockPosition;
@@ -255,7 +290,8 @@ public sealed class MonitorWindow : Window {
     }
     void Render(MonitorSnapshot snapshot) {
         bool max=sessionMax;
-        foreach(var panel in panels)panel.Present(snapshot,max,details.IsChecked==true);
+        foreach(var panel in panels){panel.Present(snapshot,max,details.IsChecked==true);panel.IsVisible&=!settings.HiddenCards.Contains(panel.Key);}
+        cardsEmpty.IsVisible=panels.All(x=>!x.IsVisible);
         LayoutCards();
         hardwareStatus.IsVisible=snapshot.Hardware!=null&&snapshot.Hardware.state!="LIVE";
         Language.Set(hardwareStatus,"Hardware readings unavailable. Waiting for the collector.");

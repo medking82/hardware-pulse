@@ -3,6 +3,9 @@ using System.Text.Json;
 namespace HardwarePulse.Desktop;
 
 public sealed class PreviewSettings {
+    public static readonly string[] CardKeys=["CPU","GPU","Memory","NVMe","Airflow","Network"];
+    public List<string> CardOrder=new(CardKeys);
+    public HashSet<string> HiddenCards=new(StringComparer.Ordinal);
     public double Width=800,Height=560;
     public string Theme="Dark";
     public double AppOpacity=85;
@@ -45,6 +48,10 @@ public sealed class PreviewSettingsStore {
             settings.AppOpacity=values.Number("appOpacity",settings.AppOpacity,0,100);settings.Solid=values.Flag("solid");
             settings.Details=values.Flag("details");
             settings.Topmost=values.Flag("topmost");settings.LockPosition=values.Flag("lockPosition");
+            string[] Cards(string name)=>fields.TryGetValue(name,out var list)&&list.ValueKind==JsonValueKind.Array
+                ?list.EnumerateArray().Where(x=>x.ValueKind==JsonValueKind.String).Select(x=>x.GetString()!).Where(PreviewSettings.CardKeys.Contains).Distinct().ToArray():[];
+            settings.CardOrder=Cards("cardOrder").Concat(PreviewSettings.CardKeys).Distinct().ToList();
+            settings.HiddenCards=new(Cards("hiddenCards"),StringComparer.Ordinal);
             string network=values.Text("network");settings.Network=network.Length>0&&network.Length<=256&&!network.Any(char.IsControl)?network:null;
             settings.Codex=values.Flag("codex");
             string language=values.Text("language","auto");settings.Language=language is "en" or "zh-CN" or "zh-TW"?language:"auto";
@@ -66,6 +73,7 @@ public sealed class PreviewSettingsStore {
                 ["language"]=JsonSerializer.SerializeToElement(settings.Language),
                 ["appOpacity"]=JsonSerializer.SerializeToElement(settings.AppOpacity),["solid"]=JsonSerializer.SerializeToElement(settings.Solid),
                 ["details"]=JsonSerializer.SerializeToElement(settings.Details),
+                ["cardOrder"]=JsonSerializer.SerializeToElement(settings.CardOrder),["hiddenCards"]=JsonSerializer.SerializeToElement(settings.HiddenCards),
                 ["topmost"]=JsonSerializer.SerializeToElement(settings.Topmost),["lockPosition"]=JsonSerializer.SerializeToElement(settings.LockPosition)};
             var bytes=JsonSerializer.SerializeToUtf8Bytes(updated);
             if(bytes.Length>65536)throw new InvalidDataException();
