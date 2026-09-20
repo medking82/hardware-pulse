@@ -282,6 +282,10 @@ internal static class NativeTests {
             Json.WriteAtomic(Path.Combine(state,"widget-settings.json"),new {width=310,height=690,left=90,top=70,fontSize=12,language="en",unknownMigrationField="keep",overlay=new {enabled=true,processName="PulseTestGameNotRunning",background="#223344",opacity=37},cardOrder=new[]{"GPU","CPU","Memory","NVMe","Airflow"}});
             using(var shell=new Shell(paths,true)){
                 shell.Window.ShowInTaskbar=false;shell.Window.ShowActivated=false;shell.Show();Pump();shell.UpdatePanel();Pump();
+                Assert(shell.Control<Slider>("OpacitySlider").Value==85,"Missing opacity preference must use the readable glass default");
+                var defaultBackground=((SolidColorBrush)shell.Window.Background).Color;
+                Assert(defaultBackground.R==0x20&&defaultBackground.G==0x28&&defaultBackground.B==0x31&&shell.Window.Opacity==1,"Readable default must deepen the surface without fading content");
+                Capture(shell,Path.Combine(state,"readable-default.png"));
                 Assert(shell.Control<TextBlock>("Status").Text.Contains("7 "),"Native mapped sensor count");
                 NativeQuotaTests.RunUI(shell,Path.Combine(state,"quota-preview.png"));
                 shell.Window.Hide();var hiddenSnapshot=Snapshot();hiddenSnapshot.sequence=900;hiddenSnapshot.sensors[0].value=87;Json.WriteAtomic(paths.Snapshot,hiddenSnapshot);shell.UpdatePanel();
