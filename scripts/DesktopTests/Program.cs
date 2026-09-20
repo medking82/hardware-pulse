@@ -43,10 +43,15 @@ static class Tests {
                 frame!.Save(System.IO.Path.Combine(args[0],$"desktop-{width}.png"),Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
             }
         }
-        var mode=window.GetVisualDescendants().OfType<ComboBox>().Single(x=>x.Name=="ReadingMode");
-        mode.SelectedIndex=1;
+        var mode=window.GetVisualDescendants().OfType<Button>().Single(x=>x.Name=="SessionMax");
+        mode.Focus();window.KeyPress(Key.Space,RawInputModifiers.None,PhysicalKey.Space," ");window.KeyRelease(Key.Space,RawInputModifiers.None,PhysicalKey.Space," ");
+        var maxButton=(Avalonia.Controls.Primitives.ToggleButton)mode;
+        var liveButton=window.GetVisualDescendants().OfType<Avalonia.Controls.Primitives.ToggleButton>().Single(x=>x.Name=="Live");
+        Check(maxButton.IsChecked==true&&liveButton.IsChecked==false,"Keyboard selects Session Max exclusively");
+        mode.Focus();window.KeyPress(Key.Space,RawInputModifiers.None,PhysicalKey.Space," ");window.KeyRelease(Key.Space,RawInputModifiers.None,PhysicalKey.Space," ");
+        Check(maxButton.IsChecked==true&&liveButton.IsChecked==false,"Activating the selected mode keeps one mode selected");
         Check(window.GetVisualDescendants().OfType<TextBlock>().Any(x=>x.Text=="42.0%"),"Session Max switches immediately without polling");
-        mode.SelectedIndex=0;
+        window.GetVisualDescendants().OfType<Button>().Single(x=>x.Name=="Live").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
         Check(window.GetVisualDescendants().OfType<TextBlock>().Any(x=>x.Text=="24.0%"),"Live restores current snapshot");
         var pause=window.GetVisualDescendants().OfType<CheckBox>().Single(x=>x.Name=="PauseHardware");
         pause.Focus();window.KeyPress(Key.Space,RawInputModifiers.None,PhysicalKey.Space," ");window.KeyRelease(Key.Space,RawInputModifiers.None,PhysicalKey.Space," ");

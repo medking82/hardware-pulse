@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
@@ -17,13 +18,15 @@ public sealed class MonitorWindow : Window {
     readonly TextBlock hardwareStatus=new(){Name="HardwareStatus",TextWrapping=TextWrapping.Wrap,IsVisible=false};
     readonly Grid cards=new(){Name="ReadingCards",ColumnSpacing=10,RowSpacing=6};
     readonly DeviceCard[] panels;
-    readonly CheckBox details=new(){Name="Details",Content="Details"};
+    readonly ToggleButton details=new(){Name="Details",Content="Details",Padding=new Thickness(7,5)};
     int cardColumns,cardVisibility=-1;
     readonly ComboBox interfaces=new(){HorizontalAlignment=HorizontalAlignment.Stretch,PlaceholderText="Select network interface"};
     readonly Button refreshInterfaces=new(){Name="RefreshInterfaces",Content="Refresh interfaces"};
     readonly TextBlock networkStatus=new(){Name="NetworkStatus",TextWrapping=TextWrapping.Wrap};
     readonly CheckBox pause=new(){Name="PauseHardware",Content="Pause hardware monitoring"};
-    readonly ComboBox readingMode=new(){Name="ReadingMode",ItemsSource=new[]{"Live","Session Max"},SelectedIndex=0,MinWidth=160};
+    readonly ToggleButton liveMode=new(){Name="Live",IsChecked=true,Padding=new Thickness(7,5)};
+    readonly ToggleButton maxMode=new(){Name="SessionMax",Padding=new Thickness(7,5)};
+    bool sessionMax;
     MonitorSnapshot? latestSnapshot;
     public FloatingMonitorWindow? FloatingMonitor {get;private set;}
     bool samplingFailed;
@@ -53,14 +56,15 @@ public sealed class MonitorWindow : Window {
         panels=new[]{"CPU","GPU","Memory","NVMe","Airflow","Network"}.Select(key=>new DeviceCard(key,Language)).ToArray();
         foreach(var panel in panels)cards.Children.Add(panel);
         var body=new StackPanel{Spacing=16,Margin=new Thickness(24)};
-        var modes=new StackPanel{Orientation=Orientation.Horizontal,Spacing=8};modes.Children.Add(readingMode);modes.Children.Add(Language.Set(details,"Details"));
+        var modes=new WrapPanel{Name="MonitorControls",Orientation=Orientation.Horizontal};
+        foreach(var control in new[]{Language.Set(liveMode,"Live"),Language.Set(maxMode,"Session Max"),Language.Set(details,"Details")}){control.Margin=new Thickness(0,0,6,6);modes.Children.Add(control);}
         body.Children.Add(modes);body.Children.Add(status);body.Children.Add(hardwareStatus);body.Children.Add(cards);body.Children.Add(pause);
         details.IsChecked=settings.Details;
         details.IsCheckedChanged+=(_,_)=>{settings.Details=details.IsChecked==true;if(latestSnapshot!=null)Render(latestSnapshot);SaveLater();};
         Language.Changed+=()=>{if(latestSnapshot!=null)Render(latestSnapshot);};
         var floating=Language.Set(new Button{Name="OpenFloatingMonitor"},"Open floating monitor");
         floating.Click+=(_,_)=>OpenFloatingMonitor();body.Children.Add(floating);
-        readingMode.SelectionChanged+=(_,_)=>{if(latestSnapshot!=null)Render(latestSnapshot);};
+        liveMode.Click+=(_,_)=>SelectMode(false);maxMode.Click+=(_,_)=>SelectMode(true);
         body.Children.Add(sensors);
         quota=new CodexQuotaPanel(source.IsDemo,inlineSettings:false,language:Language);body.Children.Add(quota);
         body.Children.Add(Language.Set(new TextBlock{TextWrapping=TextWrapping.Wrap},"Preview · FPS and Desktop overlay are not connected yet. Hardware support depends on the platform and device."));
@@ -93,7 +97,7 @@ public sealed class MonitorWindow : Window {
         var tabs=new TabControl{Name="MainTabs",ItemsSource=new[]{Language.Set(new TabItem{Content=Scroll(body)},"Monitor"),Language.Set(new TabItem{Content=Scroll(settingsSurface)},"Settings")}};
         DockPanel.SetDock(heading,Dock.Top);heading.Margin=new Thickness(24,20,24,12);viewport.Children.Add(heading);viewport.Children.Add(tabs);Content=viewport;
         Language.Set(this,"Pulse · Desktop preview");Language.Set(status,"Starting…");Language.Set(pause,"Pause hardware monitoring");Language.Set(refreshInterfaces,"Refresh interfaces");
-        theme.ItemTemplate=Language.Choices();readingMode.ItemTemplate=Language.Choices();
+        theme.ItemTemplate=Language.Choices();
         void Placeholder()=>interfaces.PlaceholderText=Language.T("Select network interface");
         Language.Changed+=Placeholder;Placeholder();
         Language.Set(saveStatus,store?.Error??(store==null?"Session only · Changes will not be saved.":"Changes save automatically."));
@@ -115,13 +119,17 @@ public sealed class MonitorWindow : Window {
         if(start)Opened+=(_,_)=>Sampling=SampleAsync();
         Closed+=(_,_)=>{if(materialPlatform!=null)materialPlatform.ColorValuesChanged-=ColorsChanged;stop.Cancel();FloatingMonitor?.Close();quota.Dispose();SaveNow();};
     }
+    void SelectMode(bool max) {
+        sessionMax=max;liveMode.IsChecked=!max;maxMode.IsChecked=max;
+        if(latestSnapshot!=null)Render(latestSnapshot);
+    }
     public void OpenFloatingMonitor() {
         if(stop.IsCancellationRequested)return;
         if(FloatingMonitor==null) {
             FloatingMonitor=new FloatingMonitorWindow(Language){RequestedThemeVariant=RequestedThemeVariant};
             FloatingMonitor.Closed+=(_,_)=>FloatingMonitor=null;
         }
-        if(latestSnapshot!=null)FloatingMonitor.Present(latestSnapshot,readingMode.SelectedIndex==1);
+        if(latestSnapshot!=null)FloatingMonitor.Present(latestSnapshot,sessionMax);
         FloatingMonitor.Show();if(!FloatingMonitor.SetLocked(false))return;
         if(FloatingMonitor.WindowState==WindowState.Minimized)FloatingMonitor.WindowState=WindowState.Normal;
         FloatingMonitor.Activate();
@@ -176,7 +184,7 @@ public sealed class MonitorWindow : Window {
         latestSnapshot=snapshot;Render(snapshot);
     }
     void Render(MonitorSnapshot snapshot) {
-        bool max=readingMode.SelectedIndex==1;
+        bool max=sessionMax;
         foreach(var panel in panels)panel.Present(snapshot,max,details.IsChecked==true);
         LayoutCards();
         hardwareStatus.IsVisible=snapshot.Hardware!=null&&snapshot.Hardware.state!="LIVE";

@@ -29,9 +29,9 @@ static class SamplingRecoveryTests {
             Until(()=>source.Calls>=2);Dispatcher.UIThread.RunJobs();
             Until(()=>Has(window,"Monitoring unavailable. Retrying…"));
             Check(!Has(window,"21.0%")&&!window.Sampling.IsCompleted,"Failure clears live values without terminating worker");
-            var mode=window.GetVisualDescendants().OfType<ComboBox>().Single(x=>x.Name=="ReadingMode");mode.SelectedIndex=1;
+            var mode=window.GetVisualDescendants().OfType<Button>().Single(x=>x.Name=="SessionMax");mode.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
             Check(Has(window,"41.0%")&&Has(window,"Monitoring unavailable. Retrying…"),"History survives but does not disguise unavailable state");
-            mode.SelectedIndex=0;
+            window.GetVisualDescendants().OfType<Button>().Single(x=>x.Name=="Live").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
             Until(()=>Has(window,"31.0%"));
             Check(!Has(window,"Monitoring unavailable. Retrying…"),"Successful sample restores live status");
         } finally {window.Close();Until(()=>window.Sampling.IsCompleted);}

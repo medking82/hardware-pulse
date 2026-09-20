@@ -36,7 +36,7 @@ static class DeviceCardsTests {
         reading.names["Network"]="Collector default adapter";
         window.Present(snapshot with {NetworkName="Selected traffic adapter"});
         Check(Text("Selected traffic adapter")&&!Text("Collector default adapter"),"Traffic subtitle identifies the sampled interface, not the collector default");
-        var details=window.GetVisualDescendants().OfType<CheckBox>().Single(x=>x.Name=="Details");details.IsChecked=true;
+        var details=window.GetVisualDescendants().OfType<Avalonia.Controls.Primitives.ToggleButton>().Single(x=>x.Name=="Details");details.IsChecked=true;
         Dispatcher.UIThread.RunJobs();
         Check(Text("Core Voltage"),"Details reveals original full hardware labels");
         Check(CpuText("Vcore · Motherboard").TranslatePoint(new Point(),cpu)!.Value.Y>CpuText("Utilization").TranslatePoint(new Point(),cpu)!.Value.Y,"Details restores full-width rows");
@@ -56,7 +56,7 @@ static class DeviceCardsTests {
         window.Present(snapshot with {Hardware=stale});
         Check(!Text("59.0 °C")&&Text("—"),"Stale hardware clears live values and retains capability layout");
         Check(Text("Hardware readings unavailable. Waiting for the collector."),"Missing collector has explicit status independent of system counters");
-        var mode=window.GetVisualDescendants().OfType<ComboBox>().Single(x=>x.Name=="ReadingMode");mode.SelectedIndex=1;
+        var mode=window.GetVisualDescendants().OfType<Button>().Single(x=>x.Name=="SessionMax");mode.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
         Check(Text("69.0 °C"),"Session Max uses distinct hardware history");
         window.Close();Console.WriteLine("PASS device cards: WPF grouping, details, three columns, control reuse, stale data and peaks");
     }

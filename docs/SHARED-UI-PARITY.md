@@ -146,3 +146,20 @@ the compositor observation timing, without relaxing the pixel or ownership
 assertion; it is not evidence for other machines or platforms.
 
 <!-- sop-risk-classification: {"facts":{"blast_radius":"isolated","change_kind":"implementation","data_boundary":"ordinary","destructive":"no","failure_cost":"low","irreversibility":"reversible","operational_controls":"not_applicable","privilege_boundary":"unchanged","project_policy":"default","rollback":"easy","scope_knowledge":"known","uncertainty":"low","verification":"semantic"},"formal_review":"not_required","kind":"risk-classification-assessment","reasons":{"formal_review":["routine_no_review"],"risk":["no_high_risk_signal"]},"risk":"routine","schema_version":2} -->
+
+### Original direct mode controls
+
+Monitor uses Live and Session Max buttons instead of the preview's mode dropdown,
+and Details is a toggle button. The wrapping control row preserves access at narrow
+widths; mode selection is mutually exclusive even when the active button is pressed
+again. Selection only re-renders the current snapshot and its history, including an
+open floating monitor; it does not add polling or change the reading owner.
+
+Allowed scope is Monitor presentation and corresponding regression tests. Installed
+profiles, original WPF, adapters, credentials and releases remain unchanged. Source
+reversion is the rollback boundary. Headless keyboard activation, repeated selection,
+immediate current/peak switching, Details and sampling recovery pass. The Windows
+native regression passes, and the compact render was inspected. The large preview
+heading, main tabs, complete original Settings and Desktop still need migration;
+this step is not full UI or release acceptance.
+Repository scripts/Validate.ps1 also passed for this control change.
