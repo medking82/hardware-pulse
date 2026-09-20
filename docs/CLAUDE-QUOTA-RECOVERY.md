@@ -1,11 +1,12 @@
 # Claude quota recovery investigation
 
-Status-line integration: decoder and Windows receiver implemented; opt-in source
-selection and configuration integration remain pending. Not included in Windows 0.6.32.
+Status-line integration: decoder, Windows receiver and explicit source selection
+implemented. Configuration automation and real CLI acceptance remain pending.
+Not included in Windows 0.6.32.
 User direction: pursue both independent refresh and an optional status-line source.
 
-Decoder and local receiver admission (reclassify before configuration integration):
-<!-- sop-risk-classification: {"facts":{"blast_radius":"isolated","change_kind":"implementation","data_boundary":"ordinary","destructive":"no","failure_cost":"low","irreversibility":"reversible","operational_controls":"not_applicable","privilege_boundary":"unchanged","project_policy":"default","rollback":"easy","scope_knowledge":"known","uncertainty":"low","verification":"deterministic"},"formal_review":"not_required","kind":"risk-classification-assessment","reasons":{"formal_review":["routine_no_review"],"risk":["no_high_risk_signal"]},"risk":"routine","schema_version":2} -->
+Decoder, receiver and source-selector admission (reclassify before automatic CLI configuration):
+<!-- sop-risk-classification: {"facts":{"blast_radius":"shared","change_kind":"implementation","data_boundary":"ordinary","destructive":"no","failure_cost":"low","irreversibility":"reversible","operational_controls":"not_applicable","privilege_boundary":"unchanged","project_policy":"default","rollback":"easy","scope_knowledge":"known","uncertainty":"low","verification":"deterministic"},"formal_review":"not_required","kind":"risk-classification-assessment","reasons":{"formal_review":["routine_no_review"],"risk":["no_high_risk_signal"]},"risk":"routine","schema_version":2} -->
 
 ## Verified integration option
 
@@ -79,7 +80,7 @@ their independent reception timestamps under the current user's Pulse state.
 An exclusive file lock covers read/owner-check/replace. First reception binds the
 session; different sessions and corrupt ownership state fail closed. The reader
 never automatically falls back from HTTP or selects another account. Explicit
-reset/rebind and source selection still need a user-facing integration.
+reset/rebind and source selection are exposed in AI Quota Settings.
 
 Publication uses a same-directory temporary file and atomic replace. Interrupted
 writes leave at most one reusable temporary file; readers only open the final
@@ -94,6 +95,52 @@ exercise a real Claude session or prove that CLI settings invoke the command.
 No user Claude settings, credentials, existing HTTP source, UI or collector state
 were changed. Rollback removes the new entry point/decoder/receiver and tests;
 there is no installed configuration migration to reverse.
+
+## Source selection and scoped audit
+
+Inspection baseline: `510a2b2`; the source-selector changes are the subsequent
+working-tree delta. Scope: QuotaSession, QuotaView/Shell, receiver/decoder, quota
+Settings and tests. `docs/RUNTIME-BOUNDARIES.md` and `docs/QUOTA-INTEGRATION.md`
+control this boundary; no root CONTEXT/CONTEXT-MAP, WAYFINDER or FRAMEWORK.md was
+found. No cross-platform UI redesign is inferred from shared Core ownership.
+
+The job is dependable remaining-quota visibility without repeated manual login.
+Product audit mode: prototype maturity and implementation architecture. Passing
+synthetic tests does not prove real credential-expiry recovery or independent
+refresh with every Claude client closed.
+
+- Healthy boundary: QuotaSession owns cancellation, versioned result acceptance,
+  cadence and Retry-After. Adapters own credentials/transport. Switching the
+  explicit Claude source uses disable/enable invalidation; a previous worker's
+  completion cannot repopulate the newly selected source. Existing login is the
+  default, and snapshot mode never falls back to HTTP or changes credential state.
+- Freshness knowledge must reach both views: receiver values expire independently,
+  while Monitor/Desktop may hold a previously read result. Both now gate snapshot
+  values by age and reset deadline; render signatures include window values and
+  validity, so a partial-window change cannot remain hidden by an unchanged oldest
+  timestamp. Synthetic WPF tests cover fresh, stale and reset-window presentation.
+- Local and remote cadence differ: snapshot reads use the existing worker scheduler
+  every 30 seconds, with no extra provider request; HTTP success keeps five minutes.
+  A focused Core test asserts this deadline and existing lifecycle tests protect
+  cancellation/non-overlap. There is no new timer or background service.
+- Product gap: configuring a status line and rebinding a new session add work for
+  users. The optional selector and copy-command action make the current boundary
+  explicit but do not meet the independent-refresh requirement. Keep this as a
+  supplementary source; next validate real CLI delivery and design reversible
+  configuration that preserves an existing statusLine command. Do not claim a
+  long-term stability improvement from a synthetic snapshot alone.
+
+Clarified decisions: preserve WPF glass/layout and existing login by default;
+snapshot is an explicit alternative, not an authentication fallback; rebind is
+an explicit action that admits the next session. Unknown: real status-line invocation
+and independent renewal across expiry. Non-goals: login automation, token rotation,
+account switching, replacing an existing CLI command without preservation, and
+any hardware/collector or shared-UI redesign.
+
+Validation: `Validate.ps1`, `Test-CoreModern.ps1`, and narrow Settings screenshots
+from `Test-SettingsQuota.ps1` cover the code boundary. Screenshot inspection confirms
+the source controls and footer remain reachable at 340 DIP with no horizontal
+overflow. Live configuration and real CLI acceptance remain separate gates.
 
 This is not a complete solution for quota updates while every Claude client is
 closed, nor proof of automatic renewal across credential expiry. Keep those

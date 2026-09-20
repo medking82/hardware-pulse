@@ -8,6 +8,7 @@ using System.Windows.Controls.Primitives;
 using HardwarePulse;
 
 internal static class NativeQuotaTests {
+    static System.Collections.Generic.IEnumerable<string> Labels(DependencyObject node){var text=node as TextBlock;if(text!=null)yield return text.Text;foreach(object child in LogicalTreeHelper.GetChildren(node)){var item=child as DependencyObject;if(item!=null)foreach(string label in Labels(item))yield return label;}}
     static void Check(bool value,string message){if(!value)throw new Exception("Quota: "+message);}
     static QuotaReading Decode(string provider,string json){return QuotaDecoder.Decode(provider,QuotaData.Parse(json),DateTimeOffset.UtcNow);}
         public static void Run(){
@@ -74,6 +75,30 @@ internal static class NativeQuotaTests {
                 foreach(string provider in QuotaSession.Providers){var toggle=shell.Control<CheckBox>("Quota"+provider);Check(toggle.IsChecked!=true,"providers opt in");toggle.IsChecked=true;toggle.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));}
                 fake.Tick(DateTimeOffset.UtcNow);for(int i=0;i<100&&fake.Readings.Any(r=>r.Status!="Live");i++){Thread.Sleep(10);fake.Tick(DateTimeOffset.UtcNow);}shell.UpdatePanel();
                 Check(shell.Control<StackPanel>("QuotaCards").Children.Count==3,"three provider cards");
+                var source=shell.Control<ComboBox>("ClaudeQuotaSource");
+                Check(source.SelectedIndex==0&&shell.Control<StackPanel>("ClaudeSnapshotTools").Visibility==Visibility.Collapsed,"existing login remains default and snapshot setup stays optional");
+                var claudeReading=fake.Readings.Single(r=>r.Provider=="Claude");claudeReading.Status="CLI snapshot";claudeReading.Source="CLI snapshot";
+                shell.UpdatePanel();
+                var claudeCard=shell.Control<StackPanel>("QuotaCards").Children.Cast<Border>().Single(c=>(string)c.Tag=="Claude");
+                Check(Labels(claudeCard).Any(s=>s.Contains("CLI snapshot"))&&Labels(claudeCard).Any(s=>s.Contains("74%")),"snapshot displays values with explicit source");
+                claudeReading.Observed=DateTimeOffset.UtcNow.AddMinutes(-11);shell.UpdatePanel();
+                claudeCard=shell.Control<StackPanel>("QuotaCards").Children.Cast<Border>().Single(c=>(string)c.Tag=="Claude");
+                Check(!Labels(claudeCard).Any(s=>s.Contains("74%")),"snapshot goes stale without waiting for another worker");
+                claudeReading.Observed=DateTimeOffset.UtcNow;claudeReading.Windows[0].Reset=DateTimeOffset.UtcNow.AddSeconds(-1);shell.UpdatePanel();
+                claudeCard=shell.Control<StackPanel>("QuotaCards").Children.Cast<Border>().Single(c=>(string)c.Tag=="Claude");
+                Check(!Labels(claudeCard).Any(s=>s.Contains("74%"))&&Labels(claudeCard).Any(s=>s.Contains("96%")),"reset snapshot window hides values independently");
+                source.SelectedIndex=1;
+                Check(shell.Control<StackPanel>("ClaudeSnapshotTools").Visibility==Visibility.Visible&&fake.Readings.Single(r=>r.Provider=="Claude").Status=="Refresh pending","source switch invalidates prior result immediately");
+                Check((bool)typeof(Shell).GetField("claudeSnapshotSource",BindingFlags.NonPublic|BindingFlags.Instance).GetValue(shell),"snapshot route is selected before local-only probe");
+                var paths=(PulsePaths)typeof(Shell).GetField("paths",BindingFlags.NonPublic|BindingFlags.Instance).GetValue(shell);
+                var received=DateTimeOffset.UtcNow;long reset=(long)(received.AddHours(1)-new DateTimeOffset(1970,1,1,0,0,0,TimeSpan.Zero)).TotalSeconds;
+                string payload="{\"session_id\":\"isolated-ui-fixture\",\"rate_limits\":{\"five_hour\":{\"used_percentage\":17,\"resets_at\":"+reset+"}}}";
+                Check(ClaudeStatusLineReceiver.Receive(paths.State,new System.IO.StringReader(payload),received)=="CLI snapshot","isolated local source fixture");
+                var local=(QuotaReading)typeof(Shell).GetMethod("ReadQuota",BindingFlags.NonPublic|BindingFlags.Instance).Invoke(shell,new object[]{"Claude",CancellationToken.None});
+                Check(local.Source=="CLI snapshot"&&local.Windows.Single().Remaining==83,"selected local source routes to receiver instead of provider HTTP");
+                shell.Control<Button>("ClaudeSnapshotRebind").RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+                Check(ClaudeStatusLineReceiver.Read(paths.State,received).Windows.Count==0,"rebind action clears prior selected snapshot");
+                source.SelectedIndex=0;fake.Tick(DateTimeOffset.UtcNow);for(int i=0;i<100&&fake.Readings.Any(r=>r.Status!="Live");i++){Thread.Sleep(10);fake.Tick(DateTimeOffset.UtcNow);}shell.UpdatePanel();
                 var metrics=(System.Collections.IEnumerable)typeof(Shell).GetMethod("DesktopMetrics",BindingFlags.NonPublic|BindingFlags.Instance).Invoke(shell,null);Check(metrics.Cast<object>().Count()>=6,"Desktop quota readings");
                 var hardware=shell.Control<StackPanel>("Cards");var previous=hardware.Visibility;double height=shell.Window.Height;shell.Window.Height=920;hardware.Visibility=Visibility.Collapsed;shell.Window.UpdateLayout();
                 var bitmap=new System.Windows.Media.Imaging.RenderTargetBitmap((int)shell.Window.ActualWidth,(int)shell.Window.ActualHeight,96,96,System.Windows.Media.PixelFormats.Pbgra32);bitmap.Render(shell.Window);var png=new System.Windows.Media.Imaging.PngBitmapEncoder();png.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmap));using(var file=System.IO.File.Create(screenshot))png.Save(file);

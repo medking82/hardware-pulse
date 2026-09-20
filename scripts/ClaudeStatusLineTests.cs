@@ -56,6 +56,8 @@ internal static class ClaudeStatusLineTests {
         Check(Directory.GetFiles(Path.Combine(state,"claude-statusline"),"*.tmp").Length==0,"temporary publication files leaked");
         File.WriteAllText(path,"PRIVATE_CORRUPTED");Check(ClaudeStatusLineReceiver.Read(state,now).Status=="Quota unavailable","corrupt file read fails closed");
         Check(Receive(state,data,now)=="Invalid snapshot"&&File.ReadAllText(path)=="PRIVATE_CORRUPTED","corrupt owner cannot silently rebind");
+        Check(ClaudeStatusLineReceiver.Reset(state)&&!File.Exists(path),"explicit rebind removes only the selected snapshot");
+        Check(Receive(state,Payload("OTHER_SESSION",90,now),now)=="CLI snapshot","explicit rebind allows the next session");
         Child(Path.Combine(root,"child"),false);Child(Path.Combine(root,"idle"),true);
         Console.WriteLine("PASS Claude status-line receiver: bounded input/lifetime, whitelist, persistent age, clock rollback, session isolation, atomic concurrency and corruption");
         return 0;

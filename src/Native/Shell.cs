@@ -48,6 +48,7 @@ namespace HardwarePulse {
             this.paths=paths;this.isolated=isolated;Directory.CreateDirectory(paths.State);
             readings=new ReadingSession(now=>SensorProfile.Read(paths.Snapshot,now));
             settings=new Settings(Path.Combine(paths.State,"widget-settings.json"));language=new Languages(Path.Combine(paths.Root,"Languages.txt"));language.Preference=settings.Text("language","auto");
+            claudeSnapshotSource=settings.Flag("claudeSnapshotSource",false);quotas=new QuotaSession(ReadQuota);
             using(var stream=File.OpenRead(Path.Combine(paths.Root,"Panel.xaml")))Window=(Window)XamlReader.Load(stream);
             Catalog(Window);BuildSettingsLayout();ReplaceCardPanel("Cards");ReplaceCardPanel("QuotaCards");cards=Control<StackPanel>("Cards");
             var area=SystemParameters.WorkArea;

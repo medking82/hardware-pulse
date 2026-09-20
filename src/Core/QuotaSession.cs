@@ -23,7 +23,7 @@ namespace HardwarePulse {
                     // Transient transport failures retry sooner; authentication stays
                     // on the normal cadence and rate limiting receives its own backoff.
                     bool overdue=slot.Reading.Status=="Live"&&slot.Reading.Observed!=default(DateTimeOffset)&&now-slot.Reading.Observed>=TimeSpan.FromMinutes(5)&&now>=slot.Next;
-                    slot.Next=now.AddSeconds(slot.Reading.Status=="Quota unavailable"?30:slot.Reading.Status=="Refresh rate limited"?120:300);
+                    slot.Next=now.AddSeconds(slot.Reading.Source=="CLI snapshot"||slot.Reading.Status=="Quota unavailable"?30:slot.Reading.Status=="Refresh rate limited"?120:300);
                     if(slot.Reading.Status=="Refresh rate limited"&&slot.Reading.RetryAt.HasValue&&slot.Reading.RetryAt.Value>slot.Next)slot.Next=slot.Reading.RetryAt.Value;
                     // A completed pre-sleep observation must not postpone wake recovery.
                     if(overdue)slot.Next=now;

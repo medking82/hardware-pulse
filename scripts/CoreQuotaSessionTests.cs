@@ -13,6 +13,13 @@ internal static class CoreQuotaSessionTests {
     public static void Run(){
         Check(typeof(QuotaSession).Assembly==typeof(QuotaReading).Assembly,"session still depends on app assembly");
         var now=new DateTimeOffset(2026,9,15,0,0,0,TimeSpan.Zero);int calls=0;
+        int localReads=0;
+        using(var local=new QuotaSession((provider,cancel)=>new QuotaReading{Provider=provider,Source="CLI snapshot",Status="CLI snapshot",Observed=now.AddTicks(Interlocked.Increment(ref localReads))})){
+            local.Enable("Claude",true);Pump(local,now,()=>local.Readings[0].Status=="CLI snapshot");
+            local.Tick(now.AddSeconds(29));Check(localReads==1,"local snapshot polled before deadline");
+            Pump(local,now.AddSeconds(30),()=>local.Readings[0].Observed==now.AddTicks(2));
+            Check(localReads==2,"local source should refresh at 30 seconds, not remote five-minute cadence");
+        }
         using(var session=new QuotaSession((provider,cancel)=>{
             int count=Interlocked.Increment(ref calls);
             return new QuotaReading {Provider=provider,Status="Live",Observed=now.AddSeconds(count)};

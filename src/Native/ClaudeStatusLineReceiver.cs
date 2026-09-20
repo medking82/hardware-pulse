@@ -71,5 +71,13 @@ namespace HardwarePulse {
             }catch(InvalidDataException){}catch(IOException){}catch(UnauthorizedAccessException){}catch(ArgumentException){}catch(InvalidOperationException){}
             return new QuotaReading{Provider="Claude",Source="CLI snapshot",Status="Quota unavailable",Observed=now};
         }
+        public static bool Reset(string state){
+            try{
+                string directory=Path.Combine(state,"claude-statusline");Directory.CreateDirectory(directory);
+                using(var gate=new FileStream(Path.Combine(directory,"write.lock"),FileMode.OpenOrCreate,FileAccess.ReadWrite,FileShare.None)){
+                    File.Delete(Path.Combine(directory,"snapshot.json"));return true;
+                }
+            }catch(IOException){return false;}catch(UnauthorizedAccessException){return false;}
+        }
     }
 }

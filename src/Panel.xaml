@@ -356,11 +356,19 @@
             <CheckBox x:Name="QuotaCodex" Content="Codex" Margin="0,6" />
             <CheckBox x:Name="QuotaAntigravity" Content="Antigravity" Margin="0,6" />
             <CheckBox x:Name="QuotaClaude" Content="Claude" Margin="0,6" />
+            <TextBlock Text="Claude quota source" Margin="0,12,0,6" />
+            <ComboBox x:Name="ClaudeQuotaSource" AutomationProperties.Name="Claude quota source"><ComboBoxItem Content="Existing login"/><ComboBoxItem Content="CLI snapshot"/></ComboBox>
+            <StackPanel x:Name="ClaudeSnapshotTools" Margin="0,8,0,0">
+              <TextBlock Text="Requires a configured Claude Code status line. Snapshots expire after 10 minutes and do not refresh while CLI is closed." TextWrapping="Wrap" Opacity="0.8" />
+              <Button x:Name="ClaudeSnapshotCommand" Content="Copy status-line command" Margin="0,8,0,0" />
+              <Button x:Name="ClaudeSnapshotRebind" Content="Bind next CLI session" Margin="0,8,0,0" />
+              <TextBlock x:Name="ClaudeSnapshotSetupStatus" Text="The first CLI session is retained until you bind another. Existing login remains available in the source selector." TextWrapping="Wrap" Margin="0,8,0,0" Opacity="0.8" />
+            </StackPanel>
             <TextBlock Text="App quota display" Margin="0,12,0,6" />
             <ComboBox x:Name="QuotaDisplay" AutomationProperties.Name="App quota display"><ComboBoxItem Content="Essential quotas"/><ComboBoxItem Content="All available quotas"/></ComboBox>
             <TextBlock Text="Desktop keeps its essential quotas. Drag the handles to reorder the three provider cards." FontSize="12" Opacity="0.8" Margin="0,8,0,0" />
             <Button x:Name="QuotaRefresh" Content="Refresh Quota" Margin="0,12,0,8" />
-            <TextBlock Text="Login in Codex or Claude Code first. Keep Antigravity open. Pulse never changes your login." TextWrapping="Wrap" Opacity="0.8" />
+            <TextBlock Text="Login in Codex or Claude Code first. Antigravity can also use an installed, signed-in CLI. Pulse never changes your login." TextWrapping="Wrap" Opacity="0.8" />
           </StackPanel>
         </Expander>
         <Expander Header="Game Overlay" Foreground="#F0F5FA" Margin="0,16,0,0">

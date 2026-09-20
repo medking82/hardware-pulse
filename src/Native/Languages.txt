@@ -7,7 +7,7 @@ Local Contrast requires Windows 10 version 2004 or later.|局部对比度需要 
 Disconnected|未连接|未連線
 AI Quota|AI 额度|AI 額度
 Read remaining quota from existing local logins. Refreshes every 5 minutes.|使用本机已有登录读取剩余额度，每 5 分钟刷新。|使用本機已有登入讀取剩餘額度，每 5 分鐘更新。
-Login in Codex or Claude Code first. Keep Antigravity open. Pulse never changes your login.|请先登录 Codex 或 Claude Code，并保持 Antigravity 运行。Pulse 不修改登录信息。|請先登入 Codex 或 Claude Code，並保持 Antigravity 執行。Pulse 不修改登入資訊。
+Login in Codex or Claude Code first. Antigravity can also use an installed, signed-in CLI. Pulse never changes your login.|请先登录 Codex 或 Claude Code。Antigravity 也可使用已安装并登录的 CLI。Pulse 不修改登录信息。|請先登入 Codex 或 Claude Code。Antigravity 也可使用已安裝並登入的 CLI。Pulse 不修改登入資訊。
 Refresh Quota|刷新额度|更新額度
 Refresh pending|等待刷新|等待更新
 Login required|需要登录或重新登录|需要登入或重新登入
@@ -280,3 +280,14 @@ Save device model and sensor readings for support. No account credentials, netwo
 Exporting diagnostics…|正在导出诊断…|正在匯出診斷…
 Diagnostics saved. You can share this file for support.|诊断已保存，可将文件发送给技术支持。|診斷已儲存，可將檔案傳送給技術支援。
 Could not save diagnostics. Choose another location and try again.|无法保存诊断，请选择其他位置后重试。|無法儲存診斷，請選擇其他位置後重試。
+Claude quota source|Claude quota 来源|Claude quota 來源
+Existing login|现有登录|現有登入
+CLI snapshot|CLI snapshot|CLI snapshot
+Requires a configured Claude Code status line. Snapshots expire after 10 minutes and do not refresh while CLI is closed.|需要先配置 Claude Code status line。Snapshot 在 10 分钟后过期，CLI 关闭后不会刷新。|需要先設定 Claude Code status line。Snapshot 在 10 分鐘後過期，CLI 關閉後不會重新整理。
+Copy status-line command|复制 status-line command|複製 status-line command
+Bind next CLI session|绑定下一个 CLI session|綁定下一個 CLI session
+The first CLI session is retained until you bind another. Existing login remains available in the source selector.|保留首次绑定的 CLI session，直到你重新绑定。可随时选择“现有登录”。|保留首次綁定的 CLI session，直到你重新綁定。可隨時選擇「現有登入」。
+Waiting for the next CLI session. Other sessions will be rejected.|等待下一个 CLI session；绑定后将拒绝其他 session。|等待下一個 CLI session；綁定後將拒絕其他 session。
+Snapshot busy; try again.|Snapshot 正在写入，请重试。|Snapshot 正在寫入，請重試。
+Command copied. Set it as Claude Code statusLine.command; preserve any existing command.|Command 已复制。将它配置为 Claude Code statusLine.command；请先保留原有 command。|Command 已複製。將它設定為 Claude Code statusLine.command；請先保留原有 command。
+Clipboard busy; try again.|Clipboard 忙碌，请重试。|Clipboard 忙碌，請重試。

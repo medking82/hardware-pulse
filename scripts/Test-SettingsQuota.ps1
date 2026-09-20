@@ -53,6 +53,15 @@ try {
  foreach($item in $shell.Window.FindName('LanguagePicker').Items){if($item.Tag -eq 'zh-CN'){$shell.Window.FindName('LanguagePicker').SelectedItem=$item}};Capture 'settings-zh.png'
  Assert ($shell.Window.FindName('HardwareReadingColors').Foreground.Color.R -gt 100) 'Dark settings radio foreground remains black'
  $settings.Data['background']='#FFFFFF';InvokeShell ApplyMaterial;Capture 'settings-light.png';Assert ($shell.Window.FindName('HardwareReadingColors').Foreground.Color.R -lt 100) 'Light settings radio foreground remains white'
+ $shell.GetType().GetMethod('SelectSettingsCategory',$flags).Invoke($shell,@('AI Quota'));Pump
+ $shell.Window.FindName('ClaudeQuotaSource').SelectedIndex=1;$shell.Window.Width=340;$shell.Window.Height=900;Settle
+ Assert ($shell.Window.FindName('ClaudeSnapshotTools').IsVisible) 'Snapshot setup is unreachable'
+ Assert ($shell.Window.FindName('SettingsPage').ScrollableWidth -le 1) 'Snapshot setup causes horizontal overflow'
+ Capture 'claude-source-narrow.png'
+ $shell.Window.FindName('SettingsPage').ScrollToEnd();Settle;Capture 'claude-source-narrow-bottom.png'
+ $shell.Save();$snapshotSaved=[HardwarePulse.Settings]::new((Join-Path $state 'widget-settings.json'));Assert ($snapshotSaved.Flag('claudeSnapshotSource')) 'Claude source selection did not persist'
+ $shell.Window.FindName('ClaudeQuotaSource').SelectedIndex=0
+ Assert (-not $shell.Window.FindName('ClaudeSnapshotTools').IsVisible) 'Existing login leaves snapshot setup visible'
  $shell.GetType().GetMethod('SelectSettingsCategory',$flags).Invoke($shell,@('Desktop'));Pump
  foreach($name in @('DesktopSection','DesktopAppearanceSection')){Assert ($shell.Window.FindName($name).IsVisible) 'Desktop controls split across categories'}
  Assert (-not $shell.Window.FindName('AppearanceSection').IsVisible) 'App appearance leaked into Desktop category'
