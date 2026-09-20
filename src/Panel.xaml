@@ -258,7 +258,7 @@
             </ComboBox>
             <CheckBox x:Name="StartWithWindows" Content="Start with Windows" Margin="0,0,0,10" />
             <TextBlock x:Name="StartupStatus" FontSize="11" Margin="0,0,0,10" />
-            <TextBlock Text="Version 0.6.32 · Marck Wong" FontSize="11" Foreground="#ADC1D2" Margin="0,0,0,8" />
+            <TextBlock Text="Version 0.6.33 · Marck Wong" FontSize="11" Foreground="#ADC1D2" Margin="0,0,0,8" />
             <Button x:Name="GitHub" Content="GitHub" HorizontalAlignment="Left" ToolTip="github.com/medking82/hardware-pulse" />
             <CheckBox x:Name="AutoUpdates" Content="Check for Updates Automatically" Margin="0,12,0,8" />
             <CheckBox x:Name="AutoDownload" Content="Download Updates Automatically" Margin="0,0,0,8" />
@@ -359,7 +359,7 @@
             <TextBlock Text="Claude quota source" Margin="0,12,0,6" />
             <ComboBox x:Name="ClaudeQuotaSource" AutomationProperties.Name="Claude quota source"><ComboBoxItem Content="Existing login"/><ComboBoxItem Content="CLI snapshot"/></ComboBox>
             <StackPanel x:Name="ClaudeSnapshotTools" Margin="0,8,0,0">
-              <TextBlock Text="Requires a configured Claude Code status line. Snapshots expire after 10 minutes and do not refresh while CLI is closed." TextWrapping="Wrap" Opacity="0.8" />
+              <TextBlock Text="Experimental. Requires a configured Claude Code status line. Snapshots expire after 10 minutes and do not refresh while CLI is closed." TextWrapping="Wrap" Opacity="0.8" />
               <Button x:Name="ClaudeSnapshotCommand" Content="Copy status-line command" Margin="0,8,0,0" />
               <Button x:Name="ClaudeSnapshotRebind" Content="Bind next CLI session" Margin="0,8,0,0" />
               <TextBlock x:Name="ClaudeSnapshotSetupStatus" Text="The first CLI session is retained until you bind another. Existing login remains available in the source selector." TextWrapping="Wrap" Margin="0,8,0,0" Opacity="0.8" />

@@ -24,6 +24,13 @@
 
 - 共享桌面应用支持自动跟随系统、英语、简体中文和繁体中文，覆盖监控、设置、传感器状态、Codex 额度与托盘操作。语言即时切换，不重启采样或重新读取登录信息，并保存到独立的预览版设置中。自动模式会区分中文书写体系和地区。
 
+## 0.6.33 — 2026-09-21
+
+- Quota HTTP 429 遵守 Retry-After。手动 Refresh 保留有效 deadline；header 缺失、无效或较短时，也保留两分钟最低 backoff。
+- Windows quota login read 允许兼容的 credential writer 和 atomic replacement，读取上限为 1 MiB。Pulse 不写入或 renew credentials。
+- 新增可选 experimental Claude Code status-line source，提供明确的 session binding、stale/reset expiry，以及 Git Bash／PowerShell setup command。默认仍使用 existing login；需要手动 setup，真实 CLI-produced delivery 尚未验证，Claude Code 关闭后不能刷新。
+- 完整 Windows validation 和相关 modern build／tests 通过。一次 live read 成功取得 Codex、Antigravity CLI 和 Claude quota；不代表长期 token-expiry recovery 已完成。
+
 ## 0.6.32 — 2026-09-20
 
 - Windows quota CLI 的 pipe 在 writer 保持打开但无输出时也能响应 cancellation。Cleanup 会取消并等待 stderr reader 结束，保留 UTF-8 decoding、output limit 和既有 refresh/backoff 行为。

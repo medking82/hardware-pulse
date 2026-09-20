@@ -24,6 +24,13 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 
 - Shared Desktop supports Auto (System), English and Simplified/Traditional Chinese UI, including Monitor, Settings, sensor status, Codex quota and tray actions. Language switches immediately without restarting sampling or refreshing credentials and is saved in the isolated preview profile. Auto respects Chinese script and region preferences.
 
+## 0.6.33 — 2026-09-21
+
+- Quota HTTP 429 responses honor Retry-After. Manual Refresh preserves the effective deadline, including the two-minute minimum when the header is missing, invalid or shorter.
+- Windows quota login reads allow compatible credential writers and atomic replacement, with a one-MiB read bound. Pulse does not write or renew credentials.
+- Adds an optional experimental Claude Code status-line source with explicit session binding, stale/reset expiry and separate Git Bash/PowerShell setup commands. Existing login remains the default; setup is manual and real CLI-produced delivery remains unverified. It cannot refresh while Claude Code is closed.
+- Full Windows validation and relevant modern builds/tests passed. A one-time live read returned Codex, Antigravity CLI and Claude quota; this does not prove long-term token-expiry recovery.
+
 ## 0.6.32 — 2026-09-20
 
 - Windows quota CLI pipe reads now respond to cancellation even while a writer remains open without output. Cleanup cancels and joins the stderr reader; UTF-8 decoding, output limits and the existing refresh/backoff behavior are preserved.

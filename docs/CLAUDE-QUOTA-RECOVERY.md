@@ -2,7 +2,7 @@
 
 Status-line integration: decoder, Windows receiver and explicit source selection
 implemented. Configuration automation and real CLI acceptance remain pending.
-Not included in Windows 0.6.32.
+Available as an opt-in experimental source in Windows 0.6.33; existing login remains the default.
 User direction: pursue both independent refresh and an optional status-line source.
 
 Decoder, receiver and source-selector admission (reclassify before automatic CLI configuration):
