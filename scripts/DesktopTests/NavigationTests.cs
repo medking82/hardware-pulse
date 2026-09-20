@@ -30,9 +30,17 @@ static class NavigationTests {
             Press(details);Check(details.IsChecked==false,"Keyboard disables Details");SelectedPlate(details,false);
             var cards=Find<Grid>("ReadingCards");var settings=Find<Button>("OpenSettings");
             var monitorScroll=window.GetVisualDescendants().OfType<ScrollViewer>().Single();
+            var desktop=Find<Button>("OpenFloatingMonitor");
+            Check(desktop.GetVisualAncestors().OfType<WrapPanel>().Any(x=>x.Name=="MonitorControls"),"Desktop quick action belongs to fixed Monitor controls");
+            var desktopPosition=desktop.TranslatePoint(new Point(),window)!.Value;
             var before=settings.TranslatePoint(new Point(),window)!.Value;
             monitorScroll.Offset=new Vector(0,10000);Dispatcher.UIThread.RunJobs();
             Check(settings.TranslatePoint(new Point(),window)!.Value==before,"Settings stays fixed below scrolling cards");
+            Check(desktop.TranslatePoint(new Point(),window)!.Value==desktopPosition,"Desktop quick action stays reachable while cards scroll");
+            Press(desktop);Check(window.FloatingMonitor?.IsVisible==true,"Keyboard Desktop quick action opens existing shared Desktop");
+            var floating=window.FloatingMonitor!;
+            floating.GetVisualDescendants().OfType<Button>().Single(x=>x.Name=="ReturnToApp").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+            Dispatcher.UIThread.RunJobs();Check(window.FloatingMonitor==null&&window.IsVisible,"Return restores Monitor after quick action");
             Press(settings);
             var back=Find<Button>("Back");
             Check(back.IsFocused,"Settings keyboard activation transfers focus to Back");

@@ -559,3 +559,20 @@ An initial assertion incorrectly compared transparent RGB channels; it now check
 zero alpha for the transparent state, while requiring the exact selected color.
 Headless suite and full scripts/Validate.ps1 pass. Native pointer hover/pressed
 and high-contrast visual acceptance remain open, as does full UI parity.
+
+### Desktop quick action placement
+
+Panel.xaml places DesktopQuick beside Live/Max/Details. The shared Monitor's
+existing OpenFloatingMonitor action now occupies that fixed wrapping controls
+row with the localized Desktop label, rather than the scrolling card body.
+The rounded plate helper accepts Button as well as ToggleButton; checked styles
+continue to apply only where the checked pseudo-state exists. No new Desktop
+lifecycle, persistence or sampling owner was introduced.
+
+At 240px the action wraps onto the next controls row. Headless keyboard tests
+verify fixed position while cards scroll, opening Desktop and Return to App,
+plus the previous exclusive mode and Details transitions. Full headless suite
+passes and the narrow render was inspected. This is navigation placement parity;
+wallpaper-layer mode, complete Settings and native pointer acceptance remain open.
+Routine isolated presentation scope and source-only rollback are unchanged.
+Full scripts/Validate.ps1 passed for Desktop quick action placement.
