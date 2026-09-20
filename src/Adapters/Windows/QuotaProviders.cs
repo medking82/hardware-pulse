@@ -38,7 +38,14 @@ namespace HardwarePulse {
             }
             try{
                 object body;
-                if(provider=="Antigravity")body=AntigravityQuota.Read(cancel);
+                if(provider=="Antigravity"){
+                    try{body=AntigravityQuota.Read(cancel);}
+                    catch(QuotaFailure failure){
+                        if(failure.Status!="Open Antigravity to read quota")throw;
+                        string executable=AntigravityCliQuota.InstalledExecutable();if(executable==null)throw;
+                        return AntigravityCliQuota.Read(executable,cancel);
+                    }
+                }
                 else if(provider=="Claude"){
                     string token=Environment.GetEnvironmentVariable("CLAUDE_CODE_OAUTH_TOKEN");
                     if(string.IsNullOrEmpty(token)){var login=ClaudeLogin();token=QuotaDecoder.Text(QuotaDecoder.Get(QuotaDecoder.Get(login,"claudeAiOauth")??login,"accessToken"));}

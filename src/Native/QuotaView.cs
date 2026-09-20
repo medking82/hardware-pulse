@@ -26,10 +26,10 @@ namespace HardwarePulse {
             var readings=quotas.Readings;var now=DateTimeOffset.UtcNow;
             var panel=(ResponsivePanel)Control<StackPanel>("QuotaCards");if(panel.Dragging)return;
             bool full=settings.Flag("quotaFull");var order=QuotaOrder();
-            string signature=language.Preference+"|"+light+"|"+locked+"|"+full+"|"+SystemParameters.HighContrast+"|"+Window.FontSize+"|"+settings.Flag("unifiedReadingColors")+ReadingColor()+"|"+string.Join(";",readings.Select(r=>r.Provider+r.Status+r.Observed.ToString("o")+(int)(now-r.Observed).TotalMinutes));
+            string signature=language.Preference+"|"+light+"|"+locked+"|"+full+"|"+SystemParameters.HighContrast+"|"+Window.FontSize+"|"+settings.Flag("unifiedReadingColors")+ReadingColor()+"|"+string.Join(";",readings.Select(r=>r.Provider+r.Status+r.Source+r.Observed.ToString("o")+(int)(now-r.Observed).TotalMinutes));
             if(signature==quotaSignature)return;quotaSignature=signature;panel.Children.Clear();
             foreach(var original in readings.OrderBy(r=>Array.IndexOf(order,r.Provider))){
-                var reading=full&&original.AllWindows.Count>0?new QuotaReading{Provider=original.Provider,Observed=original.Observed,Status=original.Status=="Quota unavailable"&&original.AllWindows.Any(w=>w.Remaining.HasValue)?"Live":original.Status,Windows=original.AllWindows}:original;
+                var reading=full&&original.AllWindows.Count>0?new QuotaReading{Provider=original.Provider,Source=original.Source,Observed=original.Observed,Status=original.Status=="Quota unavailable"&&original.AllWindows.Any(w=>w.Remaining.HasValue)?"Live":original.Status,Windows=original.AllWindows}:original;
                 var body=new StackPanel();var foreground=SystemParameters.HighContrast?SystemColors.WindowTextBrush:Brush(light?"#17202B":"#F0F5FA");
                 string accent=SystemParameters.HighContrast?SystemColors.WindowTextColor.ToString():light?"#17202B":settings.Flag("unifiedReadingColors")?ReadingColor():reading.Provider=="Codex"?"#A5E7D5":reading.Provider=="Claude"?"#E7B497":"#A7CBFF";
                 var title=new Grid();title.ColumnDefinitions.Add(new ColumnDefinition{Width=GridLength.Auto});title.ColumnDefinitions.Add(new ColumnDefinition{Width=GridLength.Auto});title.ColumnDefinitions.Add(new ColumnDefinition());
@@ -37,7 +37,7 @@ namespace HardwarePulse {
                 System.Windows.Automation.AutomationProperties.SetName(grip,reading.Provider+" · "+language.T("Reading Order"));
                 var icon=Icon(reading.Provider.ToLowerInvariant(),19,accent);icon.Margin=new Thickness(0,0,8,0);Grid.SetColumn(icon,1);title.Children.Add(icon);
                 var name=new TextBlock{Text=reading.Provider=="Antigravity"&&!full?"Antigravity · Gemini":reading.Provider,FontSize=Window.FontSize+3,FontWeight=FontWeights.SemiBold,Foreground=foreground,TextWrapping=TextWrapping.Wrap,VerticalAlignment=VerticalAlignment.Center};Grid.SetColumn(name,2);title.Children.Add(name);body.Children.Add(title);
-                string state=QuotaState(reading);if(reading.Observed!=default(DateTimeOffset))state+=" · "+Math.Max(0,(int)(now-reading.Observed).TotalMinutes)+" "+language.T("min ago");
+                string state=QuotaState(reading);if(reading.Source=="CLI")state+=" · CLI";if(reading.Observed!=default(DateTimeOffset))state+=" · "+Math.Max(0,(int)(now-reading.Observed).TotalMinutes)+" "+language.T("min ago");
                 body.Children.Add(new TextBlock{Text=state,Foreground=foreground,Opacity=.8,Margin=new Thickness(0,5,0,8),TextWrapping=TextWrapping.Wrap});
                 foreach(var window in reading.Windows){
                     var row=new Grid{Margin=new Thickness(0,6,0,3)};row.ColumnDefinitions.Add(new ColumnDefinition());row.ColumnDefinitions.Add(new ColumnDefinition{Width=GridLength.Auto});
@@ -52,7 +52,7 @@ namespace HardwarePulse {
         }
         void AddDesktopQuotas(List<DesktopMetric> metrics){foreach(var reading in quotas.Readings){
             if(reading.Windows.Count==0||QuotaState(reading)!=language.T("Live")){metrics.Add(new DesktopMetric("quota"+reading.Provider,reading.Provider,QuotaState(reading),reading.Provider.ToLowerInvariant()));continue;}
-            int index=0;foreach(var window in reading.Windows)metrics.Add(new DesktopMetric("quota"+reading.Provider+(index++),(reading.Provider=="Antigravity"?"Gemini":reading.Provider)+" · "+language.T(window.Label),QuotaValue(reading,window),reading.Provider.ToLowerInvariant()));
+            int index=0;foreach(var window in reading.Windows)metrics.Add(new DesktopMetric("quota"+reading.Provider+(index++),(reading.Provider=="Antigravity"?"Gemini"+(reading.Source=="CLI"?" (CLI)":""):reading.Provider)+" · "+language.T(window.Label),QuotaValue(reading,window),reading.Provider.ToLowerInvariant()));
         }}
     }
 }

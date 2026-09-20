@@ -13,38 +13,7 @@ namespace HardwarePulse {
             return File.Exists(path)?path:null;
         }
         internal static QuotaReading Read(string executable,CancellationToken cancel){
-            using(var deadline=CancellationTokenSource.CreateLinkedTokenSource(cancel))
-            using(var process=new Process()){
-                deadline.CancelAfter(TimeSpan.FromSeconds(15));
-                process.StartInfo=new ProcessStartInfo(executable,"-s read-only -a untrusted app-server --stdio"){
-                    UseShellExecute=false,CreateNoWindow=true,WindowStyle=ProcessWindowStyle.Hidden,
-                    WorkingDirectory=Path.GetDirectoryName(executable),RedirectStandardInput=true,
-                    RedirectStandardOutput=true,RedirectStandardError=true,
-                    StandardOutputEncoding=Encoding.UTF8,StandardErrorEncoding=Encoding.UTF8};
-                cancel.ThrowIfCancellationRequested();
-                if(!process.Start())throw new QuotaFailure("Quota unavailable");
-                Action stop=delegate{try{if(!process.HasExited)process.Kill();}catch(InvalidOperationException){}catch(System.ComponentModel.Win32Exception){}};
-                using(deadline.Token.Register(()=>stop())){
-                    int diagnosticOverflow=0;
-                    var errors=Task.Run(()=>{try{var buffer=new char[2048];int count,total=0;while((count=process.StandardError.Read(buffer,0,buffer.Length))>0){total+=count;if(total>65536){Interlocked.Exchange(ref diagnosticOverflow,1);stop();break;}}}catch(IOException){}catch(ObjectDisposedException){}});
-                    object body;
-                    try{
-                        body=ReadProtocol(process.StandardOutput,process.StandardInput,deadline.Token);
-                    }finally{
-                        // A child can close its pipe before the writer flushes. Even if
-                        // closing stdin fails, always finish owned-process cleanup.
-                        try{process.StandardInput.Close();}
-                        finally{
-                            if(!process.WaitForExit(500)){stop();if(!process.WaitForExit(2000))throw new QuotaFailure("Quota unavailable");}
-                            // Observe completion without retaining or logging server diagnostics.
-                            if(!errors.Wait(2000))throw new QuotaFailure("Quota unavailable");
-                        }
-                    }
-                    cancel.ThrowIfCancellationRequested();
-                    if(deadline.IsCancellationRequested||diagnosticOverflow!=0)throw new QuotaFailure("Quota unavailable");
-                    return QuotaDecoder.Decode("Codex",body,DateTimeOffset.UtcNow);
-                }
-            }
+            return QuotaDecoder.Decode("Codex",QuotaChildProcess.Read(executable,"-s read-only -a untrusted app-server --stdio",ReadProtocol,cancel),DateTimeOffset.UtcNow);
         }
         internal static object ReadProtocol(TextReader input,TextWriter output,CancellationToken cancel){
             int total=0;
@@ -66,6 +35,44 @@ namespace HardwarePulse {
                 object result=QuotaDecoder.Get(message,"result");if(result==null)throw new QuotaFailure("Quota unavailable");return result;
             }
             throw new QuotaFailure("Quota unavailable");
+        }
+    }
+    // Both installed quota clients share the same deadline and owned-child cleanup.
+    internal static class QuotaChildProcess {
+        internal static object Read(string executable,string arguments,Func<TextReader,TextWriter,CancellationToken,object> read,CancellationToken cancel,bool requireSuccessfulExit=false){
+            using(var deadline=CancellationTokenSource.CreateLinkedTokenSource(cancel))
+            using(var process=new Process()){
+                deadline.CancelAfter(TimeSpan.FromSeconds(15));
+                process.StartInfo=new ProcessStartInfo(executable,arguments){
+                    UseShellExecute=false,CreateNoWindow=true,WindowStyle=ProcessWindowStyle.Hidden,
+                    WorkingDirectory=Path.GetDirectoryName(executable),RedirectStandardInput=true,
+                    RedirectStandardOutput=true,RedirectStandardError=true,
+                    StandardOutputEncoding=Encoding.UTF8,StandardErrorEncoding=Encoding.UTF8};
+                cancel.ThrowIfCancellationRequested();
+                if(!process.Start())throw new QuotaFailure("Quota unavailable");
+                Action stop=delegate{try{if(!process.HasExited)process.Kill();}catch(InvalidOperationException){}catch(System.ComponentModel.Win32Exception){}};
+                using(deadline.Token.Register(()=>stop())){
+                    int diagnosticOverflow=0;
+                    var errors=Task.Run(()=>{try{var buffer=new char[2048];int count,total=0;while((count=process.StandardError.Read(buffer,0,buffer.Length))>0){total+=count;if(total>65536){Interlocked.Exchange(ref diagnosticOverflow,1);stop();break;}}}catch(IOException){}catch(ObjectDisposedException){}});
+                    object body;
+                    try{
+                        body=read(process.StandardOutput,process.StandardInput,deadline.Token);
+                    }finally{
+                        // A child can close its pipe before the writer flushes. Even if
+                        // closing stdin fails, always finish owned-process cleanup.
+                        try{process.StandardInput.Close();}
+                        finally{
+                            if(!process.WaitForExit(500)){stop();if(!process.WaitForExit(2000))throw new QuotaFailure("Quota unavailable");}
+                            // Observe completion without retaining or logging server diagnostics.
+                            if(!errors.Wait(2000))throw new QuotaFailure("Quota unavailable");
+                        }
+                    }
+                    cancel.ThrowIfCancellationRequested();
+                    if(deadline.IsCancellationRequested||diagnosticOverflow!=0)throw new QuotaFailure("Quota unavailable");
+                    if(requireSuccessfulExit&&process.ExitCode!=0)throw new QuotaFailure("Quota unavailable");
+                    return body;
+                }
+            }
         }
     }
 }

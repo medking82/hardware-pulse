@@ -38,7 +38,7 @@ namespace HardwarePulse {
         }
         void RenderUpdate(){
             if(disposed)return;
-            if(updater.StatusKey!=null)Text("UpdateStatus",language.T(updater.StatusKey)+(updater.Downloading?" · "+updater.Progress+"%":updater.VersionText!=null?" · "+updater.VersionText:""));
+            if(updater.StatusKey!=null)Text("UpdateStatus",language.T(updater.StatusKey)+(updater.FailureCode==null?"":" · "+updater.FailureCode)+(updater.Downloading?" · "+updater.Progress+"%":updater.VersionText!=null?" · "+updater.VersionText:""));
             Control<Button>("CheckUpdates").IsEnabled=!updater.Busy;
             Control<Button>("GetUpdate").Visibility=updater.CanDownload||updater.Downloading?Visibility.Visible:Visibility.Collapsed;
             Control<Button>("GetUpdate").IsEnabled=updater.CanDownload;

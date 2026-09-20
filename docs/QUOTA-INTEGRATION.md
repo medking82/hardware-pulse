@@ -12,11 +12,43 @@ Authentication: read existing current-user Codex/Claude login on each refresh;
 Pulse never writes/rotates credentials or launches a login. Claude still requires
 the owning application to renew an expired token. Codex authentication failures
 may recover through the installed official Windows CLI as described below.
-Antigravity requires its local language server;
+Antigravity first uses its local language server;
 verify current-user process ownership and PID-owned listening ports before sending
 its CSRF token to loopback. No Token Monitor process or PowerShell/Node runtime.
 Only fixed provider HTTPS endpoints; disable redirects. Loopback TLS exceptions
 are request scoped. No global certificate bypass. Providers are independently opt-in.
+
+## Windows Antigravity CLI fallback (next iteration)
+
+When no usable current-user Desktop language server is found, use an existing
+`LocalAppData/agy/bin/agy.exe` with the fixed native `/usage` command. Do not
+download a CLI, search PATH, launch a model prompt, create a login, borrow OAuth
+client credentials, or persist tokens. The installed CLI owns authentication.
+An identified Desktop session's HTTP/auth failure must not switch accounts by
+falling back to the CLI. The CLI account can differ from the Desktop account:
+Monitor status and Desktop quota labels identify the source as `CLI`.
+
+The existing bounded child-process lifetime is reused by Codex and Antigravity:
+15-second deadline, cancellation, hidden stdio, capped diagnostics, and owned-child
+cleanup. Antigravity stdout is capped at 64 KiB, requires a successful exit and a
+complete two-window TSV report for every returned pool, and rejects duplicate
+windows, invalid percentages, missing timezone/reset and unknown report formats.
+No raw CLI report or diagnostic output enters application logs or settings.
+The five-minute QuotaSession cadence and explicit opt-in remain unchanged.
+
+Evidence: with no observed Antigravity/agy/language-server process before the
+probe, the released Windows reader returned `Open Antigravity to read quota`;
+the installed native CLI independently returned weekly and five-hour Gemini
+quota. The revised Windows reader returned `Live`, `Source=CLI`, two windows,
+and no matching process remained after completion. This proves the local
+installed-CLI path, not behavior on machines without that CLI or login.
+
+Allowed changes: Windows quota adapters, shared read-only Source metadata,
+existing quota labels, and focused tests. Preserve WPF layout/appearance,
+credential stores, release 0.6.28 and all hardware acquisition. Rollback removes
+the CLI fallback and optional Source metadata; no credentials need restoration.
+Required checks: parser fixtures, existing Codex child-lifetime fixtures, full
+native validation, modern/shared consumer build/tests, and independent review.
 
 Refresh: background, at most one refresh per provider; five-minute cadence with
 bounded requests, no per-frame API calls. Disable/dispose cancels requests and
@@ -72,3 +104,20 @@ provider checks are separate from fixtures and must report unavailable logins.
 High-risk frozen diff requires Native Review after deterministic checks.
 
 <!-- sop-risk-classification: {"facts":{"blast_radius":"shared","change_kind":"implementation","data_boundary":"sensitive","destructive":"no","failure_cost":"material","irreversibility":"reversible","operational_controls":"not_applicable","privilege_boundary":"changed","project_policy":"default","rollback":"easy","scope_knowledge":"known","uncertainty":"material","verification":"deterministic"},"formal_review":"required","kind":"risk-classification-assessment","reasons":{"formal_review":["high_risk_requires_review"],"risk":["privilege_boundary_change"]},"risk":"high","schema_version":2} -->
+
+## Update failure visibility (next iteration)
+
+The installed 0.6.28 UI repeatedly reports update-check failure and generic Codex/Claude
+quota failures. Read-only probes using the installed assembly succeed, including an
+isolated WPF Shell. A locally built diagnostic WPF app with the same saved preferences
+reports up-to-date, live Codex/Antigravity and Claude login-required. Returning to the
+installed executable reproduces the original failures. This is evidence of a
+process/package/environment difference, not proof of a firewall cause or a fixed updater.
+The installed app and its owned collector were restored after comparison.
+
+The bounded change exposes only a sanitized update failure category/status in Settings;
+no exception messages, response bodies, request headers, credentials or URLs are shown.
+A fake network failure regression proves the diagnostic is populated and cleared after
+successful retry. Existing installer identity, digest, redirect and download checks stay
+unchanged. This visibility improvement must not be advertised as resolving the still
+unidentified installed-app network failure.

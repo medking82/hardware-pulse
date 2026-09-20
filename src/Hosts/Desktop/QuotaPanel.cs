@@ -38,7 +38,7 @@ public sealed class QuotaPanel : UserControl,IDisposable {
         get {
             if(!QuotaEnabled||shown==null)return null;
             string state=QuotaPresentation.Status(shown,utcNow());
-            return state==shown.Status?shown:new QuotaReading{Provider=shown.Provider,Status=state,Observed=shown.Observed};
+            return state==shown.Status?shown:new QuotaReading{Provider=shown.Provider,Source=shown.Source,Status=state,Observed=shown.Observed};
         }
     }
     public bool QuotaEnabled {get=>enabled.IsChecked==true;set=>enabled.IsChecked=value;}
@@ -104,7 +104,7 @@ public sealed class QuotaPanel : UserControl,IDisposable {
         shown=reading;windows.Children.Clear();
         renderedStatus=QuotaPresentation.Status(reading,utcNow());
         bool live=renderedStatus=="Live";
-        status.Text=(demo?language.T("Demo")+" · ":"")+language.T(renderedStatus);
+        status.Text=(demo?language.T("Demo")+" · ":"")+language.T(renderedStatus)+(reading.Source=="CLI"?" · CLI":"");
         if(reading.Observed!=default)status.Text+=" · "+string.Format(language.T("Updated {0}"),reading.Observed.ToLocalTime().ToString("t"));
         if(reading.Status=="Login required")status.Text+=" · "+language.T(provider=="Antigravity"?"Sign in through Antigravity, then refresh here.":provider=="Claude"?"Sign in through Claude Code, then refresh here.":"Sign in through Codex, then refresh here. This preview requires file-based login.");
         var rows=showAll&&reading.AllWindows.Count>0?reading.AllWindows:reading.Windows;

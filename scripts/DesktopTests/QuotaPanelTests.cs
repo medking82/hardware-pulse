@@ -18,7 +18,7 @@ static class QuotaPanelTests {
     }
     static QuotaReading Result(string provider) {
         var main=new QuotaWindow{Label="Weekly",Remaining=54,Reset=DateTimeOffset.UtcNow.AddDays(3)};
-        return new(){Provider=provider,Status="Live",Observed=DateTimeOffset.UtcNow,Windows=[main],AllWindows=[main,new(){Label="Additional model pool · 5-hour",Remaining=72.5},new(){Label="Unknown availability",Remaining=null}]};
+        return new(){Provider=provider,Source=provider=="Antigravity"?"CLI":null,Status="Live",Observed=DateTimeOffset.UtcNow,Windows=[main],AllWindows=[main,new(){Label="Additional model pool · 5-hour",Remaining=72.5},new(){Label="Unknown availability",Remaining=null}]};
     }
     public static void Run(string? output,string provider="Codex") {
         MonitorVisibility(provider);
@@ -53,6 +53,7 @@ static class QuotaPanelTests {
         Check(!Text(window).Any(x=>x.Text=="72.5% left"),"Switching back removes additional pools immediately");
         panel.ShowAll=true;Dispatcher.UIThread.RunJobs();
         Check(reads==1,"Desktop consumes existing result without a second reader");
+        if(provider=="Antigravity"){Check(Text(window).Any(x=>x.Text?.Contains("CLI")==true),"Monitor identifies CLI quota source");Check(Text(desktop).Any(x=>x.Text?.Contains("Gemini (CLI)")==true),"Desktop identifies CLI quota source");}
         var hidden=new PreviewSettings();hidden.DesktopVisible["quota"+provider]=false;desktop.ApplyPreferences(hidden);Dispatcher.UIThread.RunJobs();
         Check(desktop.GetVisualDescendants().OfType<Grid>().Where(x=>x.Name?.StartsWith("DesktopMetricquota"+provider)==true).All(x=>!x.IsVisible),"Desktop quota visibility covers all pools");
         hidden.DesktopVisible["quota"+provider]=true;desktop.ApplyPreferences(hidden);

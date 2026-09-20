@@ -10,7 +10,17 @@ using HardwarePulse;
 internal static class NativeQuotaTests {
     static void Check(bool value,string message){if(!value)throw new Exception("Quota: "+message);}
     static QuotaReading Decode(string provider,string json){return QuotaDecoder.Decode(provider,QuotaData.Parse(json),DateTimeOffset.UtcNow);}
-    public static void Run(){
+        public static void Run(){
+            var cliReport=typeof(QuotaProviders).Assembly.GetType("HardwarePulse.AntigravityCliQuota").GetMethod("ReadReport",BindingFlags.NonPublic|BindingFlags.Static);
+            string weekly="Gemini Models\tWeekly Limit Remaining\t0%\t2026-10-01T00:00:00Z\n";
+            string sessionReport="Gemini Models\tFive Hour Limit Remaining\t100%\t2026-09-30T12:00:00+08:00\n";
+            var cliBody=cliReport.Invoke(null,new object[]{new System.IO.StringReader(weekly+sessionReport),new System.IO.StringWriter(),CancellationToken.None});
+            var cliQuota=QuotaDecoder.Decode("Antigravity",cliBody,DateTimeOffset.UtcNow);
+            Check(cliQuota.Status=="Live"&&cliQuota.Windows.Count==2&&cliQuota.Windows[0].Remaining==100&&cliQuota.Windows[1].Remaining==0,"CLI quota preserves genuine zero/full windows");
+            foreach(string bad in new[]{"",weekly,weekly+weekly+sessionReport,(weekly+sessionReport).Replace("100%","101%"),(weekly+sessionReport).Replace("100%","50%%"),(weekly+sessionReport).Replace("2026-10-01T00:00:00Z","2026-10-01T00:00:00"),new string('x',65537)}){
+                try{cliReport.Invoke(null,new object[]{new System.IO.StringReader(bad),new System.IO.StringWriter(),CancellationToken.None});throw new Exception("Invalid CLI quota accepted");}
+                catch(TargetInvocationException failure){Check(failure.InnerException is QuotaFailure,"Invalid CLI quota must fail closed");}
+            }
         var protocol=typeof(QuotaProviders).Assembly.GetType("HardwarePulse.CodexAppServerQuota").GetMethod("ReadProtocol",BindingFlags.NonPublic|BindingFlags.Static);
         var output=new System.IO.StringWriter();
         string rpc="{\"id\":1,\"result\":{}}\n{\"method\":\"account/updated\",\"params\":{}}\n{\"id\":2,\"result\":{\"rateLimits\":{\"secondary\":{\"usedPercent\":36,\"windowDurationMins\":10080}}}}\n";

@@ -36,7 +36,7 @@ internal static class DesktopReadings {
                 var window=windows[i];
                 string value=window.Remaining.HasValue?string.Format(language.T("{0}% left"),window.Remaining.Value.ToString("F1")):"—";
                 if(window.Reset.HasValue)value+=" · "+string.Format(language.T("Resets {0}"),window.Reset.Value.ToLocalTime().ToString("g"));
-                Add(key+i,(provider=="Antigravity"?"Gemini":provider)+" · "+language.T(window.Label),value,icon);
+                Add(key+i,(provider=="Antigravity"?"Gemini":provider)+(quota.Source=="CLI"?" (CLI)":"")+" · "+language.T(window.Label),value,icon);
             }
         }
         Quota(snapshot.CodexQuota,"Codex","codex");Quota(snapshot.ClaudeQuota,"Claude","claude");Quota(snapshot.AntigravityQuota,"Antigravity","antigravity");

@@ -40,6 +40,9 @@ namespace HardwarePulse {
                     uint pid=Convert.ToUInt32(process["ProcessId"]);
                     if(!IsOwnedProcess(pid,sid))continue;
                     var match=Regex.Match(command,@"(?:^|\s)--csrf_token(?:=|\s+)(?:""([^""]+)""|([^\s]+))");if(!match.Success)continue;string token=match.Groups[1].Success?match.Groups[1].Value:match.Groups[2].Value;
+                    // An available Desktop session must not silently fall back to a
+                    // potentially different CLI account after a transport/auth failure.
+                    failure="Quota unavailable";
                     foreach(int port in Ports(pid))foreach(string scheme in new[]{"https","http"}){
                         deadline.Token.ThrowIfCancellationRequested();if(!Ports(pid).Contains(port))continue;
                         try{var body=QuotaProviders.Request(scheme+"://127.0.0.1:"+port+"/exa.language_server_pb.LanguageServerService/RetrieveUserQuotaSummary",new Dictionary<string,string>{{"x-codeium-csrf-token",token},{"connect-protocol-version","1"}},"{\"forceRefresh\":true}",deadline.Token,true);
