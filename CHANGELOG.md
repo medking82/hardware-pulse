@@ -6,6 +6,8 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 
 ## Unreleased
 
+- Sustained remote quota failures now use capped automatic retry backoff (30, 60, 120, 240, 300 seconds). Manual Refresh remains available, successful recovery resets backoff, and server rate limits and local snapshot polling retain their rules.
+
 - Antigravity Desktop quota probes now preserve HTTP 429 backoff and HTTP 403 access-denied status instead of converting them into ordinary transport failures. No credential/source or UI change.
 
 

@@ -126,8 +126,10 @@ static class QuotaPanelTests {
         Check(Text(window).Any(x=>x.Text?.StartsWith("Quota stale")==true)&&!Text(window).Any(x=>x.Text=="54.0% left"),"Same reading ages out while refresh is pending");
         Check(!window.GetVisualDescendants().OfType<ProgressBar>().Any(),"Expired sample has no live progress bar");
         Check(Text(desktop).Any(x=>x.Text=="Quota stale")&&!Text(desktop).Any(x=>x.Text=="54.0% left"),"Desktop receives stale transition without new provider data");
-        release.Set();Until(()=>Text(window).Any(x=>x.Text=="54.0% left"),"Fresh completion restores percentages");
-        Check(reads==2,"Freshness rendering does not duplicate provider reads");
+        // The second click while a read is pending queues one recovery read.
+        // Initial + in-flight + queued is three, matching QuotaSession's contract.
+        release.Set();Until(()=>reads==3&&Text(window).Any(x=>x.Text=="54.0% left"),"Fresh completion and queued refresh restore percentages");
+        Check(reads==3,"Freshness rendering must preserve exactly one queued provider read");
         window.Close();desktop.Close();
     }
 }

@@ -11,6 +11,7 @@ internal static class CoreQuotaSessionTests {
         throw new Exception("Core quota completion timed out");
     }
     public static void Run(){
+        SustainedFailureBackoff();
         Check(typeof(QuotaSession).Assembly==typeof(QuotaReading).Assembly,"session still depends on app assembly");
         var now=new DateTimeOffset(2026,9,15,0,0,0,TimeSpan.Zero);int calls=0;
         int localReads=0;
@@ -155,5 +156,36 @@ internal static class CoreQuotaSessionTests {
         }
         Console.WriteLine("PASS quota lifecycle soak: 360 simulated refresh rounds / 36 hours, 810 reads, mixed failures, recovery, provider toggles and no overlapping requests");
         Console.WriteLine("PASS Core quota lifecycle: opt-in, host deadlines, manual refresh, no overlap, cancellation, re-enable late results, faults and disposal");
+    }
+    static void SustainedFailureBackoff(){
+        var now=new DateTimeOffset(2026,9,21,0,0,0,TimeSpan.Zero);int attempts=0;string outcome="Quota unavailable";
+        using(var session=new QuotaSession((provider,cancel)=>{int count=Interlocked.Increment(ref attempts);return new QuotaReading{Provider=provider,Status=outcome,Observed=outcome=="Live"?default(DateTimeOffset):now.AddTicks(count)};})){
+            session.Enable("Claude",true);Pump(session,now,()=>session.Readings[0].Observed==now.AddTicks(1));
+            var clock=now;
+            foreach(int delay in new[]{30,60,120,240,300,300}){
+                int before=attempts;session.Tick(clock.AddSeconds(delay).AddTicks(-1));Thread.Sleep(50);
+                Check(attempts==before,"sustained failure retry bypassed "+delay+"-second backoff");
+                clock=clock.AddSeconds(delay);Pump(session,clock,()=>session.Readings[0].Observed==now.AddTicks(before+1));
+                Check(attempts==before+1,"sustained retry duplicated work");
+            }
+            // Manual recovery remains immediate, even at the automatic backoff cap.
+            outcome="Live";session.Refresh();int prior=attempts;Pump(session,clock,()=>session.Readings[0].Status=="Live");
+            Check(attempts==prior+1,"manual recovery did not bypass transient backoff");
+            outcome="Quota unavailable";session.Refresh();prior=attempts;Pump(session,clock,()=>session.Readings[0].Status==outcome);
+            int expected=attempts+1;Pump(session,clock.AddSeconds(30),()=>session.Readings[0].Observed==now.AddTicks(expected));
+            Check(attempts==expected,"successful recovery did not reset backoff");
+            session.Enable("Claude",false);session.Enable("Claude",true);prior=attempts;
+            Pump(session,clock,()=>session.Readings[0].Observed==now.AddTicks(prior+1));
+            expected=attempts+1;Pump(session,clock.AddSeconds(30),()=>session.Readings[0].Observed==now.AddTicks(expected));
+            Check(attempts==expected,"re-enable did not reset backoff");
+        }
+        // Missing local files remain cheap polling, not remote retry storms.
+        int localReads=0;
+        using(var local=new QuotaSession((provider,cancel)=>new QuotaReading{Provider=provider,Source="CLI snapshot",Status="Quota unavailable",Observed=now.AddTicks(Interlocked.Increment(ref localReads))})){
+            local.Enable("Claude",true);
+            for(int i=0;i<7;i++){int expected=i+1;Pump(local,now.AddSeconds(i*30),()=>local.Readings[0].Observed==now.AddTicks(expected));}
+            Check(localReads==7,"local snapshot inherited remote backoff");
+        }
+        Console.WriteLine("PASS sustained quota outage: bounded automatic backoff, manual recovery, success/re-enable reset and local polling; simulated time");
     }
 }

@@ -6,6 +6,8 @@
 
 ## 未发布
 
+- 连续 remote quota failure 改用封顶 automatic retry backoff（30、60、120、240、300 秒）。保留手动 Refresh，成功恢复后重置 backoff，server rate limit 和 local snapshot polling 规则保持不变。
+
 - Antigravity Desktop quota probe 保留 HTTP 429 backoff 和 HTTP 403 access-denied 状态，不再将其转成普通 transport failure；credential／source 和 UI 保持不变。
 
 

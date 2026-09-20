@@ -79,8 +79,36 @@ HTTP status presentation distinguishes missing/rejected authentication (401,
 not prove the login expired. Both retain the normal five-minute retry cadence;
 429 keeps a two-minute minimum backoff, extended by a valid server
 Retry-After deadline. Manual Refresh respects both the minimum and server deadline. Missing
-or invalid headers retain the two-minute default; transient failures retry after 30 seconds.
+or invalid headers retain the two-minute default. The first transient failure retries after
+30 seconds; consecutive remote failures back off through 60, 120, 240 and 300 seconds.
 This classification does not refresh tokens, change endpoints or grant access.
+
+### Sustained outage retry budget (after 0.6.34)
+
+The user prioritizes long-term quota stability and low background cost. Repeating
+a failed remote/CLI read every 30 seconds indefinitely amplifies an outage into
+up to 120 attempts per hour per provider, excluding request duration. Keep the
+first 30-second recovery opportunity, then double automatic delay to a five-minute
+cap. This trades up to five minutes of automatic recovery latency during a long
+outage for fewer network requests and CLI launches. Manual Refresh still initiates
+one immediate non-rate-limited attempt; queued clicks still coalesce.
+
+QuotaSession owns one saturating failure count per provider. A non-transient result
+or enable/disable transition resets it; ignored late results cannot change it.
+Local CLI snapshots retain 30-second file polling even when no data exists. Server
+429 floors and RetryAt, authentication cadence, cancellation, no-overlap and normal
+successful five-minute refresh remain unchanged. No persisted settings or UI change.
+CoreQuotaSessionTests demonstrates the old constant-delay behavior failing the new
+consecutive-outage contract and the corrected capped sequence passing, including
+manual recovery, success/re-enable reset and local polling. Time is simulated;
+this is a request-budget policy, not proof of provider authentication longevity.
+
+The shared Desktop freshness fixture also had an outdated two-read expectation
+after two manual clicks with one request pending. Replaying it with the unchanged
+HEAD Core build reproduced the same failure. Its expectation now reflects the
+already-established queued-refresh contract: initial read, in-flight refresh and
+one coalesced queued refresh. Production click handling was not changed for this
+fixture correction.
 
 ### Antigravity Desktop probe error propagation (after 0.6.34)
 
