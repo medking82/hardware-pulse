@@ -27,6 +27,11 @@ static class QuotaPanelTests {
             if(call==3){using var registration=cancel.Register(()=>canceled.Set());release.Wait(TimeSpan.FromSeconds(5));return new(){Provider="Codex",Status="STALE RESULT"};}
             return Result();
         });
+        var desktop=new FloatingMonitorWindow(new UiLanguage("en")){Height=850};
+        var snapshot=new MonitorSnapshot("1%","1 GiB","—","—",true,true);
+        panel.ReadingChanged+=()=>desktop.Present(snapshot with {CodexQuota=panel.CurrentReading},true);
+        desktop.Show();
+        Check(desktop.ActualThemeVariant==Avalonia.Styling.ThemeVariant.Dark,"Desktop editor theme matches its dark background");
         var window=new Window{Width=360,Height=850,Content=new ScrollViewer{Content=panel}};
         window.Show();Dispatcher.UIThread.RunJobs();
         var enable=window.GetVisualDescendants().OfType<CheckBox>().Single();
@@ -34,19 +39,26 @@ static class QuotaPanelTests {
         Check(reads==0&&!refresh.IsEnabled,"Disabled quota must not read credentials");
         enable.Focus();window.KeyPress(Key.Space,RawInputModifiers.None,PhysicalKey.Space," ");window.KeyRelease(Key.Space,RawInputModifiers.None,PhysicalKey.Space," ");
         Until(()=>Text(window).Any(x=>x.Text=="72.5% left"),"AllWindows must include additional quota pools");
+        Check(Text(desktop).Any(x=>x.Text=="72.5% left")&&Text(desktop).Any(x=>x.Text=="—"),"Desktop includes additional pools and unavailable quota even in Session Max");
+        Check(reads==1,"Desktop consumes existing result without a second reader");
+        var hidden=new PreviewSettings();hidden.DesktopVisible["quotaCodex"]=false;desktop.ApplyPreferences(hidden);Dispatcher.UIThread.RunJobs();
+        Check(desktop.GetVisualDescendants().OfType<Grid>().Where(x=>x.Name?.StartsWith("DesktopMetricquotaCodex")==true).All(x=>!x.IsVisible),"Desktop quota visibility covers all pools");
+        hidden.DesktopVisible["quotaCodex"]=true;desktop.ApplyPreferences(hidden);
         Check(Text(window).Any(x=>x.Text=="—"),"Unknown quota is unavailable, not zero");
         Check(window.GetVisualDescendants().OfType<ProgressBar>().Count()==2,"Only known quota has bars");
-        if(output!=null){using var frame=window.CaptureRenderedFrame();frame!.Save(Path.Combine(output,"codex-quota.png"),Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);}
+        if(output!=null){using var frame=window.CaptureRenderedFrame();frame!.Save(Path.Combine(output,"codex-quota.png"),Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);Dispatcher.UIThread.RunJobs();using var desktopFrame=desktop.CaptureRenderedFrame();desktopFrame!.Save(Path.Combine(output,"desktop-codex-quota.png"),Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);}
         refresh.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         Until(()=>Text(window).Any(x=>x.Text?.StartsWith("Login required")==true),"Login failure visible");
+        Check(Text(desktop).Any(x=>x.Text=="Login required")&&!Text(desktop).Any(x=>x.Text=="72.5% left"),"Desktop replaces stale quota with failure status");
         Check(!window.GetVisualDescendants().OfType<ProgressBar>().Any(),"Failure clears stale quota");
         refresh.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Until(()=>Volatile.Read(ref reads)==3,"Pending refresh started");
         enable.IsChecked=false;Until(()=>canceled.IsSet,"Disable cancels request");
         Check(Text(window).Any(x=>x.Text=="Off")&&!refresh.IsEnabled,"Disabled UI clears readings");
+        Check(!desktop.GetVisualDescendants().OfType<Grid>().Any(x=>x.Name?.StartsWith("DesktopMetricquotaCodex")==true),"Disabling removes Desktop quota immediately");
         release.Set();enable.IsChecked=true;
         Until(()=>Volatile.Read(ref reads)==4&&Text(window).Any(x=>x.Text=="72.5% left"),"Re-enable recovers after canceled request");
         Check(!Text(window).Any(x=>x.Text=="STALE RESULT"),"Prior generation must not publish");
-        panel.Dispose();window.Close();
+        panel.Dispose();window.Close();desktop.Close();
 
         using var started=new ManualResetEventSlim();using var stopped=new ManualResetEventSlim();
         var closing=new CodexQuotaPanel(false,cancel=>{started.Set();cancel.WaitHandle.WaitOne(TimeSpan.FromSeconds(5));if(cancel.IsCancellationRequested)stopped.Set();cancel.ThrowIfCancellationRequested();return Result();});

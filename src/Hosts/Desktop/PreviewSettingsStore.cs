@@ -4,7 +4,7 @@ namespace HardwarePulse.Desktop;
 
 public sealed class PreviewSettings {
     public static readonly string[] CardKeys=["CPU","GPU","Memory","NVMe","Airflow","Network"];
-    public static readonly string[] DesktopKeys=["CPU","GPU","vram","Memory","diskC","diskD","cpuFan","gpuFan","gpuFan2","bottom","top","netConnection","lanLink","wifiLink","wifiSignal","netSignal","netDown","netUp"];
+    public static readonly string[] DesktopKeys=["CPU","GPU","vram","Memory","diskC","diskD","cpuFan","gpuFan","gpuFan2","bottom","top","netConnection","lanLink","wifiLink","wifiSignal","netSignal","netDown","netUp","quotaCodex"];
     public List<string> DesktopOrder=new(DesktopKeys);
     public Dictionary<string,bool> DesktopVisible=new(StringComparer.Ordinal);
     public List<string> CardOrder=new(CardKeys);

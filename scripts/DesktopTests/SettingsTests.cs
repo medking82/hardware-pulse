@@ -67,6 +67,7 @@ static class SettingsTests {
             Until(()=>new PreviewSettingsStore(path).Load().Theme=="Dark");
             groups.SelectedIndex=2;Dispatcher.UIThread.RunJobs();
             window.OpenFloatingMonitor();var desktop=window.FloatingMonitor!;
+            Until(()=>desktop.GetVisualDescendants().OfType<TextBlock>().Any(x=>x.Text?.StartsWith("72.5% left")==true));
             window.GetVisualDescendants().OfType<Slider>().Single(x=>x.Name=="DesktopFontSize").Value=20;
             window.GetVisualDescendants().OfType<Slider>().Single(x=>x.Name=="DesktopSpacing").Value=24;
             window.GetVisualDescendants().OfType<ComboBox>().Single(x=>x.Name=="DesktopColumns").SelectedIndex=2;
@@ -98,6 +99,7 @@ static class SettingsTests {
             window.GetVisualDescendants().OfType<Button>().Single(x=>x.Name=="OpenSettings").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));Dispatcher.UIThread.RunJobs();
             groups.SelectedIndex=4;Dispatcher.UIThread.RunJobs();
             var quota=window.GetVisualDescendants().OfType<CheckBox>().Single(x=>x.Name=="EnableCodexQuota");Check(quota.IsChecked==true,"Quota choice restored with explicit demo reader");quota.IsChecked=false;
+            Check(!desktop.GetVisualDescendants().OfType<Grid>().Any(x=>x.Name?.StartsWith("DesktopMetricquotaCodex")==true),"Owner propagates disabled quota to Desktop");
             if(output!=null){window.Width=360;Dispatcher.UIThread.RunJobs();using var frame=window.CaptureRenderedFrame();frame!.Save(Path.Combine(output,"settings-360.png"),Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);}
             window.Close();Until(()=>window.Sampling.IsCompleted);
             var saved=new PreviewSettingsStore(path).Load();Check(saved.Theme=="Dark"&&!saved.Codex&&saved.Network=="missing-interface","Choices survive close");

@@ -35,6 +35,7 @@ public sealed class FloatingMonitorWindow : Window {
     public bool CanLock=>input!=null;
     public FloatingMonitorWindow(UiLanguage language) {
         this.language=language;
+        RequestedThemeVariant=ThemeVariant.Dark; // Desktop owns a dark backing, including editor controls.
         Width=466;Height=400;MinWidth=280;MinHeight=140;FontSize=16;
         WindowDecorations=WindowDecorations.None;
         language.Set(this,"Floating monitor");
@@ -132,6 +133,8 @@ public sealed class FloatingMonitorWindow : Window {
         var layout=new ColumnLayout(Math.Max(1,Bounds.Width-32),Math.Max(280,24*FontSize),requestedColumns,layoutColumns);
         if(layout.Columns!=layoutColumns){layoutColumns=layout.Columns;sensors.ColumnDefinitions=new(string.Join(",",Enumerable.Repeat("*",layoutColumns)));}
         var visible=sensors.Children.OfType<Grid>().Where(row=>row.IsVisible).ToArray();
+        // Hidden rows remain reusable but must not retain indices into removed definitions.
+        foreach(var row in sensors.Children.OfType<Grid>().Where(row=>!row.IsVisible)){Grid.SetRow(row,0);Grid.SetColumn(row,0);}
         int count=(visible.Length+layoutColumns-1)/layoutColumns;
         while(sensors.RowDefinitions.Count<count)sensors.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
         while(sensors.RowDefinitions.Count>count)sensors.RowDefinitions.RemoveAt(sensors.RowDefinitions.Count-1);
@@ -175,7 +178,7 @@ public sealed class FloatingMonitorWindow : Window {
     }
     public void Present(MonitorSnapshot snapshot,bool peaks=false) {
         this.snapshot=snapshot;this.peaks=peaks;
-        var metrics=DesktopReadings.Create(snapshot,peaks,language).OrderBy(metric=>{int index=Array.IndexOf(metricOrder,metric.Key);return index<0?int.MaxValue:index;}).ToArray();
+        var metrics=DesktopReadings.Create(snapshot,peaks,language).OrderBy(metric=>{int index=Array.IndexOf(metricOrder,metric.Key.StartsWith("quotaCodex:")?"quotaCodex":metric.Key);return index<0?int.MaxValue:index;}).ToArray();
         var active=metrics.Select(x=>x.Key).ToHashSet();
         foreach(string key in readings.Keys.Where(key=>!active.Contains(key)).ToArray()){sensors.Children.Remove(readings[key].Row);readings.Remove(key);}
         for(int i=0;i<metrics.Length;i++) {
@@ -191,7 +194,7 @@ public sealed class FloatingMonitorWindow : Window {
                 row.SizeChanged+=(_,_)=>value.MaxWidth=Math.Max(1,(row.Bounds.Width-34)*.65);
                 item=(row,label,value);readings.Add(metric.Key,item);sensors.Children.Add(row);
             }
-            item.Row.IsVisible=metric.Key=="status"||metricVisibility.GetValueOrDefault(metric.Key,true);item.Label.Text=metric.Title;item.Value.Text=metric.Value;
+            item.Row.IsVisible=metric.Key=="status"||metricVisibility.GetValueOrDefault(metric.Key,metric.Key.StartsWith("quotaCodex:")?metricVisibility.GetValueOrDefault("quotaCodex",true):true);item.Label.Text=metric.Title;item.Value.Text=metric.Value;
             ToolTip.SetTip(item.Label,metric.Title);ToolTip.SetTip(item.Value,metric.Value);
             int old=sensors.Children.IndexOf(item.Row);if(old!=i){sensors.Children.RemoveAt(old);sensors.Children.Insert(i,item.Row);}
         }

@@ -21,6 +21,8 @@ public sealed class CodexQuotaPanel : UserControl,IDisposable {
     bool disposed;
     public Control SettingsContent {get;}
     public event Action<bool>? EnabledChanged;
+    public event Action? ReadingChanged;
+    public QuotaReading? CurrentReading=>QuotaEnabled?shown:null;
     public bool QuotaEnabled {get=>enabled.IsChecked==true;set=>enabled.IsChecked=value;}
     public CodexQuotaPanel(bool demo,Func<CancellationToken,QuotaReading>? read=null,bool inlineSettings=true,UiLanguage? language=null) {
         this.demo=demo;
@@ -56,7 +58,7 @@ public sealed class CodexQuotaPanel : UserControl,IDisposable {
         if(disposed)return;
         bool on=enabled.IsChecked==true;
         session.Enable("Codex",on);refresh.IsEnabled=on;shown=null;windows.Children.Clear();
-        if(on){timer.Start();Tick();}else{timer.Stop();language.Set(status,"Off");}
+        if(on){timer.Start();Tick();}else{timer.Stop();language.Set(status,"Off");ReadingChanged?.Invoke();}
         EnabledChanged?.Invoke(on);
     }
     void Tick() {
@@ -81,6 +83,7 @@ public sealed class CodexQuotaPanel : UserControl,IDisposable {
             item.Children.Add(new TextBlock{Text=row.Reset.HasValue?string.Format(language.T("Resets {0}"),row.Reset.Value.ToLocalTime().ToString("g")):language.T("Reset time unavailable"),TextWrapping=TextWrapping.Wrap});
             windows.Children.Add(item);
         }
+        ReadingChanged?.Invoke();
     }
     public void Dispose() {
         if(disposed)return;disposed=true;timer.Stop();session.Dispose();

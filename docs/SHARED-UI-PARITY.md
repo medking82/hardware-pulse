@@ -617,3 +617,30 @@ App Cards renders were inspected. Full headless suite and scripts/Validate.ps1
 pass. Native hover/high-contrast and full Settings content/layout parity remain
 open. Routine isolated shared presentation change; source-only rollback, original
 WPF/assets and installed-profile protection remain unchanged.
+
+### Codex quota shared with Desktop
+
+CodexQuotaPanel remains the sole QuotaSession/timer/adapter owner. It exposes its
+current reading and change notification; Monitor projects that result into the
+same snapshot delivered to Desktop, including reopen. Desktop renders every
+AllWindows pool, unknown remaining as unavailable, and non-Live state instead of
+stale percentages. Session Max never peaks quota. Desktop Settings has a Codex
+quota visibility/order group; disabling provider clears its Desktop rows at once.
+No authentication, adapter or scheduling semantics changed. Claude/Antigravity
+shared integration and real-account acceptance remain open.
+
+Synthetic quota tests cover additional pools, unknown values, a single reader,
+login failure, disabling/cancellation and generation rejection. Owner integration
+uses demo readings to verify already-open Desktop receives results and clearing.
+Hiding quota reproduced an Avalonia Grid index exception: invisible retained rows
+kept indices into removed row definitions. Resetting hidden row/column indices
+before shrinking definitions closes that regression while preserving reuse.
+The render also exposed Light-theme editor text on the dark Desktop backing;
+Desktop now explicitly requests Dark for its editor, matching its fixed material.
+
+Headless and Windows native-session tests passed; desktop-codex-quota.png was
+inspected after the editor correction. Full scripts/Validate.ps1 passed; its WPF
+checks are separate from shared headless/native evidence. Routine isolated shared
+presentation with unchanged privilege/data access boundaries; source-only rollback.
+Original WPF/assets and installed profiles remain protected. This is not full
+Desktop mode or stable release acceptance.

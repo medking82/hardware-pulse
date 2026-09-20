@@ -149,6 +149,7 @@ public sealed class MonitorWindow : Window {
         if(materialPlatform!=null)materialPlatform.ColorValuesChanged+=ColorsChanged;
         RequestMaterial();
         interfaces.SelectionChanged+=(_,_)=>{if(!loadingNetwork){settings.Network=interfaces.SelectedItem as string;SaveLater();}};
+        quota.ReadingChanged+=()=>{if(latestSnapshot!=null&&!stop.IsCancellationRequested)Render(latestSnapshot);};
         quota.EnabledChanged+=on=>{settings.Codex=on;SaveLater();};
         quota.QuotaEnabled=settings.Codex;
         saveTimer.Tick+=(_,_)=>SaveNow();
@@ -224,7 +225,7 @@ public sealed class MonitorWindow : Window {
             };
             FloatingMonitor.Closed+=(_,_)=>FloatingMonitor=null;
         }
-        if(latestSnapshot!=null)FloatingMonitor.Present(latestSnapshot.WithNetworkUnit(settings.NetworkUnit),sessionMax);
+        if(latestSnapshot!=null)FloatingMonitor.Present(latestSnapshot.WithNetworkUnit(settings.NetworkUnit) with {CodexQuota=quota.CurrentReading},sessionMax);
         FloatingMonitor.Show();if(!FloatingMonitor.SetLocked(false))return;
         if(FloatingMonitor.WindowState==WindowState.Minimized)FloatingMonitor.WindowState=WindowState.Normal;
         FloatingMonitor.Activate();
@@ -259,7 +260,7 @@ public sealed class MonitorWindow : Window {
     Control CreateDesktopMetricSettings() {
         var list=new StackPanel{Name="DesktopMetricPreferences",Spacing=6};
         var entries=new Dictionary<string,Grid>();var buttons=new Dictionary<string,(Button Up,Button Down)>();
-        string Title(string key)=>key switch {"vram"=>"VRAM","diskC"=>"Drive 1","diskD"=>"Drive 2","cpuFan"=>"CPU Fan","gpuFan"=>"GPU Fan 1","gpuFan2"=>"GPU Fan 2","bottom"=>"System Fan 1","top"=>"System Fan 2","netConnection"=>"Connection","lanLink"=>"LAN Link Speed","wifiLink"=>"Wi-Fi Link Speed","wifiSignal" or "netSignal"=>"Wi-Fi Signal","netDown"=>"Download","netUp"=>"Upload",_=>key};
+        string Title(string key)=>key switch {"quotaCodex"=>"Codex quota","vram"=>"VRAM","diskC"=>"Drive 1","diskD"=>"Drive 2","cpuFan"=>"CPU Fan","gpuFan"=>"GPU Fan 1","gpuFan2"=>"GPU Fan 2","bottom"=>"System Fan 1","top"=>"System Fan 2","netConnection"=>"Connection","lanLink"=>"LAN Link Speed","wifiLink"=>"Wi-Fi Link Speed","wifiSignal" or "netSignal"=>"Wi-Fi Signal","netDown"=>"Download","netUp"=>"Upload",_=>key};
         void Refresh(){list.Children.Clear();for(int i=0;i<settings.DesktopOrder.Count;i++){string key=settings.DesktopOrder[i];list.Children.Add(entries[key]);buttons[key].Up.IsEnabled=i>0;buttons[key].Down.IsEnabled=i<settings.DesktopOrder.Count-1;}}
         void Apply(){FloatingMonitor?.ApplyPreferences(settings);SaveLater();}
         void Move(string key,int delta){int from=settings.DesktopOrder.IndexOf(key),to=from+delta;if(to<0||to>=settings.DesktopOrder.Count)return;(settings.DesktopOrder[from],settings.DesktopOrder[to])=(settings.DesktopOrder[to],settings.DesktopOrder[from]);Refresh();Apply();var button=delta<0?buttons[key].Up:buttons[key].Down;if(button.IsEnabled)button.Focus();else entries[key].Children[0].Focus();}
@@ -400,7 +401,7 @@ public sealed class MonitorWindow : Window {
         latestSnapshot=snapshot;Render(snapshot);
     }
     void Render(MonitorSnapshot snapshot) {
-        snapshot=snapshot.WithNetworkUnit(settings.NetworkUnit);
+        snapshot=snapshot.WithNetworkUnit(settings.NetworkUnit) with {CodexQuota=quota.CurrentReading};
         bool max=sessionMax;
         foreach(var panel in panels){panel.Present(snapshot,max,details.IsChecked==true);panel.IsVisible&=!settings.HiddenCards.Contains(panel.Key);}
         cardsEmpty.IsVisible=panels.All(x=>!x.IsVisible);

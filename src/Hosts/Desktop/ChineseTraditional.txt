@@ -137,3 +137,4 @@ Drag the center to move. Drag any edge or corner to resize.|拖曳中間區域�
 No metrics shown. Choose metrics in Settings.|未顯示讀數，請在設定中選擇。
 Drag To Reorder (Esc To Cancel)|拖曳排序（Esc 取消）
 Network Speed Unit|網路速度單位
+Codex quota|Codex 配額
