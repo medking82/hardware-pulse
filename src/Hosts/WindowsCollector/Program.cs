@@ -5,8 +5,6 @@ using System.Security.Principal;
 
 [assembly:AssemblyTitle("Hardware Pulse Collector")]
 [assembly:AssemblyProduct("Hardware Pulse")]
-[assembly:AssemblyVersion("0.0.0.0")]
-[assembly:AssemblyInformationalVersion("development")]
 namespace HardwarePulse {
     // Dedicated .NET Framework worker. UI assemblies and credentials are never
     // loaded here. The installer owns elevation and task registration.

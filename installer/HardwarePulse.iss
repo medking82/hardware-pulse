@@ -1,7 +1,25 @@
-﻿[Setup]
+﻿#ifdef SharedDesktop
+  #ifdef Win7Compatibility
+    #error SharedDesktop does not support Win7Compatibility
+  #endif
+  #ifndef SharedVersion
+    #error SharedDesktop requires SharedVersion from the verified payload
+  #endif
+  #define StartupExecutable "{app}\worker\HardwarePulse.Collector.exe"
+  #define StartupErrorFile "collector-host-error.txt"
+#else
+  #define StartupExecutable "{app}\HardwarePulse.exe"
+  #define StartupErrorFile "host-error.txt"
+#endif
+
+[Setup]
 AppId={{75E8FDDA-D799-4D8A-882D-972DC72151C2}
 AppName=Hardware Pulse
+#ifdef SharedDesktop
+AppVersion={#SharedVersion}
+#else
 AppVersion=0.6.27
+#endif
 AppPublisher=Marck Wong
 AppPublisherURL=https://github.com/medking82
 AppSupportURL=https://github.com/medking82/hardware-pulse/issues
@@ -22,7 +40,11 @@ OutputDir=..\dist
 #ifdef Win7Compatibility
 OutputBaseFilename=HardwarePulse-Win7-x64-Setup
 #else
+#ifdef SharedDesktop
+OutputBaseFilename=HardwarePulse-Shared-{#SharedVersion}-Setup
+#else
 OutputBaseFilename=HardwarePulse-0.6.27-Setup
+#endif
 #endif
 SetupIconFile=..\assets\pulse.ico
 UninstallDisplayIcon={app}\HardwarePulse.exe
@@ -45,11 +67,19 @@ zhCN.LaunchPulse=启动 Hardware Pulse
 zhTW.LaunchPulse=啟動 Hardware Pulse
 
 [Files]
+#ifndef Win7Compatibility
+; Extract during prerequisite preflight, before replacing application files.
+; Keep first for bounded extraction cost with solid compression.
+Source: "..\vendor\PawnIO-2.2.0.exe"; Flags: dontcopy
+#endif
 #ifdef Win7Compatibility
 Source: "..\build\app\*"; DestDir: "{app}"; Excludes: "tools\PresentMon.exe"; Flags: ignoreversion recursesubdirs createallsubdirs
 #else
+#ifdef SharedDesktop
+Source: "..\build\windows-shared\app\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+#else
 Source: "..\build\app\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "..\vendor\PawnIO-2.2.0.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall
+#endif
 #endif
 
 [InstallDelete]
@@ -82,13 +112,22 @@ Type: files; Name: "{app}\PulseUpgrade.exe"
 Name: "{group}\Hardware Pulse"; Filename: "{app}\HardwarePulse.exe"
 
 [Run]
-Filename: "{app}\HardwarePulse.exe"; Description: "{cm:LaunchPulse}"; Flags: postinstall nowait skipifsilent runasoriginaluser; Check: not IsPulseUpdate
-Filename: "{app}\HardwarePulse.exe"; Flags: nowait runasoriginaluser; Check: IsPulseUpdate
+Filename: "{app}\HardwarePulse.exe"; Description: "{cm:LaunchPulse}"; Flags: postinstall nowait skipifsilent runasoriginaluser; Check: IsPulseInstallReady and not IsPulseUpdate
+; Both launch paths must run after ssPostInstall prerequisite/startup work.
+Filename: "{app}\HardwarePulse.exe"; Flags: postinstall nowait runasoriginaluser; Check: IsPulseInstallReady and IsPulseUpdate
 
 [UninstallRun]
-Filename: "{app}\HardwarePulse.exe"; Parameters: "--remove-startup"; Flags: runhidden waituntilterminated; RunOnceId: "RemovePulseStartup"
+Filename: "{#StartupExecutable}"; Parameters: "--remove-startup"; Flags: runhidden waituntilterminated; RunOnceId: "RemovePulseStartup"
 
 [Code]
+#include "InstallOutcome.iss"
+#include "StopSignal.iss"
+
+procedure DeinitializeSetup();
+begin
+  if not IsPulseInstallReady() then RestoreSetupStop();
+end;
+
 function LocalText(English, Simplified, Traditional: String): String;
 begin
   if ActiveLanguage = 'zhCN' then Result := Simplified
@@ -98,6 +137,13 @@ end;
 function IsPulseUpdate(): Boolean;
 begin
   Result := ExpandConstant('{param:PULSEUPDATE|0}') = '1';
+end;
+procedure CurPageChanged(CurPageID: Integer);
+begin
+  if (CurPageID = wpFinished) and not IsPulseInstallReady() then begin
+    WizardForm.FinishedHeadingLabel.Caption := LocalText('Hardware Pulse setup is incomplete','Hardware Pulse 安装未完成','Hardware Pulse 安裝未完成');
+    WizardForm.FinishedLabel.Caption := LocalText('Application files may have been updated, but prerequisite or startup setup failed. Hardware Pulse was not launched. Resolve the reported error and run setup again.','应用文件可能已更新，但依赖组件或启动项设置失败。未启动 Hardware Pulse。请解决报告的错误后重新运行安装程序。','應用程式檔案可能已更新，但相依元件或啟動項目設定失敗。未啟動 Hardware Pulse。請解決報告的錯誤後重新執行安裝程式。');
+  end;
 end;
 #ifdef Win7Compatibility
 procedure InitializeWizard();
@@ -117,33 +163,35 @@ end;
 function GetCurrentProcessId(): Cardinal;
   external 'GetCurrentProcessId@kernel32.dll stdcall';
 
+#include "CollectorIdentity.iss"
+
 function CollectorRunning(Service: Variant; ExpectedPath: String): Boolean;
 var Processes, Process: Variant;
     I: Integer;
     CommandLine: String;
 begin
   Result := False;
-  Processes := Service.ExecQuery('SELECT ExecutablePath, CommandLine FROM Win32_Process WHERE Name = ''HardwarePulse.exe''');
+  Processes := Service.ExecQuery('SELECT ExecutablePath, CommandLine FROM Win32_Process WHERE Name = ''HardwarePulse.exe'' OR Name = ''HardwarePulse.Collector.exe''');
   for I := 0 to Processes.Count - 1 do begin
     Process := Processes.ItemIndex(I);
     if not VarIsNull(Process.ExecutablePath) then
-      if CompareText(Process.ExecutablePath, ExpectedPath) = 0 then begin
+      if IsPulseCollectorPath(Process.ExecutablePath, ExpectedPath) then begin
         if VarIsNull(Process.CommandLine) then
           RaiseException(LocalText('Cannot inspect the previous Hardware Pulse session.','无法检查先前的 Hardware Pulse 会话。','無法檢查先前的 Hardware Pulse 工作階段。'));
         CommandLine := Process.CommandLine;
-        if Pos('--collector', CommandLine) > 0 then Result := True;
+        if IsPulseCollector(Process.ExecutablePath, CommandLine, ExpectedPath) then Result := True;
       end;
   end;
 end;
 
-function PrepareToInstall(var NeedsRestart: Boolean): String;
+function PrepareExistingCollector(): String;
 var Locator, Service, Owner: Variant;
     Runtime, Sid, ExpectedPath: String;
     Attempt: Integer;
 begin
   Result := '';
   ExpectedPath := ExpandConstant('{app}\HardwarePulse.exe');
-  if not FileExists(ExpectedPath) then Exit;
+  if not FileExists(ExpectedPath) and not FileExists(ExpandConstant('{app}\worker\HardwarePulse.Collector.exe')) then Exit;
   try
     Locator := CreateOleObject('WbemScripting.SWbemLocator');
     Service := Locator.ConnectServer('', 'root\CIMV2');
@@ -154,8 +202,7 @@ begin
       RaiseException(LocalText('Invalid setup account identifier.','安装账户标识无效。','安裝帳戶識別碼無效。'));
     Runtime := ExpandConstant('{commonappdata}\HardwarePulse\') + Sid + '\runtime';
     if DirExists(Runtime) then begin
-      if not SaveStringToFile(Runtime + '\STOP', 'Installer preparing upgrade', False) then
-        RaiseException(LocalText('Cannot request Hardware Pulse shutdown.','无法请求 Hardware Pulse 退出。','無法要求 Hardware Pulse 結束。'));
+      WriteSetupStop(Runtime + '\STOP', 'Hardware Pulse setup ' + IntToStr(GetCurrentProcessId()) + ' ' + GetDateTimeString('yyyymmddhhnnss', '-', ':'));
       Log('Requested cooperative Hardware Pulse shutdown.');
     end;
     for Attempt := 1 to 40 do begin
@@ -194,12 +241,15 @@ end;
 
 #endif
 
-procedure CurStepChanged(CurStep: TSetupStep);
+function PrepareToInstall(var NeedsRestart: Boolean): String;
 var Code: Integer;
 begin
-  if CurStep = ssPostInstall then begin
+  Result := PrepareExistingCollector();
+  if Result <> '' then begin RestoreSetupStop(); Exit; end;
+  try
 #ifndef Win7Compatibility
     if not PawnIOPresent() then begin
+      ExtractTemporaryFile('PawnIO-2.2.0.exe');
       if not Exec(ExpandConstant('{tmp}\PawnIO-2.2.0.exe'), '-install', '', SW_HIDE, ewWaitUntilTerminated, Code) then
         RaiseException(LocalText('Could not launch the PawnIO prerequisite installer.','无法启动 PawnIO 依赖安装程序。','無法啟動 PawnIO 相依元件安裝程式。'));
       if Code <> 0 then RaiseException(LocalText('PawnIO installation failed. Exit code: ','PawnIO 安装失败。退出代码：','PawnIO 安裝失敗。結束代碼：') + IntToStr(Code));
@@ -207,9 +257,20 @@ begin
         RaiseException(LocalText('PawnIO setup finished, but its library or driver registration is missing. Hardware Pulse startup was not registered. Check the PawnIO installation and run setup again.','PawnIO 安装结束，但缺少库文件或驱动注册。尚未注册 Hardware Pulse 启动项。请检查 PawnIO 后重新安装。','PawnIO 安裝結束，但缺少程式庫或驅動程式註冊。尚未註冊 Hardware Pulse 啟動項目。請檢查 PawnIO 後重新安裝。'));
     end;
 #endif
-    if not Exec(ExpandConstant('{app}\HardwarePulse.exe'), '--install-startup', '', SW_HIDE, ewWaitUntilTerminated, Code) then
+  except
+    Result := LocalText('Hardware Pulse prerequisite setup failed: ','Hardware Pulse 依赖组件设置失败：','Hardware Pulse 相依元件設定失敗：') + GetExceptionMessage + LocalText(' No application files were replaced.',' 尚未替换应用文件。',' 尚未取代應用程式檔案。');
+  end;
+  if Result <> '' then RestoreSetupStop();
+end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+var Code: Integer;
+begin
+  if CurStep = ssPostInstall then begin
+    if not Exec(ExpandConstant('{#StartupExecutable}'), '--install-startup', '', SW_HIDE, ewWaitUntilTerminated, Code) then
       RaiseException(LocalText('Could not register Hardware Pulse startup.','无法注册 Hardware Pulse 启动项。','無法註冊 Hardware Pulse 啟動項目。'));
-    if Code <> 0 then RaiseException(LocalText('Startup registration failed. See LocalAppData\HardwarePulse\host-error.txt.','启动项注册失败。请查看 LocalAppData\HardwarePulse\host-error.txt。','啟動項目註冊失敗。請查看 LocalAppData\HardwarePulse\host-error.txt。'));
+    if Code <> 0 then RaiseException(LocalText('Startup registration failed. See LocalAppData\HardwarePulse\{#StartupErrorFile}.','启动项注册失败。请查看 LocalAppData\HardwarePulse\{#StartupErrorFile}。','啟動項目註冊失敗。請查看 LocalAppData\HardwarePulse\{#StartupErrorFile}。'));
+    MarkPulseInstallComplete();
   end;
 end;
 

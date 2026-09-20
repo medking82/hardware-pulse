@@ -1131,6 +1131,42 @@ Actual installed upgrade and installer rollback remain later release gates.
 
 <!-- sop-risk-classification: {"facts":{"blast_radius":"shared","change_kind":"implementation","data_boundary":"ordinary","destructive":"no","failure_cost":"material","irreversibility":"reversible","operational_controls":"not_applicable","privilege_boundary":"changed","project_policy":"default","rollback":"easy","scope_knowledge":"known","uncertainty":"low","verification":"deterministic"},"formal_review":"required","kind":"risk-classification-assessment","reasons":{"formal_review":["high_risk_requires_review"],"risk":["privilege_boundary_change"]},"risk":"high","schema_version":2} -->
 
+### Windows distribution boundary
+
+Build a self-contained win-x64 shared payload with the matching Framework worker,
+verified dependencies, full licenses and SHA-256 inventory. Keep original WPF and
+Win7 build paths intact. Start acceptance at 0.7.1-rc.1, never republish 0.7.0.
+Only a clean source tree may produce a stable package. Installer retains AppId,
+user profiles, protected installation path and fixed worker management commands.
+
+Upgrade phases: verify payload/dependencies before compilation; installer checks
+Framework/collector ownership and prerequisites before file replacement; original
+Startup.Shared owns exact task validation and rollback. Post-install failure must
+return nonzero and suppress launch. Inno does not promise full file rollback after
+post-install failure: preserve evidence and require repair/reinstall, never report
+the old payload as intact. Prior to mutation, retain any bounded original STOP
+contents; restore/remove only the exact signal this setup wrote on failure/cancel,
+without overwriting a concurrent change. Never remove drivers or personal profiles.
+
+Allowed: Windows shared build/verifier, matching worker version generation,
+installer/includes/test harnesses and distribution docs. No live installation,
+scheduled task or release mutation in this source batch. Verify package identity,
+file hashes, executable architecture, absence of private/test artifacts, installer
+variant compilation and isolated STOP/failure-phase fixtures. Actual installed
+upgrade and UI acceptance follow separately with explicit recovery evidence.
+
+<!-- sop-risk-classification: {"facts":{"blast_radius":"shared","change_kind":"implementation","data_boundary":"ordinary","destructive":"no","failure_cost":"material","irreversibility":"reversible","operational_controls":"not_applicable","privilege_boundary":"changed","project_policy":"default","rollback":"easy","scope_knowledge":"known","uncertainty":"low","verification":"deterministic"},"formal_review":"required","kind":"risk-classification-assessment","reasons":{"formal_review":["high_risk_requires_review"],"risk":["privilege_boundary_change"]},"risk":"high","schema_version":2} -->
+
+The first rebuilt 0.7.1-rc.1 package contains 287 files with bundled .NET and was
+compiled into an actual shared installer. Its own HardwarePulse.exe passed native
+demo smoke and font coverage. Dedicated collector tests, three installer variant
+compiles, exact collector identity and STOP restoration/size/link fixtures passed.
+Package verifier fixtures reject tampering, missing required files and synthetic
+auth.json even when the latter has a manifest hash. The isolated Inno failure
+probe confirms preflight preserves old files; post-install failure returns 10 and
+suppresses launch but does not roll back replaced files. These are development
+artifacts from a dirty worktree, not released or installed stable evidence.
+
 This boundary requires one independent frozen-diff review after deterministic
 checks. It is implementation work, not authorization to alter installed tasks
 during tests. Development worker identity is not a stable release identity.
