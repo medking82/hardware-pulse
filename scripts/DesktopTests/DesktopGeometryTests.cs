@@ -27,7 +27,8 @@ static class DesktopGeometryTests {
             Check(saved.AppX==appPosition.X&&saved.AppY==appPosition.Y,"App position was not persisted independently");
             Check(Math.Abs(saved.DesktopWidth-width)<1&&Math.Abs(saved.DesktopHeight-height)<1&&saved.DesktopX==position.X&&saved.DesktopY==position.Y,"Desktop geometry saved on resize/move/close");
             owner=new MonitorWindow(new MonitorSource(true),start:false,store:new PreviewSettingsStore(path));owner.Show();owner.OpenFloatingMonitor();Pump();desktop=owner.FloatingMonitor!;
-            Check(owner.Position==appPosition,"App position lost on owner restart");
+            var restoredScreen=owner.Screens.ScreenFromWindow(owner)??owner.Screens.Primary;
+            Check(owner.Position==appPosition,$"App position lost on owner restart: expected={appPosition}; actual={owner.Position}; size={owner.Width}x{owner.Height}; area={restoredScreen?.WorkingArea}; scale={restoredScreen?.Scaling}");
             Check(Math.Abs(desktop.Width-width)<1&&Math.Abs(desktop.Height-height)<1&&desktop.Position==position,"Desktop geometry survives owner restart");
             desktop.Width=300;desktop.Height=180;Pump();
             Check(desktop.Width==300&&desktop.Height==180,"Original compact Desktop size remains usable");

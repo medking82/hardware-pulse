@@ -28,15 +28,16 @@ static class WindowsCaptureTests {
                 Check(!capture.Read(_=>throw new Exception("Disabled capture read pixels")),"Read worked before opt-in");
                 Check(capture.Enable(),"Could not exclude own window");Pump();
                 Check(GetWindowDisplayAffinity(hwnd,out uint affinity)&&affinity==0x11,"Missing capture exclusion");
-                bool blue=false;
+                bool blue=false;string sample="no frame";
                 for(int retry=0;retry<15&&!blue;retry++) {
                     capture.Read(frame=>{
                         buffer=frame.Pixels;int p=((frame.Height/2)*frame.Width+frame.Width/2)*4;
+                        sample=$"BGR={frame.Pixels[p]},{frame.Pixels[p+1]},{frame.Pixels[p+2]}; grid={frame.Width}x{frame.Height}";
                         blue=frame.Pixels[p]>220&&frame.Pixels[p+1]<30&&frame.Pixels[p+2]<30;
                         Check(frame.Width*frame.Height<=ContrastAnalysis.MaximumPixels,"Capture grid exceeded analysis bound");
                     });if(!blue)Pump();
                 }
-                Check(blue,"Capture did not see underlying blue fixture through excluded red window");
+                Check(blue,$"Capture did not see underlying blue fixture through excluded red window: {sample}; below={below.Position}/{below.Bounds}; above={above.Position}/{above.Bounds}; scale={above.RenderScaling}");
                 Check(capture.Read(frame=>Check(ReferenceEquals(buffer,frame.Pixels),"Capture reallocated same-size buffer")),"Second frame unavailable");
                 above.Hide();Check(!capture.Read(_=>throw new Exception("Hidden capture read pixels")),"Hidden capture ran");
                 above.Show();Pump();above.Width=460;Pump();
