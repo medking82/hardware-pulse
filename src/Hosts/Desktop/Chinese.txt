@@ -173,3 +173,26 @@ Waiting for FPS collector|正在等待 FPS collector
 FPS capture failed|FPS capture 失败
 FPS capture needs administrator|FPS capture 需要 administrator 权限
 Preview · Windows FPS requires the matching installed collector. Hardware support depends on the platform and device.|Preview · Windows FPS 需要匹配的已安装 collector。硬件支持取决于平台和设备。
+Game Overlay|游戏叠加层
+Enable game overlay|启用游戏叠加层
+Detailed overlay|详细读数
+Fans|风扇
+Storage|存储
+Position|位置
+Background color|背景颜色
+Background opacity|背景不透明度
+Reset overlay appearance|重置叠加层外观
+Game overlay is unavailable in this session.|当前会话不支持游戏叠加层。
+Game overlay is off.|游戏叠加层已关闭。
+Waiting for foreground target app|等待目标应用进入前台
+Game overlay active|游戏叠加层已启用
+Game overlay input unavailable|游戏叠加层鼠标穿透不可用
+GPU memory|GPU 显存
+Preview|预览
+Uses the app selected in FPS.|使用 FPS 中选定的应用。
+Top left|左上
+Top center|顶部居中
+Top right|右上
+Bottom left|左下
+Bottom center|底部居中
+Bottom right|右下

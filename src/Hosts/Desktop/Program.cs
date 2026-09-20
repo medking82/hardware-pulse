@@ -12,7 +12,7 @@ public static class Program {
     [STAThread]
     public static int Main(string[] args) {
         if(args.Length==1&&args[0]=="--help") {
-            Console.WriteLine("Pulse Desktop preview: [--demo] [--smoke-test | --measure-session [--diagnose-gc [--transient-framebuffer]]]. Measurement warms up for 10 seconds, then measures 60 seconds without personal settings. Optional GC diagnostics include startup and add observer overhead; transient framebuffer is a Linux-only diagnostic control. Windows/Linux/macOS live CPU, RAM and selected network; Linux kernel-exposed temperature and fan channels when available. Session Max preserves CPU, network and Linux sensor peaks; RAM and quota remain current. FPS and Desktop overlay are not connected in this shared host.");return 0;
+            Console.WriteLine("Pulse Desktop preview: [--demo] [--smoke-test | --measure-session [--diagnose-gc [--transient-framebuffer]]]. Measurement warms up for 10 seconds, then measures 60 seconds without personal settings. Optional GC diagnostics include startup and add observer overhead; transient framebuffer is a Linux-only diagnostic control. Windows/Linux/macOS live CPU, RAM and selected network; Linux kernel-exposed temperature and fan channels when available. Session Max preserves CPU, network and Linux sensor peaks; RAM and quota remain current. Windows FPS and game overlay share one session; frame capture requires the matching collector. Other platforms do not provide game overlay capture.");return 0;
         }
         if(args.Any(a=>a!="--demo"&&a!="--smoke-test"&&a!="--measure-session"&&a!="--diagnose-gc"&&a!="--transient-framebuffer")||args.Distinct().Count()!=args.Length)return 2;
         Demo=args.Contains("--demo");Smoke=args.Contains("--smoke-test");Measure=args.Contains("--measure-session");
@@ -36,7 +36,10 @@ public static class Program {
 
 public sealed class PulseApplication : Application {
     DesktopTray? tray;
-    public override void Initialize()=>Styles.Add(new FluentTheme());
+    public override void Initialize() {
+        Styles.Add(new FluentTheme());
+        Styles.Add(new Avalonia.Markup.Xaml.Styling.StyleInclude(new Uri("avares://Pulse.Desktop/")){Source=new Uri("avares://Avalonia.Controls.ColorPicker/Themes/Fluent/Fluent.xaml")});
+    }
     public override void OnFrameworkInitializationCompleted() {
         if(ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop) {
             desktop.MainWindow=new MonitorWindow(new MonitorSource(Program.Demo),Program.Smoke,

@@ -30,6 +30,7 @@ public sealed class PreviewSettings {
     public bool QuotaFull;
     public bool Fps;
     public string FpsTarget="";
+    public GameOverlayOptions GameOverlay=new();
 }
 
 // Host-specific persistence. No credentials or installed WPF settings are stored here.
@@ -88,6 +89,7 @@ public sealed class PreviewSettingsStore {
             settings.Codex=values.Flag("codex");settings.Claude=values.Flag("claude");settings.Antigravity=values.Flag("antigravity");
             settings.QuotaFull=values.Flag("quotaFull");
             settings.Fps=values.Flag("fps");
+            if(fields.TryGetValue("gameOverlay",out var overlay))settings.GameOverlay=GameOverlayOptions.Read(overlay);
             string fpsTarget=values.Text("fpsTarget","");
             settings.FpsTarget=fpsTarget.Length<=256&&!fpsTarget.Any(c=>char.IsControl(c)||"/\\:".Contains(c))?fpsTarget:"";
             string language=values.Text("language","auto");settings.Language=language is "en" or "zh-CN" or "zh-TW"?language:"auto";
@@ -112,6 +114,7 @@ public sealed class PreviewSettingsStore {
                 ["details"]=JsonSerializer.SerializeToElement(settings.Details),
                 ["quotaFull"]=JsonSerializer.SerializeToElement(settings.QuotaFull),
                 ["fps"]=JsonSerializer.SerializeToElement(settings.Fps),["fpsTarget"]=JsonSerializer.SerializeToElement(settings.FpsTarget),
+                ["gameOverlay"]=JsonSerializer.SerializeToElement(settings.GameOverlay),
                 ["fontSize"]=JsonSerializer.SerializeToElement(settings.FontSize),
                 ["desktopOrder"]=JsonSerializer.SerializeToElement(settings.DesktopOrder),["desktopVisible"]=JsonSerializer.SerializeToElement(settings.DesktopVisible),
                 ["desktopWidth"]=JsonSerializer.SerializeToElement(settings.DesktopWidth),["desktopHeight"]=JsonSerializer.SerializeToElement(settings.DesktopHeight),

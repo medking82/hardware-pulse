@@ -33,7 +33,7 @@ static class SettingsSectionTests {
             Check(appearance.IsExpanded&&slider.IsEffectivelyVisible&&slider.Value==19,"Reopening retains control state");
             owner.Language.Select("zh-CN");Check((string?)appearance.Header=="桌面外观","Section header localizes immediately");
             owner.Language.Select("en");
-            string[][] titles=[["General"],["App Appearance","Window"],["Desktop Layout","Desktop Appearance","Desktop Readings"],["App Cards"],["AI Quota"],["FPS"]];
+            string[][] titles=[["General"],["App Appearance","Window"],["Desktop Layout","Desktop Appearance","Desktop Readings"],["App Cards"],["AI Quota"],["FPS","Game Overlay"]];
             var tabs=owner.GetVisualDescendants().OfType<TabControl>().Single();
             foreach(int width in new[]{360,840})for(int index=0;index<titles.Length;index++) {
                 owner.Width=width;tabs.SelectedIndex=index;Dispatcher.UIThread.RunJobs();

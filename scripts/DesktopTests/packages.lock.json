@@ -33,6 +33,15 @@
         "resolved": "11.3.2",
         "contentHash": "qHDToxto1e3hci5YqbG9n0Ty8mlp3zBUN5wT66wKqaDVzXyQ0do3EnRILd4Ke9jpvsktaPpgE0YjEk7hornryQ=="
       },
+      "Avalonia.Controls.ColorPicker": {
+        "type": "Transitive",
+        "resolved": "12.1.2",
+        "contentHash": "RqbGnsGr5Rs/nXalqiwVyw/BqOlhaDu15hPSl+KyCIUp9ih0CPQ247p7wHP1sZmrZrlMbNSMQnrNEhMRrDh9tw==",
+        "dependencies": {
+          "Avalonia": "12.1.2",
+          "Avalonia.Remote.Protocol": "12.1.2"
+        }
+      },
       "Avalonia.Desktop": {
         "type": "Transitive",
         "resolved": "12.1.2",
@@ -252,6 +261,7 @@
       "pulse.desktop": {
         "type": "Project",
         "dependencies": {
+          "Avalonia.Controls.ColorPicker": "[12.1.2, )",
           "Avalonia.Desktop": "[12.1.2, )",
           "Avalonia.Themes.Fluent": "[12.1.2, )",
           "Pulse.Adapters.Linux": "[1.0.0, )",

@@ -39,6 +39,7 @@ public sealed class MonitorWindow : Window {
     bool desktopStartupRestored,samplingStarted;
     readonly QuotaPanel quota,claude,antigravity;
     readonly FpsPanel fps;
+    readonly GameOverlayPanel gameOverlay;
     readonly HardwareSensorPanel sensors;
     public UiLanguage Language {get;}
     readonly PreviewSettingsStore? store;
@@ -82,6 +83,7 @@ public sealed class MonitorWindow : Window {
         claude=new QuotaPanel(source.IsDemo,cancel=>DesktopQuotaReaders.Read("Claude",source.IsDemo,cancel),inlineSettings:false,language:Language,provider:"Claude");body.Children.Add(claude);
         antigravity=new QuotaPanel(source.IsDemo,cancel=>DesktopQuotaReaders.Read("Antigravity",source.IsDemo,cancel),inlineSettings:false,language:Language,provider:"Antigravity");body.Children.Add(antigravity);
         fps=new FpsPanel(Language,source.IsDemo,factory:fpsFactory,inlineSettings:false);body.Children.Add(fps);
+        gameOverlay=new GameOverlayPanel(Language,settings.GameOverlay,fps,SaveLater,isolated:source.IsDemo||smoke||measure);
         var fpsQuick=Language.Set(new ToggleButton{Name="FpsQuick",Padding=new Thickness(7,5),IsEnabled=fpsFactory!=null||(!source.IsDemo&&OperatingSystem.IsWindows())},"FPS");
         ApplyModeStyle(fpsQuick);fpsQuick.Margin=new Thickness(0,0,6,6);modes.Children.Add(fpsQuick);
         fpsQuick.Click+=(_,_)=>fps.Enabled=fpsQuick.IsChecked==true;
@@ -126,7 +128,7 @@ public sealed class MonitorWindow : Window {
             Language.Set(new TabItem{Content=Scroll(SectionPage(("General",network)))},"General"),Language.Set(new TabItem{Content=Scroll(SectionPage(("App Appearance",appearance),("Window",windowPreferences)))},"App Appearance"),
             Language.Set(new TabItem{Content=Scroll(CreateDesktopSettings())},"Desktop"),
             Language.Set(new TabItem{Content=Scroll(SectionPage(("App Cards",CreateCardSettings())))},"App Cards"),
-            Language.Set(new TabItem{Content=Scroll(SectionPage(("AI Quota",quotaSettings)))},"AI Quota"),Language.Set(new TabItem{Content=Scroll(SectionPage(("FPS",fps.SettingsContent)))},"FPS")}};
+            Language.Set(new TabItem{Content=Scroll(SectionPage(("AI Quota",quotaSettings)))},"AI Quota"),Language.Set(new TabItem{Content=Scroll(SectionPage(("FPS",fps.SettingsContent),("Game Overlay",gameOverlay)))},"FPS")}};
         foreach(var tab in settingsTabs.Items.OfType<TabItem>()){tab.FontSize=12;tab.Padding=new Thickness(10,5);tab.MinHeight=34;ApplySettingsTabStyle(tab);}
         settingsTabs.Margin=new Thickness(12,0,12,0);
         var settingsBody=new DockPanel();saveStatus.Margin=new Thickness(14,8);
@@ -187,7 +189,7 @@ public sealed class MonitorWindow : Window {
             if(settings.DesktopEnabled){bool locked=settings.DesktopLocked;OpenFloatingMonitor();if(locked&&FloatingMonitor?.SetLocked(true)==true)Hide();}
         };
         if(start)Opened+=(_,_)=>{if(!samplingStarted){samplingStarted=true;Sampling=SampleAsync();}};
-        Closed+=(_,_)=>{if(materialPlatform!=null)materialPlatform.ColorValuesChanged-=ColorsChanged;stop.Cancel();FloatingMonitor?.Close();quota.Dispose();claude.Dispose();antigravity.Dispose();fps.Dispose();SaveNow();};
+        Closed+=(_,_)=>{if(materialPlatform!=null)materialPlatform.ColorValuesChanged-=ColorsChanged;stop.Cancel();FloatingMonitor?.Close();quota.Dispose();claude.Dispose();antigravity.Dispose();gameOverlay.Dispose();fps.Dispose();SaveNow();};
     }
     static void ApplySettingsTabStyle(TabItem tab) {
         tab.Margin=new Thickness(0,0,6,6);
@@ -477,6 +479,7 @@ public sealed class MonitorWindow : Window {
         sensors.IsVisible=snapshot.SensorsSupported;
         sensors.Present(max?snapshot.PeakSensors:snapshot.Sensors,snapshot.SensorsSupported);
         FloatingMonitor?.Present(snapshot,max);
+        gameOverlay.Present(snapshot);
         Language.Set(status,samplingFailed?"Monitoring unavailable. Retrying…":max?(source.IsDemo?"Demo · ":"")+"Session Max · Memory and quota remain current":source.IsDemo?"Demo · Sample values":snapshot.CpuReady&&snapshot.MemoryReady?"Live · Refreshes every second":"Waiting for available readings…");
     }
     public void PresentInterfaces(string[] names) {

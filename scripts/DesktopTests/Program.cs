@@ -12,8 +12,10 @@ static class Tests {
     static void Main(string[] args) {
         var expected=Environment.GetEnvironmentVariable("PULSE_TEST_ARCH");
         Check(expected==null||expected==System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture.ToString(),"Architecture mismatch");
+        if(args.Length>=1&&args[0]=="--native-game-overlay") {HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();GameOverlayTests.Native(args.Length==2?args[1]:null);return;}
         if(args.SequenceEqual(new[]{"--native-session"})) {
             HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();
+            GameOverlayTests.Native();
             DesktopMetricPreferenceTests.Run();DesktopGeometryTests.Run();SettingsTests.Run(null);
             FpsPanelTests.Owner();
             AppMaterialTests.Run();DesktopModeTests.Run();
@@ -29,6 +31,7 @@ static class Tests {
         }
         AppBuilder.Configure<PulseApplication>().With(DesktopFonts.Options()).UseSkia().UseHeadless(new(){UseHeadlessDrawing=false}).SetupWithoutStarting();
         if(args.Length>=1&&args[0]=="--fps") {FpsPanelTests.Run(args.Length==2?args[1]:null);return;}
+        if(args.Length>=1&&args[0]=="--game-overlay") {GameOverlayTests.Run(args.Length==2?args[1]:null);return;}
         var source=new MonitorSource(true);
         var window=new MonitorWindow(source,start:false);
         window.Show();window.Present(source.Poll(null));
@@ -71,6 +74,7 @@ static class Tests {
         Check(live.Sampling.IsCompletedSuccessfully,"Close cancels and completes sampling");
         QuotaPanelTests.Run(args.Length==1?args[0]:null);
         FpsPanelTests.Run(args.Length==1?args[0]:null);
+        GameOverlayTests.Run(args.Length==1?args[0]:null);
         ReorderHandleTests.Run();DesktopMetricPreferenceTests.Run(args.Length==1?args[0]:null);DesktopGeometryTests.Run();SettingsTests.Run(args.Length==1?args[0]:null);
         AppMaterialTests.Run();DesktopModeTests.Run();
         WindowsSnapshotTests.Run();WindowsQuotaTests.Run();
