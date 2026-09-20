@@ -6,9 +6,7 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 
 ## Unreleased
 
-- Wake recovery immediately refreshes an expired successful quota observation completed before sleep, instead of adding another five-minute wait.
 
-- Quota Refresh requests made during an active read now coalesce into one follow-up read, so a refresh after re-login is not silently lost. Requests remain serialized; rate-limited responses retain their backoff.
 
 
 
@@ -25,6 +23,11 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 - Shared Desktop embeds pinned Noto Sans CJK SC/TC fonts for Chinese UI on systems without CJK fonts. Build preparation verifies size and SHA-256, packages include the OFL notice, and native smoke fails on missing catalog glyphs. No system font installation or runtime download is needed.
 
 - Shared Desktop supports Auto (System), English and Simplified/Traditional Chinese UI, including Monitor, Settings, sensor status, Codex quota and tray actions. Language switches immediately without restarting sampling or refreshing credentials and is saved in the isolated preview profile. Auto respects Chinese script and region preferences.
+
+## 0.6.31 — 2026-09-20
+
+- Wake recovery immediately refreshes an expired successful quota observation completed before sleep, instead of adding another five-minute wait.
+- Quota Refresh requests made during an active read now coalesce into one follow-up read, so a refresh after re-login is not silently lost. Requests remain serialized; rate-limited responses retain their backoff.
 
 ## 0.6.30 — 2026-09-20
 
