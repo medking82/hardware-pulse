@@ -21,6 +21,10 @@ public sealed class FloatingMonitorWindow : Window {
     PreviewSettings contrastSettings=new();
     readonly WindowsLocalContrast? contrast;
     WindowsDesktopLayer? desktopLayer;
+    string automaticText="#F5F7FA";
+    long lastBackgroundSample;
+    string EffectiveText=>contrastSettings.DesktopAutoContrast?(Topmost?"#101820":IsLocked?automaticText:"#F5F7FA"):textColor;
+    static double Luminance(Color color){static double Linear(byte value){double x=value/255d;return x<=.04045?x/12.92:Math.Pow((x+.055)/1.055,2.4);}return .2126*Linear(color.R)+.7152*Linear(color.G)+.0722*Linear(color.B);}
     public event Action? ContrastChanged;
     public bool CanBeginScreenshot=>contrast!=null&&contrastSettings.DesktopLocalContrast&&IsVisible;
     public Color ContrastBackground=>(surface.Background as ISolidColorBrush)?.Color??Colors.Transparent;
@@ -48,7 +52,7 @@ public sealed class FloatingMonitorWindow : Window {
     public bool CanLock=>input!=null;
     public FloatingMonitorWindow(UiLanguage language,bool nativeEffectsAllowed=true) {
         this.language=language;
-        RequestedThemeVariant=ThemeVariant.Dark; // Desktop owns a dark backing, including editor controls.
+        RequestedThemeVariant=ThemeVariant.Dark;
         Width=466;Height=400;MinWidth=280;MinHeight=140;FontSize=16;
         WindowDecorations=WindowDecorations.None;
         language.Set(this,"Floating monitor");
@@ -150,8 +154,11 @@ public sealed class FloatingMonitorWindow : Window {
         double alpha=highContrast||!supported?100:Topmost?overlayOpacity:backgroundOpacity;
         // DesktopView.SetTextOpacity uses a dark backing for its original light text.
         // Keep controls readable when the user deliberately fades the metric layer.
-        surface.Background=new SolidColorBrush(Color.FromArgb((byte)Math.Round(255*Math.Clamp(alpha,0,100)/100),20,29,38));
-        Foreground=Brush.Parse("#F5F7FA");sensors.Opacity=highContrast?1:Math.Clamp(textOpacity/100,0,1);
+        var backing=highContrast||Luminance(Color.Parse(EffectiveText))>.4?Color.FromRgb(20,29,38):Color.FromRgb(245,247,250);
+        surface.Background=new SolidColorBrush(Color.FromArgb((byte)Math.Round(255*Math.Clamp(alpha,0,100)/100),backing.R,backing.G,backing.B));
+        bool lightBacking=backing.R>200;
+        RequestedThemeVariant=lightBacking?ThemeVariant.Light:ThemeVariant.Dark;
+        Foreground=Brush.Parse(lightBacking?"#17202B":"#F5F7FA");sensors.Opacity=highContrast?1:Math.Clamp(textOpacity/100,0,1);
         foreach(var item in readings.Values)ColorRow(item.Row);
         contrast?.Update();
     }
@@ -181,6 +188,7 @@ public sealed class FloatingMonitorWindow : Window {
             editor.IsVisible=!locked;
             language.Set(lockStatus,locked?"Locked · Reopen from Monitor or the tray to unlock.":"Reopen from Monitor or the tray to unlock.");
             LockedChanged?.Invoke(locked);
+            ApplyMaterial();
             RefreshDesktopLayer();
             return true;
         } catch(Exception e) when(e is System.ComponentModel.Win32Exception or InvalidOperationException) {
@@ -201,12 +209,12 @@ public sealed class FloatingMonitorWindow : Window {
     void ColorIcon(Grid row) {
         var icon=(Avalonia.Controls.Shapes.Path)((Viewbox)row.Children[0]).Child!;
         bool highContrast=materialPlatform?.GetColorValues().ContrastPreference==ColorContrastPreference.High;
-        var brush=Brush.Parse(highContrast?"#F5F7FA":appIconColors?palette.ForIcon(row.Tag as string??"",appLight,textColor):textColor);
+        var brush=Brush.Parse(highContrast?"#F5F7FA":appIconColors?palette.ForIcon(row.Tag as string??"",appLight,EffectiveText):EffectiveText);
         if(icon.Stroke!=null)icon.Stroke=brush;if(icon.Fill!=null)icon.Fill=brush;
     }
     void ColorRow(Grid row) {
         bool highContrast=materialPlatform?.GetColorValues().ContrastPreference==ColorContrastPreference.High;
-        var brush=Brush.Parse(highContrast?"#F5F7FA":textColor);
+        var brush=Brush.Parse(highContrast?"#F5F7FA":EffectiveText);
         foreach(var text in row.Children.OfType<TextBlock>())text.Foreground=brush;
         ColorIcon(row);
     }
@@ -249,5 +257,13 @@ public sealed class FloatingMonitorWindow : Window {
         if(!IsLocked||desktopLayer==null)return;
         if(desktopLayer.Refresh(Topmost)){if(!IsVisible){Show();desktopLayer.Refresh(Topmost);}}
         else if(IsVisible)Hide(); // the existing snapshot/foreground refresh retries after Explorer returns
+        if(contrastSettings.DesktopAutoContrast&&!Topmost&&contrast?.ScreenshotActive!=true) {
+            long now=System.Diagnostics.Stopwatch.GetTimestamp();
+            if(now-lastBackgroundSample<System.Diagnostics.Stopwatch.Frequency*2)return;
+            lastBackgroundSample=now;
+            double? luminance=desktopLayer.SampleBackground();
+            string next=luminance==null?"#F5F7FA":ContrastAnalysis.Select(luminance.Value,automaticText=="#152127"?(byte)20:(byte)245)==20?"#152127":"#F5F7FA";
+            if(next!=automaticText){automaticText=next;ApplyMaterial();}
+        }
     }
 }

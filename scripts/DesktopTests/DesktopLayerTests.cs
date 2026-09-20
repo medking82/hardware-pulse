@@ -15,6 +15,7 @@ static class DesktopLayerTests {
     static void Check(bool value,string message){if(!value)throw new Exception(message);}
     static bool Above(nint first,nint second){for(nint h=GetTopWindow(0);h!=0;h=GetWindow(h,2)){if(h==first)return true;if(h==second)return false;}throw new Exception("Fixture absent from z-order");}
     static void Pump(){using var slice=new CancellationTokenSource(250);Dispatcher.UIThread.MainLoop(slice.Token);}
+    static void Until(Func<bool> ready,string message){var end=DateTime.UtcNow.AddSeconds(5);while(!ready()&&DateTime.UtcNow<end)Pump();Check(ready(),message);}
     public static void Native() {
         if(!OperatingSystem.IsWindows())return;
         bool rejected=false;
@@ -27,9 +28,14 @@ static class DesktopLayerTests {
             Check(desktop.SetLocked(true),"Native Desktop could not lock");
             cover.Show();cover.Activate();Pump();
             nint hwnd=desktop.TryGetPlatformHandle()!.Handle,other=cover.TryGetPlatformHandle()!.Handle;
+            Until(()=>GetForegroundWindow()==other,"Native cover fixture did not acquire foreground");
+            desktop.Present(new("20%","4 GiB","—","—",true,true));Pump();
             var position=desktop.Position;var size=desktop.ClientSize;
             Check(Above(other,hwnd)&&(GetStyle(hwnd,-20).ToInt64()&8)==0,"Locked Desktop must stay below an ordinary app");
-            Check(GetForegroundWindow()==other,"Desktop placement stole activation");
+            Check(GetForegroundWindow()==other,$"Desktop placement changed established foreground: expected={other}, actual={GetForegroundWindow()}, desktop={hwnd}");
+            using(var sample=new WindowsDesktopLayer(hwnd,a=>Dispatcher.UIThread.Post(a),()=>{})) {
+                Check(sample.Refresh(false)&&sample.SampleBackground()==null,"Automatic wallpaper sampling must pause while an ordinary app owns focus");
+            }
             ShowWindow(hwnd,0);Pump();
             desktop.Present(new("21%","4 GiB","—","—",true,true));Pump();
             Check(IsWindowVisible(hwnd)&&Above(other,hwnd),"Snapshot refresh did not recover native-hidden Desktop below apps");

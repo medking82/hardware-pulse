@@ -1049,3 +1049,45 @@ Rollback removes this source integration; no Explorer recovery is needed because
 Explorer is only read. Native placement and native Desktop/tray regression passed;
 full shared regression and repository validation are in progress.
 The final shared headless regression and repository Validate.ps1 both passed for the placement change.
+
+### Desktop shortcut and automatic contrast batch
+
+DesktopShortcutPanel restores the original Ctrl+Alt+F10 default, enable switch,
+key capture with Esc/Tab cancellation, conflict status and persisted gesture.
+WindowsDesktopHotkey registers only on the owned HWND (no keyboard hook), obtains
+a replacement registration before releasing the previous one, rejects stale
+messages and releases registration on disable/close. Demo/smoke/measurement and
+non-Windows hosts expose an unavailable state without registering. WPF digit
+notation such as Alt+Shift+9 is normalized to Avalonia's D9 parser input.
+
+Auto Contrast restores the original paired light/dark surface and reading policy,
+with six edge-adjacent pixel samples at most every two seconds only while the
+Windows desktop owns foreground. Values stay in memory. Other foreground apps
+produce a protected light-text fallback. Always on Top uses dark text/light
+backing when Auto Contrast is enabled; the editor's own theme follows the backing
+for readability. Text/background opacity preferences remain authoritative. New
+profiles retain the user's requested light-text/darker-background default with
+Auto Contrast off. Manual text color disables automatic/local contrast. The
+original Recommended Style scope restores Auto Contrast, 16-DIP text, spacing 10
+and text opacity 100 without resetting geometry or background opacity.
+
+This batch is limited to shared Desktop presentation/preferences, Windows
+shortcut and bounded background sampling, catalogs and fixtures. Installed
+profiles, credentials, collectors, WPF source and release identity are untouched.
+Risk classification returned routine / not_required for known shared scope,
+deterministic checks, easy rollback, material failure cost, sensitive in-memory
+pixels and unchanged privileges. Rollback is this source batch; registrations and
+foreground event subscriptions are disposed with their owning window.
+
+Focused settings/appearance and native shortcut tests passed registration,
+WM_HOTKEY dispatch (posted only to the owned test HWND, not synthetic keyboard
+input), collision retention, cancellation, disable and close cleanup. Actual
+physical shortcut entry and wallpaper transitions remain system acceptance gates.
+The combined native fixture now waits for its cover window to acquire foreground
+before attributing a subsequent foreground change to placement; the earlier fixed
+250-ms delay did not establish that precondition.
+Combined Windows native Desktop parity, full shared headless regression and
+repository Validate.ps1 passed for the final batch. EN/SC/TC font coverage has no
+missing glyphs. The 840-DIP Desktop Settings render was inspected; the existing
+section hierarchy and scroll layout remain intact. This closes implementation
+checks for this batch, not the remaining release or physical-machine gates.

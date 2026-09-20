@@ -318,12 +318,19 @@ public sealed class MonitorWindow : Window {
         };
         edit.Click+=(_,_)=>OpenFloatingMonitor();syncDesktopMode();
         panel.Children.Add(enabled);panel.Children.Add(edit);
+        panel.Children.Add(new DesktopShortcutPanel(this,settings,Language,SaveLater,()=>{
+            if(FloatingMonitor!=null)FloatingMonitor.Close();else EnterDesktop();
+        },!source.IsDemo&&!smoke&&!measure));
         panel.Children.Add(Language.Set(new TextBlock{TextWrapping=TextWrapping.Wrap,FontSize=11},"Select Edit Desktop, then move or resize the panel. Lock it directly on the desktop."));
         void Apply(){FloatingMonitor?.ApplyPreferences(settings);SaveLater();}
         var follow=Language.Set(new CheckBox{Name="DesktopAppIconColors",IsChecked=settings.DesktopAppIconColors},"Icons follow App colors");
         follow.IsCheckedChanged+=(_,_)=>{settings.DesktopAppIconColors=follow.IsChecked==true;Apply();};
         appearance.Children.Add(follow);
         appearance.Children.Add(Language.Set(new TextBlock{TextWrapping=TextWrapping.Wrap},"When off, icons match Desktop text color."));
+        var autoContrast=Language.Set(new CheckBox{Name="DesktopAutoContrast",IsChecked=settings.DesktopAutoContrast},"Auto Contrast");
+        autoContrast.IsCheckedChanged+=(_,_)=>{settings.DesktopAutoContrast=autoContrast.IsChecked==true;Apply();};
+        appearance.Children.Add(autoContrast);
+        appearance.Children.Add(Language.Set(new TextBlock{TextWrapping=TextWrapping.Wrap},"Auto Contrast adjusts colors. Background and text opacity always follow your sliders."));
         bool contrastSupported=WindowsBackgroundCapture.Supported&&!source.IsDemo&&!smoke&&!measure;
         var localContrast=Language.Set(new CheckBox{Name="DesktopLocalContrast",IsChecked=settings.DesktopLocalContrast,IsEnabled=contrastSupported},"Local adaptive text contrast");
         var contrastStatus=new TextBlock{Name="DesktopLocalContrastStatus",TextWrapping=TextWrapping.Wrap};
@@ -348,7 +355,13 @@ public sealed class MonitorWindow : Window {
         Number("DesktopOverlayOpacity","Always on Top background opacity",settings.DesktopOverlayOpacity,0,100,value=>settings.DesktopOverlayOpacity=value,"%");
         Number("DesktopTextOpacity","Text opacity",settings.DesktopTextOpacity,0,100,value=>settings.DesktopTextOpacity=value,"%");
         appearance.Children.Add(Language.Set(new TextBlock(),"Text Color"));
-        appearance.Children.Add(ColorSetting("DesktopColor",settings.DesktopColor,value=>{settings.DesktopColor=value;settings.DesktopLocalContrast=false;localContrast.IsChecked=false;Apply();syncDesktopContrast();}));
+        appearance.Children.Add(ColorSetting("DesktopColor",settings.DesktopColor,value=>{settings.DesktopColor=value;settings.DesktopAutoContrast=false;autoContrast.IsChecked=false;settings.DesktopLocalContrast=false;localContrast.IsChecked=false;Apply();syncDesktopContrast();}));
+        var recommended=Language.Set(new Button{Name="DesktopRecommended"},"Use Recommended Style");
+        recommended.Click+=(_,_)=>{
+            autoContrast.IsChecked=true;
+            foreach(var slider in appearance.Children.OfType<Slider>())if(slider.Name=="DesktopFontSize")slider.Value=16;else if(slider.Name=="DesktopSpacing")slider.Value=10;else if(slider.Name=="DesktopTextOpacity")slider.Value=100;
+            Apply();
+        };appearance.Children.Add(recommended);
         panel.Children.Add(Language.Set(new TextBlock(),"Columns"));
         var columns=new ComboBox{Name="DesktopColumns",ItemsSource=new[]{"Auto","1","2","3"},SelectedIndex=settings.DesktopColumns,ItemTemplate=Language.Choices(),HorizontalAlignment=HorizontalAlignment.Stretch};
         columns.SelectionChanged+=(_,_)=>{settings.DesktopColumns=Math.Max(0,columns.SelectedIndex);FloatingMonitor?.ApplyPreferences(settings,fitColumns:true);SaveLater();};panel.Children.Add(columns);

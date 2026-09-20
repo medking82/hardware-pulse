@@ -17,6 +17,14 @@ public sealed class WindowsDesktopLayer : IDisposable {
     [DllImport("user32.dll")] static extern bool SetWindowPos(nint window,nint after,int x,int y,int width,int height,uint flags);
     [DllImport("user32.dll")] static extern nint SetWinEventHook(uint min,uint max,nint module,WinEvent callback,uint process,uint thread,uint flags);
     [DllImport("user32.dll")] static extern bool UnhookWinEvent(nint hook);
+    [StructLayout(LayoutKind.Sequential)] struct Rect {public int Left,Top,Right,Bottom;}
+    [StructLayout(LayoutKind.Sequential)] struct Point {public int X,Y;}
+    [DllImport("user32.dll")] static extern nint GetForegroundWindow();
+    [DllImport("user32.dll")] static extern bool GetClientRect(nint window,out Rect rect);
+    [DllImport("user32.dll")] static extern bool ClientToScreen(nint window,ref Point point);
+    [DllImport("user32.dll")] static extern nint GetDC(nint window);
+    [DllImport("user32.dll")] static extern int ReleaseDC(nint window,nint dc);
+    [DllImport("gdi32.dll")] static extern uint GetPixel(nint dc,int x,int y);
     readonly nint handle;
     readonly WinEvent callback;
     nint hook;
@@ -56,4 +64,22 @@ public sealed class WindowsDesktopLayer : IDisposable {
         return Attached=SetWindowPos(handle,preceding,0,0,0,0,flags);
     }
     public void Dispose(){if(disposed)return;disposed=true;Attached=false;if(hook!=0)UnhookWinEvent(hook);hook=0;GC.KeepAlive(callback);}
+    public double? SampleBackground() {
+        if(disposed||!Attached||!Owned()||!IsWindowVisible(handle))return null;
+        var name=new StringBuilder(64);GetClassName(GetForegroundWindow(),name,name.Capacity);
+        if(name.ToString() is not ("Progman" or "WorkerW"))return null;
+        if(!GetClientRect(handle,out var rect)||rect.Right<4||rect.Bottom<24)return null;
+        var origin=new Point();if(!ClientToScreen(handle,ref origin))return null;
+        nint dc=GetDC(0);if(dc==0)return null;
+        try {
+            double total=0;int count=0;
+            static double Linear(byte value){double x=value/255d;return x<=.04045?x/12.92:Math.Pow((x+.055)/1.055,2.4);}
+            // Six edge-adjacent pixels, outside our painted surface; never sample glyphs.
+            foreach(double fraction in new[]{.2,.5,.8})foreach(int x in new[]{-2,rect.Right+2}) {
+                uint pixel=GetPixel(dc,origin.X+x,origin.Y+(int)(rect.Bottom*fraction));if(pixel==uint.MaxValue)continue;
+                total+=.2126*Linear((byte)pixel)+.7152*Linear((byte)(pixel>>8))+.0722*Linear((byte)(pixel>>16));count++;
+            }
+            return count==0?null:total/count;
+        }finally{ReleaseDC(0,dc);}
+    }
 }

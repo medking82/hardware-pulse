@@ -27,6 +27,9 @@ public sealed class PreviewSettings {
     public string ReadingColor="#DDE9F0",DesktopColor="#F5F7FA";
     public bool DesktopAppIconColors=true;
     public bool DesktopLocalContrast;
+    public bool DesktopAutoContrast;
+    public bool DesktopShortcutEnabled=true;
+    public string DesktopShortcut="Ctrl+Alt+F10";
     public bool Topmost,LockPosition;
     public string Language="auto";
     public string? Network;
@@ -97,6 +100,10 @@ public sealed class PreviewSettingsStore {
             settings.UnifiedReadingColors=values.Flag("unifiedReadingColors");
             settings.DesktopAppIconColors=values.Flag("desktopAppIconColors",true);
             settings.DesktopLocalContrast=values.Flag("desktopLocalContrast");
+            settings.DesktopAutoContrast=values.Flag("desktopAutoContrast");
+            settings.DesktopShortcutEnabled=values.Flag("desktopShortcutEnabled",true);
+            string shortcut=values.Text("desktopShortcut",settings.DesktopShortcut);
+            if(DesktopShortcutPanel.TryGesture(shortcut,out _,out _,out _))settings.DesktopShortcut=shortcut;
             string readingColor=values.Text("readingColor","#DDE9F0"),desktopColor=values.Text("desktopColor","#F5F7FA");
             if(ReadingPalette.IsColor(readingColor))settings.ReadingColor=readingColor;
             if(ReadingPalette.IsColor(desktopColor))settings.DesktopColor=desktopColor;
@@ -124,6 +131,8 @@ public sealed class PreviewSettingsStore {
                 ["language"]=JsonSerializer.SerializeToElement(settings.Language),["claude"]=JsonSerializer.SerializeToElement(settings.Claude),["antigravity"]=JsonSerializer.SerializeToElement(settings.Antigravity),
                 ["appOpacity"]=JsonSerializer.SerializeToElement(settings.AppOpacity),["solid"]=JsonSerializer.SerializeToElement(settings.Solid),
                 ["background"]=JsonSerializer.SerializeToElement(settings.BackgroundColor),
+                ["desktopAutoContrast"]=JsonSerializer.SerializeToElement(settings.DesktopAutoContrast),
+                ["desktopShortcutEnabled"]=JsonSerializer.SerializeToElement(settings.DesktopShortcutEnabled),["desktopShortcut"]=JsonSerializer.SerializeToElement(settings.DesktopShortcut),
                 ["details"]=JsonSerializer.SerializeToElement(settings.Details),
                 ["quotaFull"]=JsonSerializer.SerializeToElement(settings.QuotaFull),
                 ["unifiedReadingColors"]=JsonSerializer.SerializeToElement(settings.UnifiedReadingColors),["readingColor"]=JsonSerializer.SerializeToElement(settings.ReadingColor),

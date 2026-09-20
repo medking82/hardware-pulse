@@ -15,6 +15,8 @@ static class Tests {
         if(args.SequenceEqual(new[]{"--native-contrast"})) {HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();WindowsCaptureTests.Native();LocalContrastTests.Native();return;}
         if(args.SequenceEqual(new[]{"--native-desktop-tray"})) {HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();FloatingMonitorTests.Run();TrayTests.Run(native:true);return;}
         if(args.SequenceEqual(new[]{"--native-desktop-layer"})) {HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();DesktopLayerTests.Native();return;}
+        if(args.SequenceEqual(new[]{"--native-desktop-shortcut"})) {HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();DesktopShortcutTests.Native();return;}
+        if(args.SequenceEqual(new[]{"--native-desktop-parity"})) {HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();DesktopShortcutTests.Native();DesktopLayerTests.Native();DesktopAutoContrastTests.Run();FloatingMonitorTests.Run();TrayTests.Run(native:true);LocalContrastTests.Native();return;}
         if(args.Length>=1&&args[0]=="--native-game-overlay") {HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();GameOverlayTests.Native(args.Length==2?args[1]:null);return;}
         if(args.SequenceEqual(new[]{"--native-session"})) {
             HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();
@@ -40,6 +42,8 @@ static class Tests {
         if(args.SequenceEqual(new[]{"--palette"})) {ReadingPaletteTests.Run();return;}
         if(args.Length>=1&&args[0]=="--material") {AppMaterialTests.Run(args.Length==2?args[1]:null);return;}
         if(args.SequenceEqual(new[]{"--desktop-tray"})) {FloatingMonitorTests.Run();TrayTests.Run();return;}
+        if(args.SequenceEqual(new[]{"--desktop-shortcut"})) {DesktopShortcutTests.Settings();return;}
+        if(args.SequenceEqual(new[]{"--desktop-appearance"})) {DesktopAutoContrastTests.Run();ReadingPaletteTests.Run();return;}
         if(args.Length==2&&args[0]=="--settings-sections") {SettingsSectionTests.Run(args[1]);return;}
         var source=new MonitorSource(true);
         var window=new MonitorWindow(source,start:false);
@@ -88,6 +92,8 @@ static class Tests {
         AppMaterialTests.Run();DesktopModeTests.Run();
         ReadingPaletteTests.Run(args.Length==1?args[0]:null);
         LocalContrastTests.Settings();
+        DesktopShortcutTests.Settings();
+        DesktopAutoContrastTests.Run();
         WindowsSnapshotTests.Run();WindowsQuotaTests.Run();
         DeviceCardsTests.Run(args.Length==1?args[0]:null);
         CardPreferenceTests.Run(args.Length==1?args[0]:null);

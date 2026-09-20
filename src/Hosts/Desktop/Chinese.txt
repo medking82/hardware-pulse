@@ -212,3 +212,12 @@ Local contrast unavailable; using standard text color|局部对比度不可用�
 Freeze text colors and allow screenshots for 15 seconds. Use Win+Shift+S; local contrast resumes automatically.|冻结文字颜色并允许截图 15 秒。使用 Win+Shift+S；局部对比度将自动恢复。
 Background Color|背景颜色
 Use theme background|使用主题背景
+Desktop toggle shortcut|桌面切换快捷键
+Press a shortcut; Esc cancels|按下快捷键；Esc 取消
+Use two modifiers (Ctrl, Alt, Shift) with a letter, number or F1–F11.|使用 Ctrl、Alt、Shift 中的两个修饰键，配合字母、数字或 F1–F11。
+Shortcut unavailable. Choose another combination.|快捷键不可用，请选择其他组合。
+Shortcut ready; game bindings may still overlap.|快捷键已就绪；仍可能与游戏按键冲突。
+Desktop shortcut is unavailable in this session.|当前会话无法使用桌面快捷键。
+Auto Contrast|自动对比度
+Auto Contrast adjusts colors. Background and text opacity always follow your sliders.|自动对比度调整配色。背景与文字不透明度始终按滑块设置生效。
+Use Recommended Style|使用推荐样式
