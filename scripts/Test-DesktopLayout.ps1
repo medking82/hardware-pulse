@@ -43,6 +43,20 @@ try {
     $grid=$panel.Children[0].Child;$reading=$grid.Children[2]
     Assert ($reading.Inlines.Count -eq 8 -and $reading.TextWrapping -eq 'NoWrap') 'FPS badges must stay in one reading'
     Assert ($reading.TranslatePoint([Windows.Point]::new($reading.ActualWidth,0),$grid).X -le $grid.ActualWidth+1) 'FPS badges exceed a narrow panel'
+    $fpsRuns=@($reading.Inlines)
+    $view.UpdateFpsReading('144 / 128 /  60','Live')
+    Assert ([object]::ReferenceEquals($fpsRuns[0],$reading.Inlines.FirstInline)) 'Unchanged FPS rebuilt its text runs'
+    $view.UpdateFpsReading('240 / 160 /  90','Live updated');$view.UpdateLayout()
+    Assert ($reading.Inlines.FirstInline.Text -eq '240' -and $reading.Inlines.Count -eq 8 -and $reading.ToolTip -eq 'Live updated') 'Incremental FPS lost values, badges or tooltip'
+    $view.UpdateFpsReading('—','Waiting for frames');$view.UpdateLayout()
+    Assert ($reading.Text -eq '—' -and $reading.ToolTip -eq 'Waiting for frames') 'Incremental FPS retained stale readings'
+    $view.UpdateFpsReading('144 / 128 /  60','Recovered');$view.UpdateLayout()
+    Assert ($reading.Inlines.Count -eq 8) 'FPS recovery did not restore badges'
+    $items[0].Value='144 / 128 /  60';$view.Render($items,16,10,'#FFFFFF',$true,1,$null);$view.UpdateLayout()
+    Assert ($reading.Inlines.LastInline.FontSize -eq 8.8) 'FPS size change retained old badge font size'
+    $items.Clear();$items.Add([HardwarePulse.DesktopMetric]::new('cpu','CPU','55 °C','cpu'))
+    $view.Render($items,16,10,'#FFFFFF',$true,1,$null);$view.UpdateFpsReading('999 / 999 / 999','Hidden')
+    Assert ($panel.Children.Count -eq 1 -and $panel.Children[0].Child.Children[1].Text -eq 'CPU') 'FPS update restored a hidden row'
     $view.SetEditorLabels('Drag to move','Lock Desktop','Return to App')
     $view.Width=430;$view.Height=260;$items.Clear()
     foreach($i in 1..24){$items.Add([HardwarePulse.DesktopMetric]::new("drag$i",'Reading','100','airflow'))}

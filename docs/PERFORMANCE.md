@@ -539,3 +539,106 @@ Evidence identity (SHA-256):
 Raw local results and samples are retained in
 `vendor/ui-measure-fb29c783e54b41159aaa61dc6f888a75`; these machine-local artifacts
 are not distributed in the installer or committed to Git.
+
+## WPF refresh work reduction after 0.6.36
+
+Baseline source: `64040491acbd1e5e467adf6b4b0f1fad8b4aeb58` (0.6.36).
+Measured on 2026-09-21, Windows x64, 16 logical processors. The candidate retains
+the WPF cards, glass material, fonts and saved preferences. App density is
+recomputed on geometry/capability changes instead of every poll. The 500 ms FPS
+tick updates only its existing Desktop row; identical FPS text retains its runs.
+The two-second hardware/ordinary Desktop refresh and 100 ms Local Contrast timer
+are unchanged. SensorProfile keeps per-snapshot discovery but avoids temporary
+match arrays; it adds no persistent topology cache or new dependency.
+
+Two fresh-process baseline/candidate pairs ran sequentially, with the order
+reversed in the second pair. No forced collection or working-set trimming was
+used. These are bounded component measurements, not installed-app savings or
+long-term leak evidence.
+
+### App refresh workload
+
+The existing `NativeTests.exe <isolated-state> perf` workload warms up 20 polls,
+then processes 300 synthetic changing snapshots with dispatcher pumping. The
+window is 310 x 690 DIP. Collection, FPS, quota requests and Local Contrast are
+excluded. This concentrated workload does not represent the normal polling rate.
+
+| Measurement across two runs | Baseline | Candidate |
+| --- | ---: | ---: |
+| CPU time / 300 refreshes | 2,922–3,000 ms | 1,688–1,906 ms |
+| Reported managed allocation / 300 refreshes | 274.52–274.55 MB | 122.94–123.02 MB |
+| Endpoint working set | 124.79–125.06 MiB | 127.75–128.04 MiB |
+| Endpoint private bytes | 97.52–101.63 MiB | 131.52–132.58 MiB |
+
+Paired CPU time fell 35–44% and allocation about 55%. The burst endpoint memory
+was higher, so this test does **not** show lower resident or committed RAM.
+Allocation totals and process memory are distinct quantities.
+
+### App at the normal refresh interval
+
+To check the burst memory result against normal use, `Measure-NativeUi.ps1`
+ran the monitor scene for 60 seconds per fresh process after ten seconds of
+warm-up, candidate first, then baseline. Synthetic snapshots update every two
+seconds at 310 x 690 DIP; each run collected 30 samples. Collector, FPS, quota
+requests and the Desktop layer are excluded; Local Contrast is disabled in
+this App-only scene. The Desktop Local Contrast measurements are below.
+
+| Measurement | Baseline | Candidate |
+| --- | ---: | ---: |
+| Average CPU, percent of whole machine | 0.0951% | 0.0145% |
+| Mean working set | 122.51 MiB | 122.62 MiB |
+| Mean private bytes | 94.32 MiB | 93.76 MiB |
+
+This single pair showed lower UI CPU at the normal interval and similar process
+memory. The elevated burst endpoint private bytes did not recur in this short
+normal-interval observation. Neither result establishes long-term RAM behavior
+or savings for the complete installed application.
+
+### Desktop FPS with Local Contrast enabled
+
+The same local `FpsUiBench.cs` harness runs in fresh processes against each app.
+It uses a fixed black/white gradient, a locked 400 x 850 DIP Desktop, 16 DIP text,
+6 DIP spacing, Local Contrast enabled, synthetic FPS every 500 ms and synthetic
+hardware snapshots every two seconds. It calls each runtime's FPS update path,
+warms up ten seconds and samples for about 30 seconds. Real ETW, collector and
+quota work are excluded. Both paths processed 79 total FPS ticks per run.
+
+| Measurement | Baseline pair 1 / 2 | Candidate pair 1 / 2 |
+| --- | ---: | ---: |
+| Average CPU, percent of whole machine | 0.723 / 0.574% | 0.612 / 0.584% |
+| Reported managed allocation | 31.18 / 30.97 MB | 23.30 / 23.67 MB |
+| Mean working set | 138.47 / 137.22 MiB | 136.78 / 135.56 MiB |
+| Mean private bytes | 135.82 / 136.36 MiB | 134.19 / 134.61 MiB |
+
+Allocation fell 24–25%. CPU improved in one pair and slightly increased in the
+other; these short observations do not establish a repeatable CPU reduction for
+the complete Local Contrast scene. The roughly 1.6–1.8 MiB memory differences
+are also insufficient to promise a steady-state RAM reduction.
+
+### Snapshot matching
+
+A local headless harness parses the same 300-sensor host snapshot 3,000 times
+after 50 warm-up parses; it prints only aggregate measurements. Schema and
+matching semantics remain covered by native/legacy differential fixtures,
+including duplicate candidates, null capabilities and changed hardware identity.
+Allocation fell from 343.46 MB to 330.67 MB (3.7%); CPU ranges overlap at
+406–422 ms, so no parser CPU improvement is claimed.
+
+### Evidence and checks
+
+`Validate.ps1 -ModernCore` passed, including WPF interaction, real Local Contrast
+capture, Desktop layout, sensor parity, quota lifecycle and package checks.
+New checks cover unchanged-poll density churn and FPS unchanged text, value
+changes, stale/recovery, font changes and hidden rows.
+
+Local raw evidence is retained under `vendor/perf-monitor-*`, `perf-steady-*`,
+`perf-fps-*`, `perf-sensor-*` and `perf-runtime-hashes.json`. The local
+reproduction sources are `vendor/FpsUiBench.cs`, `SensorPerf.cs` and
+`Run-PerfIteration.ps1`; they and host measurements are not installer payloads.
+
+Measured SHA-256 identities:
+
+- Baseline app: `98D9D2574CBADC62ABE490CD5B1125EDD0ACE4676C01FFC1C514899D72262F32`
+- Candidate app: `F1851A24E45EBF6F43542821ED8BE8953AD0039A57D77BDBD0A3E4E0A594B8D1`
+- Baseline Windows adapter: `4B8E4BB38E8C2D66DA6242FCB635AA5DF283184B3A5F6968983C881DAEE6E05D`
+- Candidate Windows adapter: `81662DA0F3F6FBBE8589E66F92AC2EF5696B08AF60151D2005F959013FD94F5D`

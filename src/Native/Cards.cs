@@ -12,6 +12,7 @@ namespace HardwarePulse {
         sealed class RowView {
             public string Key,Label,Unit;public Grid Full;public StackPanel Compact;
             public TextBlock Name,Value,ShortName,ShortValue;
+            public bool LastAvailable;
         }
         sealed class PairView {public string Key,Label;public StackPanel Panel;public TextBlock Name,Value;}
         sealed class CardView {
@@ -58,21 +59,36 @@ namespace HardwarePulse {
                 r.Compact=new StackPanel {Orientation=Orientation.Horizontal,Margin=new Thickness(0,1,5,1)};r.ShortName=Label(shortLabel,10);r.ShortName.Margin=new Thickness(0,0,4,0);r.ShortValue=Label("—",11);r.ShortValue.FontWeight=FontWeights.SemiBold;r.Compact.Children.Add(r.ShortName);r.Compact.Children.Add(r.ShortValue);Catalog(r.ShortName);view.Compact.RowDefinitions.Add(new RowDefinition {Height=GridLength.Auto});view.Compact.Children.Add(r.Compact);view.Rows.Add(r);
             }
             var menu=new ContextMenu();view.Up=new MenuItem {Header="Move Up"};view.Down=new MenuItem {Header="Move Down"};Catalog(view.Up);Catalog(view.Down);menu.Items.Add(view.Up);menu.Items.Add(view.Down);view.Border.ContextMenu=menu;view.Grip.ContextMenu=menu;menu.Opened+=delegate{int i=cards.Children.IndexOf(view.Border);view.Up.IsEnabled=!locked&&i>0;view.Down.IsEnabled=!locked&&i<cards.Children.Count-1;};view.Up.Click+=delegate{MoveCard(view,-1);};view.Down.Click+=delegate{MoveCard(view,1);};
+            TrackDensity(view.Body);TrackDensity(view.TitleRow);TrackDensity(view.Sub);
+            if(view.HeroValue!=null)TrackDensity(view.HeroValue);
+            foreach(var row in view.Rows){TrackDensity(row.ShortName);TrackDensity(row.ShortValue);}
             ((ResponsivePanel)cards).Attach(view.Border,view.Grip,Control<ScrollViewer>("CardScroll"),delegate{QueueSave();});
         }
         void MoveCard(CardView view,int delta){if(locked)return;int i=cards.Children.IndexOf(view.Border),target=i+delta;if(target<0||target>=cards.Children.Count)return;cards.Children.RemoveAt(i);cards.Children.Insert(target,view.Border);QueueSave();}
         void AddPairs(CardView view,string[] keys,string[] labels){view.Pairs=new Grid();for(int i=0;i<2;i++){view.Pairs.ColumnDefinitions.Add(new ColumnDefinition());var pair=new PairView {Key=keys[i],Label=labels[i],Panel=new StackPanel(),Name=Label(labels[i],10,"#B0C4DE"),Value=Label("—",21,view.Accent)};pair.Name.Margin=new Thickness(0,0,6,0);pair.Panel.Children.Add(pair.Name);pair.Value.Margin=new Thickness(0,6,0,0);pair.Panel.Children.Add(pair.Value);Grid.SetColumn(pair.Panel,i);view.Pairs.Children.Add(pair.Panel);view.PairItems.Add(pair);}view.Body.Children.Add(view.Pairs);}
         void AddUsage(CardView view,string key){view.Usage=key;view.UsageText=Label(key.ToUpperInvariant(),12);view.UsageText.Margin=new Thickness(0,8,0,2);view.UsageText.TextWrapping=TextWrapping.Wrap;view.Body.Children.Add(view.UsageText);view.UsageBar=new Grid {Height=3,Background=Brush("#203C5266")};view.UsageBar.ColumnDefinitions.Add(new ColumnDefinition {Width=new GridLength(0)});view.UsageBar.ColumnDefinitions.Add(new ColumnDefinition());view.UsageBar.Children.Add(new Border {Background=Brush(view.Accent),CornerRadius=new CornerRadius(2)});view.Body.Children.Add(view.UsageBar);}
         void UpdateCard(CardView view){
+            foreach(var row in view.Rows){bool available=Available(row.Key);if(row.LastAvailable!=available){row.LastAvailable=available;densityDirty=true;}}
             view.Title.Text=language.T(view.Key);view.Sub.Text=(view.Key=="Network"?language.T("Traffic adapter")+" · ":"")+Device(view.Key,view.Subtitle);view.Border.ToolTip=view.Sub.Text;
             if(view.Hero!=null){view.HeroValue.Text=Value(view.Hero,"°C");view.HeroValue.Visibility=Available(view.Hero)?Visibility.Visible:Visibility.Collapsed;}
             foreach(var row in view.Rows){row.Name.Text=Device(row.Key,row.Label);row.Name.ToolTip=row.Name.Text;string value=Value(row.Key,row.Unit);if(row.Key=="gpuFan"&&readings.Latest.gpuFanCount>1)value=Value("gpuFan","RPM").Replace(" RPM","")+" / "+Value("gpuFan2","RPM");row.Value.Text=value;row.ShortValue.Text=value;row.Value.ToolTip=value=="0 RPM"?language.T("This channel reports 0 RPM; other fans or pumps may use separate channels."):null;}
             foreach(var pair in view.PairItems){pair.Name.Text=Device(pair.Key,pair.Label);pair.Name.ToolTip=pair.Name.Text;pair.Value.Text=Value(pair.Key,"°C");pair.Panel.Visibility=Available(pair.Key)?Visibility.Visible:Visibility.Collapsed;view.Pairs.ColumnDefinitions[Grid.GetColumn(pair.Panel)].Width=Available(pair.Key)?new GridLength(1,GridUnitType.Star):new GridLength(0);}
             if(view.Usage!=null){view.UsageText.Visibility=view.UsageBar.Visibility=readings.Latest.available==null||readings.HasUsage(view.Usage)?Visibility.Visible:Visibility.Collapsed;Usage usage;bool has=readings.Latest.state=="LIVE"&&readings.Latest.usage.TryGetValue(view.Usage,out usage);usage=has?readings.Latest.usage[view.Usage]:null;view.UsageText.Text=usage==null?language.T(view.Usage.ToUpperInvariant())+" —":language.T(usage.label??view.Usage.ToUpperInvariant())+"  "+ReadingFormat.UsageText(usage);view.UsageBar.ColumnDefinitions[0].Width=new GridLength(usage==null?0:usage.percent,GridUnitType.Star);view.UsageBar.ColumnDefinitions[1].Width=new GridLength(usage==null?100:100-usage.percent,GridUnitType.Star);}
-            bool supported=readings.Latest.available==null||(view.Hero!=null&&Available(view.Hero))||view.Rows.Any(r=>Available(r.Key))||view.PairItems.Any(p=>Available(p.Key))||(view.Usage!=null&&readings.HasUsage(view.Usage));view.Border.Visibility=CardEnabled(view.Key)&&supported?Visibility.Visible:Visibility.Collapsed;
+            bool supported=readings.Latest.available==null||(view.Hero!=null&&Available(view.Hero))||view.Rows.Any(r=>Available(r.Key))||view.PairItems.Any(p=>Available(p.Key))||(view.Usage!=null&&readings.HasUsage(view.Usage));var visibility=CardEnabled(view.Key)&&supported?Visibility.Visible:Visibility.Collapsed;if(view.Border.Visibility!=visibility)densityDirty=true;view.Border.Visibility=visibility;
         }
-        void ApplyDensity(){
-            if(measuring||cards==null)return;var scroll=Control<ScrollViewer>("CardScroll");if(scroll.ActualHeight<=0||scroll.ActualWidth<=0)return;measuring=true;
+        bool densityDirty=true,densityQueued;
+        // Let WPF measure changed readings normally. Recompute density only when
+        // their geometry changes; coalesce those events after the layout pass.
+        // Explicit appearance/resize actions still force immediate recomputation.
+        void TrackDensity(FrameworkElement element){element.SizeChanged+=delegate{
+            if(measuring||disposed)return;densityDirty=true;
+            if(!loaded||densityQueued||!Window.IsVisible||Window.WindowState==WindowState.Minimized)return;
+            densityQueued=true;Window.Dispatcher.BeginInvoke(new Action(delegate{densityQueued=false;if(!disposed)ApplyDensity(false);}),System.Windows.Threading.DispatcherPriority.Loaded);
+        };}
+        void ApplyDensity(bool force=true){
+            if(measuring||cards==null)return;
+            Control<TextBlock>("CardsEmpty").Visibility=!settingsVisible&&views.Values.All(v=>v.Border.Visibility==Visibility.Collapsed)?Visibility.Visible:Visibility.Collapsed;
+            if(!force&&!densityDirty)return;var scroll=Control<ScrollViewer>("CardScroll");if(scroll.ActualHeight<=0||scroll.ActualWidth<=0)return;measuring=true;
             try{bool detail=settings.Flag("details");double scale=Window.FontSize/12;var layout=(ResponsivePanel)cards;layout.MinimumColumnWidth=270*scale;var quotaLayout=(ResponsivePanel)Control<StackPanel>("QuotaCards");quotaLayout.MinimumColumnWidth=270*scale;layout.Measure(new Size(Math.Max(1,scroll.ActualWidth-38),double.PositiveInfinity));double cardWidth=layout.CellWidth;Control<Button>("Details").Background=Brush(detail?"#607898A8":"#00000000");
                 for(int level=0;level<=3;level++){
                     foreach(var view in views.Values){view.Border.Padding=level==0?new Thickness(10,7,10,7):new Thickness(7,level==3?3:5,7,level==3?3:5);view.Border.Margin=new Thickness(0,0,0,level==0?6:3);view.Title.FontSize=13*scale;view.Sub.FontSize=10*scale;view.Sub.Visibility=level==3&&!detail?Visibility.Collapsed:Visibility.Visible;view.Sub.TextWrapping=detail?TextWrapping.Wrap:TextWrapping.NoWrap;
@@ -82,7 +98,7 @@ namespace HardwarePulse {
                     }
                     cards.UpdateLayout();cards.Measure(new Size(Math.Max(1,scroll.ActualWidth-38),double.PositiveInfinity));if(cards.DesiredSize.Height<=scroll.ActualHeight-2)break;
                 }
-                Control<TextBlock>("CardsEmpty").Visibility=!settingsVisible&&views.Values.All(v=>v.Border.Visibility==Visibility.Collapsed)?Visibility.Visible:Visibility.Collapsed;
+                densityDirty=false;
             }finally{measuring=false;}
         }
     }

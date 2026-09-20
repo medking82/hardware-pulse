@@ -33,6 +33,14 @@ try {
     if(-not $m.names.Memory.Contains([char]0x00B7)){throw 'UTF-8 separator decoding failed'}
     if($m.usage.vram.used -ne 4 -or $m.usage.vram.total -ne 16 -or $m.usage.ram.percent -ne 25){throw 'Usage unit conversion failed'}
     if($m.gpuFanCount -ne 2 -or $m.values.gpuFan2 -ne 0){throw 'Two GPU telemetry channels / zero RPM failed'}
+    $duplicate=$modern.Clone();$duplicate.sensors=@($modern.sensors+(Sensor '/gpu-amd/0/fan/3' '/gpu-amd/0' 'GpuAmd' 'GPU Fan 1' 'Fan' 1100))
+    $duplicate|ConvertTo-Json -Depth 6|Set-Content $path
+    $d=Get-PulseSnapshot $path $now
+    if($d.available.gpuFan -or $d.values.ContainsKey('gpuFan')){throw 'Duplicate candidate became a selected sensor'}
+    $topology=$modern.Clone();$topology.sensors=@($modern.sensors|ForEach-Object{$copy=$_.Clone();if($copy.hardwareId -eq '/gpu-amd/0'){$copy.hardwareId='/gpu-amd/1';if($copy.type -eq 'Temperature'){$copy.value=46}};$copy})
+    $topology|ConvertTo-Json -Depth 6|Set-Content $path
+    $t=Get-PulseSnapshot $path $now
+    if($t.values.gpu -ne 46 -or $t.values.gpuLoad -ne $null){throw 'Topology change did not preserve fresh per-snapshot mapping'}
     if($null -ne (Convert-ProfileUsage 17 16) -or $null -ne (Convert-ProfileUsage 0 0) -or $null -eq (Convert-ProfileUsage 0 16)){throw 'Usage validation failed'}
     $raw|ConvertTo-Json -Depth 5|Set-Content $path
     $b=Get-PulseSnapshot $path ($now.AddSeconds(16))

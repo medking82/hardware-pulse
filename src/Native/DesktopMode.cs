@@ -115,11 +115,18 @@ namespace HardwarePulse {
             string fallback=key=="cpuFan"?"CPU Fan":key=="gpuFan"?(readings.Latest.gpuFanCount>1?"GPU Fan 1":"GPU Fan"):key=="gpuFan2"?"GPU Fan 2":key=="bottom"?"System Fan 1":"System Fan 2";
             return Device(key,fallback);
         }
+        DesktopMetric DesktopFpsMetric(){
+            string value=desktopFpsValue=="—"?"—":string.Join(" / ",new[]{desktopFpsValue,desktopFpsAverage,desktopFpsMinimum}.Select(part=>part.PadLeft(3,'\u2007')));
+            return new DesktopMetric("fps","FPS",value,"fps"){ToolTip=language.T("Current / Average / Minimum")+" · "+language.T("Rolling 60 s")+" · "+language.T(desktopFpsStatus)};
+        }
+        void UpdateDesktopFps(){
+            if(!loaded||desktop==null||!DesktopFpsActive)return;
+            var metric=DesktopFpsMetric();desktop.UpdateFpsReading(metric.Value,metric.ToolTip);
+        }
         List<DesktopMetric> DesktopMetrics(){
             var result=new List<DesktopMetric>();
             if(DesktopMetricEnabled("fps")){
-                string value=desktopFpsValue=="—"?"—":string.Join(" / ",new[]{desktopFpsValue,desktopFpsAverage,desktopFpsMinimum}.Select(part=>part.PadLeft(3,'\u2007')));
-                result.Add(new DesktopMetric("fps","FPS",value,"fps"){ToolTip=language.T("Current / Average / Minimum")+" · "+language.T("Rolling 60 s")+" · "+language.T(desktopFpsStatus)});
+                result.Add(DesktopFpsMetric());
             }
             foreach(var card in cards.Children.Cast<Border>()){
                 string key=(string)card.Tag;

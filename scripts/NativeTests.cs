@@ -52,6 +52,15 @@ internal static class NativeTests {
     static void Settle(){var until=DateTime.UtcNow.AddMilliseconds(250);while(DateTime.UtcNow<until){Pump();System.Threading.Thread.Sleep(10);}}
     static void LayoutChecks(Shell shell,string state){
         var panel=shell.Control<ResponsivePanel>("Cards");double width=shell.Window.Width,height=shell.Window.Height;
+        shell.Window.Width=310;shell.Window.Height=340;Pump();shell.UpdatePanel();Settle();
+        var densityCard=panel.Children.Cast<Border>().First(c=>c.Visibility==Visibility.Visible);
+        int paddingChanges=0;
+        var paddingProperty=System.ComponentModel.DependencyPropertyDescriptor.FromProperty(Border.PaddingProperty,typeof(Border));
+        EventHandler paddingChanged=delegate{paddingChanges++;};paddingProperty.AddValueChanged(densityCard,paddingChanged);
+        try{
+            for(int i=0;i<3;i++){shell.UpdatePanel();Pump();}
+            Assert(paddingChanges==0,"Unchanged polling reran card density layout");
+        }finally{paddingProperty.RemoveValueChanged(densityCard,paddingChanged);}
         foreach(int columns in new[]{1,2,3}){
             shell.Window.Width=columns==1?310:columns==2?660:1000;shell.Window.Height=820;Pump();shell.UpdatePanel();Settle();
             Assert(panel.Columns==columns,"Responsive columns do not follow window width: expected="+columns+" actual="+panel.Columns+" window="+shell.Window.ActualWidth+" panel="+panel.ActualWidth+" minimum="+panel.MinimumColumnWidth);

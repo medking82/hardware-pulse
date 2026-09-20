@@ -14,7 +14,7 @@ namespace HardwarePulse {
     }
     public sealed class DesktopView : Window {
         public const double EdgePadding=16;
-        sealed class Row {public Border Border,IconHost;public TextBlock Name,Value;public FrameworkElement Icon;public string IconColor,BaseIconColor;public string IconName;public bool IconPalette;public byte IconShade=245;public double IconSize;}
+        sealed class Row {public Border Border,IconHost;public TextBlock Name,Value;public FrameworkElement Icon;public string IconColor,BaseIconColor;public string IconName,FpsValue;public bool IconPalette;public byte IconShade=245;public double IconSize,FpsSize;}
         readonly Dictionary<string,Row> rows=new Dictionary<string,Row>();
         readonly ResponsivePanel stack=new ResponsivePanel{RowGap=0};readonly Border surface;
         readonly ScrollViewer scroll;
@@ -147,6 +147,15 @@ namespace HardwarePulse {
                 text.Inlines.Add(new System.Windows.Documents.Run(" "+labels[i]){FontSize=Math.Max(8,size*.55),BaselineAlignment=BaselineAlignment.Superscript});
             }
         }
+        static void SetFpsRowReading(Row row,string value,double size){
+            if(row.FpsValue==value&&row.FpsSize==size)return;
+            SetFpsReading(row.Value,value,size);row.FpsValue=value;row.FpsSize=size;
+        }
+        public void UpdateFpsReading(string value,string toolTip){
+            Row row;if(!rows.TryGetValue("fps",out row)||row.Border.Visibility!=Visibility.Visible)return;
+            SetFpsRowReading(row,value,row.Value.FontSize);
+            row.Name.ToolTip=toolTip??row.Name.Text;row.Value.ToolTip=toolTip??value;
+        }
         public void Render(IList<DesktopMetric> metrics,double size,double spacing,string color,bool isLocked,int columns=1,Func<string,string> iconColor=null) {
             stack.RequestedColumns=columns;stack.MinimumColumnWidth=Math.Max(280,24*size);stack.InvalidateMeasure();
             stack.Width=double.NaN;
@@ -185,12 +194,12 @@ namespace HardwarePulse {
                     };
                     row.Border.Child=grid;rows.Add(metric.Key,row);
                 }
-                row.Name.Text=metric.Title;row.Value.Text=metric.Value;row.Name.FontSize=size;row.Value.FontSize=size;
+                row.Name.Text=metric.Title;row.Name.FontSize=size;row.Value.FontSize=size;
                 if(metric.Icon=="fps"){
-                    SetFpsReading(row.Value,metric.Value,size);row.Value.MinWidth=fpsMinimumWidth;row.Value.TextAlignment=TextAlignment.Right;
+                    SetFpsRowReading(row,metric.Value,size);row.Value.MinWidth=fpsMinimumWidth;row.Value.TextAlignment=TextAlignment.Right;
                     row.Value.LineStackingStrategy=LineStackingStrategy.BlockLineHeight;row.Value.LineHeight=Math.Ceiling(size*1.5);
                     row.Value.Height=row.Value.LineHeight;
-                }
+                }else{row.Value.Text=metric.Value;row.FpsValue=null;}
                 row.Value.ToolTip=metric.ToolTip??metric.Value;
                 row.Name.ToolTip=metric.ToolTip??metric.Title;if(localContrast==null||!LocalContrastAvailable){row.Name.Foreground=row.Value.Foreground=foreground;}row.Border.BorderBrush=line;
                 row.Border.Padding=new Thickness(0,spacing/2,0,spacing/2);row.Border.Visibility=Visibility.Visible;

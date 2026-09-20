@@ -85,7 +85,7 @@ namespace HardwarePulse {
             if(maximum)Control<TextBlock>("Status").Text+=" · "+language.T("Session peaks");
             Control<TextBlock>("Status").Foreground=Brush(light?(readings.Latest.state=="LIVE"?"#12644D":"#804000"):(readings.Latest.state=="LIVE"?"#A5E7D5":"#E7C5A4"));
             foreach(var view in views.Values)UpdateCard(view);RenderQuota();
-            Control<Button>("Live").Background=Brush(maximum?"#00000000":"#607898A8");Control<Button>("Max").Background=Brush(maximum?"#607898A8":"#00000000");ApplyDensity();
+            Control<Button>("Live").Background=Brush(maximum?"#00000000":"#607898A8");Control<Button>("Max").Background=Brush(maximum?"#607898A8":"#00000000");ApplyDensity(false);
         }
         void QueueSave(){if(!loaded||disposed)return;saveTimer.Stop();saveTimer.Start();}
         public void Save(){if(!loaded)return;var bounds=Window.RestoreBounds;

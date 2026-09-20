@@ -37,7 +37,12 @@ namespace HardwarePulse {
             return matcher.IsMatch(text??"");
         }
         static Sensor Find(IEnumerable<Sensor> items,string type,params string[] patterns) {
-            foreach(string p in patterns){var matches=items.Where(s=>s.type==type&&Match(s.name,p)).ToArray();if(matches.Length==1)return matches[0];}return null;
+            foreach(string p in patterns){
+                Sensor candidate=null;int count=0;
+                foreach(var sensor in items)if(sensor.type==type&&Match(sensor.name,p)){candidate=sensor;count++;}
+                if(count==1)return candidate;
+            }
+            return null;
         }
         public static Usage MakeUsage(double? used,double? total) {
             if(!used.HasValue||!total.HasValue)return null;
