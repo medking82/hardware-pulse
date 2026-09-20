@@ -905,3 +905,11 @@ src/Native, src/Panel.xaml and assets paths remain byte-identical to the 0.6.27 
 The default balanced review cannot yet be prepared because the machine-local bound
 snapshot/bindings sources have not been located. A route-selection question is pending;
 no reviewer has been launched and no review has been claimed complete.
+
+The review preparation gap was subsequently resolved using existing same-host
+Token Monitor bindings and the explicit native Gemini source. The old Token Monitor
+snapshot was rejected as stale. Balanced selection chose gemini-3.8-flash-high;
+packet 5244387a169c3a6cc9fcc538ad2aeba7217fcbac24bc57ab443c4d7fe0612a77 completed
+with zero findings against tree 1ccf455d2c17cc3baa30ed327cabf3754d564dd2. Commit
+bf17d75 contains that exact tree. This closes the quota integration review step,
+not real-account, native macOS, performance or release acceptance.

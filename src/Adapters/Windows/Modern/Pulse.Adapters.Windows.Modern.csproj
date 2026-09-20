@@ -11,6 +11,7 @@
     <Compile Include="../../Common/Modern/QuotaJson.cs" Link="QuotaJson.cs" />
     <Compile Include="../Models.cs;../SensorProfile.cs" />
     <Compile Include="../../../Native/Backdrop.cs" Link="Backdrop.cs" />
+    <Compile Include="../../../Native/FpsTransport.cs;../../../Native/OverlayTarget.cs" />
     <Compile Include="../WindowsSystemReadings.cs" Link="WindowsSystemReadings.cs" />
     <ProjectReference Include="../../../Core/Pulse.Core.csproj" />
     <ProjectReference Include="../../Common/Pulse.Adapters.Common.csproj" />

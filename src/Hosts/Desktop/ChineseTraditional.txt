@@ -160,3 +160,16 @@ Essential quotas|主要配額
 All available quotas|全部可用配額
 Desktop keeps essential quotas.|Desktop 保留主要配額。
 Quota stale|配額資料已過期
+Enable FPS|啟用 FPS
+Refresh apps|重新整理 App
+Reset FPS|重設 FPS
+Auto (foreground app)|自動（前景 App）
+Could not refresh apps.|無法重新整理 App。
+FPS is unavailable on this platform.|此平台暫不支援 FPS。
+FPS capture stopped|FPS capture 已停止
+Waiting for frames|正在等待畫面幀
+Waiting for target app|正在等待目標 App
+Waiting for FPS collector|正在等待 FPS collector
+FPS capture failed|FPS capture 失敗
+FPS capture needs administrator|FPS capture 需要 administrator 權限
+Preview · Windows FPS requires the matching installed collector. Hardware support depends on the platform and device.|Preview · Windows FPS 需要匹配的已安裝 collector。硬體支援取決於平台和裝置。

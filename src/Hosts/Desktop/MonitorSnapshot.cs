@@ -7,6 +7,7 @@ public sealed record MonitorSnapshot(string Cpu,string Memory,string Download,st
     public QuotaReading? CodexQuota {get;init;}
     public QuotaReading? ClaudeQuota {get;init;}
     public QuotaReading? AntigravityQuota {get;init;}
+    public DesktopFpsSnapshot? Fps {get;init;}
     public string? NetworkName {get;init;}
     public IReadOnlyDictionary<string,double> HardwarePeaks {get;init;}=new Dictionary<string,double>();
     public IReadOnlyList<HardwareSensorSnapshot> Sensors {get;init;}=[];

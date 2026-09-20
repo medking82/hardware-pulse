@@ -38,6 +38,7 @@ public sealed class MonitorWindow : Window {
     bool samplingFailed;
     bool desktopStartupRestored,samplingStarted;
     readonly QuotaPanel quota,claude,antigravity;
+    readonly FpsPanel fps;
     readonly HardwareSensorPanel sensors;
     public UiLanguage Language {get;}
     readonly PreviewSettingsStore? store;
@@ -53,7 +54,7 @@ public sealed class MonitorWindow : Window {
     CheckBox? desktopPin;
     Action? syncDesktopMode;
     public Task Sampling {get;private set;}=Task.CompletedTask;
-    public MonitorWindow(IMonitorSource source,bool smoke=false,bool start=true,PreviewSettingsStore? store=null,bool measure=false) {
+    public MonitorWindow(IMonitorSource source,bool smoke=false,bool start=true,PreviewSettingsStore? store=null,bool measure=false,Func<IDesktopFpsSource>? fpsFactory=null) {
         this.source=source;this.smoke=smoke;this.measure=measure;
         this.store=store;settings=store?.Load()??new PreviewSettings();
         Language=new UiLanguage(settings.Language);sensors=new HardwareSensorPanel(Language);
@@ -80,6 +81,10 @@ public sealed class MonitorWindow : Window {
         quota=new QuotaPanel(source.IsDemo,cancel=>DesktopQuotaReaders.Read("Codex",source.IsDemo,cancel),inlineSettings:false,language:Language);body.Children.Add(quota);
         claude=new QuotaPanel(source.IsDemo,cancel=>DesktopQuotaReaders.Read("Claude",source.IsDemo,cancel),inlineSettings:false,language:Language,provider:"Claude");body.Children.Add(claude);
         antigravity=new QuotaPanel(source.IsDemo,cancel=>DesktopQuotaReaders.Read("Antigravity",source.IsDemo,cancel),inlineSettings:false,language:Language,provider:"Antigravity");body.Children.Add(antigravity);
+        fps=new FpsPanel(Language,source.IsDemo,factory:fpsFactory,inlineSettings:false);body.Children.Add(fps);
+        var fpsQuick=Language.Set(new ToggleButton{Name="FpsQuick",Padding=new Thickness(7,5),IsEnabled=fpsFactory!=null||(!source.IsDemo&&OperatingSystem.IsWindows())},"FPS");
+        ApplyModeStyle(fpsQuick);fpsQuick.Margin=new Thickness(0,0,6,6);modes.Children.Add(fpsQuick);
+        fpsQuick.Click+=(_,_)=>fps.Enabled=fpsQuick.IsChecked==true;
         var quotaSettings=new StackPanel{Spacing=16};quotaSettings.Children.Add(quota.SettingsContent);quotaSettings.Children.Add(claude.SettingsContent);quotaSettings.Children.Add(antigravity.SettingsContent);
         var quotaDisplay=new ComboBox{Name="QuotaDisplay",ItemsSource=new[]{"Essential quotas","All available quotas"},ItemTemplate=Language.Choices(),SelectedIndex=settings.QuotaFull?1:0,HorizontalAlignment=HorizontalAlignment.Stretch};
         Avalonia.Automation.AutomationProperties.SetName(quotaDisplay,Language.T("App quota display"));
@@ -87,7 +92,7 @@ public sealed class MonitorWindow : Window {
         quotaDisplay.SelectionChanged+=(_,_)=>{settings.QuotaFull=quotaDisplay.SelectedIndex==1;quota.ShowAll=claude.ShowAll=antigravity.ShowAll=settings.QuotaFull;SaveLater();};
         quotaSettings.Children.Add(Language.Set(new TextBlock{TextWrapping=TextWrapping.Wrap},"App quota display"));quotaSettings.Children.Add(quotaDisplay);
         quotaSettings.Children.Add(Language.Set(new TextBlock{TextWrapping=TextWrapping.Wrap},"Desktop keeps essential quotas."));
-        body.Children.Add(Language.Set(new TextBlock{TextWrapping=TextWrapping.Wrap},"Preview · FPS and Desktop overlay are not connected yet. Hardware support depends on the platform and device."));
+        body.Children.Add(Language.Set(new TextBlock{TextWrapping=TextWrapping.Wrap},"Preview · Windows FPS requires the matching installed collector. Hardware support depends on the platform and device."));
         var network=new StackPanel{Spacing=10};
         network.Children.Add(Language.Set(new TextBlock{TextWrapping=TextWrapping.Wrap},"Network interface"));network.Children.Add(interfaces);
         network.Children.Add(refreshInterfaces);network.Children.Add(networkStatus);
@@ -121,7 +126,7 @@ public sealed class MonitorWindow : Window {
             Language.Set(new TabItem{Content=Scroll(SectionPage(("General",network)))},"General"),Language.Set(new TabItem{Content=Scroll(SectionPage(("App Appearance",appearance),("Window",windowPreferences)))},"App Appearance"),
             Language.Set(new TabItem{Content=Scroll(CreateDesktopSettings())},"Desktop"),
             Language.Set(new TabItem{Content=Scroll(SectionPage(("App Cards",CreateCardSettings())))},"App Cards"),
-            Language.Set(new TabItem{Content=Scroll(SectionPage(("AI Quota",quotaSettings)))},"AI Quota")}};
+            Language.Set(new TabItem{Content=Scroll(SectionPage(("AI Quota",quotaSettings)))},"AI Quota"),Language.Set(new TabItem{Content=Scroll(SectionPage(("FPS",fps.SettingsContent)))},"FPS")}};
         foreach(var tab in settingsTabs.Items.OfType<TabItem>()){tab.FontSize=12;tab.Padding=new Thickness(10,5);tab.MinHeight=34;ApplySettingsTabStyle(tab);}
         settingsTabs.Margin=new Thickness(12,0,12,0);
         var settingsBody=new DockPanel();saveStatus.Margin=new Thickness(14,8);
@@ -163,6 +168,8 @@ public sealed class MonitorWindow : Window {
         quota.ReadingChanged+=()=>{if(latestSnapshot!=null&&!stop.IsCancellationRequested)Render(latestSnapshot);};
         quota.EnabledChanged+=on=>{settings.Codex=on;SaveLater();};
         quota.QuotaEnabled=settings.Codex;
+        fps.Target=settings.FpsTarget;fps.PreferenceChanged+=(enabled,target)=>{settings.Fps=enabled;settings.FpsTarget=target;fpsQuick.IsChecked=enabled;SaveLater();};
+        fps.ReadingChanged+=reading=>{if(latestSnapshot!=null&&!stop.IsCancellationRequested)Render(latestSnapshot);};fps.Enabled=settings.Fps;
         claude.ReadingChanged+=()=>{if(latestSnapshot!=null&&!stop.IsCancellationRequested)Render(latestSnapshot);};
         claude.EnabledChanged+=on=>{settings.Claude=on;SaveLater();};claude.QuotaEnabled=settings.Claude;
         antigravity.ReadingChanged+=()=>{if(latestSnapshot!=null&&!stop.IsCancellationRequested)Render(latestSnapshot);};
@@ -180,7 +187,7 @@ public sealed class MonitorWindow : Window {
             if(settings.DesktopEnabled){bool locked=settings.DesktopLocked;OpenFloatingMonitor();if(locked&&FloatingMonitor?.SetLocked(true)==true)Hide();}
         };
         if(start)Opened+=(_,_)=>{if(!samplingStarted){samplingStarted=true;Sampling=SampleAsync();}};
-        Closed+=(_,_)=>{if(materialPlatform!=null)materialPlatform.ColorValuesChanged-=ColorsChanged;stop.Cancel();FloatingMonitor?.Close();quota.Dispose();claude.Dispose();antigravity.Dispose();SaveNow();};
+        Closed+=(_,_)=>{if(materialPlatform!=null)materialPlatform.ColorValuesChanged-=ColorsChanged;stop.Cancel();FloatingMonitor?.Close();quota.Dispose();claude.Dispose();antigravity.Dispose();fps.Dispose();SaveNow();};
     }
     static void ApplySettingsTabStyle(TabItem tab) {
         tab.Margin=new Thickness(0,0,6,6);
@@ -256,7 +263,7 @@ public sealed class MonitorWindow : Window {
                 settings.DesktopEnabled=false;syncDesktopMode?.Invoke();SaveNow();Show();Activate();
             };
         }
-        if(latestSnapshot!=null)FloatingMonitor.Present(latestSnapshot.WithNetworkUnit(settings.NetworkUnit) with {CodexQuota=quota.CurrentReading,ClaudeQuota=claude.CurrentReading,AntigravityQuota=antigravity.CurrentReading},sessionMax);
+        if(latestSnapshot!=null)FloatingMonitor.Present(latestSnapshot.WithNetworkUnit(settings.NetworkUnit) with {CodexQuota=quota.CurrentReading,ClaudeQuota=claude.CurrentReading,AntigravityQuota=antigravity.CurrentReading,Fps=fps.Current},sessionMax);
         FloatingMonitor.Show();if(!FloatingMonitor.SetLocked(false))return;
         if(FloatingMonitor.WindowState==WindowState.Minimized)FloatingMonitor.WindowState=WindowState.Normal;
         FloatingMonitor.Activate();
@@ -318,7 +325,7 @@ public sealed class MonitorWindow : Window {
     Control CreateDesktopMetricSettings() {
         var list=new StackPanel{Name="DesktopMetricPreferences",Spacing=6};
         var entries=new Dictionary<string,Grid>();var buttons=new Dictionary<string,(Button Up,Button Down)>();
-        string Title(string key)=>key switch {"quotaCodex"=>"Codex quota","quotaClaude"=>"Claude quota","quotaAntigravity"=>"Antigravity quota","vram"=>"VRAM","diskC"=>"Drive 1","diskD"=>"Drive 2","cpuFan"=>"CPU Fan","gpuFan"=>"GPU Fan 1","gpuFan2"=>"GPU Fan 2","bottom"=>"System Fan 1","top"=>"System Fan 2","netConnection"=>"Connection","lanLink"=>"LAN Link Speed","wifiLink"=>"Wi-Fi Link Speed","wifiSignal" or "netSignal"=>"Wi-Fi Signal","netDown"=>"Download","netUp"=>"Upload",_=>key};
+        string Title(string key)=>key switch {"fps"=>"FPS / AVG / MIN","quotaCodex"=>"Codex quota","quotaClaude"=>"Claude quota","quotaAntigravity"=>"Antigravity quota","vram"=>"VRAM","diskC"=>"Drive 1","diskD"=>"Drive 2","cpuFan"=>"CPU Fan","gpuFan"=>"GPU Fan 1","gpuFan2"=>"GPU Fan 2","bottom"=>"System Fan 1","top"=>"System Fan 2","netConnection"=>"Connection","lanLink"=>"LAN Link Speed","wifiLink"=>"Wi-Fi Link Speed","wifiSignal" or "netSignal"=>"Wi-Fi Signal","netDown"=>"Download","netUp"=>"Upload",_=>key};
         void Refresh(){list.Children.Clear();for(int i=0;i<settings.DesktopOrder.Count;i++){string key=settings.DesktopOrder[i];list.Children.Add(entries[key]);buttons[key].Up.IsEnabled=i>0;buttons[key].Down.IsEnabled=i<settings.DesktopOrder.Count-1;}}
         void Apply(){FloatingMonitor?.ApplyPreferences(settings);SaveLater();}
         void Move(string key,int delta){int from=settings.DesktopOrder.IndexOf(key),to=from+delta;if(to<0||to>=settings.DesktopOrder.Count)return;(settings.DesktopOrder[from],settings.DesktopOrder[to])=(settings.DesktopOrder[to],settings.DesktopOrder[from]);Refresh();Apply();var button=delta<0?buttons[key].Up:buttons[key].Down;if(button.IsEnabled)button.Focus();else entries[key].Children[0].Focus();}
@@ -459,7 +466,7 @@ public sealed class MonitorWindow : Window {
         latestSnapshot=snapshot;Render(snapshot);
     }
     void Render(MonitorSnapshot snapshot) {
-        snapshot=snapshot.WithNetworkUnit(settings.NetworkUnit) with {CodexQuota=quota.CurrentReading,ClaudeQuota=claude.CurrentReading,AntigravityQuota=antigravity.CurrentReading};
+        snapshot=snapshot.WithNetworkUnit(settings.NetworkUnit) with {CodexQuota=quota.CurrentReading,ClaudeQuota=claude.CurrentReading,AntigravityQuota=antigravity.CurrentReading,Fps=fps.Current};
         bool max=sessionMax;
         foreach(var panel in panels){panel.Present(snapshot,max,details.IsChecked==true);panel.IsVisible&=!settings.HiddenCards.Contains(panel.Key);}
         cardsEmpty.IsVisible=panels.All(x=>!x.IsVisible);

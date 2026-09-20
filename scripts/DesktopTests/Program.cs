@@ -15,6 +15,7 @@ static class Tests {
         if(args.SequenceEqual(new[]{"--native-session"})) {
             HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();
             DesktopMetricPreferenceTests.Run();DesktopGeometryTests.Run();SettingsTests.Run(null);
+            FpsPanelTests.Owner();
             AppMaterialTests.Run();DesktopModeTests.Run();
             LocalizationTests.Run(null,native:true);
             TrayTests.Run(native:true);
@@ -27,6 +28,7 @@ static class Tests {
             return;
         }
         AppBuilder.Configure<PulseApplication>().With(DesktopFonts.Options()).UseSkia().UseHeadless(new(){UseHeadlessDrawing=false}).SetupWithoutStarting();
+        if(args.Length>=1&&args[0]=="--fps") {FpsPanelTests.Run(args.Length==2?args[1]:null);return;}
         var source=new MonitorSource(true);
         var window=new MonitorWindow(source,start:false);
         window.Show();window.Present(source.Poll(null));
@@ -68,6 +70,7 @@ static class Tests {
         while(!live.Sampling.IsCompleted&&DateTime.UtcNow<limit){Dispatcher.UIThread.RunJobs();Thread.Sleep(10);}
         Check(live.Sampling.IsCompletedSuccessfully,"Close cancels and completes sampling");
         QuotaPanelTests.Run(args.Length==1?args[0]:null);
+        FpsPanelTests.Run(args.Length==1?args[0]:null);
         ReorderHandleTests.Run();DesktopMetricPreferenceTests.Run(args.Length==1?args[0]:null);DesktopGeometryTests.Run();SettingsTests.Run(args.Length==1?args[0]:null);
         AppMaterialTests.Run();DesktopModeTests.Run();
         WindowsSnapshotTests.Run();WindowsQuotaTests.Run();

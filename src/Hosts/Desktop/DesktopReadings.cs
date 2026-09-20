@@ -12,6 +12,7 @@ internal static class DesktopReadings {
             return values?.TryGetValue(key,out double value)==true?ReadingFormat.SensorNumber(value,unit)+unit:"—";
         }
         void Add(string key,string title,string value,string icon)=>result.Add(new(key,title,value,icon));
+        if(snapshot.Fps is {Enabled:true} fps)Add("fps","FPS / AVG / MIN",fps.Status=="Live"?$"{fps.Current} / {fps.Average} / {fps.Minimum}":language.T(fps.Status),"fps");
         string Processor(string temperature,string load,string? fallback=null)=>string.Join("   ",new[]{Has(temperature)?Value(temperature," °C"):null,Has(load)?Value(load,"%"):fallback}.Where(x=>x!=null));
         Add("CPU",language.T("CPU"),Processor("cpu","cpuLoad",peaks?snapshot.PeakCpu:snapshot.Cpu),"cpu");
         if(Has("gpu")||Has("gpuLoad"))Add("GPU",language.T("GPU"),Processor("gpu","gpuLoad"),"gpu");

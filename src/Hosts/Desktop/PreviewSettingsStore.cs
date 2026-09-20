@@ -4,7 +4,7 @@ namespace HardwarePulse.Desktop;
 
 public sealed class PreviewSettings {
     public static readonly string[] CardKeys=["CPU","GPU","Memory","NVMe","Airflow","Network"];
-    public static readonly string[] DesktopKeys=["CPU","GPU","vram","Memory","diskC","diskD","cpuFan","gpuFan","gpuFan2","bottom","top","netConnection","lanLink","wifiLink","wifiSignal","netSignal","netDown","netUp","quotaCodex","quotaClaude","quotaAntigravity"];
+    public static readonly string[] DesktopKeys=["CPU","GPU","vram","Memory","diskC","diskD","cpuFan","gpuFan","gpuFan2","bottom","top","netConnection","lanLink","wifiLink","wifiSignal","netSignal","netDown","netUp","fps","quotaCodex","quotaClaude","quotaAntigravity"];
     public List<string> DesktopOrder=new(DesktopKeys);
     public Dictionary<string,bool> DesktopVisible=new(StringComparer.Ordinal);
     public List<string> CardOrder=new(CardKeys);
@@ -28,6 +28,8 @@ public sealed class PreviewSettings {
     public string NetworkUnit="auto";
     public bool Codex,Claude,Antigravity;
     public bool QuotaFull;
+    public bool Fps;
+    public string FpsTarget="";
 }
 
 // Host-specific persistence. No credentials or installed WPF settings are stored here.
@@ -85,6 +87,9 @@ public sealed class PreviewSettingsStore {
             string network=values.Text("network");settings.Network=network.Length>0&&network.Length<=256&&!network.Any(char.IsControl)?network:null;
             settings.Codex=values.Flag("codex");settings.Claude=values.Flag("claude");settings.Antigravity=values.Flag("antigravity");
             settings.QuotaFull=values.Flag("quotaFull");
+            settings.Fps=values.Flag("fps");
+            string fpsTarget=values.Text("fpsTarget","");
+            settings.FpsTarget=fpsTarget.Length<=256&&!fpsTarget.Any(c=>char.IsControl(c)||"/\\:".Contains(c))?fpsTarget:"";
             string language=values.Text("language","auto");settings.Language=language is "en" or "zh-CN" or "zh-TW"?language:"auto";
         }catch(Exception e) when(e is IOException or InvalidDataException or UnauthorizedAccessException or JsonException or InvalidOperationException) {
             blocked=true;Error="Settings unavailable. Changes apply to this session; the original file is preserved.";
@@ -106,6 +111,7 @@ public sealed class PreviewSettingsStore {
                 ["appOpacity"]=JsonSerializer.SerializeToElement(settings.AppOpacity),["solid"]=JsonSerializer.SerializeToElement(settings.Solid),
                 ["details"]=JsonSerializer.SerializeToElement(settings.Details),
                 ["quotaFull"]=JsonSerializer.SerializeToElement(settings.QuotaFull),
+                ["fps"]=JsonSerializer.SerializeToElement(settings.Fps),["fpsTarget"]=JsonSerializer.SerializeToElement(settings.FpsTarget),
                 ["fontSize"]=JsonSerializer.SerializeToElement(settings.FontSize),
                 ["desktopOrder"]=JsonSerializer.SerializeToElement(settings.DesktopOrder),["desktopVisible"]=JsonSerializer.SerializeToElement(settings.DesktopVisible),
                 ["desktopWidth"]=JsonSerializer.SerializeToElement(settings.DesktopWidth),["desktopHeight"]=JsonSerializer.SerializeToElement(settings.DesktopHeight),
