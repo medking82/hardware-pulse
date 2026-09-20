@@ -42,14 +42,14 @@ static class LocalizationTests {
             var source=new MonitorSource(true);var window=new MonitorWindow(source,store:store);window.Show();
             window.Present(source.Poll(null));var sampling=window.Sampling;
             var main=window.GetVisualDescendants().OfType<Button>().Single(x=>x.Name=="OpenSettings");main.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));Dispatcher.UIThread.RunJobs();
-            var tabs=window.GetVisualDescendants().OfType<TabControl>().Single(x=>x.Name=="SettingsTabs");tabs.SelectedIndex=1;Dispatcher.UIThread.RunJobs();
+            var tabs=window.GetVisualDescendants().OfType<TabControl>().Single(x=>x.Name=="SettingsTabs");tabs.SelectedIndex=0;Dispatcher.UIThread.RunJobs();
             var language=window.GetVisualDescendants().OfType<ComboBox>().Single(x=>x.Name=="PreviewLanguage");language.SelectedIndex=2;Dispatcher.UIThread.RunJobs();
             Check(window.Title=="Pulse · 桌面预览版"&&window.GetVisualDescendants().OfType<TextBlock>().Any(x=>x.Name=="SettingsTitle"&&x.Text=="设置"),"Title and Settings navigation change immediately");
-            Check(window.GetVisualDescendants().OfType<TextBlock>().Any(x=>x.Text=="主题"),"Appearance labels translated");
+            Check(window.GetVisualDescendants().OfType<TextBlock>().Any(x=>x.Text=="语言"),"General labels translated");
             Check(ReferenceEquals(sampling,window.Sampling)&&window.Language.Choice=="zh-CN","Switch does not restart sampling");
             using(var tray=new DesktopTray(window)){Check(((NativeMenuItem)tray.Menu.Items[0]).Header=="打开 Pulse","Tray uses window language");window.Language.Select("en");Check(((NativeMenuItem)tray.Menu.Items[0]).Header=="Open Pulse","Tray updates live");window.Language.Select("zh-CN");}
             language.SelectedIndex=3;Dispatcher.UIThread.RunJobs();
-            Check(window.Title=="Pulse · 桌面預覽版"&&window.GetVisualDescendants().OfType<TextBlock>().Any(x=>x.Text=="佈景主題"),"Traditional choice applies immediately");
+            Check(window.Title=="Pulse · 桌面預覽版"&&window.GetVisualDescendants().OfType<TextBlock>().Any(x=>x.Text=="語言"),"Traditional choice applies immediately");
             foreach(int tab in new[]{1,0}) {
                 if(tab==0)window.GetVisualDescendants().OfType<Button>().Single(x=>x.Name=="Back").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));window.Width=360;window.Height=800;Dispatcher.UIThread.RunJobs();
                 if(native) {

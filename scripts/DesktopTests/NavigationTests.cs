@@ -24,9 +24,11 @@ static class NavigationTests {
             Check(back.IsFocused,"Settings keyboard activation transfers focus to Back");
             Check(!window.GetVisualDescendants().OfType<Grid>().Any(x=>x.Name=="ReadingCards"),"Monitor is removed from Settings navigation and focus tree");
             var tabs=Find<TabControl>("SettingsTabs");tabs.SelectedIndex=1;Dispatcher.UIThread.RunJobs();
+            var category=(TabItem)tabs.Items[1]!;var categoryPosition=category.TranslatePoint(new Point(),window)!.Value;
             var scroll=window.GetVisualDescendants().OfType<ScrollViewer>().First(x=>x.Content is StackPanel);
             before=back.TranslatePoint(new Point(),window)!.Value;scroll.Offset=new Vector(0,10000);Dispatcher.UIThread.RunJobs();
             Check(back.TranslatePoint(new Point(),window)!.Value==before,"Back stays fixed above scrolling Settings");
+            Check(scroll.Offset.Y>0&&category.TranslatePoint(new Point(),window)!.Value==categoryPosition,"Category navigation remains fixed while content really scrolls");
             window.Present(source.Poll(null) with {Cpu="33.0%"});
             if(output!=null){using var frame=window.CaptureRenderedFrame();frame!.Save(Path.Combine(output,"navigation-settings.png"),Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);}
             Press(back);

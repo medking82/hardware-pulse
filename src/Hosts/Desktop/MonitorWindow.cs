@@ -22,7 +22,7 @@ public sealed class MonitorWindow : Window {
     readonly TextBlock cardsEmpty=new(){Name="CardsEmpty",TextWrapping=TextWrapping.Wrap,IsVisible=false};
     readonly ToggleButton details=new(){Name="Details",Content="Details",Padding=new Thickness(7,5)};
     int cardColumns,cardVisibility=-1;
-    readonly ComboBox interfaces=new(){HorizontalAlignment=HorizontalAlignment.Stretch,PlaceholderText="Select network interface"};
+    readonly ComboBox interfaces=new(){Name="NetworkInterface",HorizontalAlignment=HorizontalAlignment.Stretch,PlaceholderText="Select network interface"};
     readonly Button refreshInterfaces=new(){Name="RefreshInterfaces",Content="Refresh interfaces"};
     readonly TextBlock networkStatus=new(){Name="NetworkStatus",TextWrapping=TextWrapping.Wrap};
     readonly CheckBox pause=new(){Name="PauseHardware",Content="Pause hardware monitoring"};
@@ -101,21 +101,23 @@ public sealed class MonitorWindow : Window {
         appOpacity.Value=settings.AppOpacity;appearance.Children.Add(appOpacity);appearance.Children.Add(opacityValue);
         appOpacity.ValueChanged+=(_,_)=>{settings.AppOpacity=appOpacity.Value;RequestMaterial();SaveLater();};
         solid.IsCheckedChanged+=(_,_)=>{settings.Solid=solid.IsChecked==true;RequestMaterial();SaveLater();};
-        appearance.Children.Add(Language.Set(new TextBlock(),"Language"));
+        network.Children.Add(Language.Set(new TextBlock(),"Language"));
         var languageChoice=new ComboBox{Name="PreviewLanguage",ItemsSource=new[]{"Auto (System)","English","简体中文","繁體中文"},SelectedIndex=settings.Language=="en"?1:settings.Language=="zh-CN"?2:settings.Language=="zh-TW"?3:0,HorizontalAlignment=HorizontalAlignment.Stretch,ItemTemplate=Language.Choices()};
-        appearance.Children.Add(languageChoice);
+        network.Children.Add(languageChoice);
         languageChoice.SelectionChanged+=(_,_)=>{settings.Language=languageChoice.SelectedIndex==1?"en":languageChoice.SelectedIndex==2?"zh-CN":languageChoice.SelectedIndex==3?"zh-TW":"auto";Language.Select(settings.Language);SaveLater();};
         var settingsTabs=new TabControl{Name="SettingsTabs",ItemsSource=new[]{
-            Language.Set(new TabItem{Content=network},"Network"),Language.Set(new TabItem{Content=appearance},"Appearance"),
-            new TabItem{Header="Codex",Content=new Border{Padding=new Thickness(20),Child=quota.SettingsContent}},
-            Language.Set(new TabItem{Content=CreateCardSettings()},"App Cards")}};
-        var settingsBody=new StackPanel{Spacing=12,Margin=new Thickness(12)};
-        settingsBody.Children.Add(settingsTabs);settingsBody.Children.Add(saveStatus);
+            Language.Set(new TabItem{Content=Scroll(network)},"General"),Language.Set(new TabItem{Content=Scroll(appearance)},"App Appearance"),
+            Language.Set(new TabItem{Content=Scroll(CreateCardSettings())},"App Cards"),
+            Language.Set(new TabItem{Content=Scroll(new Border{Padding=new Thickness(20),Child=quota.SettingsContent})},"AI Quota")}};
+        foreach(var tab in settingsTabs.Items.OfType<TabItem>()){tab.FontSize=12;tab.Padding=new Thickness(10,5);tab.MinHeight=34;}
+        settingsTabs.Margin=new Thickness(12,0,12,0);
+        var settingsBody=new DockPanel();saveStatus.Margin=new Thickness(14,8);
+        DockPanel.SetDock(saveStatus,Dock.Bottom);settingsBody.Children.Add(saveStatus);settingsBody.Children.Add(settingsTabs);
         var back=Language.Set(new Button{Name="Back",Padding=new Thickness(10,5)},"Back");
         var settingsTitle=Language.Set(new TextBlock{Name="SettingsTitle",FontWeight=FontWeight.SemiBold,VerticalAlignment=VerticalAlignment.Center},"Settings");
         var toolbar=new StackPanel{Name="SettingsToolbar",Orientation=Orientation.Horizontal,Spacing=10,Margin=new Thickness(14,8)};
         toolbar.Children.Add(back);toolbar.Children.Add(settingsTitle);
-        var settingsPage=new DockPanel();DockPanel.SetDock(toolbar,Dock.Top);settingsPage.Children.Add(toolbar);settingsPage.Children.Add(Scroll(settingsBody));
+        var settingsPage=new DockPanel();DockPanel.SetDock(toolbar,Dock.Top);settingsPage.Children.Add(toolbar);settingsPage.Children.Add(settingsBody);
         settingsSurface.Child=settingsPage;
         var openSettings=new Button{Name="OpenSettings",Width=36,Height=36,Padding=new Thickness(8),HorizontalAlignment=HorizontalAlignment.Right};
         var settingsIcon=AppIcon.Create("settings");

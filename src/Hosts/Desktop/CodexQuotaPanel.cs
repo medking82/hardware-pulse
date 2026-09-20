@@ -36,7 +36,7 @@ public sealed class CodexQuotaPanel : UserControl,IDisposable {
         var settings=new StackPanel{Spacing=12};settings.Children.Add(enabled);
         settings.Children.Add(this.language.Set(new TextBlock{TextWrapping=TextWrapping.Wrap},demo?"Demo · Sample quota only. No account is accessed.":"Uses your existing Codex file login. Refreshes every five minutes while enabled. This choice is remembered. Login and token refresh stay in Codex."));
         SettingsContent=settings;if(inlineSettings)body.Children.Add(settings);
-        if(!inlineSettings)this.language.Set(status,"Off · Enable in Settings → Codex");
+        if(!inlineSettings)this.language.Set(status,"Off · Enable in Settings → AI Quota");
         body.Children.Add(refresh);body.Children.Add(status);body.Children.Add(windows);
         Content=new Border{Child=body,Padding=new Thickness(20),CornerRadius=new CornerRadius(14),BorderBrush=Brushes.Gray,BorderThickness=new Thickness(1)};
         enabled.PropertyChanged+=(_,e)=>{if(e.Property==ToggleButton.IsCheckedProperty)SetEnabled();};

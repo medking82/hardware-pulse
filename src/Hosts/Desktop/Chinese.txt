@@ -54,7 +54,7 @@ Device labels · Unavailable readings show —|设备原始标签 · 不可用�
 Show Codex quota|显示 Codex 额度
 Refresh|刷新
 Off|已关闭
-Off · Enable in Settings → Codex|已关闭 · 可在设置 → Codex 中开启
+Off · Enable in Settings → AI Quota|已关闭 · 可在设置 → AI 配额 中开启
 Demo · Sample quota only. No account is accessed.|仅展示额度示例，不访问账号。
 Uses your existing Codex file login. Refreshes every five minutes while enabled. This choice is remembered. Login and token refresh stay in Codex.|读取已有的 Codex 文件登录。开启后每五分钟刷新，并保存此选择。登录及令牌刷新仍由 Codex 处理。
 Demo|演示
@@ -120,3 +120,6 @@ No cards shown. Choose cards in Settings.|未显示卡片。请在设置中选�
 Move up|上移
 Move down|下移
 Font size|字体大小
+General|常规
+App Appearance|App 外观
+AI Quota|AI 配额

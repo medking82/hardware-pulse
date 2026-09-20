@@ -278,3 +278,21 @@ shared presentation/preferences/localization and tests, with original WPF/assets
 installed profiles, data owners and releases unchanged. Original minimum window
 size, Settings category layout, card drag handles and complete Desktop remain open.
 Full scripts/Validate.ps1 passed for font scaling and card density.
+
+### Fixed Settings category navigation
+
+Settings category headers now remain outside each category's ScrollViewer, below
+Back; the save-status message stays fixed at the bottom. Existing pages follow the
+original naming/order: General, App Appearance, App Cards, AI Quota. Language is in
+General with network selection. AI Quota's enable guidance points to the actual
+category. Desktop/FPS pages are still absent until their controls are implemented;
+this is not a claim that all six categories have been restored.
+
+Navigation regression verifies a nonzero content scroll offset while both Back and
+the selected category retain their window positions. Existing persistence, language,
+material and card preference tests use the visible category ordering. The short
+Appearance and narrow App Cards renders were inspected. Headless and Windows native
+regressions pass. Scope remains shared UI/localized copy and tests, with original
+WPF/assets, profiles, provider logic and releases unchanged. Original section styling,
+responsive multi-column Settings, full category contents and Desktop remain open.
+Full scripts/Validate.ps1 passed for fixed Settings navigation.

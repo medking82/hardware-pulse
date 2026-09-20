@@ -21,7 +21,7 @@ static class CardPreferenceTests {
                 void Click(string name){Find<Button>(name).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Dispatcher.UIThread.RunJobs();}
                 var cards=Find<Grid>("ReadingCards");var original=cards.Children.ToArray();
                 Check(original[0].Name=="CardNetwork","Saved order is used before first reading");
-                Click("OpenSettings");Find<TabControl>("SettingsTabs").SelectedIndex=3;Dispatcher.UIThread.RunJobs();
+                Click("OpenSettings");Find<TabControl>("SettingsTabs").SelectedIndex=2;Dispatcher.UIThread.RunJobs();
                 if(output!=null){using var frame=window.CaptureRenderedFrame();frame!.Save(Path.Combine(output,"app-card-settings.png"),Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);}
                 Check(!Find<Button>("MoveCardUpNetwork").IsEnabled,"First card cannot move before start");
                 Click("MoveCardDownNetwork");

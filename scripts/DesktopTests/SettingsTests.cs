@@ -38,7 +38,7 @@ static class SettingsTests {
             var main=window.GetVisualDescendants().OfType<Button>().Single(x=>x.Name=="OpenSettings");main.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
             Dispatcher.UIThread.RunJobs();
             var groups=window.GetVisualDescendants().OfType<TabControl>().Single(x=>x.Name=="SettingsTabs");
-            var network=window.GetVisualDescendants().OfType<ComboBox>().Single();
+            var network=window.GetVisualDescendants().OfType<ComboBox>().Single(x=>x.Name=="NetworkInterface");
             Until(()=>network.Items.Count>0);Check(network.SelectedItem==null,"Missing interface must not switch silently");
             window.PresentInterfaces(["other","missing-interface"]);
             Check((string?)network.SelectedItem=="missing-interface","Reconnected saved interface restored");
@@ -63,7 +63,7 @@ static class SettingsTests {
             Check(window.Topmost&&!window.CanResize,"Window preferences apply immediately");
             Check(window.GetVisualDescendants().OfType<Border>().Where(x=>x.Name?.StartsWith("Resize")==true).All(x=>!x.IsVisible),"Lock removes all resize regions without disabling Settings");
             Until(()=>new PreviewSettingsStore(path).Load().Theme=="Dark");
-            groups.SelectedIndex=2;Dispatcher.UIThread.RunJobs();
+            groups.SelectedIndex=3;Dispatcher.UIThread.RunJobs();
             var quota=window.GetVisualDescendants().OfType<CheckBox>().Single(x=>x.Name=="EnableCodexQuota");Check(quota.IsChecked==true,"Quota choice restored with explicit demo reader");quota.IsChecked=false;
             if(output!=null){window.Width=360;Dispatcher.UIThread.RunJobs();using var frame=window.CaptureRenderedFrame();frame!.Save(Path.Combine(output,"settings-360.png"),Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);}
             window.Close();Until(()=>window.Sampling.IsCompleted);
