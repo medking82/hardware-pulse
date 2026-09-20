@@ -6,6 +6,7 @@
 
 ## 未发布
 
+
 - Linux X11 浮动窗口新增基于 XFixes 的鼠标穿透锁定，解锁时恢复默认输入区域及窗口边框。x64/ARM64 原生检查已通过，尚未实现原生 Wayland 锁定。
 
 - 跨平台界面的 macOS 浮动窗口新增 AppKit 鼠标穿透锁定，复用主界面及菜单栏解锁入口。Intel/ARM64 生命周期及安装包检查均已通过。
@@ -19,6 +20,14 @@
 - 跨平台桌面版内嵌固定版本的 Noto Sans CJK 简体和繁体字体，解决未安装中文字体的系统上界面缺字的问题。构建时校验文件大小和 SHA-256，安装包附带 OFL 许可；原生启动检查会将界面文案缺字判为失败。无需安装系统字体，也不会在运行时下载字体。
 
 - 共享桌面应用支持自动跟随系统、英语、简体中文和繁体中文，覆盖监控、设置、传感器状态、Codex 额度与托盘操作。语言即时切换，不重启采样或重新读取登录信息，并保存到独立的预览版设置中。自动模式会区分中文书写体系和地区。
+
+## 0.6.28 — 2026-09-20
+
+- 保留原有 Windows WPF App、Desktop 和 Settings。新 profile 使用更深的 glass background，提高浅色文字可读性；已保存的 appearance preferences 保持不变。
+- 区分 quota access denied 与 login expired。Codex 可通过已安装的官方 Codex CLI，以有 timeout 和 output limit 的 quota-only request 恢复被拒绝的 authentication；不捆绑或下载 CLI。
+- 保留 hardware、FPS、Desktop geometry 和 update identity。macOS 保持独立 RC；不复用已撤回的 Windows 0.7.0。
+- Bitdefender 曾 quarantine development/test artifacts。修改后的 tests 和完整 repository validation 已通过，用户确认当时 Antivirus 与 Advanced Threat Defense 均开启。厂商 false-positive 确认仍待处理，不宣称兼容所有 antivirus。
+
 
 ## 0.6.27 — 2026-09-16
 

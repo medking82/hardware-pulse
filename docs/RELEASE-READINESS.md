@@ -45,16 +45,24 @@ operation. Source inspection found that a stdin-close exception could skip
 owned-process cleanup; this now uses nested `finally`. That latest change has
 now passed full repository validation together with separately compiled RPC
 fixtures, which no longer copy or launch the test runner itself. The modern
-adapter build also passed with zero warnings/errors. The protection setting
-during this later run was not attested; these results do not establish that the
-detection has been resolved.
+adapter build also passed with zero warnings/errors. The user subsequently
+confirmed Antivirus and Advanced Threat Defense were both enabled during the
+passing run. This is local compatibility evidence, not a vendor false-positive
+verdict or a guarantee for every antivirus installation.
 
-Before delivery, establish the supported protection-on compatibility outcome,
-complete the required
-independent review of the frozen recovery diff, measure comparable WPF workloads,
-and verify installation/upgrade and preserved App/Desktop/Settings interactions.
-Use a new release version; existing 0.6.27 validation installers are local evidence
-only. No release or CPU/RAM improvement is claimed by this checkpoint.
+The recovery diff completed independent review with no findings (packet
+`b3fdf9ca7341a1d9d6469c2567c075937c23ae2e64e2471c069d4b83e1d63c0f`,
+commit `3f6139d`). Windows 0.6.28 subsequently passed full validation and both
+installer-variant compile checks. Its WPF installer is 11,715,848 bytes and
+retains the existing self-signed certificate and upgrade identity. Automated
+checks cover preserved App/Desktop/Settings interactions and installer contracts;
+a fresh end-to-end interactive upgrade has not been performed in this run.
+
+The 60-second isolated WPF Monitor baseline measured 0.122% CPU (16 logical
+processors), 120.4 MiB working set and 94.2 MiB private memory. It excludes the
+live collector, FPS and quota requests and does not establish improvement over
+0.6.27. Matched whole-application comparison, Claude renewal, Antigravity without
+its running app, and macOS platform acceptance remain separate unfinished work.
 
 ## Earlier scope and validation history
 

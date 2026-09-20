@@ -6,6 +6,7 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 
 ## Unreleased
 
+
 - Shared Linux X11 floating monitor adds mouse-through locking with XFixes. Unlock restores the default input region and window frame; native x64/ARM64 checks pass. Native Wayland locking is not implemented.
 
 - Shared macOS floating monitor adds AppKit mouse-through locking and reuses the Monitor/tray unlock action. Native Intel/ARM64 lifecycle and package checks pass.
@@ -19,6 +20,14 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 - Shared Desktop embeds pinned Noto Sans CJK SC/TC fonts for Chinese UI on systems without CJK fonts. Build preparation verifies size and SHA-256, packages include the OFL notice, and native smoke fails on missing catalog glyphs. No system font installation or runtime download is needed.
 
 - Shared Desktop supports Auto (System), English and Simplified/Traditional Chinese UI, including Monitor, Settings, sensor status, Codex quota and tray actions. Language switches immediately without restarting sampling or refreshing credentials and is saved in the isolated preview profile. Auto respects Chinese script and region preferences.
+
+## 0.6.28 — 2026-09-20
+
+- Preserve the original Windows WPF App, Desktop and Settings. New profiles use a darker glass background for light-text readability; saved appearance preferences remain unchanged.
+- Distinguish forbidden quota access from an expired login. Codex can recover rejected authentication through an already-installed official Codex CLI using a bounded quota-only request; no CLI is bundled or downloaded.
+- Preserve hardware, FPS, Desktop geometry and update identity. macOS remains a separate RC; the withdrawn Windows 0.7.0 is not reused.
+- Bitdefender previously quarantined development/test artifacts. Revised tests and full repository validation passed with Antivirus and Advanced Threat Defense enabled, as confirmed by the user. Vendor false-positive confirmation remains pending; universal antivirus compatibility is not claimed.
+
 
 ## 0.6.27 — 2026-09-16
 
