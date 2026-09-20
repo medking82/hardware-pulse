@@ -25,6 +25,7 @@ public sealed class PreviewSettings {
     public bool UnifiedReadingColors;
     public string ReadingColor="#DDE9F0",DesktopColor="#F5F7FA";
     public bool DesktopAppIconColors=true;
+    public bool DesktopLocalContrast;
     public bool Topmost,LockPosition;
     public string Language="auto";
     public string? Network;
@@ -93,6 +94,7 @@ public sealed class PreviewSettingsStore {
             settings.QuotaFull=values.Flag("quotaFull");
             settings.UnifiedReadingColors=values.Flag("unifiedReadingColors");
             settings.DesktopAppIconColors=values.Flag("desktopAppIconColors",true);
+            settings.DesktopLocalContrast=values.Flag("desktopLocalContrast");
             string readingColor=values.Text("readingColor","#DDE9F0"),desktopColor=values.Text("desktopColor","#F5F7FA");
             if(ReadingPalette.IsColor(readingColor))settings.ReadingColor=readingColor;
             if(ReadingPalette.IsColor(desktopColor))settings.DesktopColor=desktopColor;
@@ -123,6 +125,7 @@ public sealed class PreviewSettingsStore {
                 ["quotaFull"]=JsonSerializer.SerializeToElement(settings.QuotaFull),
                 ["unifiedReadingColors"]=JsonSerializer.SerializeToElement(settings.UnifiedReadingColors),["readingColor"]=JsonSerializer.SerializeToElement(settings.ReadingColor),
                 ["desktopAppIconColors"]=JsonSerializer.SerializeToElement(settings.DesktopAppIconColors),["desktopColor"]=JsonSerializer.SerializeToElement(settings.DesktopColor),
+                ["desktopLocalContrast"]=JsonSerializer.SerializeToElement(settings.DesktopLocalContrast),
                 ["fps"]=JsonSerializer.SerializeToElement(settings.Fps),["fpsTarget"]=JsonSerializer.SerializeToElement(settings.FpsTarget),
                 ["gameOverlay"]=JsonSerializer.SerializeToElement(settings.GameOverlay),
                 ["fontSize"]=JsonSerializer.SerializeToElement(settings.FontSize),

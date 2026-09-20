@@ -54,6 +54,7 @@ public sealed class MonitorWindow : Window {
     bool loadingNetwork;
     CheckBox? desktopPin;
     Action? syncDesktopMode;
+    Action? syncDesktopContrast;
     public Task Sampling {get;private set;}=Task.CompletedTask;
     public MonitorWindow(IMonitorSource source,bool smoke=false,bool start=true,PreviewSettingsStore? store=null,bool measure=false,Func<IDesktopFpsSource>? fpsFactory=null) {
         this.source=source;this.smoke=smoke;this.measure=measure;
@@ -254,10 +255,11 @@ public sealed class MonitorWindow : Window {
     public void OpenFloatingMonitor() {
         if(stop.IsCancellationRequested)return;
         if(FloatingMonitor==null) {
-            FloatingMonitor=new FloatingMonitorWindow(Language);
+            FloatingMonitor=new FloatingMonitorWindow(Language,captureAllowed:!source.IsDemo&&!smoke&&!measure);
             FloatingMonitor.ApplyPreferences(settings);
             FloatingMonitor.ApplyAppPalette(new(settings.UnifiedReadingColors,settings.ReadingColor),ActualThemeVariant==ThemeVariant.Light);
             var desktop=FloatingMonitor;bool tracking=false;
+            desktop.ContrastChanged+=()=>syncDesktopContrast?.Invoke();
             void RememberGeometry(){if(!tracking||desktop.WindowState!=WindowState.Normal)return;settings.DesktopWidth=desktop.Width;settings.DesktopHeight=desktop.Height;settings.DesktopX=desktop.Position.X;settings.DesktopY=desktop.Position.Y;SaveLater();}
             desktop.Opened+=(_,_)=>{tracking=false;desktop.RestoreGeometry(settings);tracking=true;RememberGeometry();};
             desktop.SizeChanged+=(_,_)=>RememberGeometry();desktop.PositionChanged+=(_,_)=>RememberGeometry();
@@ -271,12 +273,13 @@ public sealed class MonitorWindow : Window {
             FloatingMonitor.LockedChanged+=locked=>{settings.DesktopLocked=locked;SaveNow();if(locked)Hide();};
             FloatingMonitor.Closed+=(_,_)=>{
                 FloatingMonitor=null;
+                syncDesktopContrast?.Invoke();
                 if(stop.IsCancellationRequested)return;
                 settings.DesktopEnabled=false;syncDesktopMode?.Invoke();SaveNow();Show();Activate();
             };
         }
         if(latestSnapshot!=null)FloatingMonitor.Present(latestSnapshot.WithNetworkUnit(settings.NetworkUnit) with {CodexQuota=quota.CurrentReading,ClaudeQuota=claude.CurrentReading,AntigravityQuota=antigravity.CurrentReading,Fps=fps.Current},sessionMax);
-        FloatingMonitor.Show();if(!FloatingMonitor.SetLocked(false))return;
+        FloatingMonitor.Show();syncDesktopContrast?.Invoke();if(!FloatingMonitor.SetLocked(false))return;
         if(FloatingMonitor.WindowState==WindowState.Minimized)FloatingMonitor.WindowState=WindowState.Normal;
         FloatingMonitor.Activate();
         settings.DesktopEnabled=true;settings.DesktopLocked=false;syncDesktopMode?.Invoke();SaveNow();
@@ -311,6 +314,16 @@ public sealed class MonitorWindow : Window {
         follow.IsCheckedChanged+=(_,_)=>{settings.DesktopAppIconColors=follow.IsChecked==true;Apply();};
         appearance.Children.Add(follow);
         appearance.Children.Add(Language.Set(new TextBlock{TextWrapping=TextWrapping.Wrap},"When off, icons match Desktop text color."));
+        bool contrastSupported=WindowsBackgroundCapture.Supported&&!source.IsDemo&&!smoke&&!measure;
+        var localContrast=Language.Set(new CheckBox{Name="DesktopLocalContrast",IsChecked=settings.DesktopLocalContrast,IsEnabled=contrastSupported},"Local adaptive text contrast");
+        var contrastStatus=new TextBlock{Name="DesktopLocalContrastStatus",TextWrapping=TextWrapping.Wrap};
+        var screenshot=Language.Set(new Button{Name="DesktopScreenshot"},"Screenshot mode · 15 seconds");
+        syncDesktopContrast=()=>{Language.Set(contrastStatus,FloatingMonitor?.ContrastStatus??(contrastSupported?"Local Contrast is off.":"Local Contrast is unavailable in this session."));screenshot.IsEnabled=contrastSupported&&settings.DesktopLocalContrast&&FloatingMonitor?.IsVisible==true;};
+        localContrast.IsCheckedChanged+=(_,_)=>{settings.DesktopLocalContrast=localContrast.IsChecked==true;Apply();syncDesktopContrast();};
+        screenshot.Click+=(_,_)=>FloatingMonitor?.BeginScreenshot();
+        appearance.Children.Add(localContrast);appearance.Children.Add(contrastStatus);appearance.Children.Add(screenshot);
+        appearance.Children.Add(Language.Set(new TextBlock{TextWrapping=TextWrapping.Wrap},"Freeze text colors and allow screenshots for 15 seconds. Use Win+Shift+S; local contrast resumes automatically."));
+        Language.Changed+=()=>syncDesktopContrast();syncDesktopContrast();
         void Number(string name,string label,double value,double min,double max,Action<double> set,string unit=" DIP") {
 
             var slider=new Slider{Name=name,Minimum=min,Maximum=max,TickFrequency=1,IsSnapToTickEnabled=true,Value=value};
@@ -325,7 +338,7 @@ public sealed class MonitorWindow : Window {
         Number("DesktopOverlayOpacity","Always on Top background opacity",settings.DesktopOverlayOpacity,0,100,value=>settings.DesktopOverlayOpacity=value,"%");
         Number("DesktopTextOpacity","Text opacity",settings.DesktopTextOpacity,0,100,value=>settings.DesktopTextOpacity=value,"%");
         appearance.Children.Add(Language.Set(new TextBlock(),"Text Color"));
-        appearance.Children.Add(ColorSetting("DesktopColor",settings.DesktopColor,value=>{settings.DesktopColor=value;Apply();}));
+        appearance.Children.Add(ColorSetting("DesktopColor",settings.DesktopColor,value=>{settings.DesktopColor=value;settings.DesktopLocalContrast=false;localContrast.IsChecked=false;Apply();syncDesktopContrast();}));
         panel.Children.Add(Language.Set(new TextBlock(),"Columns"));
         var columns=new ComboBox{Name="DesktopColumns",ItemsSource=new[]{"Auto","1","2","3"},SelectedIndex=settings.DesktopColumns,ItemTemplate=Language.Choices(),HorizontalAlignment=HorizontalAlignment.Stretch};
         columns.SelectionChanged+=(_,_)=>{settings.DesktopColumns=Math.Max(0,columns.SelectedIndex);FloatingMonitor?.ApplyPreferences(settings,fitColumns:true);SaveLater();};panel.Children.Add(columns);

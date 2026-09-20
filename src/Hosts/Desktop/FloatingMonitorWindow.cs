@@ -18,6 +18,13 @@ public sealed class FloatingMonitorWindow : Window {
     string textColor="#F5F7FA";
     bool appIconColors=true,appLight;
     ReadingPalette palette=new();
+    PreviewSettings contrastSettings=new();
+    readonly WindowsLocalContrast? contrast;
+    public event Action? ContrastChanged;
+    public Color ContrastBackground=>(surface.Background as ISolidColorBrush)?.Color??Colors.Transparent;
+    public string ContrastStatus=>contrast==null?"Local Contrast is unavailable in this session.":contrast.ScreenshotActive?"Screenshot mode · 15 seconds":!contrastSettings.DesktopLocalContrast?"Local Contrast is off.":contrast.Available?"Local contrast active":"Local contrast unavailable; using standard text color";
+    public void BeginScreenshot()=>contrast?.BeginScreenshot();
+    public void UpdateLocalContrast()=>contrast?.Update();
     readonly DockPanel rows=new(){Margin=new Thickness(16)};
     readonly Dictionary<string,(Grid Row,TextBlock Label,TextBlock Value)> readings=new();
     MonitorSnapshot? snapshot;
@@ -37,7 +44,7 @@ public sealed class FloatingMonitorWindow : Window {
     IDisposable? inputLifetime;
     public bool IsLocked {get;private set;}
     public bool CanLock=>input!=null;
-    public FloatingMonitorWindow(UiLanguage language) {
+    public FloatingMonitorWindow(UiLanguage language,bool captureAllowed=true) {
         this.language=language;
         RequestedThemeVariant=ThemeVariant.Dark; // Desktop owns a dark backing, including editor controls.
         Width=466;Height=400;MinWidth=280;MinHeight=140;FontSize=16;
@@ -89,6 +96,13 @@ public sealed class FloatingMonitorWindow : Window {
         ApplyMaterial();
         language.Changed+=Localize;Localize();
         PropertyChanged+=(_,e)=>{if(e.Property==ActualThemeVariantProperty)foreach(var item in readings.Values)ColorIcon(item.Row);};
+        if(captureAllowed&&WindowsBackgroundCapture.Supported) {
+            contrast=new WindowsLocalContrast(this,sensors,()=>contrastSettings,ResetContrast);
+            contrast.Changed+=()=>ContrastChanged?.Invoke();
+            Opened+=(_,_)=>UpdateLocalContrast();
+            PropertyChanged+=(_,e)=>{if(e.Property==IsVisibleProperty)UpdateLocalContrast();};
+        }
+        Closed+=(_,_)=>contrast?.Dispose();
         Closed+=(_,_)=>{language.Changed-=Localize;input=null;inputLifetime?.Dispose();inputLifetime=null;};
     }
     public void RestoreGeometry(PreviewSettings settings) {
@@ -107,6 +121,7 @@ public sealed class FloatingMonitorWindow : Window {
             Math.Clamp(position.Y,area.Y,Math.Max(area.Y,area.Bottom-(int)Math.Ceiling(Height*scale))));
     }
     public void ApplyPreferences(PreviewSettings settings,bool fitColumns=false) {
+        contrastSettings=settings;
         textColor=settings.DesktopColor;appIconColors=settings.DesktopAppIconColors;
         palette=new(settings.UnifiedReadingColors,settings.ReadingColor);
         metricOrder=settings.DesktopOrder.ToArray();metricVisibility=new(settings.DesktopVisible);
@@ -135,6 +150,7 @@ public sealed class FloatingMonitorWindow : Window {
         surface.Background=new SolidColorBrush(Color.FromArgb((byte)Math.Round(255*Math.Clamp(alpha,0,100)/100),20,29,38));
         Foreground=Brush.Parse("#F5F7FA");sensors.Opacity=highContrast?1:Math.Clamp(textOpacity/100,0,1);
         foreach(var item in readings.Values)ColorRow(item.Row);
+        contrast?.Update();
     }
     void LayoutReadings() {
         var layout=new ColumnLayout(Math.Max(1,Bounds.Width-32),Math.Max(280,24*FontSize),requestedColumns,layoutColumns);
@@ -190,6 +206,12 @@ public sealed class FloatingMonitorWindow : Window {
         foreach(var text in row.Children.OfType<TextBlock>())text.Foreground=brush;
         ColorIcon(row);
     }
+    void ResetContrast() {
+        foreach(var item in readings.Values) {
+            foreach(var control in item.Row.GetVisualDescendants().OfType<Control>())if(control is TextBlock or Avalonia.Controls.Shapes.Path)control.Effect=null;
+            ColorRow(item.Row);
+        }
+    }
     public void ApplyAppPalette(ReadingPalette value,bool light){palette=value;appLight=light;foreach(var item in readings.Values)ColorIcon(item.Row);}
     static string QuotaGroup(string key)=>key.StartsWith("quotaCodex:")?"quotaCodex":key.StartsWith("quotaClaude:")?"quotaClaude":key.StartsWith("quotaAntigravity:")?"quotaAntigravity":key;
     public void Present(MonitorSnapshot snapshot,bool peaks=false) {
@@ -204,6 +226,7 @@ public sealed class FloatingMonitorWindow : Window {
                 var label=new TextBlock{VerticalAlignment=VerticalAlignment.Center,TextWrapping=TextWrapping.Wrap};
                 var value=new TextBlock{VerticalAlignment=VerticalAlignment.Center,TextWrapping=TextWrapping.Wrap,TextAlignment=TextAlignment.Right};
                 var icon=AppIcon.Create(metric.Icon);
+                icon.Tag=metric.Icon;
                 row.Children.Add(new Viewbox{Width=18,Height=18,Child=icon,VerticalAlignment=VerticalAlignment.Center});
                 Grid.SetColumn(label,1);row.Children.Add(label);Grid.SetColumn(value,2);row.Children.Add(value);
                 ColorRow(row);

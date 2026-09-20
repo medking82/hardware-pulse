@@ -12,9 +12,11 @@ static class Tests {
     static void Main(string[] args) {
         var expected=Environment.GetEnvironmentVariable("PULSE_TEST_ARCH");
         Check(expected==null||expected==System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture.ToString(),"Architecture mismatch");
+        if(args.SequenceEqual(new[]{"--native-contrast"})) {HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();WindowsCaptureTests.Native();LocalContrastTests.Native();return;}
         if(args.Length>=1&&args[0]=="--native-game-overlay") {HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();GameOverlayTests.Native(args.Length==2?args[1]:null);return;}
         if(args.SequenceEqual(new[]{"--native-session"})) {
             HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();
+            WindowsCaptureTests.Native();LocalContrastTests.Native();
             GameOverlayTests.Native();
             DesktopMetricPreferenceTests.Run();DesktopGeometryTests.Run();SettingsTests.Run(null);
             FpsPanelTests.Owner();
@@ -33,6 +35,7 @@ static class Tests {
         if(args.Length>=1&&args[0]=="--fps") {FpsPanelTests.Run(args.Length==2?args[1]:null);return;}
         if(args.Length>=1&&args[0]=="--game-overlay") {GameOverlayTests.Run(args.Length==2?args[1]:null);return;}
         if(args.SequenceEqual(new[]{"--palette"})) {ReadingPaletteTests.Run();return;}
+        if(args.Length==2&&args[0]=="--settings-sections") {SettingsSectionTests.Run(args[1]);return;}
         var source=new MonitorSource(true);
         var window=new MonitorWindow(source,start:false);
         window.Show();window.Present(source.Poll(null));
@@ -79,6 +82,7 @@ static class Tests {
         ReorderHandleTests.Run();DesktopMetricPreferenceTests.Run(args.Length==1?args[0]:null);DesktopGeometryTests.Run();SettingsTests.Run(args.Length==1?args[0]:null);
         AppMaterialTests.Run();DesktopModeTests.Run();
         ReadingPaletteTests.Run(args.Length==1?args[0]:null);
+        LocalContrastTests.Settings();
         WindowsSnapshotTests.Run();WindowsQuotaTests.Run();
         DeviceCardsTests.Run(args.Length==1?args[0]:null);
         CardPreferenceTests.Run(args.Length==1?args[0]:null);

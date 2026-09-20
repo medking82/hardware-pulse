@@ -203,3 +203,10 @@ Monitor icons and temperatures share this palette. Labels stay neutral.|Monitor 
 Icons follow App colors|圖示跟隨 App 配色
 When off, icons match Desktop text color.|關閉後，圖示使用 Desktop 文字顏色。
 Text Color|文字顏色
+Local adaptive text contrast|局部自適應文字對比度
+Screenshot mode · 15 seconds|截圖模式 · 15 秒
+Local Contrast is off.|局部對比度已關閉。
+Local Contrast is unavailable in this session.|目前工作階段無法使用局部對比度。
+Local contrast active|局部對比度已啟用
+Local contrast unavailable; using standard text color|局部對比度無法使用；使用標準文字顏色
+Freeze text colors and allow screenshots for 15 seconds. Use Win+Shift+S; local contrast resumes automatically.|凍結文字顏色並允許截圖 15 秒。使用 Win+Shift+S；局部對比度將自動恢復。

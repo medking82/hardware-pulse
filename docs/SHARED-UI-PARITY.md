@@ -939,3 +939,48 @@ Desktop palette renders were inspected. The Settings keyboard fixture now select
 the named section header because the restored checkbox also inherits ToggleButton.
 This preserves its collapse/focus assertions. These checks do not close the full
 UI parity or installed performance gates.
+
+### Desktop Local Contrast
+
+The shared Desktop restores the opt-in Windows Local Contrast control and its
+15-second Screenshot mode. WindowsBackgroundCapture owns bounded, reusable GDI
+pixels behind the owned Desktop HWND; Core ContrastAnalysis owns analysis, and
+WindowsLocalContrast owns presentation/cadence. Pixels remain in memory and are
+cleared on disposal; no capture is saved or sent. Demo, smoke, measurement and
+unsupported sessions cannot enable capture. Existing personal profiles and WPF
+source are not changed.
+
+Analysis includes the actual Desktop surface color/opacity, so a dark surface over
+light wallpaper retains light text. Text opacity is applied once by the metric
+container. App-colored icons retain their palette with contrast edges; disabling
+that preference permits adaptive monochrome icons. Screenshot mode restores
+capture visibility and freezes current colors before automatically resuming.
+Hiding, disabling and closing stop capture and restore the owned affinity.
+Late sampling results cannot recolor a disabled or moved panel. Manual text color
+selection disables Local Contrast, preserving the original explicit-color behavior.
+
+The bounded change covers Desktop presentation/settings, Windows capture and
+corresponding native/headless tests. Risk classification is routine: known scope,
+deterministic native verification, easy source rollback, unchanged privileges;
+in-memory background pixels are sensitive and remain local. No model review is
+required. Rollback is the source change; no installed settings are migrated.
+
+`DesktopTests --native-contrast` passed native self-exclusion, foreign-window
+rejection, buffer reuse/clearing, GDI lifetime, dark/light backgrounds, surface
+opacity, text opacity, icon colors, hide/show, Screenshot freeze/recovery and
+disable cleanup. It is also included in `--native-session`. Repository
+`Validate.ps1` passed. These checks do not establish overall UI parity or the
+CPU/RAM cost of opt-in contrast; comparable resource measurements remain required.
+
+The shared headless suite and Settings section renders also passed. An initial
+full native-session run failed after Screenshot recovery (active status but no
+light text on the changed dark fixture). A diagnostic build added ink, surface,
+geometry and a single pixel value on failure without saving screenshots/pixels.
+The subsequent focused and full native-session runs passed; the intermittent
+failure has not been attributed or proven fixed and remains an acceptance item.
+The 840-DIP Desktop Settings render was inspected for section ownership and
+readable status/control layout. No stable release is authorized by these results.
+Three bounded diagnostic runs of the same native capture/Screenshot fixture also
+passed on 2026-09-20. No failing diagnostic sample was obtained; this narrows no
+root cause and does not erase the earlier intermittent failure. Keep that item in
+final native acceptance while continuing other parity work.
