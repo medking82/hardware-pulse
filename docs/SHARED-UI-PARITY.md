@@ -600,3 +600,20 @@ Scope is shared presentation/preferences with ordinary data and unchanged platfo
 sampling/privilege boundaries; routine admission and source-only rollback apply.
 Installed WPF profiles, original source/assets and release state remain protected.
 Full scripts/Validate.ps1 passed for network rate unit parity. Protected baseline diff remains empty.
+
+### Settings category headers
+
+The dynamic LayoutSettings.BuildSettingsLayout reference uses wrapping rounded
+category buttons, not Fluent underlines. Shared TabItem templates now retain
+TabControl selection/keyboard semantics while restoring rounded plates, original
+base/hover/focus colors, and bold/two-pixel selected emphasis. Content owners and
+existing category indices remain unchanged. Missing FPS content is still an open
+parity requirement, not represented as implemented by this header change.
+
+Headless regressions verify arrow-key next/previous selection, actual plate radius
+and selected state, header bounds at 240px, fixed Back/category navigation while
+content scrolls, and retained view state. The 240px minimum Settings and 360px
+App Cards renders were inspected. Full headless suite and scripts/Validate.ps1
+pass. Native hover/high-contrast and full Settings content/layout parity remain
+open. Routine isolated shared presentation change; source-only rollback, original
+WPF/assets and installed-profile protection remain unchanged.

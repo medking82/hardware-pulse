@@ -111,7 +111,7 @@ public sealed class MonitorWindow : Window {
             Language.Set(new TabItem{Content=Scroll(CreateDesktopSettings())},"Desktop"),
             Language.Set(new TabItem{Content=Scroll(CreateCardSettings())},"App Cards"),
             Language.Set(new TabItem{Content=Scroll(new Border{Padding=new Thickness(20),Child=quota.SettingsContent})},"AI Quota")}};
-        foreach(var tab in settingsTabs.Items.OfType<TabItem>()){tab.FontSize=12;tab.Padding=new Thickness(10,5);tab.MinHeight=34;}
+        foreach(var tab in settingsTabs.Items.OfType<TabItem>()){tab.FontSize=12;tab.Padding=new Thickness(10,5);tab.MinHeight=34;ApplySettingsTabStyle(tab);}
         settingsTabs.Margin=new Thickness(12,0,12,0);
         var settingsBody=new DockPanel();saveStatus.Margin=new Thickness(14,8);
         DockPanel.SetDock(saveStatus,Dock.Bottom);settingsBody.Children.Add(saveStatus);settingsBody.Children.Add(settingsTabs);
@@ -160,6 +160,26 @@ public sealed class MonitorWindow : Window {
         };
         if(start)Opened+=(_,_)=>Sampling=SampleAsync();
         Closed+=(_,_)=>{if(materialPlatform!=null)materialPlatform.ColorValuesChanged-=ColorsChanged;stop.Cancel();FloatingMonitor?.Close();quota.Dispose();SaveNow();};
+    }
+    static void ApplySettingsTabStyle(TabItem tab) {
+        tab.Margin=new Thickness(0,0,6,6);
+        tab.SetValue(BackgroundProperty,Brush.Parse("#223B536B"),Avalonia.Data.BindingPriority.Style);
+        tab.SetValue(BorderBrushProperty,Brush.Parse("#496F829A"),Avalonia.Data.BindingPriority.Style);
+        tab.SetValue(BorderThicknessProperty,new Thickness(1),Avalonia.Data.BindingPriority.Style);
+        tab.Template=new Avalonia.Controls.Templates.FuncControlTemplate<TabItem>((item,scope)=>{
+            var content=new Avalonia.Controls.Presenters.ContentPresenter{HorizontalContentAlignment=HorizontalAlignment.Center,VerticalContentAlignment=VerticalAlignment.Center};
+            content.Bind(Avalonia.Controls.Presenters.ContentPresenter.ContentProperty,item.GetObservable(HeaderedContentControl.HeaderProperty));
+            var plate=new Border{Name="CategoryPlate",CornerRadius=new CornerRadius(15),Child=content};
+            plate.Bind(Border.BackgroundProperty,item.GetObservable(BackgroundProperty));
+            plate.Bind(Border.BorderBrushProperty,item.GetObservable(BorderBrushProperty));
+            plate.Bind(Border.BorderThicknessProperty,item.GetObservable(BorderThicknessProperty));
+            plate.Bind(Border.PaddingProperty,item.GetObservable(PaddingProperty));return plate;
+        });
+        var selected=new Style(x=>x.OfType<TabItem>().Class(":selected"));
+        selected.Setters.Add(new Setter(FontWeightProperty,FontWeight.Bold));
+        selected.Setters.Add(new Setter(BorderThicknessProperty,new Thickness(2)));tab.Styles.Add(selected);
+        var hover=new Style(x=>x.OfType<TabItem>().Class(":pointerover"));hover.Setters.Add(new Setter(BackgroundProperty,Brush.Parse("#505E829D")));tab.Styles.Add(hover);
+        var focus=new Style(x=>x.OfType<TabItem>().Class(":focus-visible"));focus.Setters.Add(new Setter(BorderBrushProperty,Brush.Parse("#BFEAF9")));tab.Styles.Add(focus);
     }
     static void ApplyModeStyle(Button control) {
         control.MinHeight=28;control.CornerRadius=new CornerRadius(15);

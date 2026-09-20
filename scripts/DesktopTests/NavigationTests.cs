@@ -46,6 +46,18 @@ static class NavigationTests {
             Check(back.IsFocused,"Settings keyboard activation transfers focus to Back");
             Check(!window.GetVisualDescendants().OfType<Grid>().Any(x=>x.Name=="ReadingCards"),"Monitor is removed from Settings navigation and focus tree");
             var tabs=Find<TabControl>("SettingsTabs");tabs.SelectedIndex=1;Dispatcher.UIThread.RunJobs();
+            ((TabItem)tabs.Items[1]!).Focus();
+            window.KeyPress(Key.Right,RawInputModifiers.None,PhysicalKey.ArrowRight,null);window.KeyRelease(Key.Right,RawInputModifiers.None,PhysicalKey.ArrowRight,null);Dispatcher.UIThread.RunJobs();
+            Check(tabs.SelectedIndex==2,"Arrow key selects next category with custom template");
+            window.KeyPress(Key.Left,RawInputModifiers.None,PhysicalKey.ArrowLeft,null);window.KeyRelease(Key.Left,RawInputModifiers.None,PhysicalKey.ArrowLeft,null);Dispatcher.UIThread.RunJobs();
+            Check(tabs.SelectedIndex==1,"Arrow key returns to previous category");
+            foreach(var item in tabs.Items.OfType<TabItem>()) {
+                var plate=item.GetVisualDescendants().OfType<Border>().Single(x=>x.Name=="CategoryPlate");
+                Check(plate.CornerRadius==new CornerRadius(15)&&plate.BorderThickness==new Thickness(item.IsSelected?2:1),"Category plate follows original rounded selection treatment");
+                Check(!item.IsSelected||item.FontWeight==Avalonia.Media.FontWeight.Bold,"Selected category is bold");
+                var position=item.TranslatePoint(new Point(),window)!.Value;
+                Check(position.X>=0&&position.X+item.Bounds.Width<=window.ClientSize.Width,"Wrapped category stays inside minimum window width");
+            }
             var category=(TabItem)tabs.Items[1]!;var categoryPosition=category.TranslatePoint(new Point(),window)!.Value;
             var scroll=window.GetVisualDescendants().OfType<ScrollViewer>().First(x=>x.Content is StackPanel);
             before=back.TranslatePoint(new Point(),window)!.Value;scroll.Offset=new Vector(0,10000);Dispatcher.UIThread.RunJobs();
