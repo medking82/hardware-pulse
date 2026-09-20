@@ -1,10 +1,10 @@
 # Claude quota recovery investigation
 
-Status-line integration: pure snapshot decoder implemented; receiver and opt-in
-source integration remain pending. Not included in Windows 0.6.32.
+Status-line integration: decoder and Windows receiver implemented; opt-in source
+selection and configuration integration remain pending. Not included in Windows 0.6.32.
 User direction: pursue both independent refresh and an optional status-line source.
 
-Decoder-only admission (reclassify when adding runtime/configuration integration):
+Decoder and local receiver admission (reclassify before configuration integration):
 <!-- sop-risk-classification: {"facts":{"blast_radius":"isolated","change_kind":"implementation","data_boundary":"ordinary","destructive":"no","failure_cost":"low","irreversibility":"reversible","operational_controls":"not_applicable","privilege_boundary":"unchanged","project_policy":"default","rollback":"easy","scope_knowledge":"known","uncertainty":"low","verification":"deterministic"},"formal_review":"not_required","kind":"risk-classification-assessment","reasons":{"formal_review":["routine_no_review"],"risk":["no_high_risk_signal"]},"risk":"routine","schema_version":2} -->
 
 ## Verified integration option
@@ -25,8 +25,10 @@ for model requests. Neither is a proven headless quota-renewal replacement.
 
 Use a native opt-in status-line receiver as a supplementary observation source.
 Accept bounded JSON on stdin, retain only validated quota windows and timestamps,
-and discard transcript paths, workspace data, session identifiers and all other
-fields. No credential reads, HTTP requests or model turns in this receiver.
+and discard transcript paths, workspace data, raw session identifiers and all other
+fields. A SHA-256 session fingerprint is retained solely to reject other sessions;
+it is not an account identifier, authentication credential or proof of caller identity.
+No credential reads, HTTP requests or model turns in this receiver.
 Do not retain raw input in diagnostic logs. Write a small atomic local observation.
 
 An observation must identify its source and age. Repeated status-line rendering
@@ -62,12 +64,36 @@ never `Live`; receipt is not proof of a new API observation.
 
 Core tests cover zero/full, missing/invalid values, strict reset units and bounds,
 repeat renders, partial window changes, stale deadlines and mutation isolation.
-This is a pure decoder boundary only: bounded stdin parsing, atomic persistence,
-concurrent-session ownership, explicit source selection and real CLI acceptance
-are not implemented or proven by these tests. The existing HTTP source and user
-configuration are unchanged. The implementation boundary for this step is the
-Core decoder, its existing test suite and this document; rollback removes these
-additions without changing installed/runtime state.
+Core tests alone do not prove the receiver, source selection or real CLI behavior.
+
+## Windows receiver implementation
+
+`HardwarePulse.exe --claude-statusline` is a separate, windowless entry point.
+`src/Native/ClaudeStatusLineReceiver.cs` accepts redirected UTF-8 stdin with a
+65,536-character limit, JSON recursion limit 16, and a two-second process-side
+wait. It returns fixed status text only. No input/parse exception details are
+forwarded to `host-error.txt`; a still-open stdin does not keep the process alive.
+
+The receiver persists only schema, session fingerprint, whitelisted windows and
+their independent reception timestamps under the current user's Pulse state.
+An exclusive file lock covers read/owner-check/replace. First reception binds the
+session; different sessions and corrupt ownership state fail closed. The reader
+never automatically falls back from HTTP or selects another account. Explicit
+reset/rebind and source selection still need a user-facing integration.
+
+Publication uses a same-directory temporary file and atomic replace. Interrupted
+writes leave at most one reusable temporary file; readers only open the final
+file, with a 4,096-character cap. Session fingerprints prevent accidental mixing,
+not malicious modification by another process already running as the same user.
+
+`scripts/ClaudeStatusLineTests.cs` exercises synthetic input, disk round trips,
+repeat reception, clock rollback, oversized/deep JSON, corrupt files, simultaneous
+first-session binding, writer contention and redirected WinExe child completion
+(including an open idle stdin). It runs through `Test-Native.ps1`. It does not
+exercise a real Claude session or prove that CLI settings invoke the command.
+No user Claude settings, credentials, existing HTTP source, UI or collector state
+were changed. Rollback removes the new entry point/decoder/receiver and tests;
+there is no installed configuration migration to reverse.
 
 This is not a complete solution for quota updates while every Claude client is
 closed, nor proof of automatic renewal across credential expiry. Keep those

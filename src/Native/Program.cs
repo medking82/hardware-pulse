@@ -16,6 +16,7 @@ namespace HardwarePulse {
             var paths=PulsePaths.Installed();Directory.CreateDirectory(paths.State);
             AppDomain.CurrentDomain.AssemblyResolve+=delegate(object sender,ResolveEventArgs e){string name=new AssemblyName(e.Name).Name;if(name.IndexOfAny(new[]{'/','\\',':'})>=0)return null;string path=Path.Combine(paths.Root,"lib",name+".dll");return File.Exists(path)?Assembly.LoadFrom(path):null;};
             try{
+                if(args.Length==1&&args[0]=="--claude-statusline")return ClaudeStatusLineReceiver.Run(paths.State);
                 if(args.Length==1&&args[0]=="--collector")return Collector.Run(paths);
                 if(args.Length==1&&(args[0]=="--install-startup"||args[0]=="--remove-startup"||args[0]=="--enable-startup"||args[0]=="--disable-startup")){
                     using(var store=new SchedulerStore()){

@@ -20,3 +20,7 @@ foreach($fixture in @(@('NativeCodexRpcFixture','RPC_NORMAL'),@('NativeCodexRpcF
 
 & "$PSScriptRoot/Run-Hidden.ps1" "$framework/csc.exe" @('/nologo','/target:exe',"/out:$app\NativeQuotaPipeTests.exe","$root\scripts\QuotaPipeTests.cs") $root
 & "$PSScriptRoot/Run-Hidden.ps1" "$app/NativeQuotaPipeTests.exe" @("$app/Pulse.Adapters.Windows.dll") $root
+
+& "$PSScriptRoot/Run-Hidden.ps1" "$framework/csc.exe" @('/nologo','/target:winexe',"/out:$app\NativeClaudeStatusLineTests.exe","/reference:$app\Pulse.Core.dll",'/reference:System.Web.Extensions.dll',"$root\src\Native\ClaudeStatusLineReceiver.cs","$root\scripts\ClaudeStatusLineTests.cs") $root
+Copy-Item "$app/HardwarePulse.exe.config" "$app/NativeClaudeStatusLineTests.exe.config" -Force
+& "$PSScriptRoot/Run-Hidden.ps1" "$app/NativeClaudeStatusLineTests.exe" @((Join-Path $root ('vendor/claude-statusline-'+[Guid]::NewGuid().ToString('N')))) $root
