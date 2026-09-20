@@ -19,6 +19,9 @@ public sealed class FloatingMonitorWindow : Window {
     readonly Dictionary<string,(Grid Row,TextBlock Label,TextBlock Value)> readings=new();
     MonitorSnapshot? snapshot;
     bool peaks;
+    string[] metricOrder=PreviewSettings.DesktopKeys;
+    Dictionary<string,bool> metricVisibility=new();
+    readonly TextBlock empty=new(){Name="DesktopEmpty",IsVisible=false,TextWrapping=TextWrapping.Wrap};
     readonly Grid sensors=new(){ColumnSpacing=ColumnLayout.Gap,RowSpacing=14};
     readonly CheckBox topmost;
     readonly StackPanel editor=new(){Name="DesktopEditor",Spacing=8};
@@ -43,6 +46,7 @@ public sealed class FloatingMonitorWindow : Window {
         back.Click+=(_,_)=>ReturnRequested?.Invoke();
         var actions=new WrapPanel();lockButton.Margin=new Thickness(0,0,8,0);actions.Children.Add(lockButton);actions.Children.Add(back);
         editor.Children.Add(language.Set(new TextBlock{Name="DesktopMoveHint",FontSize=12,TextWrapping=TextWrapping.Wrap},"Drag the center to move. Drag any edge or corner to resize."));
+        editor.Children.Add(language.Set(empty,"No metrics shown. Choose metrics in Settings."));
         editor.Children.Add(topmost);editor.Children.Add(actions);editor.Children.Add(lockStatus);
         language.Set(lockStatus,"Reopen from Monitor or the tray to unlock.");
         DockPanel.SetDock(editor,Dock.Top);editor.Margin=new Thickness(0,0,0,12);rows.Children.Add(editor);
@@ -98,6 +102,7 @@ public sealed class FloatingMonitorWindow : Window {
             Math.Clamp(position.Y,area.Y,Math.Max(area.Y,area.Bottom-(int)Math.Ceiling(Height*scale))));
     }
     public void ApplyPreferences(PreviewSettings settings,bool fitColumns=false) {
+        metricOrder=settings.DesktopOrder.ToArray();metricVisibility=new(settings.DesktopVisible);
         FontSize=settings.DesktopFontSize;sensors.RowSpacing=settings.DesktopSpacing;
         backgroundOpacity=settings.DesktopBackgroundOpacity;overlayOpacity=settings.DesktopOverlayOpacity;textOpacity=settings.DesktopTextOpacity;
         requestedColumns=settings.DesktopColumns;topmost.IsChecked=settings.DesktopTopmost;
@@ -112,7 +117,7 @@ public sealed class FloatingMonitorWindow : Window {
                 Position=new PixelPoint(Math.Clamp(Position.X,screen.WorkingArea.X,Math.Max(screen.WorkingArea.X,right)),Position.Y);
             }
         }
-        LayoutReadings();
+        if(snapshot!=null)Present(snapshot,peaks);else LayoutReadings();
     }
     void ApplyMaterial() {
         bool highContrast=materialPlatform?.GetColorValues().ContrastPreference==ColorContrastPreference.High;
@@ -126,11 +131,12 @@ public sealed class FloatingMonitorWindow : Window {
     void LayoutReadings() {
         var layout=new ColumnLayout(Math.Max(1,Bounds.Width-32),Math.Max(280,24*FontSize),requestedColumns,layoutColumns);
         if(layout.Columns!=layoutColumns){layoutColumns=layout.Columns;sensors.ColumnDefinitions=new(string.Join(",",Enumerable.Repeat("*",layoutColumns)));}
-        int count=(sensors.Children.Count+layoutColumns-1)/layoutColumns;
+        var visible=sensors.Children.OfType<Grid>().Where(row=>row.IsVisible).ToArray();
+        int count=(visible.Length+layoutColumns-1)/layoutColumns;
         while(sensors.RowDefinitions.Count<count)sensors.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
         while(sensors.RowDefinitions.Count>count)sensors.RowDefinitions.RemoveAt(sensors.RowDefinitions.Count-1);
-        for(int i=0;i<sensors.Children.Count;i++) {
-            var row=(Grid)sensors.Children[i];Grid.SetRow(row,i/layoutColumns);Grid.SetColumn(row,i%layoutColumns);
+        for(int i=0;i<visible.Length;i++) {
+            var row=visible[i];Grid.SetRow(row,i/layoutColumns);Grid.SetColumn(row,i%layoutColumns);
             var icon=(Viewbox)row.Children[0];icon.Width=icon.Height=FontSize*1.2;
         }
     }
@@ -169,10 +175,10 @@ public sealed class FloatingMonitorWindow : Window {
     }
     public void Present(MonitorSnapshot snapshot,bool peaks=false) {
         this.snapshot=snapshot;this.peaks=peaks;
-        var metrics=DesktopReadings.Create(snapshot,peaks,language);
+        var metrics=DesktopReadings.Create(snapshot,peaks,language).OrderBy(metric=>{int index=Array.IndexOf(metricOrder,metric.Key);return index<0?int.MaxValue:index;}).ToArray();
         var active=metrics.Select(x=>x.Key).ToHashSet();
         foreach(string key in readings.Keys.Where(key=>!active.Contains(key)).ToArray()){sensors.Children.Remove(readings[key].Row);readings.Remove(key);}
-        for(int i=0;i<metrics.Count;i++) {
+        for(int i=0;i<metrics.Length;i++) {
             var metric=metrics[i];
             if(!readings.TryGetValue(metric.Key,out var item)) {
                 var row=new Grid{Name="DesktopMetric"+metric.Key,Tag=metric.Icon,ColumnDefinitions=new("Auto,*,Auto"),ColumnSpacing=8};
@@ -185,10 +191,11 @@ public sealed class FloatingMonitorWindow : Window {
                 row.SizeChanged+=(_,_)=>value.MaxWidth=Math.Max(1,(row.Bounds.Width-34)*.65);
                 item=(row,label,value);readings.Add(metric.Key,item);sensors.Children.Add(row);
             }
-            item.Row.IsVisible=true;item.Label.Text=metric.Title;item.Value.Text=metric.Value;
+            item.Row.IsVisible=metric.Key=="status"||metricVisibility.GetValueOrDefault(metric.Key,true);item.Label.Text=metric.Title;item.Value.Text=metric.Value;
             ToolTip.SetTip(item.Label,metric.Title);ToolTip.SetTip(item.Value,metric.Value);
             int old=sensors.Children.IndexOf(item.Row);if(old!=i){sensors.Children.RemoveAt(old);sensors.Children.Insert(i,item.Row);}
         }
+        empty.IsVisible=!readings.Values.Any(item=>item.Row.IsVisible);
         LayoutReadings();
     }
 }

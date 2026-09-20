@@ -4,6 +4,9 @@ namespace HardwarePulse.Desktop;
 
 public sealed class PreviewSettings {
     public static readonly string[] CardKeys=["CPU","GPU","Memory","NVMe","Airflow","Network"];
+    public static readonly string[] DesktopKeys=["CPU","GPU","vram","Memory","diskC","diskD","cpuFan","gpuFan","gpuFan2","bottom","top","netConnection","lanLink","wifiLink","wifiSignal","netSignal","netDown","netUp"];
+    public List<string> DesktopOrder=new(DesktopKeys);
+    public Dictionary<string,bool> DesktopVisible=new(StringComparer.Ordinal);
     public List<string> CardOrder=new(CardKeys);
     public HashSet<string> HiddenCards=new(StringComparer.Ordinal);
     public double Width=800,Height=560;
@@ -67,6 +70,11 @@ public sealed class PreviewSettingsStore {
             settings.Topmost=values.Flag("topmost");settings.LockPosition=values.Flag("lockPosition");
             string[] Cards(string name)=>fields.TryGetValue(name,out var list)&&list.ValueKind==JsonValueKind.Array
                 ?list.EnumerateArray().Where(x=>x.ValueKind==JsonValueKind.String).Select(x=>x.GetString()!).Where(PreviewSettings.CardKeys.Contains).Distinct().ToArray():[];
+            settings.DesktopOrder=new(PreviewSettings.DesktopKeys);
+            if(fields.TryGetValue("desktopOrder",out var order)&&order.ValueKind==JsonValueKind.Array)
+                settings.DesktopOrder=order.EnumerateArray().Where(x=>x.ValueKind==JsonValueKind.String).Select(x=>x.GetString()!).Where(PreviewSettings.DesktopKeys.Contains).Concat(PreviewSettings.DesktopKeys).Distinct().ToList();
+            if(fields.TryGetValue("desktopVisible",out var visible)&&visible.ValueKind==JsonValueKind.Object)
+                foreach(var item in visible.EnumerateObject())if(item.Value.ValueKind is JsonValueKind.True or JsonValueKind.False)settings.DesktopVisible[item.Name]=item.Value.GetBoolean();
             settings.CardOrder=Cards("cardOrder").Concat(PreviewSettings.CardKeys).Distinct().ToList();
             settings.HiddenCards=new(Cards("hiddenCards"),StringComparer.Ordinal);
             string network=values.Text("network");settings.Network=network.Length>0&&network.Length<=256&&!network.Any(char.IsControl)?network:null;
@@ -91,6 +99,7 @@ public sealed class PreviewSettingsStore {
                 ["appOpacity"]=JsonSerializer.SerializeToElement(settings.AppOpacity),["solid"]=JsonSerializer.SerializeToElement(settings.Solid),
                 ["details"]=JsonSerializer.SerializeToElement(settings.Details),
                 ["fontSize"]=JsonSerializer.SerializeToElement(settings.FontSize),
+                ["desktopOrder"]=JsonSerializer.SerializeToElement(settings.DesktopOrder),["desktopVisible"]=JsonSerializer.SerializeToElement(settings.DesktopVisible),
                 ["desktopWidth"]=JsonSerializer.SerializeToElement(settings.DesktopWidth),["desktopHeight"]=JsonSerializer.SerializeToElement(settings.DesktopHeight),
                 ["desktopX"]=JsonSerializer.SerializeToElement(settings.DesktopX),["desktopY"]=JsonSerializer.SerializeToElement(settings.DesktopY),
                 ["desktopFontSize"]=JsonSerializer.SerializeToElement(settings.DesktopFontSize),

@@ -212,7 +212,26 @@ public sealed class MonitorWindow : Window {
         var open=Language.Set(new Button(),"Open floating monitor");open.Click+=(_,_)=>OpenFloatingMonitor();panel.Children.Add(open);
         var reset=Language.Set(new Button{Name="ResetDesktopPosition"},"Reset position");
         reset.Click+=(_,_)=>{OpenFloatingMonitor();FloatingMonitor?.KeepOnScreen(reset:true);};panel.Children.Add(reset);
+        panel.Children.Add(CreateDesktopMetricSettings());
         return panel;
+    }
+    Control CreateDesktopMetricSettings() {
+        var list=new StackPanel{Name="DesktopMetricPreferences",Spacing=6};
+        var entries=new Dictionary<string,Grid>();var buttons=new Dictionary<string,(Button Up,Button Down)>();
+        string Title(string key)=>key switch {"vram"=>"VRAM","diskC"=>"Drive 1","diskD"=>"Drive 2","cpuFan"=>"CPU Fan","gpuFan"=>"GPU Fan 1","gpuFan2"=>"GPU Fan 2","bottom"=>"System Fan 1","top"=>"System Fan 2","netConnection"=>"Connection","lanLink"=>"LAN Link Speed","wifiLink"=>"Wi-Fi Link Speed","wifiSignal" or "netSignal"=>"Wi-Fi Signal","netDown"=>"Download","netUp"=>"Upload",_=>key};
+        void Refresh(){list.Children.Clear();for(int i=0;i<settings.DesktopOrder.Count;i++){string key=settings.DesktopOrder[i];list.Children.Add(entries[key]);buttons[key].Up.IsEnabled=i>0;buttons[key].Down.IsEnabled=i<settings.DesktopOrder.Count-1;}}
+        void Apply(){FloatingMonitor?.ApplyPreferences(settings);SaveLater();}
+        void Move(string key,int delta){int from=settings.DesktopOrder.IndexOf(key),to=from+delta;if(to<0||to>=settings.DesktopOrder.Count)return;(settings.DesktopOrder[from],settings.DesktopOrder[to])=(settings.DesktopOrder[to],settings.DesktopOrder[from]);Refresh();Apply();var button=delta<0?buttons[key].Up:buttons[key].Down;if(button.IsEnabled)button.Focus();else entries[key].Children[0].Focus();}
+        foreach(string key in PreviewSettings.DesktopKeys) {
+            var row=new Grid{ColumnDefinitions=new("*,Auto,Auto"),ColumnSpacing=6};entries[key]=row;
+            var show=Language.Set(new CheckBox{Name="ShowDesktop"+key,IsChecked=settings.DesktopVisible.GetValueOrDefault(key,true)},Title(key));
+            show.IsCheckedChanged+=(_,_)=>{settings.DesktopVisible[key]=show.IsChecked==true;Apply();};row.Children.Add(show);
+            var up=new Button{Name="MoveDesktopUp"+key,Content="↑",Padding=new Thickness(8,3)};var down=new Button{Name="MoveDesktopDown"+key,Content="↓",Padding=new Thickness(8,3)};
+            void Labels(){Avalonia.Automation.AutomationProperties.SetName(up,Language.T("Move up")+" · "+Language.T(Title(key)));Avalonia.Automation.AutomationProperties.SetName(down,Language.T("Move down")+" · "+Language.T(Title(key)));}
+            Labels();Language.Changed+=Labels;up.Click+=(_,_)=>Move(key,-1);down.Click+=(_,_)=>Move(key,1);
+            buttons[key]=(up,down);Grid.SetColumn(up,1);row.Children.Add(up);Grid.SetColumn(down,2);row.Children.Add(down);
+        }
+        Refresh();return list;
     }
     void ApplyTheme(){RequestedThemeVariant=settings.Theme=="Dark"?ThemeVariant.Dark:settings.Theme=="Light"?ThemeVariant.Light:ThemeVariant.Default;if(FloatingMonitor!=null)FloatingMonitor.RequestedThemeVariant=RequestedThemeVariant;}
     void RequestMaterial() {

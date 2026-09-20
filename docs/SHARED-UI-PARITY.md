@@ -448,3 +448,27 @@ remain outside this acceptance. Original WPF/assets and installed profiles remai
 unchanged. This is routine reversible shared presentation work; no data or privilege
 boundary changed. Rollback is source-only.
 Full scripts/Validate.ps1 passed for the shared borderless editor.
+
+### Desktop metric visibility and order
+
+Desktop Settings now owns independent desktopOrder/desktopVisible preferences for
+the 18 currently connected hardware/network metric keys from DesktopOrder.cs.
+Known order keys are normalized/deduplicated with missing defaults appended;
+unknown boolean visibility entries survive save. The floating view orders existing
+controls and changes their visibility without recreating them on polling. Only
+visible rows consume layout cells. The editor provides recovery guidance when all
+readings are hidden; collector status remains visible rather than hiding failures.
+
+Settings changes apply to the current Desktop and persist independently of App
+card choices. Accessible up/down controls provide ordering; original drag handles,
+dynamic Linux sensor settings, custom hardware names, quota and FPS rows remain
+open. No nonexistent provider/FPS readings have been invented. This is routine,
+isolated reversible shared presentation/persistence work with unchanged sampler,
+privilege, installed-profile and original WPF/assets boundaries.
+
+Headless and Windows native regressions cover normalization, persistence, control
+reuse across visibility/polling, compact layout without hidden gaps, all-hidden
+recovery and App/Desktop independence. The narrow Settings render was inspected.
+Rollback is source-only. Full original Settings layout and Desktop mode acceptance
+remain open.
+Full scripts/Validate.ps1 passed for Desktop metric visibility/order.
