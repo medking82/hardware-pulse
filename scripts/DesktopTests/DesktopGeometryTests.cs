@@ -13,12 +13,21 @@ static class DesktopGeometryTests {
             string path=Path.Combine(directory,"settings.json");
             File.WriteAllText(path,"{\"desktopWidth\":500,\"desktopHeight\":300,\"desktopX\":99999,\"desktopY\":99999}");
             owner=new MonitorWindow(new MonitorSource(true),start:false,store:new PreviewSettingsStore(path));owner.Show();owner.OpenFloatingMonitor();Pump();
-            owner.Position=new PixelPoint(owner.Position.X+5,owner.Position.Y+7);Pump();var appPosition=owner.Position;
+            // Keep the persistence fixture inside the work area, including small
+            // CI desktops; an offscreen point must be clamped on restoration.
+            var appScreen=owner.Screens.ScreenFromWindow(owner)??owner.Screens.Primary;
+            var requested=new PixelPoint(owner.Position.X+5,owner.Position.Y+7);
+            if(appScreen!=null) {
+                var area=appScreen.WorkingArea;double scale=appScreen.Scaling;
+                requested=new PixelPoint(Math.Clamp(requested.X,area.X,Math.Max(area.X,area.Right-(int)Math.Ceiling(owner.Width*scale))),
+                    Math.Clamp(requested.Y,area.Y,Math.Max(area.Y,area.Bottom-(int)Math.Ceiling(owner.Height*scale))));
+            }
+            owner.Position=requested;Pump();var appPosition=owner.Position;
             var desktop=owner.FloatingMonitor!;var screen=desktop.Screens.ScreenFromWindow(desktop)??desktop.Screens.Primary;
             Check(desktop.MinWidth==280&&desktop.MinHeight==140,"Original Desktop minimum size");
             if(screen!=null) {
                 var area=screen.WorkingArea;
-                Check(desktop.Position.X>=area.X&&desktop.Position.Y>=area.Y&&desktop.Position.X<area.Right&&desktop.Position.Y<area.Bottom,"Offscreen saved Desktop returns to working area");
+                Check(desktop.Position.X>=area.X&&desktop.Position.Y>=area.Y&&desktop.Position.X<area.Right&&desktop.Position.Y<area.Bottom,$"Offscreen saved Desktop returns to working area: actual={desktop.Position}; size={desktop.Width}x{desktop.Height}; area={area}; scale={screen.Scaling}");
             }
             desktop.Width=420;desktop.Height=310;desktop.KeepOnScreen(reset:true);Pump();
             var position=desktop.Position;double width=desktop.Width,height=desktop.Height;

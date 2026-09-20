@@ -15,10 +15,10 @@ static class WindowsCaptureTests {
     static void Check(bool ok,string text){if(!ok)throw new Exception(text);}
     static void Pump(){using var stop=new CancellationTokenSource(200);Dispatcher.UIThread.MainLoop(stop.Token);}
     static string FixturePixel(Window window) {
-        nint hwnd=window.TryGetPlatformHandle()!.Handle,dc=GetDC(hwnd);
+        nint dc=GetDC(0);
         if(dc==0)return "no DC";
-        try{return GetPixel(dc,(int)(window.Bounds.Width*window.RenderScaling/2),(int)(window.Bounds.Height*window.RenderScaling/2)).ToString("X8");}
-        finally{ReleaseDC(hwnd,dc);}
+        try{return GetPixel(dc,window.Position.X+(int)(window.Bounds.Width*window.RenderScaling/2),window.Position.Y+(int)(window.Bounds.Height*window.RenderScaling/2)).ToString("X8");}
+        finally{ReleaseDC(0,dc);}
     }
     public static void Native() {
         if(!OperatingSystem.IsWindows())return;
