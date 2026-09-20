@@ -121,3 +121,5 @@ A fake network failure regression proves the diagnostic is populated and cleared
 successful retry. Existing installer identity, digest, redirect and download checks stay
 unchanged. This visibility improvement must not be advertised as resolving the still
 unidentified installed-app network failure.
+
+Resolution: the user restored Bitdefender firewall rules to defaults. The installed app then showed You are up to date and live Codex; Claude showed Login required. Collector was restored through its unchanged owned scheduled task and consecutive advancing snapshots plus live UI were verified. No security rules were changed by the agent.

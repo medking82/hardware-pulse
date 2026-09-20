@@ -21,6 +21,13 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 
 - Shared Desktop supports Auto (System), English and Simplified/Traditional Chinese UI, including Monitor, Settings, sensor status, Codex quota and tray actions. Language switches immediately without restarting sampling or refreshing credentials and is saved in the isolated preview profile. Auto respects Chinese script and region preferences.
 
+## 0.6.29 — 2026-09-20
+
+- Antigravity can read quota through an already installed, logged-in Antigravity CLI when no local app session is identified. Monitor and Desktop mark this source as CLI; no CLI is downloaded or bundled.
+- Update checks expose sanitized failure codes instead of hiding all failure details. Existing installer identity and SHA-256 verification remain unchanged.
+- Quota card headings follow the same text-size scaling as hardware card headings. Existing glass, opacity, layout and saved preferences remain unchanged.
+- A reported installed-app network failure was resolved by the user restoring Bitdefender firewall rules to defaults; this release does not change security rules or claim to fix that external configuration. Claude login renewal still belongs to the official client.
+
 ## 0.6.28 — 2026-09-20
 
 - Preserve the original Windows WPF App, Desktop and Settings. New profiles use a darker glass background for light-text readability; saved appearance preferences remain unchanged.

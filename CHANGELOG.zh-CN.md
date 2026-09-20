@@ -21,6 +21,13 @@
 
 - 共享桌面应用支持自动跟随系统、英语、简体中文和繁体中文，覆盖监控、设置、传感器状态、Codex 额度与托盘操作。语言即时切换，不重启采样或重新读取登录信息，并保存到独立的预览版设置中。自动模式会区分中文书写体系和地区。
 
+## 0.6.29 — 2026-09-20
+
+- 未识别到本地 Antigravity app session 时，可通过已安装并登录的 Antigravity CLI 读取 quota。Monitor 和 Desktop 标明 CLI 来源；不下载或捆绑 CLI。
+- Update check 显示经过脱敏的 failure code，保留原有 installer identity 和 SHA-256 verification。
+- Quota card 标题采用与 hardware card 相同的 Text Size 缩放规则，保留 glass、opacity、layout 和已保存的 preferences。
+- 本次安装版 network failure 由用户恢复 Bitdefender firewall 默认规则后解决；本 release 不修改防护规则，也不将外部配置问题宣称为 code fix。Claude 登录续期仍由官方 client 负责。
+
 ## 0.6.28 — 2026-09-20
 
 - 保留原有 Windows WPF App、Desktop 和 Settings。新 profile 使用更深的 glass background，提高浅色文字可读性；已保存的 appearance preferences 保持不变。
