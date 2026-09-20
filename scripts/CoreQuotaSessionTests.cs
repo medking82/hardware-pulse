@@ -25,6 +25,42 @@ internal static class CoreQuotaSessionTests {
             session.Refresh();Pump(session,now.AddMinutes(5),()=>session.Readings[0].Observed==now.AddSeconds(3));
             Check(calls==3,"manual refresh duplicated requests");
         }
+        // A refresh clicked after re-login while an older read is pending must not be lost.
+        foreach(string firstStatus in new[]{"Login required","Quota unavailable","Refresh rate limited"}){
+            int attempts=0;
+            using(var entered=new ManualResetEventSlim())using(var release=new ManualResetEventSlim())
+            using(var queued=new QuotaSession((provider,cancel)=>{
+                int attempt=Interlocked.Increment(ref attempts);
+                if(attempt==1){entered.Set();Check(release.Wait(5000),"queued fixture was not released");}
+                return new QuotaReading{Provider=provider,Status=attempt==1?firstStatus:"Live"};
+            })){
+                try{
+                    queued.Enable("Claude",true);queued.Tick(now);Check(entered.Wait(5000),"queued read did not start");
+                    for(int i=0;i<10;i++){queued.Refresh();queued.Tick(now);}
+                    Check(attempts==1,"queued clicks overlapped the running read");release.Set();
+                    if(firstStatus=="Refresh rate limited"){
+                        Pump(queued,now,()=>queued.Readings[0].Status==firstStatus);
+                        queued.Tick(now.AddSeconds(119));Check(attempts==1,"queued click bypassed rate-limit backoff");
+                    }
+                    var retryTime=firstStatus=="Refresh rate limited"?now.AddSeconds(120):now;
+                    Pump(queued,retryTime,()=>queued.Readings[0].Status=="Live");
+                    queued.Tick(retryTime.AddSeconds(1));Check(attempts==2,"queued clicks did not coalesce into one recovery read");
+                }finally{release.Set();}
+            }
+        }
+        // The UI may not consume a completed worker until the machine wakes.
+        using(var completed=new ManualResetEventSlim()){
+            int wakeCalls=0;var wake=now.AddHours(1);
+            using(var session=new QuotaSession((provider,cancel)=>{
+                int attempt=Interlocked.Increment(ref wakeCalls);completed.Set();
+                return new QuotaReading{Provider=provider,Status="Live",Observed=attempt==1?now:wake};
+            })){
+                session.Enable("Codex",true);session.Tick(now);Check(completed.Wait(5000),"pre-sleep read did not finish");
+                Pump(session,wake,()=>session.Readings[0].Observed==wake);
+                Check(wakeCalls==2,"wake recovery must refresh an expired observation exactly once");
+                session.Tick(wake.AddMinutes(4));Check(wakeCalls==2,"wake recovery lost normal cadence");
+            }
+        }
         calls=0;CancellationToken captured=CancellationToken.None;
         foreach(string failure in new[]{"Quota unavailable","Refresh rate limited","Login required","Quota access denied"}) {
             int attempts=0;int delay=failure=="Quota unavailable"?30:failure=="Refresh rate limited"?120:300;

@@ -6,6 +6,10 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 
 ## Unreleased
 
+- Wake recovery immediately refreshes an expired successful quota observation completed before sleep, instead of adding another five-minute wait.
+
+- Quota Refresh requests made during an active read now coalesce into one follow-up read, so a refresh after re-login is not silently lost. Requests remain serialized; rate-limited responses retain their backoff.
+
 
 
 - Shared Linux X11 floating monitor adds mouse-through locking with XFixes. Unlock restores the default input region and window frame; native x64/ARM64 checks pass. Native Wayland locking is not implemented.

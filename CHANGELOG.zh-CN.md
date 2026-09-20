@@ -6,6 +6,10 @@
 
 ## 未发布
 
+- 唤醒后若收到休眠前已完成、现已过期的 quota observation，会立即重新读取，不再额外等待五分钟。
+
+- Quota request 尚未结束时点击 Refresh，现在会合并为一次后续读取，避免重新登录后的 refresh 被忽略；继续保证 request 串行，rate limit 保留 backoff。
+
 
 
 - Linux X11 浮动窗口新增基于 XFixes 的鼠标穿透锁定，解锁时恢复默认输入区域及窗口边框。x64/ARM64 原生检查已通过，尚未实现原生 Wayland 锁定。
