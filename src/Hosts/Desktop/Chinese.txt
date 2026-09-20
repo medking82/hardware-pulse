@@ -119,3 +119,4 @@ App Cards|App 卡片
 No cards shown. Choose cards in Settings.|未显示卡片。请在设置中选择卡片。
 Move up|上移
 Move down|下移
+Font size|字体大小

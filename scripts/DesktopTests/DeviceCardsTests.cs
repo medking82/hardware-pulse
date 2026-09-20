@@ -33,6 +33,7 @@ static class DeviceCardsTests {
         var title=CpuText("CPU");var temperature=CpuText("59.0 °C");
         Check(temperature.TranslatePoint(new Point(),cpu)!.Value.Y>=title.TranslatePoint(new Point(),cpu)!.Value.Y+title.Bounds.Height,"Narrow hero stacks below title without overlap");
         cpu.Width=double.NaN;cpu.HorizontalAlignment=Avalonia.Layout.HorizontalAlignment.Stretch;Dispatcher.UIThread.RunJobs();
+        window.Height=900;Dispatcher.UIThread.RunJobs();
         reading.names["Network"]="Collector default adapter";
         window.Present(snapshot with {NetworkName="Selected traffic adapter"});
         Check(Text("Selected traffic adapter")&&!Text("Collector default adapter"),"Traffic subtitle identifies the sampled interface, not the collector default");
@@ -58,6 +59,25 @@ static class DeviceCardsTests {
         Check(Text("Hardware readings unavailable. Waiting for the collector."),"Missing collector has explicit status independent of system counters");
         var mode=window.GetVisualDescendants().OfType<Button>().Single(x=>x.Name=="SessionMax");mode.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
         Check(Text("69.0 °C"),"Session Max uses distinct hardware history");
+        void Click(string name){window.GetVisualDescendants().OfType<Button>().Single(x=>x.Name==name).RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));Dispatcher.UIThread.RunJobs();}
+        window.Present(snapshot);
+        foreach(int size in new[]{10,12,16}) {
+            Click("OpenSettings");window.GetVisualDescendants().OfType<TabControl>().Single(x=>x.Name=="SettingsTabs").SelectedIndex=1;Dispatcher.UIThread.RunJobs();
+            window.GetVisualDescendants().OfType<Slider>().Single(x=>x.Name=="AppFontSize").Value=size;Click("Back");
+            foreach(int width in new[]{360,800,1200}) {
+                window.Width=width;window.Height=900;Dispatcher.UIThread.RunJobs();
+                Check(Math.Abs(CpuText("CPU").FontSize-13.0*size/12)<.01,"Card typography follows original font scale");
+                foreach(var card in originals)foreach(var text in card.GetVisualDescendants().OfType<TextBlock>().Where(x=>x.IsEffectivelyVisible)) {
+                    var position=text.TranslatePoint(new Point(),card)!.Value;
+                    Check(position.X>=0&&position.X+text.Bounds.Width<=card.Bounds.Width+1,$"Scaled device text stays inside card at {size}/{width}: {text.Text}");
+                }
+                if(output!=null&&width==800){using var frame=window.CaptureRenderedFrame();frame!.Save(Path.Combine(output,$"device-font-{size}.png"),Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);}
+            }
+        }
+        window.Width=360;window.Height=400;details.IsChecked=false;Dispatcher.UIThread.RunJobs();
+        Check(originals.SelectMany(x=>x.GetVisualDescendants().OfType<TextBlock>()).Where(x=>x.Name=="DeviceSubtitle").All(x=>!x.IsVisible),"Shortest compact density hides subtitles when cards cannot fit");
+        details.IsChecked=true;Dispatcher.UIThread.RunJobs();
+        Check(originals.SelectMany(x=>x.GetVisualDescendants().OfType<TextBlock>()).Where(x=>x.Name=="DeviceSubtitle").All(x=>x.IsVisible),"Details always retains device identity even when scrolling is necessary");
         window.Close();Console.WriteLine("PASS device cards: WPF grouping, details, three columns, control reuse, stale data and peaks");
     }
 }

@@ -9,6 +9,7 @@ public sealed class PreviewSettings {
     public double Width=800,Height=560;
     public string Theme="Dark";
     public double AppOpacity=85;
+    public double FontSize=12;
     public bool Solid;
     public bool Details;
     public bool Topmost,LockPosition;
@@ -47,6 +48,7 @@ public sealed class PreviewSettingsStore {
             string theme=values.Text("theme","Dark");settings.Theme=theme is "Light" or "Dark"?theme:"System";
             settings.AppOpacity=values.Number("appOpacity",settings.AppOpacity,0,100);settings.Solid=values.Flag("solid");
             settings.Details=values.Flag("details");
+            settings.FontSize=values.Number("fontSize",12,10,16);
             settings.Topmost=values.Flag("topmost");settings.LockPosition=values.Flag("lockPosition");
             string[] Cards(string name)=>fields.TryGetValue(name,out var list)&&list.ValueKind==JsonValueKind.Array
                 ?list.EnumerateArray().Where(x=>x.ValueKind==JsonValueKind.String).Select(x=>x.GetString()!).Where(PreviewSettings.CardKeys.Contains).Distinct().ToArray():[];
@@ -73,6 +75,7 @@ public sealed class PreviewSettingsStore {
                 ["language"]=JsonSerializer.SerializeToElement(settings.Language),
                 ["appOpacity"]=JsonSerializer.SerializeToElement(settings.AppOpacity),["solid"]=JsonSerializer.SerializeToElement(settings.Solid),
                 ["details"]=JsonSerializer.SerializeToElement(settings.Details),
+                ["fontSize"]=JsonSerializer.SerializeToElement(settings.FontSize),
                 ["cardOrder"]=JsonSerializer.SerializeToElement(settings.CardOrder),["hiddenCards"]=JsonSerializer.SerializeToElement(settings.HiddenCards),
                 ["topmost"]=JsonSerializer.SerializeToElement(settings.Topmost),["lockPosition"]=JsonSerializer.SerializeToElement(settings.LockPosition)};
             var bytes=JsonSerializer.SerializeToUtf8Bytes(updated);

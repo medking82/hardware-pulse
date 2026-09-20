@@ -57,6 +57,7 @@ static class SettingsTests {
             groups.SelectedIndex=1;Dispatcher.UIThread.RunJobs();
             var theme=window.GetVisualDescendants().OfType<ComboBox>().Single(x=>x.Name=="PreviewTheme");theme.SelectedItem="Dark";
             Check(window.RequestedThemeVariant==ThemeVariant.Dark,"Theme applies immediately");
+            window.GetVisualDescendants().OfType<Slider>().Single(x=>x.Name=="AppFontSize").Value=16;
             var pin=window.GetVisualDescendants().OfType<CheckBox>().Single(x=>x.Name=="AppTopmost");pin.IsChecked=true;
             var locked=window.GetVisualDescendants().OfType<CheckBox>().Single(x=>x.Name=="AppLockPosition");locked.IsChecked=true;
             Check(window.Topmost&&!window.CanResize,"Window preferences apply immediately");
@@ -68,6 +69,7 @@ static class SettingsTests {
             window.Close();Until(()=>window.Sampling.IsCompleted);
             var saved=new PreviewSettingsStore(path).Load();Check(saved.Theme=="Dark"&&!saved.Codex&&saved.Network=="missing-interface","Choices survive close");
             Check(saved.Topmost&&saved.LockPosition,"Window preferences survive close");
+            Check(saved.FontSize==16,"Font size persists");
             var reopened=new MonitorWindow(new MonitorSource(true),start:false,store:new PreviewSettingsStore(path));
             Check(reopened.RequestedThemeVariant==ThemeVariant.Dark&&reopened.Width==saved.Width,"Choices survive reopen");reopened.Show();reopened.Close();
             Check(reopened.Topmost&&!reopened.CanResize,"Window preferences restored before interaction");

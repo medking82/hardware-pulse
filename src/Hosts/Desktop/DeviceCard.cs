@@ -18,6 +18,7 @@ sealed class DeviceCard : Border {
     readonly Grid rows=new(){Name="DeviceMetrics",ColumnDefinitions=new("*,*"),ColumnSpacing=10};
     readonly Grid header=new(){ColumnDefinitions=new("*,Auto"),RowDefinitions=new("Auto,Auto"),ColumnSpacing=10};
     readonly StackPanel titleRow=new(){Orientation=Orientation.Horizontal,Spacing=8};
+    readonly TextBlock title=new(){FontSize=13,FontWeight=FontWeight.SemiBold,VerticalAlignment=VerticalAlignment.Center};
     bool? displayedDetails;
     readonly Grid? pairs;
     readonly Avalonia.Controls.Shapes.Path icon;
@@ -36,7 +37,7 @@ sealed class DeviceCard : Border {
         icon=AppIcon.Create(key.ToLowerInvariant());
         icon.Stroke=icon.Stroke==null?null:Brush.Parse(accent);icon.Fill=icon.Fill==null?null:Brush.Parse(accent);
         titleRow.Children.Add(new Viewbox{Width=18,Height=18,Child=icon});
-        titleRow.Children.Add(language.Set(new TextBlock{FontSize=13,FontWeight=FontWeight.SemiBold,VerticalAlignment=VerticalAlignment.Center},key));
+        titleRow.Children.Add(language.Set(title,key));
         header.Children.Add(titleRow);hero.Foreground=Brush.Parse(accent);Grid.SetColumn(hero,1);header.Children.Add(hero);
         body.Children.Add(header);body.Children.Add(subtitle);body.Children.Add(rows);
         Metric[] definitions=key switch {
@@ -83,6 +84,17 @@ sealed class DeviceCard : Border {
             int columns=compact&&2*widest+10<=width?2:1;
             for(int i=0;i<visible.Length;i++){Grid.SetRow(visible[i].Row,i/columns);Grid.SetColumn(visible[i].Row,i%columns);Grid.SetColumnSpan(visible[i].Row,columns==1?2:1);}
         }
+    }
+    public void ApplyDensity(double fontSize,int level,double width) {
+        double scale=fontSize/12;bool details=displayedDetails==true,full=details||key=="Airflow";
+        Padding=level==0?new Thickness(10,7):new Thickness(7,level==3?3:5);
+        title.FontSize=13*scale;subtitle.FontSize=10*scale;hero.FontSize=(details?23:21)*scale;usage.FontSize=12*scale;
+        subtitle.IsVisible=level<3||details;
+        foreach(var item in metrics) {
+            item.Label.FontSize=(pairs!=null?10:full?12:10)*scale;
+            item.Value.FontSize=(pairs!=null?(details?21:18):full?12:11)*scale;
+        }
+        Reflow(width);
     }
     void ApplyPalette() {
         bool light=ActualThemeVariant==ThemeVariant.Light;

@@ -17,7 +17,7 @@ public sealed class MonitorWindow : Window {
     readonly CancellationTokenSource stop=new();
     readonly TextBlock status=new(){Text="Starting…",TextWrapping=TextWrapping.Wrap};
     readonly TextBlock hardwareStatus=new(){Name="HardwareStatus",TextWrapping=TextWrapping.Wrap,IsVisible=false};
-    readonly Grid cards=new(){Name="ReadingCards",ColumnSpacing=10,RowSpacing=6};
+    readonly Grid cards=new(){Name="ReadingCards",ColumnSpacing=10};
     readonly DeviceCard[] panels;
     readonly TextBlock cardsEmpty=new(){Name="CardsEmpty",TextWrapping=TextWrapping.Wrap,IsVisible=false};
     readonly ToggleButton details=new(){Name="Details",Content="Details",Padding=new Thickness(7,5)};
@@ -31,6 +31,8 @@ public sealed class MonitorWindow : Window {
     bool sessionMax;
     bool settingsVisible;
     Border? titleDrag;
+    ScrollViewer? monitorScroll;
+    bool measuringDensity;
     MonitorSnapshot? latestSnapshot;
     public FloatingMonitorWindow? FloatingMonitor {get;private set;}
     bool samplingFailed;
@@ -55,10 +57,11 @@ public sealed class MonitorWindow : Window {
         void ApplyLanguageFont(){var family=DesktopFonts.ForLanguage(Language.EffectiveLanguage);if(family is null)ClearValue(FontFamilyProperty);else FontFamily=family;}
         Language.Changed+=ApplyLanguageFont;ApplyLanguageFont();
         Title="Pulse · Desktop preview";Width=settings.Width;Height=settings.Height;MinWidth=360;MinHeight=400;
-        FontSize=15;
+        FontSize=settings.FontSize;
         WindowDecorations=WindowDecorations.None;
         var heading=Language.Set(new TextBlock{FontSize=22,FontWeight=FontWeight.SemiBold},"Pulse");
         panels=settings.CardOrder.Select(key=>new DeviceCard(key,Language)).ToArray();
+        cards.RowDefinitions=new(string.Join(",",Enumerable.Repeat("Auto",panels.Length)));
         foreach(var panel in panels)cards.Children.Add(panel);
         var body=new StackPanel{Spacing=16,Margin=new Thickness(24)};
         var modes=new WrapPanel{Name="MonitorControls",Orientation=Orientation.Horizontal};
@@ -83,6 +86,10 @@ public sealed class MonitorWindow : Window {
         var theme=new ComboBox{Name="PreviewTheme",ItemsSource=new[]{"System","Light","Dark"},SelectedItem=settings.Theme,HorizontalAlignment=HorizontalAlignment.Stretch};
         appearance.Children.Add(Language.Set(new TextBlock{},"Theme"));appearance.Children.Add(theme);
         appearance.Children.Add(Language.Set(new TextBlock{TextWrapping=TextWrapping.Wrap},"System follows your desktop theme. Window size is remembered automatically."));
+        appearance.Children.Add(Language.Set(new TextBlock(),"Font size"));
+        var font=new Slider{Name="AppFontSize",Minimum=10,Maximum=16,TickFrequency=1,IsSnapToTickEnabled=true,Value=settings.FontSize};
+        var fontValue=new TextBlock{Text=settings.FontSize.ToString("0")+" DIP"};appearance.Children.Add(font);appearance.Children.Add(fontValue);
+        font.ValueChanged+=(_,_)=>{settings.FontSize=font.Value;FontSize=font.Value;fontValue.Text=font.Value.ToString("0")+" DIP";LayoutCards();ApplyCardDensity();SaveLater();};
         var pin=Language.Set(new CheckBox{Name="AppTopmost",IsChecked=settings.Topmost},"Always on Top");
         var locked=Language.Set(new CheckBox{Name="AppLockPosition",IsChecked=settings.LockPosition},"Lock Position and Size");
         appearance.Children.Add(pin);appearance.Children.Add(locked);
@@ -120,7 +127,7 @@ public sealed class MonitorWindow : Window {
         var monitorHeader=new StackPanel{Spacing=4,Margin=new Thickness(14,0,14,8)};monitorHeader.Children.Add(modes);monitorHeader.Children.Add(status);
         var monitorPage=new DockPanel{Name="MonitorPage"};
         DockPanel.SetDock(monitorHeader,Dock.Top);monitorPage.Children.Add(monitorHeader);
-        DockPanel.SetDock(footer,Dock.Bottom);monitorPage.Children.Add(footer);monitorPage.Children.Add(Scroll(body));
+        DockPanel.SetDock(footer,Dock.Bottom);monitorPage.Children.Add(footer);monitorScroll=Scroll(body);monitorScroll.SizeChanged+=(_,_)=>ApplyCardDensity();monitorPage.Children.Add(monitorScroll);
         var pages=new ContentControl{Name="AppPage",HorizontalContentAlignment=HorizontalAlignment.Stretch,VerticalContentAlignment=VerticalAlignment.Stretch,Content=monitorPage};
         openSettings.Click+=(_,_)=>{settingsVisible=true;pages.Content=settingsSurface;RequestMaterial();back.Focus();};
         back.Click+=(_,_)=>{settingsVisible=false;pages.Content=monitorPage;RequestMaterial();openSettings.Focus();};
@@ -141,7 +148,7 @@ public sealed class MonitorWindow : Window {
         quota.EnabledChanged+=on=>{settings.Codex=on;SaveLater();};
         quota.QuotaEnabled=settings.Codex;
         saveTimer.Tick+=(_,_)=>SaveNow();
-        SizeChanged+=(_,_)=>{LayoutCards();if(WindowState==WindowState.Normal){settings.Width=Width;settings.Height=Height;SaveLater();}};LayoutCards();
+        SizeChanged+=(_,_)=>{LayoutCards();ApplyCardDensity();if(WindowState==WindowState.Normal){settings.Width=Width;settings.Height=Height;SaveLater();}};LayoutCards();
         Opened+=(_,_)=>{
             ApplyMaterial();
             var screen=Screens.ScreenFromWindow(this);
@@ -276,14 +283,25 @@ public sealed class MonitorWindow : Window {
     void SaveLater(){if(store==null)return;saveTimer.Stop();saveTimer.Start();}
     void SaveNow(){saveTimer.Stop();if(store!=null)Language.Set(saveStatus,store.Save(settings)?"Changes saved.":store.Error);}
     void LayoutCards() {
-        int count=Math.Clamp((int)((ClientSize.Width-48)/270),1,3);
+        int count=Math.Clamp((int)((ClientSize.Width-48)/(270*settings.FontSize/12)),1,3);
         int visibility=0;for(int i=0;i<panels.Length;i++)if(panels[i].IsVisible)visibility|=1<<i;
         if(cardColumns==count&&cardVisibility==visibility)return;
         cardColumns=count;cardVisibility=visibility;
         var visible=panels.Where(x=>x.IsVisible).ToArray();
-        cards.ColumnDefinitions=new(string.Join(",",Enumerable.Repeat("*",count)));
-        cards.RowDefinitions=new(string.Join(",",Enumerable.Repeat("Auto",Math.Max(1,(visible.Length+count-1)/count))));
+        if(cards.ColumnDefinitions.Count!=count)cards.ColumnDefinitions=new(string.Join(",",Enumerable.Repeat("*",count)));
         for(int i=0;i<visible.Length;i++){Grid.SetRow(visible[i],i/count);Grid.SetColumn(visible[i],i%count);}
+    }
+    void ApplyCardDensity() {
+        if(measuringDensity||monitorScroll==null||monitorScroll.Viewport.Height<=0)return;
+        measuringDensity=true;
+        try {
+            double width=Math.Max(1,monitorScroll.Viewport.Width-48),cell=Math.Max(1,(width-10*(cardColumns-1))/Math.Max(1,cardColumns));
+            for(int level=0;level<=3;level++) {
+                foreach(var panel in panels){panel.Margin=new Thickness(0,0,0,level==0?6:3);panel.ApplyDensity(settings.FontSize,level,cell);}
+                cards.Measure(new Size(width,double.PositiveInfinity));
+                if(cards.DesiredSize.Height<=monitorScroll.Viewport.Height-48)break;
+            }
+        } finally {measuringDensity=false;}
     }
     public void Present(MonitorSnapshot snapshot) {
         latestSnapshot=snapshot;Render(snapshot);
@@ -293,6 +311,7 @@ public sealed class MonitorWindow : Window {
         foreach(var panel in panels){panel.Present(snapshot,max,details.IsChecked==true);panel.IsVisible&=!settings.HiddenCards.Contains(panel.Key);}
         cardsEmpty.IsVisible=panels.All(x=>!x.IsVisible);
         LayoutCards();
+        ApplyCardDensity();
         hardwareStatus.IsVisible=snapshot.Hardware!=null&&snapshot.Hardware.state!="LIVE";
         Language.Set(hardwareStatus,"Hardware readings unavailable. Waiting for the collector.");
         sensors.IsVisible=snapshot.SensorsSupported;

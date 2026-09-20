@@ -253,3 +253,28 @@ recovery, control reuse and persistence. The 360 DIP App Cards render was inspec
 Windows native regression passes. Original drag grips, hardware-name customization,
 font/density controls, full six-category Settings and Desktop remain incomplete.
 Full scripts/Validate.ps1 also passed for App Cards preferences.
+
+### Original font scale and height-driven card density
+
+App font size is now saved with the original 10–16 DIP range and 12 DIP default.
+Device headers, compact/full labels, values, pairs and usage typography use the
+original fontSize/12 scale. Responsive columns use 270*scale minimum width. The
+card area measures levels 0–3 against the available viewport: padding/gaps shrink,
+and only the most compact non-Details mode hides device subtitles. Details keeps
+identity labels even when scrolling is necessary. Existing cards are reused.
+
+During verification, measuring the hidden card grid immediately after replacing
+row definitions produced an Avalonia Grid.MeasureCellsGroup index exception. Rows
+now remain allocated for all six cards; visibility changes only relocate controls.
+Spacing belongs to visible cards so unused rows do not create empty gaps. The same
+all-hidden/re-enable regression now passes. The interface-label fixture now uses
+enough height to check its visible subtitle; separate checks explicitly cover
+subtitle hiding and Details retention in a short window.
+
+Headless coverage exercises 10/12/16 DIP at 360/800/1200 widths, card text bounds,
+short-window density, preference persistence and the prior visibility/order checks.
+10 and 16 DIP renders were inspected. Windows native regression passes. Scope is
+shared presentation/preferences/localization and tests, with original WPF/assets,
+installed profiles, data owners and releases unchanged. Original minimum window
+size, Settings category layout, card drag handles and complete Desktop remain open.
+Full scripts/Validate.ps1 passed for font scaling and card density.
