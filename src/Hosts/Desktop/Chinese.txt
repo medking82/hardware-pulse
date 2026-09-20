@@ -1,4 +1,6 @@
 Pulse · Desktop preview|Pulse · 桌面预览版
+Solid background|不透明背景
+App background opacity|应用背景不透明度
 Starting…|正在启动…
 Select network interface|选择网卡
 Refresh interfaces|刷新网卡列表

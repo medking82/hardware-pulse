@@ -4,7 +4,9 @@ namespace HardwarePulse.Desktop;
 
 public sealed class PreviewSettings {
     public double Width=800,Height=560;
-    public string Theme="System";
+    public string Theme="Dark";
+    public double AppOpacity=30;
+    public bool Solid;
     public string Language="auto";
     public string? Network;
     public bool Codex;
@@ -37,7 +39,8 @@ public sealed class PreviewSettingsStore {
             }
             var values=new SettingsValues(map);
             settings.Width=values.Number("width",800,360,2400);settings.Height=values.Number("height",560,400,1600);
-            string theme=values.Text("theme","System");settings.Theme=theme is "Light" or "Dark"?theme:"System";
+            string theme=values.Text("theme","Dark");settings.Theme=theme is "Light" or "Dark"?theme:"System";
+            settings.AppOpacity=values.Number("appOpacity",30,0,100);settings.Solid=values.Flag("solid");
             string network=values.Text("network");settings.Network=network.Length>0&&network.Length<=256&&!network.Any(char.IsControl)?network:null;
             settings.Codex=values.Flag("codex");
             string language=values.Text("language","auto");settings.Language=language is "en" or "zh-CN" or "zh-TW"?language:"auto";
@@ -56,7 +59,8 @@ public sealed class PreviewSettingsStore {
                 ["schema"]=JsonSerializer.SerializeToElement(1),["width"]=JsonSerializer.SerializeToElement(settings.Width),
                 ["height"]=JsonSerializer.SerializeToElement(settings.Height),["theme"]=JsonSerializer.SerializeToElement(settings.Theme),
                 ["network"]=JsonSerializer.SerializeToElement(settings.Network),["codex"]=JsonSerializer.SerializeToElement(settings.Codex),
-                ["language"]=JsonSerializer.SerializeToElement(settings.Language)};
+                ["language"]=JsonSerializer.SerializeToElement(settings.Language),
+                ["appOpacity"]=JsonSerializer.SerializeToElement(settings.AppOpacity),["solid"]=JsonSerializer.SerializeToElement(settings.Solid)};
             var bytes=JsonSerializer.SerializeToUtf8Bytes(updated);
             if(bytes.Length>65536)throw new InvalidDataException();
             temp=Path.Combine(directory,".settings-"+Guid.NewGuid().ToString("N")+".tmp");

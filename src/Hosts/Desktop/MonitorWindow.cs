@@ -4,6 +4,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.Styling;
+using Avalonia.Platform;
 
 namespace HardwarePulse.Desktop;
 
@@ -31,6 +32,10 @@ public sealed class MonitorWindow : Window {
     readonly PreviewSettings settings;
     readonly DispatcherTimer saveTimer=new(){Interval=TimeSpan.FromMilliseconds(500)};
     readonly TextBlock saveStatus=new(){TextWrapping=TextWrapping.Wrap};
+    readonly Slider appOpacity=new(){Name="AppOpacity",Minimum=0,Maximum=100};
+    readonly TextBlock opacityValue=new(){Name="AppOpacityValue"};
+    readonly IPlatformSettings? materialPlatform=Application.Current?.PlatformSettings;
+    readonly Border settingsSurface=new(){Name="SettingsSurface"};
     bool loadingNetwork;
     public Task Sampling {get;private set;}=Task.CompletedTask;
     public MonitorWindow(IMonitorSource source,bool smoke=false,bool start=true,PreviewSettingsStore? store=null,bool measure=false) {
@@ -62,6 +67,12 @@ public sealed class MonitorWindow : Window {
         var theme=new ComboBox{Name="PreviewTheme",ItemsSource=new[]{"System","Light","Dark"},SelectedItem=settings.Theme,HorizontalAlignment=HorizontalAlignment.Stretch};
         appearance.Children.Add(Language.Set(new TextBlock{},"Theme"));appearance.Children.Add(theme);
         appearance.Children.Add(Language.Set(new TextBlock{TextWrapping=TextWrapping.Wrap},"System follows your desktop theme. Window size is remembered automatically."));
+        var solid=Language.Set(new CheckBox{Name="AppSolid",IsChecked=settings.Solid},"Solid background");
+        appearance.Children.Add(solid);
+        appearance.Children.Add(Language.Set(new TextBlock(),"App background opacity"));
+        appOpacity.Value=settings.AppOpacity;appearance.Children.Add(appOpacity);appearance.Children.Add(opacityValue);
+        appOpacity.ValueChanged+=(_,_)=>{settings.AppOpacity=appOpacity.Value;ApplyMaterial();SaveLater();};
+        solid.IsCheckedChanged+=(_,_)=>{settings.Solid=solid.IsChecked==true;RequestMaterial();SaveLater();};
         appearance.Children.Add(Language.Set(new TextBlock(),"Language"));
         var languageChoice=new ComboBox{Name="PreviewLanguage",ItemsSource=new[]{"Auto (System)","English","简体中文","繁體中文"},SelectedIndex=settings.Language=="en"?1:settings.Language=="zh-CN"?2:settings.Language=="zh-TW"?3:0,HorizontalAlignment=HorizontalAlignment.Stretch,ItemTemplate=Language.Choices()};
         appearance.Children.Add(languageChoice);
@@ -71,7 +82,8 @@ public sealed class MonitorWindow : Window {
             new TabItem{Header="Codex",Content=new Border{Padding=new Thickness(20),Child=quota.SettingsContent}}}};
         var settingsBody=new StackPanel{Spacing=12,Margin=new Thickness(12)};
         settingsBody.Children.Add(settingsTabs);settingsBody.Children.Add(saveStatus);
-        var tabs=new TabControl{Name="MainTabs",ItemsSource=new[]{Language.Set(new TabItem{Content=Scroll(body)},"Monitor"),Language.Set(new TabItem{Content=Scroll(settingsBody)},"Settings")}};
+        settingsSurface.Child=settingsBody;
+        var tabs=new TabControl{Name="MainTabs",ItemsSource=new[]{Language.Set(new TabItem{Content=Scroll(body)},"Monitor"),Language.Set(new TabItem{Content=Scroll(settingsSurface)},"Settings")}};
         var root=new DockPanel();DockPanel.SetDock(heading,Dock.Top);heading.Margin=new Thickness(24,20,24,12);root.Children.Add(heading);root.Children.Add(tabs);Content=root;
         Language.Set(this,"Pulse · Desktop preview");Language.Set(status,"Starting…");Language.Set(pause,"Pause hardware monitoring");Language.Set(refreshInterfaces,"Refresh interfaces");
         theme.ItemTemplate=Language.Choices();readingMode.ItemTemplate=Language.Choices();
@@ -79,6 +91,10 @@ public sealed class MonitorWindow : Window {
         Language.Changed+=Placeholder;Placeholder();
         Language.Set(saveStatus,store?.Error??(store==null?"Session only · Changes will not be saved.":"Changes save automatically."));
         theme.SelectionChanged+=(_,_)=>{settings.Theme=theme.SelectedItem as string??"System";ApplyTheme();SaveLater();};ApplyTheme();
+        PropertyChanged+=(_,e)=>{if(e.Property==ActualTransparencyLevelProperty||e.Property==ActualThemeVariantProperty)ApplyMaterial();};
+        void ColorsChanged(object? sender,PlatformColorValues colors)=>RequestMaterial();
+        if(materialPlatform!=null)materialPlatform.ColorValuesChanged+=ColorsChanged;
+        RequestMaterial();
         interfaces.SelectionChanged+=(_,_)=>{if(!loadingNetwork){settings.Network=interfaces.SelectedItem as string;SaveLater();}};
         quota.EnabledChanged+=on=>{settings.Codex=on;SaveLater();};
         quota.QuotaEnabled=settings.Codex;
@@ -89,7 +105,7 @@ public sealed class MonitorWindow : Window {
             if(screen!=null){Width=Math.Max(MinWidth,Math.Min(Width,screen.WorkingArea.Width/screen.Scaling));Height=Math.Max(MinHeight,Math.Min(Height,screen.WorkingArea.Height/screen.Scaling));}
         };
         if(start)Opened+=(_,_)=>Sampling=SampleAsync();
-        Closed+=(_,_)=>{stop.Cancel();FloatingMonitor?.Close();quota.Dispose();SaveNow();};
+        Closed+=(_,_)=>{if(materialPlatform!=null)materialPlatform.ColorValuesChanged-=ColorsChanged;stop.Cancel();FloatingMonitor?.Close();quota.Dispose();SaveNow();};
     }
     public void OpenFloatingMonitor() {
         if(stop.IsCancellationRequested)return;
@@ -104,6 +120,26 @@ public sealed class MonitorWindow : Window {
     }
     static ScrollViewer Scroll(Control content)=>new(){Content=content,HorizontalScrollBarVisibility=Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled};
     void ApplyTheme(){RequestedThemeVariant=settings.Theme=="Dark"?ThemeVariant.Dark:settings.Theme=="Light"?ThemeVariant.Light:ThemeVariant.Default;if(FloatingMonitor!=null)FloatingMonitor.RequestedThemeVariant=RequestedThemeVariant;}
+    void RequestMaterial() {
+        bool highContrast=materialPlatform?.GetColorValues().ContrastPreference==ColorContrastPreference.High;
+        TransparencyLevelHint=settings.Solid||highContrast?[WindowTransparencyLevel.None]:[WindowTransparencyLevel.AcrylicBlur,WindowTransparencyLevel.Blur,WindowTransparencyLevel.Transparent];
+        ApplyMaterial();
+    }
+    void ApplyMaterial() {
+        bool highContrast=materialPlatform?.GetColorValues().ContrastPreference==ColorContrastPreference.High;
+        var policy=new HardwarePulse.MaterialPolicy(settings.AppOpacity,false,false,settings.Solid,highContrast);
+        bool supported=ActualTransparencyLevel!=WindowTransparencyLevel.None;
+        double opacity=policy.EffectiveOpacity(supported);
+        bool light=ActualThemeVariant==ThemeVariant.Light;
+        // Match WPF Controls.ApplyMaterial: tint alpha changes, never the whole window.
+        var tint=Color.Parse(light?"#F4F6F8":"#35383B");
+        Background=new SolidColorBrush(Color.FromArgb((byte)Math.Round(255*opacity),tint.R,tint.G,tint.B));
+        Foreground=Brush.Parse(light?"#17202B":"#F0F5FA");
+        // WPF keeps Settings opaque even when the monitoring surface is clear.
+        settingsSurface.Background=Brush.Parse(light?"#F4F6F8":"#202831");
+        appOpacity.IsEnabled=policy.CanAdjustOpacity(supported);
+        opacityValue.Text=Math.Round(opacity*100)+"%";
+    }
     void SaveLater(){if(store==null)return;saveTimer.Stop();saveTimer.Start();}
     void SaveNow(){saveTimer.Stop();if(store!=null)Language.Set(saveStatus,store.Save(settings)?"Changes saved.":store.Error);}
     static TextBlock Value()=>new(){Text="—",FontSize=23,FontWeight=FontWeight.SemiBold,TextWrapping=TextWrapping.Wrap};

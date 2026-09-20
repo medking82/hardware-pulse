@@ -1,4 +1,6 @@
 Pulse · Desktop preview|Pulse · 桌面預覽版
+Solid background|不透明背景
+App background opacity|應用背景不透明度
 Starting…|正在啟動…
 Select network interface|選擇網路介面
 Refresh interfaces|重新整理網路介面

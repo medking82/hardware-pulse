@@ -59,7 +59,10 @@ static class WindowsInputTests {
                 Console.WriteLine("INPUT_LOCKED hit "+Describe(WindowFromPoint(sample)));
                 Console.WriteLine("INPUT_LOCKED below "+Describe(below.TryGetPlatformHandle()!.Handle));
             }
-            var dc=GetDC(0);try{Check(GetPixel(dc,sample.X,sample.Y)==0x0000ff,"Locked window lost its visible red content");}finally{ReleaseDC(0,dc);}
+            // Hit testing can update before the compositor presents the changed
+            // window style. Wait for the same exact pixel, without weakening it.
+            Until(()=>{var dc=GetDC(0);try{return GetPixel(dc,sample.X,sample.Y)==0x0000ff;}finally{ReleaseDC(0,dc);}},"Locked window lost its visible red content");
+            Check(HitWindow(sample)==below.TryGetPlatformHandle()!.Handle,"Visual recovery lost native pass-through");
             input.SetPassThrough(true);
             input.SetPassThrough(false);
             Until(()=>HitWindow(sample)==handle,"Unlock did not restore native hit testing");
