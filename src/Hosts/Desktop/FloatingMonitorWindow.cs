@@ -3,12 +3,16 @@ using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Styling;
+using Avalonia.Platform;
 
 namespace HardwarePulse.Desktop;
 
 // Presentation only. The owning Monitor supplies snapshots and controls lifetime.
 public sealed class FloatingMonitorWindow : Window {
     readonly UiLanguage language;
+    readonly Border surface=new(){Name="DesktopSurface",CornerRadius=new CornerRadius(16)};
+    readonly IPlatformSettings? materialPlatform=Application.Current?.PlatformSettings;
+    double backgroundOpacity=86,overlayOpacity=55,textOpacity=100;
     readonly StackPanel rows=new(){Spacing=8,Margin=new Thickness(16)};
     readonly Dictionary<string,(Grid Row,TextBlock Label,TextBlock Value)> readings=new();
     MonitorSnapshot? snapshot;
@@ -27,7 +31,7 @@ public sealed class FloatingMonitorWindow : Window {
         Width=440;Height=420;MinWidth=360;MinHeight=240;FontSize=15;
         language.Set(this,"Floating monitor");
         topmost=language.Set(new CheckBox{Name="FloatingTopmost"},"Always on top");
-        topmost.IsCheckedChanged+=(_,_)=>{Topmost=topmost.IsChecked==true;TopmostChanged?.Invoke(Topmost);};
+        topmost.IsCheckedChanged+=(_,_)=>{Topmost=topmost.IsChecked==true;ApplyMaterial();TopmostChanged?.Invoke(Topmost);};
         var lockButton=language.Set(new Button{Name="LockFloatingMonitor",IsVisible=false},"Lock floating monitor");
         lockButton.Click+=(_,_)=>SetLocked(true);
         var toolbar=new StackPanel{Spacing=8};toolbar.Children.Add(topmost);toolbar.Children.Add(lockButton);toolbar.Children.Add(lockStatus);
@@ -50,15 +54,33 @@ public sealed class FloatingMonitorWindow : Window {
 
         rows.Children.Add(sensors);
         SizeChanged+=(_,_)=>LayoutReadings();
-        Content=new ScrollViewer{Content=rows,HorizontalScrollBarVisibility=Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled};
+        surface.Child=new ScrollViewer{Content=rows,HorizontalScrollBarVisibility=Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled};Content=surface;
+        Background=Brushes.Transparent;TransparencyLevelHint=[WindowTransparencyLevel.Transparent];
+        void ColorsChanged(object? sender,PlatformColorValues colors)=>ApplyMaterial();
+        if(materialPlatform!=null)materialPlatform.ColorValuesChanged+=ColorsChanged;
+        Opened+=(_,_)=>ApplyMaterial();
+        PropertyChanged+=(_,e)=>{if(e.Property==ActualTransparencyLevelProperty)ApplyMaterial();};
+        Closed+=(_,_)=>{if(materialPlatform!=null)materialPlatform.ColorValuesChanged-=ColorsChanged;};
+        ApplyMaterial();
         language.Changed+=Localize;Localize();
         PropertyChanged+=(_,e)=>{if(e.Property==ActualThemeVariantProperty)foreach(var item in readings.Values)ColorIcon(item.Row);};
         Closed+=(_,_)=>{language.Changed-=Localize;input=null;inputLifetime?.Dispose();inputLifetime=null;};
     }
     public void ApplyPreferences(PreviewSettings settings) {
         FontSize=settings.DesktopFontSize;sensors.RowSpacing=settings.DesktopSpacing;
+        backgroundOpacity=settings.DesktopBackgroundOpacity;overlayOpacity=settings.DesktopOverlayOpacity;textOpacity=settings.DesktopTextOpacity;
         requestedColumns=settings.DesktopColumns;topmost.IsChecked=settings.DesktopTopmost;
+        ApplyMaterial();
         LayoutReadings();
+    }
+    void ApplyMaterial() {
+        bool highContrast=materialPlatform?.GetColorValues().ContrastPreference==ColorContrastPreference.High;
+        bool supported=ActualTransparencyLevel!=WindowTransparencyLevel.None;
+        double alpha=highContrast||!supported?100:Topmost?overlayOpacity:backgroundOpacity;
+        // DesktopView.SetTextOpacity uses a dark backing for its original light text.
+        // Keep controls readable when the user deliberately fades the metric layer.
+        surface.Background=new SolidColorBrush(Color.FromArgb((byte)Math.Round(255*Math.Clamp(alpha,0,100)/100),20,29,38));
+        Foreground=Brush.Parse("#F5F7FA");sensors.Opacity=highContrast?1:Math.Clamp(textOpacity/100,0,1);
     }
     void LayoutReadings() {
         var layout=new ColumnLayout(Math.Max(1,Bounds.Width-32),Math.Max(280,24*FontSize),requestedColumns,layoutColumns);
@@ -90,7 +112,7 @@ public sealed class FloatingMonitorWindow : Window {
     }
     void ColorIcon(Grid row) {
         var icon=(Avalonia.Controls.Shapes.Path)((Viewbox)row.Children[0]).Child!;
-        var brush=Brush.Parse(ActualThemeVariant==ThemeVariant.Light?"#17202B":(row.Tag as string) switch {
+        var brush=Brush.Parse((row.Tag as string) switch {
             "cpu"=>"#A5E7D5","gpu"=>"#A7CBFF","memory"=>"#E7C5A4","nvme"=>"#B9B7ED","airflow"=>"#A8D4D0","network"=>"#A9D8E8",_=>"#A5E7D5"});
         if(icon.Stroke!=null)icon.Stroke=brush;if(icon.Fill!=null)icon.Fill=brush;
     }

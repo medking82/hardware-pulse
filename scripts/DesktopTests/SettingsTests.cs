@@ -73,6 +73,12 @@ static class SettingsTests {
             desktop.GetVisualDescendants().OfType<CheckBox>().Single(x=>x.Name=="FloatingTopmost").IsChecked=false;
             Check(desktopPin.IsChecked==false&&window.Topmost,"Desktop toolbar syncs Settings without changing App topmost");
             desktopPin.IsChecked=true;
+            var background=window.GetVisualDescendants().OfType<Slider>().Single(x=>x.Name=="DesktopBackgroundOpacity");
+            var overlay=window.GetVisualDescendants().OfType<Slider>().Single(x=>x.Name=="DesktopOverlayOpacity");
+            Check(!background.IsEnabled&&overlay.IsEnabled,"Topmost selects only its own opacity control");
+            overlay.Value=72;window.GetVisualDescendants().OfType<Slider>().Single(x=>x.Name=="DesktopTextOpacity").Value=80;
+            desktopPin.IsChecked=false;Check(background.IsEnabled&&!overlay.IsEnabled,"Desktop restores its background control");background.Value=88;
+            desktopPin.IsChecked=true;
             if(output!=null){Dispatcher.UIThread.RunJobs();using var frame=window.CaptureRenderedFrame();frame!.Save(Path.Combine(output,"desktop-settings.png"),Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);}
             groups.SelectedIndex=4;Dispatcher.UIThread.RunJobs();
             var quota=window.GetVisualDescendants().OfType<CheckBox>().Single(x=>x.Name=="EnableCodexQuota");Check(quota.IsChecked==true,"Quota choice restored with explicit demo reader");quota.IsChecked=false;
@@ -81,6 +87,7 @@ static class SettingsTests {
             var saved=new PreviewSettingsStore(path).Load();Check(saved.Theme=="Dark"&&!saved.Codex&&saved.Network=="missing-interface","Choices survive close");
             Check(saved.Topmost&&saved.LockPosition,"Window preferences survive close");
             Check(saved.FontSize==16,"Font size persists");
+            Check(saved.DesktopBackgroundOpacity==88&&saved.DesktopOverlayOpacity==72&&saved.DesktopTextOpacity==80,"Independent Desktop opacity preferences persist");
             Check(saved.DesktopFontSize==20&&saved.DesktopSpacing==24&&saved.DesktopColumns==2&&saved.DesktopTopmost,"Desktop preferences persist");
             var reopened=new MonitorWindow(new MonitorSource(true),start:false,store:new PreviewSettingsStore(path));
             Check(reopened.RequestedThemeVariant==ThemeVariant.Dark&&reopened.Width==saved.Width,"Choices survive reopen");reopened.Show();reopened.OpenFloatingMonitor();Check(reopened.FloatingMonitor!.FontSize==20&&reopened.FloatingMonitor.Topmost,"Desktop preferences restored on new view");reopened.Close();

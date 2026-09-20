@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Threading;
 using Avalonia.Headless;
 using Avalonia.VisualTree;
+using Avalonia.Media;
 using HardwarePulse.Desktop;
 
 static class FloatingMonitorTests {
@@ -14,6 +15,25 @@ static class FloatingMonitorTests {
         open.Command!.Execute(null);var floating=owner.FloatingMonitor!;
         try {
             owner.OpenFloatingMonitor();Check(ReferenceEquals(floating,owner.FloatingMonitor),"Repeated open created another floating window");
+            var materialWindow=new FloatingMonitorWindow(owner.Language);
+            materialWindow.Present(new("21.0%","4.0 / 16.0 GiB","1 KiB/s","2 KiB/s",true,true));materialWindow.Show();
+            try {
+            var material=materialWindow.GetVisualDescendants().OfType<Border>().Single(x=>x.Name=="DesktopSurface");
+            var preferences=new PreviewSettings{DesktopBackgroundOpacity=30,DesktopOverlayOpacity=70,DesktopTextOpacity=40};
+            materialWindow.ApplyPreferences(preferences);Dispatcher.UIThread.RunJobs();
+            byte Expected(double percent)=>materialWindow.ActualTransparencyLevel==WindowTransparencyLevel.None?(byte)255:(byte)Math.Round(percent*255/100);
+            Check(((ISolidColorBrush)material.Background!).Color.A==Expected(30),"Desktop background alpha or opaque fallback");
+            var metrics=(Grid)materialWindow.GetVisualDescendants().OfType<Grid>().Single(x=>x.Name=="DesktopMetricCPU").Parent!;
+            Check(metrics.Opacity==.4&&materialWindow.Opacity==1,"Text opacity affects metrics only, not editor/window");
+            Check(((ISolidColorBrush)materialWindow.Foreground!).Color.ToString()=="#fff5f7fa","Original light Desktop foreground remains readable on dark backing");
+            preferences.DesktopTopmost=true;materialWindow.ApplyPreferences(preferences);
+            Check(((ISolidColorBrush)material.Background!).Color.A==Expected(70),"Topmost uses independent overlay opacity");
+            foreach(double alpha in new[]{0d,100d}) {
+                preferences.DesktopOverlayOpacity=alpha;materialWindow.ApplyPreferences(preferences);
+                Check(((ISolidColorBrush)material.Background!).Color.A==Expected(alpha)&&metrics.Opacity==.4,"Background endpoints preserve metric opacity");
+            }
+            materialWindow.ApplyPreferences(new PreviewSettings());
+            } finally {materialWindow.Close();}
             floating.Hide();open.Command.Execute(null);Check(ReferenceEquals(floating,owner.FloatingMonitor)&&floating.IsVisible,"Tray did not restore same floating window");
             if(floating.CanLock) {
                 Check(floating.SetLocked(true)&&floating.IsLocked,"Native floating lock failed");

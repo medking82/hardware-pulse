@@ -127,3 +127,6 @@ Desktop|桌面
 Row spacing|列間距
 Columns|欄數
 Auto|自動
+Desktop background opacity|桌面背景不透明度
+Always on Top background opacity|置頂背景不透明度
+Text opacity|文字不透明度

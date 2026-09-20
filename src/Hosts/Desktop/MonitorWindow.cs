@@ -182,19 +182,23 @@ public sealed class MonitorWindow : Window {
     Control CreateDesktopSettings() {
         var panel=new StackPanel{Spacing=12,Margin=new Thickness(20)};
         void Apply(){FloatingMonitor?.ApplyPreferences(settings);SaveLater();}
-        void Number(string name,string label,double value,double min,double max,Action<double> set) {
+        void Number(string name,string label,double value,double min,double max,Action<double> set,string unit=" DIP") {
             panel.Children.Add(Language.Set(new TextBlock(),label));
             var slider=new Slider{Name=name,Minimum=min,Maximum=max,TickFrequency=1,IsSnapToTickEnabled=true,Value=value};
-            var text=new TextBlock{Text=value.ToString("0")+" DIP"};panel.Children.Add(slider);panel.Children.Add(text);
-            slider.ValueChanged+=(_,_)=>{set(slider.Value);text.Text=slider.Value.ToString("0")+" DIP";Apply();};
+            var text=new TextBlock{Text=value.ToString("0")+unit};panel.Children.Add(slider);panel.Children.Add(text);
+            slider.ValueChanged+=(_,_)=>{set(slider.Value);text.Text=slider.Value.ToString("0")+unit;Apply();};
         }
         Number("DesktopFontSize","Font size",settings.DesktopFontSize,10,32,value=>settings.DesktopFontSize=value);
         Number("DesktopSpacing","Row spacing",settings.DesktopSpacing,4,40,value=>settings.DesktopSpacing=value);
+        Number("DesktopBackgroundOpacity","Desktop background opacity",settings.DesktopBackgroundOpacity,0,100,value=>settings.DesktopBackgroundOpacity=value,"%");
+        Number("DesktopOverlayOpacity","Always on Top background opacity",settings.DesktopOverlayOpacity,0,100,value=>settings.DesktopOverlayOpacity=value,"%");
+        Number("DesktopTextOpacity","Text opacity",settings.DesktopTextOpacity,0,100,value=>settings.DesktopTextOpacity=value,"%");
         panel.Children.Add(Language.Set(new TextBlock(),"Columns"));
         var columns=new ComboBox{Name="DesktopColumns",ItemsSource=new[]{"Auto","1","2","3"},SelectedIndex=settings.DesktopColumns,ItemTemplate=Language.Choices(),HorizontalAlignment=HorizontalAlignment.Stretch};
         columns.SelectionChanged+=(_,_)=>{settings.DesktopColumns=Math.Max(0,columns.SelectedIndex);Apply();};panel.Children.Add(columns);
         desktopPin=Language.Set(new CheckBox{Name="DesktopAlwaysOnTop",IsChecked=settings.DesktopTopmost},"Always on Top");
-        desktopPin.IsCheckedChanged+=(_,_)=>{settings.DesktopTopmost=desktopPin.IsChecked==true;Apply();};panel.Children.Add(desktopPin);
+        void OpacityControls(){foreach(var control in panel.Children.OfType<Slider>()){if(control.Name=="DesktopBackgroundOpacity")control.IsEnabled=!settings.DesktopTopmost;if(control.Name=="DesktopOverlayOpacity")control.IsEnabled=settings.DesktopTopmost;}}
+        desktopPin.IsCheckedChanged+=(_,_)=>{settings.DesktopTopmost=desktopPin.IsChecked==true;OpacityControls();Apply();};panel.Children.Add(desktopPin);OpacityControls();
         var open=Language.Set(new Button(),"Open floating monitor");open.Click+=(_,_)=>OpenFloatingMonitor();panel.Children.Add(open);
         return panel;
     }

@@ -342,3 +342,25 @@ inspected. This does not complete Desktop parity: explicit-column auto-expansion
 geometry, wallpaper layer/material, metric visibility/order, quota/FPS, local
 contrast, and edit/return flow remain open.
 Full scripts/Validate.ps1 passed for Desktop appearance/layout preferences.
+
+### Desktop backing and foreground opacity
+
+DesktopView.SetTextOpacity is the reference for this slice: Desktop backing and
+Always on Top backing use separate percentages, and metric text/icons have their
+own opacity. The original defaults (86/55/100) and dark RGB 20/29/38 backing with
+light #F5F7FA foreground are retained. This is transparent Desktop backing, not the
+App blur backdrop or Liquid Glass. User-selected App theme does not make these
+light-on-dark Desktop readings dark-on-dark.
+
+Settings expose all three saved values and enable the backing slider applicable
+to the topmost mode. The metric layer fades independently of the editor and window.
+Unsupported composition falls back to opaque backing without overwriting saved
+preferences; high contrast forces an opaque backing and full metric opacity.
+Platform color changes are observed and unsubscribed on close. This is an isolated
+shared presentation/preferences change with the same routine risk facts above;
+no platform capture, driver, privilege or installed profile changes. Rollback is
+source-only. Acceptance checks cover opacity endpoints, independent foreground,
+mode switching, fallback and persistence in headless/native Windows sessions.
+Full Desktop editor/layer, native glass visual acceptance, custom color/contrast,
+geometry, quota/FPS and exact original styling remain separate open requirements.
+Headless and Windows native regressions passed; the narrow Desktop render was inspected. Full scripts/Validate.ps1 passed. Native composition over real wallpaper and high-contrast visual acceptance remain unverified.
