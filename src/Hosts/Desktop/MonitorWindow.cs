@@ -169,7 +169,12 @@ public sealed class MonitorWindow : Window {
         if(stop.IsCancellationRequested)return;
         if(FloatingMonitor==null) {
             FloatingMonitor=new FloatingMonitorWindow(Language){RequestedThemeVariant=RequestedThemeVariant};
-            FloatingMonitor.ApplyPreferences(settings,fitColumns:true);
+            FloatingMonitor.ApplyPreferences(settings);
+            var desktop=FloatingMonitor;bool tracking=false;
+            void RememberGeometry(){if(!tracking||desktop.WindowState!=WindowState.Normal)return;settings.DesktopWidth=desktop.Width;settings.DesktopHeight=desktop.Height;settings.DesktopX=desktop.Position.X;settings.DesktopY=desktop.Position.Y;SaveLater();}
+            desktop.Opened+=(_,_)=>{tracking=false;desktop.RestoreGeometry(settings);tracking=true;RememberGeometry();};
+            desktop.SizeChanged+=(_,_)=>RememberGeometry();desktop.PositionChanged+=(_,_)=>RememberGeometry();
+            desktop.Closing+=(_,_)=>RememberGeometry();
             FloatingMonitor.TopmostChanged+=value=>{settings.DesktopTopmost=value;if(desktopPin!=null)desktopPin.IsChecked=value;SaveLater();};
             FloatingMonitor.ReturnRequested+=()=>{
                 FloatingMonitor?.Close();
@@ -205,6 +210,8 @@ public sealed class MonitorWindow : Window {
         void OpacityControls(){foreach(var control in panel.Children.OfType<Slider>()){if(control.Name=="DesktopBackgroundOpacity")control.IsEnabled=!settings.DesktopTopmost;if(control.Name=="DesktopOverlayOpacity")control.IsEnabled=settings.DesktopTopmost;}}
         desktopPin.IsCheckedChanged+=(_,_)=>{settings.DesktopTopmost=desktopPin.IsChecked==true;OpacityControls();Apply();};panel.Children.Add(desktopPin);OpacityControls();
         var open=Language.Set(new Button(),"Open floating monitor");open.Click+=(_,_)=>OpenFloatingMonitor();panel.Children.Add(open);
+        var reset=Language.Set(new Button{Name="ResetDesktopPosition"},"Reset position");
+        reset.Click+=(_,_)=>{OpenFloatingMonitor();FloatingMonitor?.KeepOnScreen(reset:true);};panel.Children.Add(reset);
         return panel;
     }
     void ApplyTheme(){RequestedThemeVariant=settings.Theme=="Dark"?ThemeVariant.Dark:settings.Theme=="Light"?ThemeVariant.Light:ThemeVariant.Default;if(FloatingMonitor!=null)FloatingMonitor.RequestedThemeVariant=RequestedThemeVariant;}

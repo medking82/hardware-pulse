@@ -404,3 +404,25 @@ not unlock the Desktop; no production change was needed for that behavior.
 Saved Desktop geometry, actual multi-monitor moves and platform acceptance remain
 open. Same routine isolated/reversible presentation boundary; rollback source-only.
 Full scripts/Validate.ps1 passed for explicit-column resizing.
+
+### Desktop geometry persistence and recovery
+
+The shared Desktop now uses the original 466x400 default and 280x140 minimum.
+PreviewSettingsStore persists Desktop width/height in DIP and host x/y coordinates
+in physical pixels, separately from App size. Monitor owns move/resize/close saving;
+restoration suppresses intermediate geometry writes. Saved Desktop width takes
+precedence on reopen, while explicit columns selection still resizes and saves it.
+
+Restore clamps the view to a current monitor working area, falling back to the
+primary monitor when the saved monitor is unavailable. Reset position opens the
+existing Desktop and places it at the original 40/100 DIP offset, clamped to fit.
+Settings remain preview-only, never overwriting the installed WPF geometry/profile.
+This slice has the same routine reversible presentation/persistence boundary;
+no new platform input, privileged calls, samplers or migration behavior.
+
+Headless and Windows native regressions verify offscreen saved coordinates,
+original minimum size, reset, move/resize/close save, and owner restart restoration.
+Physical multi-monitor removal/reconnection, mixed-DPI movement and macOS/Linux
+native sessions remain unverified. Full Desktop layer, borderless editing and
+original Settings styling remain open. Rollback is source-only.
+Full scripts/Validate.ps1 passed for Desktop geometry persistence.

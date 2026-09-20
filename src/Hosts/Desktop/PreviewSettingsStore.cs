@@ -12,6 +12,8 @@ public sealed class PreviewSettings {
     public double FontSize=12;
     public double DesktopFontSize=16,DesktopSpacing=14;
     public int DesktopColumns;
+    public double DesktopWidth=466,DesktopHeight=400;
+    public int? DesktopX,DesktopY;
     public bool DesktopTopmost;
     public double DesktopBackgroundOpacity=86,DesktopOverlayOpacity=55,DesktopTextOpacity=100;
     public bool Solid;
@@ -53,6 +55,8 @@ public sealed class PreviewSettingsStore {
             settings.AppOpacity=values.Number("appOpacity",settings.AppOpacity,0,100);settings.Solid=values.Flag("solid");
             settings.Details=values.Flag("details");
             settings.FontSize=values.Number("fontSize",12,10,16);
+            settings.DesktopWidth=values.Number("desktopWidth",466,280,10000);settings.DesktopHeight=values.Number("desktopHeight",400,140,10000);
+            if(map.ContainsKey("desktopX")&&map.ContainsKey("desktopY")){settings.DesktopX=(int)values.Number("desktopX",0,-100000,100000);settings.DesktopY=(int)values.Number("desktopY",0,-100000,100000);}
             settings.DesktopFontSize=values.Number("desktopFontSize",16,10,32);
             settings.DesktopSpacing=values.Number("desktopSpacing",14,4,40);
             settings.DesktopColumns=(int)values.Number("desktopColumns",0,0,3);
@@ -87,6 +91,8 @@ public sealed class PreviewSettingsStore {
                 ["appOpacity"]=JsonSerializer.SerializeToElement(settings.AppOpacity),["solid"]=JsonSerializer.SerializeToElement(settings.Solid),
                 ["details"]=JsonSerializer.SerializeToElement(settings.Details),
                 ["fontSize"]=JsonSerializer.SerializeToElement(settings.FontSize),
+                ["desktopWidth"]=JsonSerializer.SerializeToElement(settings.DesktopWidth),["desktopHeight"]=JsonSerializer.SerializeToElement(settings.DesktopHeight),
+                ["desktopX"]=JsonSerializer.SerializeToElement(settings.DesktopX),["desktopY"]=JsonSerializer.SerializeToElement(settings.DesktopY),
                 ["desktopFontSize"]=JsonSerializer.SerializeToElement(settings.DesktopFontSize),
                 ["desktopSpacing"]=JsonSerializer.SerializeToElement(settings.DesktopSpacing),
                 ["desktopColumns"]=JsonSerializer.SerializeToElement(settings.DesktopColumns),

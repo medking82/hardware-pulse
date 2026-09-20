@@ -132,3 +132,4 @@ Always on Top background opacity|置頂背景不透明度
 Text opacity|文字不透明度
 Done|完成
 Return to App|返回應用
+Reset position|重設位置

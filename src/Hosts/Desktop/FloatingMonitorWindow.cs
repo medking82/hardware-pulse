@@ -30,7 +30,7 @@ public sealed class FloatingMonitorWindow : Window {
     public bool CanLock=>input!=null;
     public FloatingMonitorWindow(UiLanguage language) {
         this.language=language;
-        Width=440;Height=420;MinWidth=360;MinHeight=240;FontSize=15;
+        Width=466;Height=400;MinWidth=280;MinHeight=140;FontSize=16;
         language.Set(this,"Floating monitor");
         topmost=language.Set(new CheckBox{Name="FloatingTopmost"},"Always on top");
         topmost.IsCheckedChanged+=(_,_)=>{Topmost=topmost.IsChecked==true;ApplyMaterial();TopmostChanged?.Invoke(Topmost);};
@@ -70,6 +70,21 @@ public sealed class FloatingMonitorWindow : Window {
         language.Changed+=Localize;Localize();
         PropertyChanged+=(_,e)=>{if(e.Property==ActualThemeVariantProperty)foreach(var item in readings.Values)ColorIcon(item.Row);};
         Closed+=(_,_)=>{language.Changed-=Localize;input=null;inputLifetime?.Dispose();inputLifetime=null;};
+    }
+    public void RestoreGeometry(PreviewSettings settings) {
+        Width=settings.DesktopWidth;Height=settings.DesktopHeight;
+        if(settings.DesktopX is int x&&settings.DesktopY is int y)Position=new PixelPoint(x,y);
+        KeepOnScreen(settings.DesktopX==null||settings.DesktopY==null);
+    }
+    public void KeepOnScreen(bool reset=false) {
+        var screen=reset?Screens.Primary:Screens.ScreenFromWindow(this)??Screens.Primary;
+        if(screen==null)return;
+        var area=screen.WorkingArea;double scale=screen.Scaling;
+        Width=Math.Max(MinWidth,Math.Min(Width,area.Width/scale-32));
+        Height=Math.Max(MinHeight,Math.Min(Height,area.Height/scale-32));
+        var position=reset?new PixelPoint(area.X+(int)(40*scale),area.Y+(int)(100*scale)):Position;
+        Position=new PixelPoint(Math.Clamp(position.X,area.X,Math.Max(area.X,area.Right-(int)Math.Ceiling(Width*scale))),
+            Math.Clamp(position.Y,area.Y,Math.Max(area.Y,area.Bottom-(int)Math.Ceiling(Height*scale))));
     }
     public void ApplyPreferences(PreviewSettings settings,bool fitColumns=false) {
         FontSize=settings.DesktopFontSize;sensors.RowSpacing=settings.DesktopSpacing;
