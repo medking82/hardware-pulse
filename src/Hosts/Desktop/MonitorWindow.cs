@@ -223,13 +223,14 @@ public sealed class MonitorWindow : Window {
         void Apply(){FloatingMonitor?.ApplyPreferences(settings);SaveLater();}
         void Move(string key,int delta){int from=settings.DesktopOrder.IndexOf(key),to=from+delta;if(to<0||to>=settings.DesktopOrder.Count)return;(settings.DesktopOrder[from],settings.DesktopOrder[to])=(settings.DesktopOrder[to],settings.DesktopOrder[from]);Refresh();Apply();var button=delta<0?buttons[key].Up:buttons[key].Down;if(button.IsEnabled)button.Focus();else entries[key].Children[0].Focus();}
         foreach(string key in PreviewSettings.DesktopKeys) {
-            var row=new Grid{ColumnDefinitions=new("*,Auto,Auto"),ColumnSpacing=6};entries[key]=row;
+            var row=new Grid{Tag=key,ColumnDefinitions=new("Auto,*,Auto,Auto"),ColumnSpacing=6};entries[key]=row;
             var show=Language.Set(new CheckBox{Name="ShowDesktop"+key,IsChecked=settings.DesktopVisible.GetValueOrDefault(key,true)},Title(key));
-            show.IsCheckedChanged+=(_,_)=>{settings.DesktopVisible[key]=show.IsChecked==true;Apply();};row.Children.Add(show);
+            show.IsCheckedChanged+=(_,_)=>{settings.DesktopVisible[key]=show.IsChecked==true;Apply();};Grid.SetColumn(show,1);row.Children.Add(show);
+            var handle=ReorderHandle.Create(list,row,"DragDesktop"+key,()=>{settings.DesktopOrder=list.Children.Select(item=>(string)item.Tag!).ToList();Refresh();Apply();});row.Children.Add(handle);
             var up=new Button{Name="MoveDesktopUp"+key,Content="↑",Padding=new Thickness(8,3)};var down=new Button{Name="MoveDesktopDown"+key,Content="↓",Padding=new Thickness(8,3)};
-            void Labels(){Avalonia.Automation.AutomationProperties.SetName(up,Language.T("Move up")+" · "+Language.T(Title(key)));Avalonia.Automation.AutomationProperties.SetName(down,Language.T("Move down")+" · "+Language.T(Title(key)));}
+            void Labels(){Avalonia.Automation.AutomationProperties.SetName(handle,Language.T("Drag To Reorder (Esc To Cancel)")+" · "+Language.T(Title(key)));ToolTip.SetTip(handle,Language.T("Drag To Reorder (Esc To Cancel)"));Avalonia.Automation.AutomationProperties.SetName(up,Language.T("Move up")+" · "+Language.T(Title(key)));Avalonia.Automation.AutomationProperties.SetName(down,Language.T("Move down")+" · "+Language.T(Title(key)));}
             Labels();Language.Changed+=Labels;up.Click+=(_,_)=>Move(key,-1);down.Click+=(_,_)=>Move(key,1);
-            buttons[key]=(up,down);Grid.SetColumn(up,1);row.Children.Add(up);Grid.SetColumn(down,2);row.Children.Add(down);
+            buttons[key]=(up,down);Grid.SetColumn(up,2);row.Children.Add(up);Grid.SetColumn(down,3);row.Children.Add(down);
         }
         Refresh();return list;
     }
@@ -263,14 +264,19 @@ public sealed class MonitorWindow : Window {
             if(action.IsEnabled)action.Focus();else rows[key].Children[0].Focus();
         }
         foreach(string key in PreviewSettings.CardKeys) {
-            var row=new Grid{ColumnDefinitions=new("*,Auto,Auto"),ColumnSpacing=6};rows[key]=row;
+            var row=new Grid{Tag=key,ColumnDefinitions=new("Auto,*,Auto,Auto"),ColumnSpacing=6};rows[key]=row;
             var visible=Language.Set(new CheckBox{Name="ShowCard"+key,IsChecked=!settings.HiddenCards.Contains(key)},key);
             visible.IsCheckedChanged+=(_,_)=>{if(visible.IsChecked==true)settings.HiddenCards.Remove(key);else settings.HiddenCards.Add(key);if(latestSnapshot!=null)Render(latestSnapshot);SaveLater();};
+            var handle=ReorderHandle.Create(list,row,"DragCard"+key,()=>{
+                settings.CardOrder=list.Children.Select(item=>(string)item.Tag!).ToList();
+                Array.Sort(panels,(a,b)=>settings.CardOrder.IndexOf(a.Key).CompareTo(settings.CardOrder.IndexOf(b.Key)));
+                cards.Children.Clear();foreach(var panel in panels)cards.Children.Add(panel);cardVisibility=-1;LayoutCards();RefreshOrder();SaveLater();
+            },()=>!settings.LockPosition);row.Children.Add(handle);
             var up=new Button{Name="MoveCardUp"+key,Content="↑",Padding=new Thickness(8,3)};
             var down=new Button{Name="MoveCardDown"+key,Content="↓",Padding=new Thickness(8,3)};
-            void Labels(){Avalonia.Automation.AutomationProperties.SetName(up,Language.T("Move up")+" · "+Language.T(key));Avalonia.Automation.AutomationProperties.SetName(down,Language.T("Move down")+" · "+Language.T(key));}
+            void Labels(){Avalonia.Automation.AutomationProperties.SetName(handle,Language.T("Drag To Reorder (Esc To Cancel)")+" · "+Language.T(key));ToolTip.SetTip(handle,Language.T("Drag To Reorder (Esc To Cancel)"));Avalonia.Automation.AutomationProperties.SetName(up,Language.T("Move up")+" · "+Language.T(key));Avalonia.Automation.AutomationProperties.SetName(down,Language.T("Move down")+" · "+Language.T(key));}
             Language.Changed+=Labels;Labels();up.Click+=(_,_)=>Move(key,-1);down.Click+=(_,_)=>Move(key,1);
-            moves[key]=(up,down);row.Children.Add(visible);Grid.SetColumn(up,1);row.Children.Add(up);Grid.SetColumn(down,2);row.Children.Add(down);
+            moves[key]=(up,down);Grid.SetColumn(visible,1);row.Children.Add(visible);Grid.SetColumn(up,2);row.Children.Add(up);Grid.SetColumn(down,3);row.Children.Add(down);
         }
         list.AttachedToVisualTree+=(_,_)=>RefreshOrder();RefreshOrder();return list;
     }

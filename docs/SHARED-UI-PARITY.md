@@ -472,3 +472,21 @@ recovery and App/Desktop independence. The narrow Settings render was inspected.
 Rollback is source-only. Full original Settings layout and Desktop mode acceptance
 remain open.
 Full scripts/Validate.ps1 passed for Desktop metric visibility/order.
+
+### Shared reorder handles
+
+App card settings and Desktop metric settings now consume one ReorderHandle.
+It previews row positions with transforms, preserves pointer capture, commits
+canonical order only on drop, and cancels on Esc/capture loss/detachment. Up/down
+keyboard operation and the existing accessible buttons remain available. App lock
+is checked at gesture admission and during movement/commit. Edge movement scrolls
+the enclosing Settings list. Labels/tooltips localize without exposing metric IDs.
+
+Headless pointer events exercise App preview/drop, Esc cancellation, keyboard
+reorder, persistence and independent Desktop drop. Existing Windows native
+regressions pass, and the narrow Desktop Settings render was inspected. Native
+physical drag gestures, original easing/scale motion, reduced-motion preferences
+and multi-platform interaction remain unverified; this is not complete drag/UI
+parity. Original WPF/CardDrag/assets, installed profile, quota and samplers are
+unchanged. Routine reversible presentation boundary; rollback source-only.
+Full scripts/Validate.ps1 passed for shared reorder handles.

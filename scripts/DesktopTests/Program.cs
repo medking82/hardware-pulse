@@ -68,7 +68,7 @@ static class Tests {
         while(!live.Sampling.IsCompleted&&DateTime.UtcNow<limit){Dispatcher.UIThread.RunJobs();Thread.Sleep(10);}
         Check(live.Sampling.IsCompletedSuccessfully,"Close cancels and completes sampling");
         QuotaPanelTests.Run(args.Length==1?args[0]:null);
-        DesktopMetricPreferenceTests.Run(args.Length==1?args[0]:null);DesktopGeometryTests.Run();SettingsTests.Run(args.Length==1?args[0]:null);
+        ReorderHandleTests.Run();DesktopMetricPreferenceTests.Run(args.Length==1?args[0]:null);DesktopGeometryTests.Run();SettingsTests.Run(args.Length==1?args[0]:null);
         AppMaterialTests.Run();
         WindowsSnapshotTests.Run();
         DeviceCardsTests.Run(args.Length==1?args[0]:null);
