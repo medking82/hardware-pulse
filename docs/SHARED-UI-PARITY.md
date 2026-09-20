@@ -523,3 +523,21 @@ new-profile defaults and normalization. Headless and Windows native-session
 regressions pass. The 240px device render and minimum-size Settings render were
 inspected; this is geometry acceptance, not complete original styling parity.
 Full scripts/Validate.ps1 passed for original App geometry. Protected WPF/native/assets diff remains empty against the 0.6.27 baseline.
+
+### Device usage track fidelity
+
+The 240px render exposed GPU/Memory track overflow. A red-capable rendered-bounds
+regression reproduced x=-4 and width=200 inside a 192px card with Fluent ProgressBar.
+Native/Cards.cs AddUsage instead owns a three-pixel Grid with proportional columns.
+DeviceCard now follows that original structure, preserving accent/track colors,
+rounded fill, current usage and unavailable visibility. Percent values are bounded
+before constructing Grid lengths. This affects shared device presentation only;
+quota, sampling, original WPF/assets and installed profiles are unchanged.
+
+The regression requires both usage tracks to exist and checks their rendered
+parts inside card bounds at 240/280/360/800/1200px. It failed before the repair and
+passes after it; the full headless suite passes and the new 240px render was
+inspected. Existing font-scale checks at 10/12/16 also pass. This closes the track
+overflow defect, not complete card/Settings/native-material parity. Routine
+isolated reversible implementation; existing admission facts remain applicable.
+Full scripts/Validate.ps1 passed for device usage track fidelity; protected baseline source/assets diff remains empty.

@@ -24,7 +24,7 @@ sealed class DeviceCard : Border {
     readonly Avalonia.Controls.Shapes.Path icon;
     readonly List<(Metric Metric,Grid Row,TextBlock Label,TextBlock Value)> metrics=new();
     readonly TextBlock usage=new(){FontSize=12,Margin=new(0,3,0,2)};
-    readonly ProgressBar usageBar=new(){Height=3,MinHeight=3,Maximum=100};
+    readonly Grid usageBar=new(){Name="DeviceUsageTrack",Height=3,ColumnDefinitions=new("0,*")};
     readonly string? heroKey,usageKey;
     public DeviceCard(string key,UiLanguage language) {
         this.key=key;this.language=language;Name="Card"+key;
@@ -62,7 +62,8 @@ sealed class DeviceCard : Border {
             }
             metrics.Add((metric,row,label,value));
         }
-        usageBar.Foreground=Brush.Parse(accent);usageBar.Background=Brush.Parse("#203C5266");
+        usageBar.Background=Brush.Parse("#203C5266");
+        usageBar.Children.Add(new Border{Name="DeviceUsageFill",Background=Brush.Parse(accent),CornerRadius=new(2)});
         body.Children.Add(usage);body.Children.Add(usageBar);Child=body;
         SizeChanged+=(_,_)=>Reflow(Bounds.Width);
         PropertyChanged+=(_,e)=>{if(e.Property==ThemeVariantScope.ActualThemeVariantProperty)ApplyPalette();};ApplyPalette();
@@ -141,7 +142,9 @@ sealed class DeviceCard : Border {
             usage.Margin=new Thickness(0,details?8:3,0,2);
             var current=reading?.state=="LIVE"?reading.usage.GetValueOrDefault(usageKey):null;
             usage.Text=current!=null?language.T(usageKey.ToUpperInvariant())+" "+ReadingFormat.UsageText(current):usageKey=="ram"?"RAM "+snapshot.Memory:"VRAM —";
-            usageBar.Value=current?.percent??0;
+            double percent=current!=null&&double.IsFinite(current.percent)?Math.Clamp(current.percent,0,100):0;
+            usageBar.ColumnDefinitions[0].Width=new GridLength(percent,GridUnitType.Star);
+            usageBar.ColumnDefinitions[1].Width=new GridLength(100-percent,GridUnitType.Star);
             usageBar.IsVisible=current!=null;
         }
         IsVisible=key is "CPU" or "Memory" or "Network"||heroKey!=null&&Has(heroKey)||metrics.Any(x=>Has(x.Metric.Key))||reading?.usage.ContainsKey(usageKey??"")==true;

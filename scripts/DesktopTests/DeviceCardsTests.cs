@@ -49,6 +49,14 @@ static class DeviceCardsTests {
                 var position=text.TranslatePoint(new Point(),card)!.Value;
                 Check(position.X>=0&&position.X+text.Bounds.Width<=card.Bounds.Width+1,$"Device text stays inside card at {width}: {text.Text}");
             }
+            var usageTracks=originals.SelectMany(card=>card.GetVisualDescendants().OfType<Control>()).Where(x=>x.IsEffectivelyVisible&&(x is ProgressBar||x.Name=="DeviceUsageTrack")).ToArray();
+            Check(usageTracks.Length==2,"GPU and Memory retain visible usage tracks");
+            foreach(var card in originals)foreach(var bar in card.GetVisualDescendants().OfType<Control>().Where(x=>usageTracks.Contains(x))) {
+                foreach(var part in bar.GetVisualDescendants().OfType<Border>().Where(x=>x.IsEffectivelyVisible&&x.Bounds.Width>0)) {
+                    var position=part.TranslatePoint(new Point(),card)!.Value;
+                    Check(position.X>=0&&position.X+part.Bounds.Width<=card.Bounds.Width+1,$"Usage track stays inside card at {width}: x={position.X}, width={part.Bounds.Width}, card={card.Bounds.Width}");
+                }
+            }
             if(output!=null){using var frame=window.CaptureRenderedFrame();frame!.Save(Path.Combine(output,$"device-cards-{width}.png"),Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);}
         }
         window.Present(snapshot);
