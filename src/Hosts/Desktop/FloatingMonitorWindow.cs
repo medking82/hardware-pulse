@@ -175,12 +175,13 @@ public sealed class FloatingMonitorWindow : Window {
     void ColorIcon(Grid row) {
         var icon=(Avalonia.Controls.Shapes.Path)((Viewbox)row.Children[0]).Child!;
         var brush=Brush.Parse((row.Tag as string) switch {
-            "cpu"=>"#A5E7D5","gpu"=>"#A7CBFF","memory"=>"#E7C5A4","nvme"=>"#B9B7ED","airflow"=>"#A8D4D0","network"=>"#A9D8E8",_=>"#A5E7D5"});
+            "claude"=>"#E7B497","cpu"=>"#A5E7D5","gpu"=>"#A7CBFF","memory"=>"#E7C5A4","nvme"=>"#B9B7ED","airflow"=>"#A8D4D0","network"=>"#A9D8E8",_=>"#A5E7D5"});
         if(icon.Stroke!=null)icon.Stroke=brush;if(icon.Fill!=null)icon.Fill=brush;
     }
+    static string QuotaGroup(string key)=>key.StartsWith("quotaCodex:")?"quotaCodex":key.StartsWith("quotaClaude:")?"quotaClaude":key.StartsWith("quotaAntigravity:")?"quotaAntigravity":key;
     public void Present(MonitorSnapshot snapshot,bool peaks=false) {
         this.snapshot=snapshot;this.peaks=peaks;
-        var metrics=DesktopReadings.Create(snapshot,peaks,language).OrderBy(metric=>{int index=Array.IndexOf(metricOrder,metric.Key.StartsWith("quotaCodex:")?"quotaCodex":metric.Key);return index<0?int.MaxValue:index;}).ToArray();
+        var metrics=DesktopReadings.Create(snapshot,peaks,language).OrderBy(metric=>{int index=Array.IndexOf(metricOrder,QuotaGroup(metric.Key));return index<0?int.MaxValue:index;}).ToArray();
         var active=metrics.Select(x=>x.Key).ToHashSet();
         foreach(string key in readings.Keys.Where(key=>!active.Contains(key)).ToArray()){sensors.Children.Remove(readings[key].Row);readings.Remove(key);}
         for(int i=0;i<metrics.Length;i++) {
@@ -196,7 +197,7 @@ public sealed class FloatingMonitorWindow : Window {
                 row.SizeChanged+=(_,_)=>value.MaxWidth=Math.Max(1,(row.Bounds.Width-34)*.65);
                 item=(row,label,value);readings.Add(metric.Key,item);sensors.Children.Add(row);
             }
-            item.Row.IsVisible=metric.Key=="status"||metricVisibility.GetValueOrDefault(metric.Key,metric.Key.StartsWith("quotaCodex:")?metricVisibility.GetValueOrDefault("quotaCodex",true):true);item.Label.Text=metric.Title;item.Value.Text=metric.Value;
+            item.Row.IsVisible=metric.Key=="status"||metricVisibility.GetValueOrDefault(metric.Key,metricVisibility.GetValueOrDefault(QuotaGroup(metric.Key),true));item.Label.Text=metric.Title;item.Value.Text=metric.Value;
             ToolTip.SetTip(item.Label,metric.Title);ToolTip.SetTip(item.Value,metric.Value);
             int old=sensors.Children.IndexOf(item.Row);if(old!=i){sensors.Children.RemoveAt(old);sensors.Children.Insert(i,item.Row);}
         }

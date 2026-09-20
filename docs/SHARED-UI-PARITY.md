@@ -644,3 +644,264 @@ checks are separate from shared headless/native evidence. Routine isolated share
 presentation with unchanged privilege/data access boundaries; source-only rollback.
 Original WPF/assets and installed profiles remain protected. This is not full
 Desktop mode or stable release acceptance.
+
+### Provider recovery source audit
+
+Read-only inspection of the preserved owner checkout (main HEAD
+ a2867abfa8bb98c725c0201992dba8882f5b174d) found reusable adapter work rather than a
+need to recreate providers:
+
+- 7e96ee1 contains ClaudeFileLogin, ClaudeQuotaClient, QuotaJson, MacClaudeLogin,
+  MacClaudeKeychain and synthetic Claude/Keychain tests. Its QUOTA-INTEGRATION
+  document records a Native Review and a bounded restore-cleanup correction;
+  that historical statement is not acceptance of a new transplanted diff.
+- b579638 contains the modern Antigravity bridge: System.Management 10.0.0,
+  linked Windows provider sources, bounded QuotaData bridge and host composition.
+  Its Windows-only language-server discovery still requires the App to run.
+- WindowsClaudeLogin.cs is staged-added, while DesktopQuotaReaders.cs and
+  WindowsQuotaTests.cs are staged-modified in the owner checkout. These are
+  preserved user work, not committed implementation covered by those SHA refs.
+  Do not extract their working-tree contents as if they were committed baseline.
+
+Next integration must use immutable Git source blobs for the committed adapters,
+port only host wiring needed by the recovered 0.6.27 UI, and test independent
+provider enable/disable, cancellation, complete windows and Desktop projection.
+Do not cherry-pick the old UI or use historical review as new-diff approval.
+Windows credential fallback needs separate provenance and validation. Read-only
+credential acquisition/transport changes retain the quota risk/review boundary.
+The native-review owner is available at the configured local skill location.
+No credential store, live provider endpoint, owner checkout or installation was
+changed during this audit. No provider stability or release completion is claimed.
+
+### In-flight provider adapter restoration
+
+Bounded implementation scope: restore committed provider adapters and focused
+fixtures, then wire independent provider opt-ins into the existing shared panels
+and Desktop snapshot projection. No old MonitorWindow/UI source is transplanted.
+Protect original Native/Panel/assets, installed profiles, credential stores and
+all staged work in the owner checkout. No login/refresh/write or live credential
+probe is authorized by these fixtures. Rollback is removing this uncommitted port.
+The full quota diff must pass deterministic tests and independent review before
+commit/release; historical review is not a substitute.
+
+<!-- sop-risk-classification: {"facts":{"blast_radius":"shared","change_kind":"implementation","data_boundary":"sensitive","destructive":"no","failure_cost":"material","irreversibility":"reversible","operational_controls":"not_applicable","privilege_boundary":"changed","project_policy":"default","rollback":"easy","scope_knowledge":"known","uncertainty":"material","verification":"deterministic"},"formal_review":"required","kind":"risk-classification-assessment","reasons":{"formal_review":["high_risk_requires_review"],"risk":["privilege_boundary_change"]},"risk":"high","schema_version":2} -->
+
+Restored from immutable 7e96ee1 Git archive: Common/Modern ClaudeFileLogin,
+ClaudeQuotaClient, QuotaJson; MacClaudeLogin/MacClaudeKeychain; ClaudeQuotaTests,
+KeychainTests and the SDK ABI fixture. MacAdapterTests Program runs both restored
+synthetic suites. `dotnet run --project scripts/MacAdapterTests/Pulse.Mac.Tests.csproj`
+passes on Windows x64, including existing Codex transport regressions. This proves
+portable fixture behavior, not native Mac Keychain compatibility or SDK ABI.
+The new adapters are not wired into the host yet and remain uncommitted pending
+integration/review. The archive and extracted reference are ignored vendor evidence.
+A first source-copy attempt exposed that invoke-hidden writes Console output,
+not pipeline objects; no source files were created by that failed capture. Git
+archive provided the exact immutable files instead. Missing test assets were
+resolved with normal project restore before successful fixture execution.
+
+### Desktop editor theme ownership regression
+
+Opening Desktop from a Light App overwrote FloatingMonitorWindow's fixed Dark
+editor theme; changing App theme repeated that overwrite. The Settings regression
+failed before the repair (`Desktop editor keeps dark theme when opened from Light
+App`). MonitorWindow now leaves Desktop theme ownership with FloatingMonitorWindow.
+The test covers opening under Light and switching to System while Desktop is open.
+Shared headless and Windows native-session suites both pass after the two call-site
+corrections. This is a bounded presentation repair, not full glass/UI acceptance.
+Original WPF, installed profiles and in-flight provider restoration are unchanged.
+
+### Desktop quick action enters monitoring rather than editing
+
+Original Native/LayoutSettings.EnterDesktop locks Desktop and hides the App. Shared
+Monitor previously sent the quick action to OpenFloatingMonitor, an editor entry.
+The native regression failed on the missing lock/hide transition before repair.
+The quick action now calls EnterDesktop, opening the existing singleton and hiding
+App only after SetLocked(true) succeeds. Tray editing remains an unlocked entry.
+Unsupported pass-through retains the visible owner and interactive editor.
+Headless and Windows native-session suites pass: quick entry, same-window tray
+restore, unlocked editing, Return, owner shutdown and native input flags. No
+installed profile, original WPF source, quota adapter or release state changes.
+This isolated reversible presentation transition classified routine with the
+risk-classification script; no independent review required for this transition.
+Persisted Desktop startup and wallpaper-layer parity remain open.
+
+### Persistent Desktop mode lifecycle
+
+Shared PreviewSettings now owns desktopEnabled (default false) and desktopLocked
+(default true), mirroring the original Shell mode keys without touching installed
+WPF profiles. MonitorWindow restores the saved mode once on first Opened, retains
+one sampling lifetime, and saves editor/lock transitions. Successful Done hides
+the owner; Return or editor close disables Desktop and restores the owner. Owner
+shutdown cancels first so child closure preserves the selected mode for restart.
+Unsupported pass-through restores an interactive editor and visible App.
+
+DesktopModeTests uses an isolated temporary profile and synthetic source. Its
+startup assertion failed before implementation. Headless and Windows native-session
+suites now pass startup restore, locked/edit state, Done, Return persistence,
+editor-close recovery, owner shutdown and subsequent reopen. This is ordinary
+bounded UI/settings state, no credential or privilege-boundary changes; deterministic
+risk-classification reported routine / formal_review not_required. Source-only
+rollback; preserved WPF/assets, installed profile and pending quota port untouched.
+Wallpaper attachment, full tray/settings parity and visual acceptance remain open.
+Full scripts/Validate.ps1 also passed after the Desktop lifecycle changes; existing CS0649 DTO warnings remain. This validates the WPF baseline separately from the shared headless/native suites.
+
+### Desktop Settings mode controls
+
+Restored the original visible Desktop Mode checkbox and Edit Desktop Position
+entry, with the original editing instruction and both Chinese translations.
+The original hidden DesktopLocked control was deliberately not made visible;
+Done remains on the Desktop editor. One settings-owned enabled state synchronizes
+quick/tray entry, Settings disable, Return and editor closure without creating a
+second window. Regression first failed on the missing DesktopEnabled control;
+headless and Windows native-session suites now pass mode enable/disable and
+external-entry/Return synchronization. desktop-settings.png was visually inspected.
+
+During validation the Settings fixture exposed a timer race: its manually supplied
+network sample could be replaced by background demo polling before the unit
+assertion. It now supplies readings and initial interfaces explicitly, retaining
+all assertions; worker lifecycle remains covered by the main Desktop suite.
+A failed intermediate build from a duplicated edit anchor and an initial fixture
+setup timeout were corrected before the passing runs. Full Settings section
+layout, wallpaper layer, shortcuts and visual parity remain open. No release.
+
+### Desktop Settings sections and responsive layout
+
+Replaced the flat Desktop list with original Layout / Appearance / Readings
+sections, expanded by default. SettingsSections uses the existing Core ColumnLayout
+(350 DIP minimum, 10 DIP gap, hysteresis, up to three columns) and original
+independent-column placement. Expander plates reproduce Panel.xaml rounded hover,
+focus border, chevron and lower separator; Space toggles the existing section
+without reconstructing controls. Slider values moved beside labels as in WPF.
+Headless checks verify 240/840/1200 widths, section order, retained values after
+collapse/reopen and immediate localization. Existing native mode/settings suite
+also passes. The 240 and 1200 renders were inspected; full Settings parity remains
+open. Initial two-column fixture at 800 exposed the retained Core hysteresis
+(724 available < 726 threshold), so the test now uses an unambiguous width.
+Reorder fixture now translates list coordinates into ScrollViewer content rather
+than assuming its former direct-child Y coordinate; pointer reorder still passes.
+The bounded shared presentation change retains ordinary reversible UI state and
+no authentication, installed-profile or WPF modifications. No release performed.
+
+### Shared Settings section renderer across categories
+
+General, App Appearance / Window, App Cards and AI Quota now use the same original
+section template and responsive layout as Desktop. App font/opacity values align
+beside their labels; Window owns pin/position lock controls. Category indices,
+control instances, language, quota opt-in and persistence contracts stay intact.
+Headless tests verify the exact available section titles and bounds at 360/840,
+keyboard collapse, saved values, drag reorder and sticky category/Back navigation.
+The navigation fixture now identifies SettingsSections rather than its removed
+StackPanel wrapper. App Appearance 840 and App Cards 360 renders were inspected.
+Windows native-session and full scripts/Validate.ps1 pass. Existing CS0649 DTO
+warnings remain. Original Native/Panel/assets diff is empty. This completes only
+the available section structure, not missing FPS, hardware-name/color controls,
+wallpaper layer or release acceptance. UI source/tests can be committed separately
+from the pending high-risk provider restoration and its required review.
+
+### Claude shared presentation integration (uncommitted, review pending)
+
+Generalized the existing CodexQuotaPanel to QuotaPanel with an injected reader and
+validated Codex/Claude provider identity. DesktopQuotaReaders now owns platform
+composition, preserving the Codex adapter route. Claude uses the restored immutable
+ClaudeQuotaClient with MacClaudeLogin on macOS and ClaudeFileLogin elsewhere.
+No token refresh, login, credential writes or real-account probes were performed.
+Windows Credential Manager fallback remains outside this port; no stability claim.
+
+Monitor/Settings expose independent remembered Claude opt-in. Desktop receives the
+same published result, with all windows, provider visibility/order, unavailable
+values, current quota during Session Max and immediate disable/failure clearing.
+Claude SVG is the existing asset, newly included as a shared resource. Existing
+Settings section layout remains the owner; no historical UI was transplanted.
+
+The quota lifecycle fixture now runs for both providers: no reads while disabled,
+additional windows, unknown availability, one reader, safe failure replacement,
+cancellation, late-result rejection and dispose. Owner integration tests prove
+Claude enable/disable leaves Codex results intact and persists separately. Shared
+headless and Windows native-session pass; desktop-claude-quota.png was inspected.
+MacAdapterTests pass synthetic Claude HTTP and Keychain fixtures on Windows, not
+native Mac acceptance. The full restored credential boundary remains high risk
+under the earlier classification and must receive independent review before
+commit/release. Antigravity bridge integration and real-account acceptance remain.
+
+### Antigravity shared presentation integration (uncommitted, review pending)
+
+Recovered AntigravityQuota, QuotaProviders, modern QuotaData bridge and
+WindowsQuotaTests from immutable b579638 Git archive. Modern Windows now links
+those established sources with pinned System.Management 10.0.0; normal restore
+updated the affected lockfiles. QuotaJson uses the historical nullable directive.
+Original Native/Panel/assets remain untouched; existing adapter source differences
+are the historical cancellation, safe-status and modern-compiler compatibility fixes.
+
+Antigravity joins QuotaPanel, host-only composition, independent remembered opt-in
+and the shared Desktop snapshot projection. Unsupported platforms report an explicit
+unavailable source. The Windows adapter still requires the running Antigravity App;
+no independent cloud-login or background service is claimed or introduced.
+All three provider lifecycle fixtures pass (synthetic only), including additional
+windows, unknown values, failure clearing, disable cancellation and late results.
+Windows bridge fixtures verify bounded parsing, cancellation and current-user WMI
+ownership without reading login stores. Owner native-session checks verify the
+Antigravity opt-in is separate, disabling clears its Desktop rows and retains other
+providers, and its preference persists. Full scripts/Validate.ps1 passes; existing
+CS0649 warnings remain. Desktop Antigravity render was inspected.
+
+Review preparation instructions have been read: admission, mode selection, packet
+preparation, quota selection and potential Antigravity/Pi controls. No reviewer has
+been launched. Balanced preparation requires this host's established Token Monitor
+snapshot/bindings paths; none were found in the bounded repo handoff/docs search.
+Do not invent bindings, discover credentials, or silently switch to legacy auto.
+The high-risk quota diff remains uncommitted pending this preparation and independent
+review, plus real account/platform acceptance. Other UI/release gaps remain open.
+
+### Focused quota presentation polish
+
+Following the user's apple-design request, quota cards now use the recovered device
+card palette, 12 DIP padding, a compact provider header, aligned label/value rows and
+3 DIP tracks. Text inherits the App font preference; the provider heading scales with
+it. Refresh remains a normal keyboard-focusable button. This is presentation-only:
+it adds no blur/capture loop and does not change provider scheduling or login behavior.
+The full Desktop headless suite passes, including new checks for all three providers
+at 240 DIP width, 16 DIP text and Dark theme. Narrow Dark renders were generated and
+the Codex render inspected. This evidence covers layout, not native glass acceptance.
+The installed WPF build and personal profile were not modified.
+
+### Original quota display selection
+
+Native/QuotaView.cs and Panel.xaml establish the original contract: App defaults to
+essential windows, can opt into all available windows, and Desktop always consumes
+essential windows. Shared Settings now restores that choice with the `quotaFull`
+preference, including both Chinese catalogs. QuotaPanel switches its presentation
+from the existing result without new provider IO; DesktopReadings uses Windows only.
+This supersedes the earlier all-pools Desktop fixture expectation. The three-provider
+fixtures exercise both directions of the switch, essential Desktop under Session Max,
+and unchanged cancellation/disable behavior. Headless checks pass. Settings persistence
+and shared control wiring are also exercised by the native-session fixture.
+
+### Quota freshness parity
+
+Shared QuotaPanel previously skipped every tick when the provider returned the same
+object. Its Live percentage could therefore remain displayed past the original WPF
+ten-minute freshness boundary while a refresh was pending. Both shared views now
+use QuotaPresentation's time-based status. An expired result loses its percentage and
+progress bar; the owner publishes a sanitized stale status to Desktop without another
+provider request. A fresh completion restores the readings. Non-Live results cannot
+display live progress even if a provider supplies retained windows.
+
+Synthetic clock/blocked-reader fixtures pass for all three providers at exactly ten
+minutes, one tick beyond it, and recovery, with exactly two reads. The first full
+headless run exposed a localization fixture missing its observation timestamp; the
+fixture now supplies a current timestamp rather than weakening freshness behavior.
+The subsequent complete headless suite and diff whitespace check pass. No credential,
+network, installed profile or provider acquisition behavior changed in this correction.
+Its deterministic classification is routine; this does not waive the independent
+review still required for the surrounding high-risk provider restoration.
+
+### Provider review preparation
+
+Repository Validate.ps1 passes on this quota integration, including preserved WPF,
+hardware/FPS, startup and updater regression. Existing updater CS0649 warnings remain.
+MacAdapterTests passes on Windows x64 with synthetic Claude transport and Keychain
+implementations; it is not macOS native ABI or real-account acceptance. The protected
+src/Native, src/Panel.xaml and assets paths remain byte-identical to the 0.6.27 baseline.
+The default balanced review cannot yet be prepared because the machine-local bound
+snapshot/bindings sources have not been located. A route-selection question is pending;
+no reviewer has been launched and no review has been claimed complete.

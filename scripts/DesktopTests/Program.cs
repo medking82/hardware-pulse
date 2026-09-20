@@ -70,7 +70,7 @@ static class Tests {
         QuotaPanelTests.Run(args.Length==1?args[0]:null);
         ReorderHandleTests.Run();DesktopMetricPreferenceTests.Run(args.Length==1?args[0]:null);DesktopGeometryTests.Run();SettingsTests.Run(args.Length==1?args[0]:null);
         AppMaterialTests.Run();DesktopModeTests.Run();
-        WindowsSnapshotTests.Run();
+        WindowsSnapshotTests.Run();WindowsQuotaTests.Run();
         DeviceCardsTests.Run(args.Length==1?args[0]:null);
         CardPreferenceTests.Run(args.Length==1?args[0]:null);
         NavigationTests.Run(args.Length==1?args[0]:null);SettingsSectionTests.Run(args.Length==1?args[0]:null);

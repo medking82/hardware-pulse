@@ -70,7 +70,7 @@ static class LocalizationTests {
             Phase("construct reopened monitor");var reopened=new MonitorWindow(source,start:false,store:store);Check(reopened.Title=="Pulse · 桌面預覽版","Saved language restored");
             Phase("show reopened monitor");reopened.Show();Phase("close reopened monitor");reopened.Close();
             var quotaLanguage=new UiLanguage("en");int reads=0;
-            using var quota=new CodexQuotaPanel(true,_=>{Interlocked.Increment(ref reads);return new HardwarePulse.QuotaReading{Provider="Codex",Status="Live",Windows=new(){new(){Label="Weekly",Remaining=45.5}}};},language:quotaLanguage);
+            using var quota=new QuotaPanel(true,_=>{Interlocked.Increment(ref reads);return new HardwarePulse.QuotaReading{Provider="Codex",Status="Live",Observed=DateTimeOffset.UtcNow,Windows=new(){new(){Label="Weekly",Remaining=45.5}}};},language:quotaLanguage);
             Phase("show quota host");var host=new Window{Content=quota,Width=360,Height=500};host.Show();Phase("enable synthetic quota");quota.QuotaEnabled=true;
             bool Has(string text)=>host.GetVisualDescendants().OfType<TextBlock>().Any(x=>x.Text==text);
             Phase("await synthetic quota");Until(()=>Has("45.5% left"));Phase("switch quota language");quotaLanguage.Select("zh-CN");

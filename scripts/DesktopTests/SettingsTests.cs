@@ -24,6 +24,8 @@ static class SettingsTests {
             Check(value.Width==240&&value.Height==1600&&value.Theme=="System"&&value.Codex,"Settings normalize known values");
             value.Width=700;value.Height=650;value.Details=true;Check(store.Save(value),"Atomic save");
             Check(new PreviewSettingsStore(path).Load().Details,"Details preference roundtrip");
+            Check(!fresh.QuotaFull,"Original essential quota default");
+            value.QuotaFull=true;Check(store.Save(value)&&new PreviewSettingsStore(path).Load().QuotaFull,"All quota preference roundtrip");
             using(var doc=JsonDocument.Parse(File.ReadAllText(path)))Check(doc.RootElement.GetProperty("future").GetProperty("keep").GetInt32()==7,"Unknown fields retained");
             if(!OperatingSystem.IsWindows())Check((File.GetUnixFileMode(path)&(UnixFileMode.GroupRead|UnixFileMode.OtherRead|UnixFileMode.GroupWrite|UnixFileMode.OtherWrite))==0,"Settings private permissions");
             foreach(string bad in new[]{"{broken","{\"schema\":2,\"codex\":true}","{\"schema\":\"invalid\"}",new string(' ',65537)}) {
@@ -39,6 +41,7 @@ static class SettingsTests {
             var fixtureSource=new MonitorSource(true);
             // Manual readings keep preference assertions independent of the sampling timer.
             var window=new MonitorWindow(fixtureSource,start:false,store:new PreviewSettingsStore(path));window.Show();window.Present(fixtureSource.Poll(null));window.PresentInterfaces(fixtureSource.Interfaces());
+            var quotaPanels=window.GetVisualDescendants().OfType<QuotaPanel>().ToArray();Check(quotaPanels.Length==3,"All three provider panels are present");
             var main=window.GetVisualDescendants().OfType<Button>().Single(x=>x.Name=="OpenSettings");main.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
             Dispatcher.UIThread.RunJobs();
             var groups=window.GetVisualDescendants().OfType<TabControl>().Single(x=>x.Name=="SettingsTabs");
@@ -102,14 +105,34 @@ static class SettingsTests {
             Check(window.GetVisualDescendants().OfType<TextBlock>().Any(x=>x.Text=="8 Mbit/s")&&desktop.GetVisualDescendants().OfType<TextBlock>().Any(x=>x.Text=="8 Mbit/s"),"Session Max uses raw peak in selected unit in both views");
             window.GetVisualDescendants().OfType<Button>().Single(x=>x.Name=="OpenSettings").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));Dispatcher.UIThread.RunJobs();
             groups.SelectedIndex=4;Dispatcher.UIThread.RunJobs();
+            var display=window.GetVisualDescendants().OfType<ComboBox>().Single(x=>x.Name=="QuotaDisplay");
+            Check(display.SelectedIndex==1,"App quota display restores saved All choice");
+            display.SelectedIndex=0;Dispatcher.UIThread.RunJobs();
+            Check(quotaPanels.All(x=>!x.ShowAll),"Essential mode applies to every provider");
+            display.SelectedIndex=1;Dispatcher.UIThread.RunJobs();
+            Check(quotaPanels.All(x=>x.ShowAll),"All mode applies to every provider");
+            var claude=window.GetVisualDescendants().OfType<CheckBox>().Single(x=>x.Name=="EnableClaudeQuota");
+            Check(claude.IsChecked==false,"Claude remains independently opt-in");claude.IsChecked=true;
+            Until(()=>desktop.GetVisualDescendants().OfType<TextBlock>().Any(x=>x.Text?.StartsWith("63.0% left")==true));
+            claude.IsChecked=false;
+            Check(!desktop.GetVisualDescendants().OfType<Grid>().Any(x=>x.Name?.StartsWith("DesktopMetricquotaClaude")==true),"Claude disable clears Desktop immediately");
+            Check(desktop.GetVisualDescendants().OfType<Grid>().Any(x=>x.Name?.StartsWith("DesktopMetricquotaCodex")==true),"Claude disable preserves Codex results");
+            claude.IsChecked=true;
+            var antigravity=window.GetVisualDescendants().OfType<CheckBox>().Single(x=>x.Name=="EnableAntigravityQuota");
+            Check(antigravity.IsChecked==false,"Antigravity remains independently opt-in");antigravity.IsChecked=true;
+            Until(()=>desktop.GetVisualDescendants().OfType<TextBlock>().Any(x=>x.Text?.StartsWith("48.0% left")==true));
+            antigravity.IsChecked=false;
+            Check(!desktop.GetVisualDescendants().OfType<Grid>().Any(x=>x.Name?.StartsWith("DesktopMetricquotaAntigravity")==true),"Antigravity disable clears Desktop immediately");
+            Check(desktop.GetVisualDescendants().OfType<Grid>().Any(x=>x.Name?.StartsWith("DesktopMetricquotaCodex")==true)&&claude.IsChecked==true,"Antigravity disable leaves other providers enabled");antigravity.IsChecked=true;
             var quota=window.GetVisualDescendants().OfType<CheckBox>().Single(x=>x.Name=="EnableCodexQuota");Check(quota.IsChecked==true,"Quota choice restored with explicit demo reader");quota.IsChecked=false;
             Check(!desktop.GetVisualDescendants().OfType<Grid>().Any(x=>x.Name?.StartsWith("DesktopMetricquotaCodex")==true),"Owner propagates disabled quota to Desktop");
             if(output!=null){window.Width=360;Dispatcher.UIThread.RunJobs();using var frame=window.CaptureRenderedFrame();frame!.Save(Path.Combine(output,"settings-360.png"),Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);}
             window.Close();Until(()=>window.Sampling.IsCompleted);
-            var saved=new PreviewSettingsStore(path).Load();Check(saved.Theme=="Dark"&&!saved.Codex&&saved.Network=="missing-interface","Choices survive close");
+            var saved=new PreviewSettingsStore(path).Load();Check(saved.Theme=="Dark"&&!saved.Codex&&saved.Claude&&saved.Antigravity&&saved.Network=="missing-interface","Choices survive close");
             Check(saved.Topmost&&saved.LockPosition,"Window preferences survive close");
             Check(saved.FontSize==16,"Font size persists");
             Check(saved.NetworkUnit=="Mbit/s","Network unit persists");
+            Check(saved.QuotaFull,"App quota display survives close");
             Check(saved.DesktopBackgroundOpacity==88&&saved.DesktopOverlayOpacity==72&&saved.DesktopTextOpacity==80,"Independent Desktop opacity preferences persist");
             Check(saved.DesktopFontSize==20&&saved.DesktopSpacing==24&&saved.DesktopColumns==2&&saved.DesktopTopmost,"Desktop preferences persist");
             var reopened=new MonitorWindow(new MonitorSource(true),start:false,store:new PreviewSettingsStore(path));

@@ -1,7 +1,11 @@
+#if NET
+#pragma warning disable CA1416 // Host checks Windows before invoking this adapter.
+#endif
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Management;
+using EnumerationOptions = System.Management.EnumerationOptions;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
 using System.Text.RegularExpressions;
@@ -26,6 +30,7 @@ namespace HardwarePulse {
         }
         internal static object Read(CancellationToken cancel){
             string sid=WindowsIdentity.GetCurrent().User.Value;
+            string failure="Open Antigravity to read quota";
             using(var deadline=CancellationTokenSource.CreateLinkedTokenSource(cancel)){
                 deadline.CancelAfter(TimeSpan.FromSeconds(25));
                 using(var search=new ManagementObjectSearcher("SELECT ProcessId,CommandLine,ExecutablePath FROM Win32_Process WHERE Name LIKE 'language_server%'") {Options=new EnumerationOptions{Timeout=TimeSpan.FromSeconds(5),ReturnImmediately=false}})
@@ -39,11 +44,11 @@ namespace HardwarePulse {
                         deadline.Token.ThrowIfCancellationRequested();if(!Ports(pid).Contains(port))continue;
                         try{var body=QuotaProviders.Request(scheme+"://127.0.0.1:"+port+"/exa.language_server_pb.LanguageServerService/RetrieveUserQuotaSummary",new Dictionary<string,string>{{"x-codeium-csrf-token",token},{"connect-protocol-version","1"}},"{\"forceRefresh\":true}",deadline.Token,true);
                             if(QuotaDecoder.Decode("Antigravity",body,DateTimeOffset.UtcNow).Status=="Live")return body;
-                        }catch(QuotaFailure){}
+                        }catch(QuotaFailure error){if(error.Status=="Login required")failure=error.Status;}
                     }
                 }
             }
-            throw new QuotaFailure("Open Antigravity to read quota");
+            throw new QuotaFailure(failure);
         }
     }
 }

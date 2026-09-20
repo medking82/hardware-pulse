@@ -5,6 +5,8 @@ public sealed record MonitorSnapshot(string Cpu,string Memory,string Download,st
     // Core readings are immutable to consumers; peaks are copied at publication.
     public Reading? Hardware {get;init;}
     public QuotaReading? CodexQuota {get;init;}
+    public QuotaReading? ClaudeQuota {get;init;}
+    public QuotaReading? AntigravityQuota {get;init;}
     public string? NetworkName {get;init;}
     public IReadOnlyDictionary<string,double> HardwarePeaks {get;init;}=new Dictionary<string,double>();
     public IReadOnlyList<HardwareSensorSnapshot> Sensors {get;init;}=[];

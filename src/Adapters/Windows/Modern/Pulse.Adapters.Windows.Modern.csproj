@@ -6,6 +6,9 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="System.Management" Version="10.0.0" />
+    <Compile Include="../AntigravityQuota.cs;../QuotaProviders.cs" />
+    <Compile Include="../../Common/Modern/QuotaJson.cs" Link="QuotaJson.cs" />
     <Compile Include="../Models.cs;../SensorProfile.cs" />
     <Compile Include="../../../Native/Backdrop.cs" Link="Backdrop.cs" />
     <Compile Include="../WindowsSystemReadings.cs" Link="WindowsSystemReadings.cs" />

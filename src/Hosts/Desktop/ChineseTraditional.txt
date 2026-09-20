@@ -145,3 +145,18 @@ Desktop Layout|桌面佈局
 Desktop Appearance|桌面外觀
 Desktop Readings|桌面讀數
 Window|視窗
+Show Claude quota|顯示 Claude 配額
+Claude quota|Claude 配額
+Uses your existing Claude Code login. Refreshes every five minutes while enabled. Login and token refresh stay in Claude Code.|使用既有的 Claude Code 登入。啟用時每五分鐘重新整理。登入與權杖更新仍由 Claude Code 完成。
+Sign in through Claude Code, then refresh here.|請在 Claude Code 中登入，然後在此重新整理。
+Show Antigravity quota|顯示 Antigravity 配額
+Antigravity quota|Antigravity 配額
+Reads quota from your running Antigravity app on Windows. Refreshes every five minutes while enabled. Login stays in Antigravity.|讀取 Windows 上執行中的 Antigravity 應用程式配額。啟用時每五分鐘重新整理。登入仍由 Antigravity 完成。
+Sign in through Antigravity, then refresh here.|請在 Antigravity 中登入，然後在此重新整理。
+Antigravity source unavailable on this platform|此平台尚無 Antigravity 資料來源
+Open Antigravity to read quota|開啟 Antigravity 以讀取配額
+App quota display|App 配額顯示
+Essential quotas|主要配額
+All available quotas|全部可用配額
+Desktop keeps essential quotas.|Desktop 保留主要配額。
+Quota stale|配額資料已過期

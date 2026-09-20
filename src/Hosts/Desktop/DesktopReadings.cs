@@ -26,16 +26,19 @@ internal static class DesktopReadings {
         foreach(string signal in new[]{"wifiSignal","netSignal"})if(Has(signal))Add(signal,language.T("Wi-Fi Signal"),Value(signal,"%",current:true),"network");
         Add("netDown",language.T("Download"),peaks?snapshot.PeakDownload:snapshot.Download,"network");
         Add("netUp",language.T("Upload"),peaks?snapshot.PeakUpload:snapshot.Upload,"network");
-        if(snapshot.CodexQuota is { } quota) {
-            var windows=quota.AllWindows.Count>0?quota.AllWindows:quota.Windows;
-            if(quota.Status!="Live"||windows.Count==0)Add("quotaCodex","Codex",language.T(quota.Status),"codex");
+        void Quota(QuotaReading? quota,string provider,string icon) {
+            if(quota==null)return;string key="quota"+provider;
+            var windows=quota.Windows;
+            string state=QuotaPresentation.Status(quota,DateTimeOffset.UtcNow);
+            if(state!="Live"||windows.Count==0)Add(key,provider,language.T(state),icon);
             else for(int i=0;i<windows.Count;i++) {
                 var window=windows[i];
                 string value=window.Remaining.HasValue?string.Format(language.T("{0}% left"),window.Remaining.Value.ToString("F1")):"—";
                 if(window.Reset.HasValue)value+=" · "+string.Format(language.T("Resets {0}"),window.Reset.Value.ToLocalTime().ToString("g"));
-                Add("quotaCodex:"+i,"Codex · "+language.T(window.Label),value,"codex");
+                Add(key+":"+i,provider+" · "+language.T(window.Label),value,icon);
             }
         }
+        Quota(snapshot.CodexQuota,"Codex","codex");Quota(snapshot.ClaudeQuota,"Claude","claude");Quota(snapshot.AntigravityQuota,"Antigravity","antigravity");
         foreach(var sensor in peaks?snapshot.PeakSensors:snapshot.Sensors)Add("sensor:"+sensor.Id,sensor.Label,sensor.Value,"airflow");
         if(hardware!=null&&hardware.state!="LIVE")Add("status",language.T(hardware.state),language.T("Hardware readings unavailable. Waiting for the collector."),"live");
         return result;
