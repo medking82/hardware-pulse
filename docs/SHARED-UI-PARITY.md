@@ -490,3 +490,36 @@ and multi-platform interaction remain unverified; this is not complete drag/UI
 parity. Original WPF/CardDrag/assets, installed profile, quota and samplers are
 unchanged. Routine reversible presentation boundary; rollback source-only.
 Full scripts/Validate.ps1 passed for shared reorder handles.
+
+### Windows native reorder acceptance
+
+Verified against local HEAD 2bc7b5198704edc83ca5c130dbee5f9238320761 in the
+isolated --demo session. Actual Windows pointer input moved Desktop CPU from
+first position below Memory, producing GPU, VRAM, Memory, CPU, Drive 1, Drive 2.
+Navigating to App Cards showed its independent GPU, Memory, CPU, NVMe, Airflow,
+Network order; returning to Desktop retained the new metric order and scroll
+position. No personal profile was used: demo explicitly reported session-only
+changes. The demo window was closed through its titlebar.
+
+This closes native pointer-drop/navigation acceptance for these two Settings
+lists only. Native Esc cancellation, edge auto-scroll, restart persistence,
+original motion, full 0.6.27 visual fidelity and other platforms are not established
+by this session. Existing automated persistence/cancellation checks remain
+separate evidence. No source/runtime change or release was made in this check.
+
+### Original App geometry
+
+Panel.xaml establishes the 0.6.27 App default of 280x650 and minimum 240x340 DIP.
+Shared new/missing-size profiles now use those values; existing valid saved
+geometry remains unchanged. PreviewSettingsStore and MonitorWindow own this
+bounded change. Original WPF, Desktop geometry, installed profiles, samplers and
+release state remain protected; rollback is source-only. The existing routine
+classification applies to this isolated reversible presentation change.
+
+Headless tests now exercise device text bounds at 240/280/360/800/1200 DIP and
+font sizes 10/12/16. Keyboard Settings/Back, fixed navigation, retained cards and
+live readings are exercised at the original minimum 240x340. Settings tests check
+new-profile defaults and normalization. Headless and Windows native-session
+regressions pass. The 240px device render and minimum-size Settings render were
+inspected; this is geometry acceptance, not complete original styling parity.
+Full scripts/Validate.ps1 passed for original App geometry. Protected WPF/native/assets diff remains empty against the 0.6.27 baseline.

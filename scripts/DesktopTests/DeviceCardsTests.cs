@@ -13,7 +13,7 @@ static class DeviceCardsTests {
             names={{"CPU","Test CPU"},{"GPU","Test GPU"}},usage={{"vram",new Usage{used=2,total=8,percent=25}},{"ram",new Usage{used=8,total=16,percent=50}}}};
         reading.available=reading.values.Keys.ToDictionary(x=>x,_=>true);
         var snapshot=new MonitorSnapshot("24.0%","8.0 / 16.0 GiB · 50.0%","1.0 KiB/s","2.0 KiB/s",true,true){Hardware=reading,HardwarePeaks=reading.values.ToDictionary(x=>x.Key,x=>x.Value+10)};
-        var window=new MonitorWindow(new MonitorSource(true),start:false);window.Show();window.Present(snapshot);Dispatcher.UIThread.RunJobs();
+        var window=new MonitorWindow(new MonitorSource(true),start:false){Width=800,Height=560};window.Show();window.Present(snapshot);Dispatcher.UIThread.RunJobs();
         var cards=window.GetVisualDescendants().OfType<Grid>().Single(x=>x.Name=="ReadingCards");
         var originals=cards.Children.ToArray();
         Check(originals.Select(x=>x.Name).SequenceEqual(new[]{"CardCPU","CardGPU","CardMemory","CardNVMe","CardAirflow","CardNetwork"}),"Original WPF device hierarchy and ordering");
@@ -41,10 +41,10 @@ static class DeviceCardsTests {
         Dispatcher.UIThread.RunJobs();
         Check(Text("Core Voltage"),"Details reveals original full hardware labels");
         Check(CpuText("Vcore · Motherboard").TranslatePoint(new Point(),cpu)!.Value.Y>CpuText("Utilization").TranslatePoint(new Point(),cpu)!.Value.Y,"Details restores full-width rows");
-        foreach(int width in new[]{360,800,1200}) {
+        foreach(int width in new[]{240,280,360,800,1200}) {
             window.Width=width;window.Height=900;Dispatcher.UIThread.RunJobs();
             AvaloniaHeadlessPlatform.ForceRenderTimerTick();
-            Check(cards.ColumnDefinitions.Count==(width==360?1:width==800?2:3),"One to three device columns");
+            Check(cards.ColumnDefinitions.Count==(width<=360?1:width==800?2:3),"One to three device columns");
             foreach(var card in originals)foreach(var text in card.GetVisualDescendants().OfType<TextBlock>().Where(x=>x.IsEffectivelyVisible)) {
                 var position=text.TranslatePoint(new Point(),card)!.Value;
                 Check(position.X>=0&&position.X+text.Bounds.Width<=card.Bounds.Width+1,$"Device text stays inside card at {width}: {text.Text}");
@@ -64,7 +64,7 @@ static class DeviceCardsTests {
         foreach(int size in new[]{10,12,16}) {
             Click("OpenSettings");window.GetVisualDescendants().OfType<TabControl>().Single(x=>x.Name=="SettingsTabs").SelectedIndex=1;Dispatcher.UIThread.RunJobs();
             window.GetVisualDescendants().OfType<Slider>().Single(x=>x.Name=="AppFontSize").Value=size;Click("Back");
-            foreach(int width in new[]{360,800,1200}) {
+            foreach(int width in new[]{240,280,360,800,1200}) {
                 window.Width=width;window.Height=900;Dispatcher.UIThread.RunJobs();
                 Check(Math.Abs(CpuText("CPU").FontSize-13.0*size/12)<.01,"Card typography follows original font scale");
                 foreach(var card in originals)foreach(var text in card.GetVisualDescendants().OfType<TextBlock>().Where(x=>x.IsEffectivelyVisible)) {

@@ -17,9 +17,11 @@ static class SettingsTests {
         string directory=Directory.CreateTempSubdirectory("pulse-preview-settings-").FullName;
         try {
             string path=Path.Combine(directory,"settings.json");
+            var fresh=new PreviewSettingsStore(path).Load();
+            Check(fresh.Width==280&&fresh.Height==650,"New profiles retain original WPF widget geometry");
             File.WriteAllText(path,"{\"schema\":1,\"width\":-999,\"height\":99999,\"theme\":\"bad\",\"network\":\"missing-interface\",\"codex\":true,\"future\":{\"keep\":7}}");
             var store=new PreviewSettingsStore(path);var value=store.Load();
-            Check(value.Width==360&&value.Height==1600&&value.Theme=="System"&&value.Codex,"Settings normalize known values");
+            Check(value.Width==240&&value.Height==1600&&value.Theme=="System"&&value.Codex,"Settings normalize known values");
             value.Width=700;value.Height=650;value.Details=true;Check(store.Save(value),"Atomic save");
             Check(new PreviewSettingsStore(path).Load().Details,"Details preference roundtrip");
             using(var doc=JsonDocument.Parse(File.ReadAllText(path)))Check(doc.RootElement.GetProperty("future").GetProperty("keep").GetInt32()==7,"Unknown fields retained");

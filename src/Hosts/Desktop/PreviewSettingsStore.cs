@@ -9,7 +9,7 @@ public sealed class PreviewSettings {
     public Dictionary<string,bool> DesktopVisible=new(StringComparer.Ordinal);
     public List<string> CardOrder=new(CardKeys);
     public HashSet<string> HiddenCards=new(StringComparer.Ordinal);
-    public double Width=800,Height=560;
+    public double Width=280,Height=650;
     public string Theme="Dark";
     public double AppOpacity=85;
     public double FontSize=12;
@@ -53,7 +53,7 @@ public sealed class PreviewSettingsStore {
                 else if(field.Value.ValueKind==JsonValueKind.True||field.Value.ValueKind==JsonValueKind.False)map[field.Key]=field.Value.GetBoolean();
             }
             var values=new SettingsValues(map);
-            settings.Width=values.Number("width",800,360,2400);settings.Height=values.Number("height",560,400,1600);
+            settings.Width=values.Number("width",280,240,2400);settings.Height=values.Number("height",650,340,1600);
             string theme=values.Text("theme","Dark");settings.Theme=theme is "Light" or "Dark"?theme:"System";
             settings.AppOpacity=values.Number("appOpacity",settings.AppOpacity,0,100);settings.Solid=values.Flag("solid");
             settings.Details=values.Flag("details");

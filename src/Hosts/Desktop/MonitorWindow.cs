@@ -57,7 +57,7 @@ public sealed class MonitorWindow : Window {
         Language=new UiLanguage(settings.Language);sensors=new HardwareSensorPanel(Language);
         void ApplyLanguageFont(){var family=DesktopFonts.ForLanguage(Language.EffectiveLanguage);if(family is null)ClearValue(FontFamilyProperty);else FontFamily=family;}
         Language.Changed+=ApplyLanguageFont;ApplyLanguageFont();
-        Title="Pulse · Desktop preview";Width=settings.Width;Height=settings.Height;MinWidth=360;MinHeight=400;
+        Title="Pulse · Desktop preview";Width=settings.Width;Height=settings.Height;MinWidth=240;MinHeight=340;
         FontSize=settings.FontSize;
         WindowDecorations=WindowDecorations.None;
         var heading=Language.Set(new TextBlock{FontSize=22,FontWeight=FontWeight.SemiBold},"Pulse");

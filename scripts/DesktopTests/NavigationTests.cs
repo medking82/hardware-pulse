@@ -10,7 +10,7 @@ static class NavigationTests {
     static void Check(bool ok,string message){if(!ok)throw new Exception(message);}
     public static void Run(string? output) {
         var source=new MonitorSource(true);
-        var window=new MonitorWindow(source,start:false){Width=360,Height=400};window.Show();window.Present(source.Poll(null));Dispatcher.UIThread.RunJobs();
+        var window=new MonitorWindow(source,start:false){Width=240,Height=340};window.Show();window.Present(source.Poll(null));Dispatcher.UIThread.RunJobs();
         try {
             T Find<T>(string name) where T:Control=>window.GetVisualDescendants().OfType<T>().Single(x=>x.Name==name);
             void Press(Button button){button.Focus();window.KeyPress(Key.Space,RawInputModifiers.None,PhysicalKey.Space," ");window.KeyRelease(Key.Space,RawInputModifiers.None,PhysicalKey.Space," ");Dispatcher.UIThread.RunJobs();}
