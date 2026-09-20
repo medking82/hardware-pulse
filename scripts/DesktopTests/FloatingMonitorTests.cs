@@ -21,6 +21,18 @@ static class FloatingMonitorTests {
                 open.Command.Execute(null);Check(!floating.IsLocked&&ReferenceEquals(floating,owner.FloatingMonitor),"Tray did not unlock existing window");
             }
             Check(floating.GetVisualDescendants().OfType<TextBlock>().Any(x=>x.Text=="21.0%"),"Floating window lost existing snapshot");
+            var hardware=new HardwarePulse.Reading{state="LIVE",gpuFanCount=2,values={{"cpu",55},{"cpuLoad",12},{"gpu",40},{"gpuLoad",20},{"gpuFan",600},{"gpuFan2",700},{"diskC",43},{"lanLink",1000000000},{"netDown",999999}}};
+            hardware.available=hardware.values.Keys.ToDictionary(x=>x,_=>true);
+            var sample=new MonitorSnapshot("21.0%","4.0 / 16.0 GiB · 25.0%","1.0 KiB/s","2.0 KiB/s",true,true){Hardware=hardware,HardwarePeaks=new Dictionary<string,double>{{"cpu",65},{"cpuLoad",22},{"gpu",50},{"gpuLoad",30}}};
+            owner.Present(sample);Dispatcher.UIThread.RunJobs();
+            bool Text(string text)=>floating.GetVisualDescendants().OfType<TextBlock>().Any(x=>x.IsEffectivelyVisible&&x.Text==text);
+            Check(Text("55.0 °C   12.0%")&&Text("40.0 °C   20.0%")&&Text("600 RPM")&&Text("700 RPM")&&Text("43.0 °C"),"Desktop receives grouped CPU/GPU, separate fans and drive readings from shared hardware snapshot");
+            Check(Text("1.0 KiB/s"),"Desktop traffic uses selected-interface snapshot, not collector default");
+            var gpu=floating.GetVisualDescendants().OfType<Grid>().Single(x=>x.Name=="DesktopMetricGPU");
+            floating.Present(sample,true);Check(Text("65.0 °C   22.0%")&&Text(sample.Memory),"Desktop peak mode retains current memory");
+            owner.Present(sample with {Hardware=new HardwarePulse.Reading{state="STALE",available=hardware.available}});
+            Check(!Text("40.0 °C   20.0%")&&ReferenceEquals(gpu,floating.GetVisualDescendants().OfType<Grid>().Single(x=>x.Name=="DesktopMetricGPU")),"Stale hardware clears values while reusing capability rows");
+            owner.Present(sample);Dispatcher.UIThread.RunJobs();
             if(output!=null){floating.Width=360;Dispatcher.UIThread.RunJobs();using var frame=floating.CaptureRenderedFrame();frame!.Save(Path.Combine(output,"floating-360.png"),Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);}
             var top=floating.GetVisualDescendants().OfType<CheckBox>().Single();
             top.IsChecked=true;Check(floating.Topmost,"Topmost not applied");top.IsChecked=false;Check(!floating.Topmost,"Topmost not reversible");

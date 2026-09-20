@@ -296,3 +296,28 @@ regressions pass. Scope remains shared UI/localized copy and tests, with origina
 WPF/assets, profiles, provider logic and releases unchanged. Original section styling,
 responsive multi-column Settings, full category contents and Desktop remain open.
 Full scripts/Validate.ps1 passed for fixed Settings navigation.
+
+### Shared Desktop hardware metric mapping
+
+The floating view now consumes the original DesktopMode-style metric grouping from
+its owner's MonitorSnapshot: combined CPU/GPU temperature and load, VRAM, current
+memory, drives, individual fans, network links/signals and selected-interface rates.
+Linux sensor rows retain their stable IDs. DesktopReadings is presentation-only;
+there are no new readers, timers, driver calls or credential access. Snapshot peaks
+are used only for peak readings; memory/VRAM and link metadata remain current.
+
+Rows reuse controls by metric key while capabilities remain present. Disappeared
+keys are removed so changing Linux sensor identities cannot grow an unbounded cache.
+Original SVG icons and hardware colors are used, with light-theme contrast and
+in-place language/theme updates. Labels and values wrap within the original-style
+icon/name/value layout, reserving space for names beside long values.
+
+Headless and Windows native checks cover grouped CPU/GPU, individual fans/drive,
+selected-interface provenance, stale clearing with retained capability rows,
+peak/current memory semantics, singleton lifecycle, topmost, lock and narrow layout.
+The 360 DIP hardware render was inspected. This does not turn the existing floating
+preview into full Desktop mode: wallpaper layer, transparent material, geometry,
+row/grid preference, metric visibility/order, quotas/FPS, local contrast, edit/return
+flow and dedicated Settings still require migration. WPF, installed profiles,
+collectors and releases remain unchanged; rollback is source-only.
+Full scripts/Validate.ps1 passed for the Desktop metric mapping.

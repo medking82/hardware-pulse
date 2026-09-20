@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Styling;
 
 namespace HardwarePulse.Desktop;
 
@@ -9,7 +10,9 @@ namespace HardwarePulse.Desktop;
 public sealed class FloatingMonitorWindow : Window {
     readonly UiLanguage language;
     readonly StackPanel rows=new(){Spacing=8,Margin=new Thickness(16)};
-    readonly TextBlock cpu=new(),memory=new(),download=new(),upload=new();
+    readonly Dictionary<string,(Grid Row,TextBlock Label,TextBlock Value)> readings=new();
+    MonitorSnapshot? snapshot;
+    bool peaks;
     readonly StackPanel sensors=new(){Spacing=8};
     readonly TextBlock lockStatus=new(){TextWrapping=TextWrapping.Wrap,IsVisible=false};
     Action<bool>? input;
@@ -41,13 +44,11 @@ public sealed class FloatingMonitorWindow : Window {
             }
             lockButton.IsVisible=lockStatus.IsVisible=input!=null;
         };
-        rows.Children.Add(Row(language.T("CPU"),cpu));
-        rows.Children.Add(Row(language.T("Memory"),memory));
-        rows.Children.Add(Row(language.T("Download"),download));
-        rows.Children.Add(Row(language.T("Upload"),upload));
+
         rows.Children.Add(sensors);
         Content=new ScrollViewer{Content=rows,HorizontalScrollBarVisibility=Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled};
         language.Changed+=Localize;Localize();
+        PropertyChanged+=(_,e)=>{if(e.Property==ActualThemeVariantProperty)foreach(var item in readings.Values)ColorIcon(item.Row);};
         Closed+=(_,_)=>{language.Changed-=Localize;input=null;inputLifetime?.Dispose();inputLifetime=null;};
     }
     public bool SetLocked(bool locked) {
@@ -61,26 +62,39 @@ public sealed class FloatingMonitorWindow : Window {
             language.Set(lockStatus,"Could not change window lock. Reopen the floating monitor and try again.");return false;
         }
     }
-    static Grid Row(string label,TextBlock value) {
-        var grid=new Grid{ColumnDefinitions=new("*,2*"),ColumnSpacing=12};
-        grid.Children.Add(new TextBlock{Text=label,TextWrapping=TextWrapping.Wrap,VerticalAlignment=VerticalAlignment.Center});
-        value.Text="—";value.TextWrapping=TextWrapping.Wrap;value.TextAlignment=TextAlignment.Right;value.VerticalAlignment=VerticalAlignment.Center;Grid.SetColumn(value,1);grid.Children.Add(value);
-        return grid;
-    }
     void Localize() {
-        string[] keys=["CPU","Memory","Download","Upload"];
-        for(int i=0;i<keys.Length;i++)((TextBlock)((Grid)rows.Children[i+1]).Children[0]).Text=language.T(keys[i]);
+        if(snapshot!=null)Present(snapshot,peaks);
+
         var family=DesktopFonts.ForLanguage(language.EffectiveLanguage);
         if(family is null)ClearValue(FontFamilyProperty);else FontFamily=family;
     }
+    void ColorIcon(Grid row) {
+        var icon=(Avalonia.Controls.Shapes.Path)((Viewbox)row.Children[0]).Child!;
+        var brush=Brush.Parse(ActualThemeVariant==ThemeVariant.Light?"#17202B":(row.Tag as string) switch {
+            "cpu"=>"#A5E7D5","gpu"=>"#A7CBFF","memory"=>"#E7C5A4","nvme"=>"#B9B7ED","airflow"=>"#A8D4D0","network"=>"#A9D8E8",_=>"#A5E7D5"});
+        if(icon.Stroke!=null)icon.Stroke=brush;if(icon.Fill!=null)icon.Fill=brush;
+    }
     public void Present(MonitorSnapshot snapshot,bool peaks=false) {
-        cpu.Text=peaks?snapshot.PeakCpu:snapshot.Cpu;memory.Text=snapshot.Memory;
-        download.Text=peaks?snapshot.PeakDownload:snapshot.Download;upload.Text=peaks?snapshot.PeakUpload:snapshot.Upload;
-        var readings=peaks?snapshot.PeakSensors:snapshot.Sensors;
-        // Reuse controls across samples; only device-count changes require layout creation.
-        if(sensors.Children.Count!=readings.Count){sensors.Children.Clear();foreach(var item in readings)sensors.Children.Add(Row(item.Label,new TextBlock()));}
-        for(int i=0;i<readings.Count;i++) {
-            var row=(Grid)sensors.Children[i];((TextBlock)row.Children[0]).Text=readings[i].Label;((TextBlock)row.Children[1]).Text=readings[i].Value;
+        this.snapshot=snapshot;this.peaks=peaks;
+        var metrics=DesktopReadings.Create(snapshot,peaks,language);
+        var active=metrics.Select(x=>x.Key).ToHashSet();
+        foreach(string key in readings.Keys.Where(key=>!active.Contains(key)).ToArray()){sensors.Children.Remove(readings[key].Row);readings.Remove(key);}
+        for(int i=0;i<metrics.Count;i++) {
+            var metric=metrics[i];
+            if(!readings.TryGetValue(metric.Key,out var item)) {
+                var row=new Grid{Name="DesktopMetric"+metric.Key,Tag=metric.Icon,ColumnDefinitions=new("Auto,*,Auto"),ColumnSpacing=8};
+                var label=new TextBlock{VerticalAlignment=VerticalAlignment.Center,TextWrapping=TextWrapping.Wrap};
+                var value=new TextBlock{VerticalAlignment=VerticalAlignment.Center,TextWrapping=TextWrapping.Wrap,TextAlignment=TextAlignment.Right};
+                var icon=AppIcon.Create(metric.Icon);
+                row.Children.Add(new Viewbox{Width=18,Height=18,Child=icon,VerticalAlignment=VerticalAlignment.Center});
+                ColorIcon(row);
+                Grid.SetColumn(label,1);row.Children.Add(label);Grid.SetColumn(value,2);row.Children.Add(value);
+                row.SizeChanged+=(_,_)=>value.MaxWidth=Math.Max(1,(row.Bounds.Width-34)*.65);
+                item=(row,label,value);readings.Add(metric.Key,item);sensors.Children.Add(row);
+            }
+            item.Row.IsVisible=true;item.Label.Text=metric.Title;item.Value.Text=metric.Value;
+            ToolTip.SetTip(item.Label,metric.Title);ToolTip.SetTip(item.Value,metric.Value);
+            int old=sensors.Children.IndexOf(item.Row);if(old!=i){sensors.Children.RemoveAt(old);sensors.Children.Insert(i,item.Row);}
         }
     }
 }
