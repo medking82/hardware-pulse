@@ -69,7 +69,16 @@ opacity. Settings file layout and unknown-field preservation remain in Settings.
 analysis buffers and the previous-frame state. It neither captures the screen nor
 owns a timer, settings, credentials, files or threads. One instance is serialized
 by its caller. Region queries use the latest analyzed frame and allocate no pixel
-arrays. DesktopView maps its text bounds into the bounded analysis grid.
+arrays. Native DesktopView maps rendered glyph bounds into the bounded analysis
+grid, excluding TextBlock leading and reserved alignment space. It rounds both
+rectangle endpoints outward and clips queries to the grid after DPI/downsampling.
+Per-pixel light/dark hysteresis is derived from the actual #141414/#F5F5F5 ink pair;
+an established pixel shade persists only within a 10% contrast-ratio advantage band.
+Initial pixels without a prior shade choose at the equal-contrast crossover.
+Native capture passes text opacity into Core. For translucent ink, cached channel
+tables include RGB alpha compositing before the existing contrast decision; the
+host preserves the user's surface/text opacity and skips capture for invisible
+text. Existing diagnostic callers retain the opaque-ink overload.
 The native Desktop calls `LocalContrast.CaptureAnalysis` for grid dimensions and
 queries `RegionColor` after the worker completes. It does not create a bitmap per
 frame. `Capture` retains the independent frozen mask for diagnostic consumers;

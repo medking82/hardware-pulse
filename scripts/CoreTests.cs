@@ -3,6 +3,12 @@ using HardwarePulse;
 
 class CoreTests {
     static void Check(bool ok,string message){if(!ok)throw new Exception(message);}
+    static double SrgbLuminance(double value){double s=value/255d;return s<=.04045?s/12.92:Math.Pow((s+.055)/1.055,2.4);}
+    static double Contrast(double foreground,double background){double hi=Math.Max(foreground,background),lo=Math.Min(foreground,background);return (hi+.05)/(lo+.05);}
+    static double CompositeLuminance(byte r,byte g,byte b,byte ink,double opacity){
+        return .2126*SrgbLuminance(r*(1-opacity)+ink*opacity)+.7152*SrgbLuminance(g*(1-opacity)+ink*opacity)+.0722*SrgbLuminance(b*(1-opacity)+ink*opacity);
+    }
+    static byte[] Pixel(byte r,byte g,byte b){return new[]{b,g,r,(byte)255};}
     static byte[] Frame(int width,int height,Func<int,int,byte> shade){var data=new byte[width*height*4];for(int y=0;y<height;y++)for(int x=0;x<width;x++){int i=(y*width+x)*4;data[i]=data[i+1]=data[i+2]=shade(x,y);data[i+3]=255;}return data;}
     static void CheckColumnLayout(){
         Check(typeof(ColumnLayout).Assembly==typeof(Reading).Assembly,"Column layout is not portable Core");
@@ -130,6 +136,42 @@ class CoreTests {
         pixels=Frame(64,32,(x,y)=>(byte)0);analysis.Analyze(pixels,64,32,6,0,0,0,0,false);
         Check(analysis.RegionColor(0,0,64,32,20,out minority)==245,"Strong change must switch on next frame");
         Check(ContrastAnalysis.Select(.19,20)==20&&ContrastAnalysis.Select(.19,245)==245,"Hysteresis lost");
+        // The automatic shades are #141414 and #F5F5F5. Derive the equal-contrast
+        // point from those actual colors so threshold changes cannot silently drift
+        // toward the #000000/#FFFFFF midpoint.
+        double darkText=SrgbLuminance(20),lightText=SrgbLuminance(245);
+        double product=(darkText+.05)*(lightText+.05),crossover=Math.Sqrt(product)-.05;
+        double lower=Math.Sqrt(product/1.1)-.05,upper=Math.Sqrt(product*1.1)-.05;
+        double midGray=SrgbLuminance(128),darkGray=SrgbLuminance(112);
+        Check(Contrast(lightText,midGray)<Contrast(darkText,midGray)&&ContrastAnalysis.Select(midGray,245)==20,"Uniform mid-gray must recover to the higher-contrast dark shade");
+        Check(Contrast(lightText,darkGray)>Contrast(darkText,darkGray)&&ContrastAnalysis.Select(darkGray,20)==245,"Darker gray must recover to the higher-contrast light shade");
+        Check(ContrastAnalysis.Select(crossover+.0001,0)==20&&ContrastAnalysis.Select(crossover-.0001,0)==245,"Unknown prior must initialize at the actual equal-contrast point");
+        foreach(double luminance in new[]{lower+.0001,crossover,upper-.0001})
+            Check(ContrastAnalysis.Select(luminance,245)==245&&ContrastAnalysis.Select(luminance,20)==20,"Narrow-band noise must preserve either valid prior");
+        Check(lower>.16&&upper<.22,"Actual #141414/#F5F5F5 hysteresis band changed outside the intended contrast margin");
+        // Opacity-aware analysis must agree with the direct composite contrast
+        // oracle for both grayscale and colored wallpaper. Reset each 1x1 frame
+        // so this checks the choice itself, without prior-state hysteresis.
+        var opacityAnalysis=new ContrastAnalysis();
+        foreach(double opacity in new[]{1d,.7,.4,.2})foreach(byte background in new byte[]{32,64,96,112,128,144,160,192,224}){
+            var sample=Pixel(background,background,background);opacityAnalysis.Analyze(sample,1,1,1,0,0,0,0,true,opacity);
+            double bg=SrgbLuminance(background),dark=CompositeLuminance(background,background,background,20,opacity),light=CompositeLuminance(background,background,background,245,opacity);
+            double darkRatio=Contrast(dark,bg),lightRatio=Contrast(light,bg);
+            if(Math.Abs(darkRatio-lightRatio)/Math.Max(darkRatio,lightRatio)>.005)
+                Check(sample[0]==(darkRatio>lightRatio?20:245),"Opacity grayscale contrast mismatch at "+background+" alpha "+opacity);
+        }
+        foreach(double opacity in new[]{.4,.2})foreach(var color in new[]{new byte[]{223,12,8},new byte[]{222,7,130},new byte[]{200,0,0},new byte[]{40,180,70}}){
+            var sample=Pixel(color[0],color[1],color[2]);opacityAnalysis.Analyze(sample,1,1,1,0,0,0,0,true,opacity);
+            double bg=.2126*SrgbLuminance(color[0])+.7152*SrgbLuminance(color[1])+.0722*SrgbLuminance(color[2]);
+            double dark=CompositeLuminance(color[0],color[1],color[2],20,opacity),light=CompositeLuminance(color[0],color[1],color[2],245,opacity);
+            double darkRatio=Contrast(dark,bg),lightRatio=Contrast(light,bg);
+            if(Math.Abs(darkRatio-lightRatio)/Math.Max(darkRatio,lightRatio)>.005)
+                Check(sample[0]==(darkRatio>lightRatio?20:245),"Opacity colored contrast mismatch at RGB "+color[0]+","+color[1]+","+color[2]+" alpha "+opacity);
+        }
+        pixels=Pixel(223,12,8);opacityAnalysis.Analyze(pixels,1,1,1,0,0,0,0,true,1);Check(pixels[0]==245,"Opaque colored fixture must start light");
+        pixels=Pixel(223,12,8);opacityAnalysis.Analyze(pixels,1,1,1,0,0,0,0,false,.4);Check(pixels[0]==20,"Opacity preference change retained an invalid light prior");
+        pixels=Pixel(223,12,8);opacityAnalysis.Analyze(pixels,1,1,1,0,0,0,0,false,1);Check(pixels[0]==245,"Opacity preference restore retained an invalid dark prior");
+        Console.WriteLine("PASS Core opacity-aware contrast: actual #141414/#F5F5F5 composites, grayscale/color oracle and alpha reset");
 #if !NET10_0
         AppDomain.MonitoringIsEnabled=true;
 #endif

@@ -29,6 +29,7 @@ if($ModernCore){& "$PSScriptRoot/Test-CoreModern.ps1"}
 & "$PSScriptRoot/Test-WindowsAdapters.ps1"
 & "$PSScriptRoot/Run-Hidden.ps1" "$env:WINDIR/System32/WindowsPowerShell/v1.0/powershell.exe" @('-NoProfile','-STA','-File',"$PSScriptRoot/Test-DesktopShortcut.ps1",'-AppPath',"$root/build/native/app") $root
 & "$PSScriptRoot/Run-Hidden.ps1" "$env:WINDIR/System32/WindowsPowerShell/v1.0/powershell.exe" @('-NoProfile','-STA','-File',"$PSScriptRoot/Test-LocalContrast.ps1",'-AppPath',"$root/build/native/app") $root
+& "$PSScriptRoot/Run-Hidden.ps1" "$env:WINDIR/System32/WindowsPowerShell/v1.0/powershell.exe" @('-NoProfile','-STA','-File',"$PSScriptRoot/Test-LocalContrastPrecision.ps1",'-AppPath',"$root/build/native/app") $root
 & "$PSScriptRoot/Run-Hidden.ps1" "$env:WINDIR/System32/WindowsPowerShell/v1.0/powershell.exe" @('-NoProfile','-STA','-File',"$PSScriptRoot/Test-DesktopLayout.ps1",'-AppPath',"$root/build/native/app") $root
 & "$PSScriptRoot/Run-Hidden.ps1" "$env:WINDIR/System32/WindowsPowerShell/v1.0/powershell.exe" @('-NoProfile','-STA','-File',"$PSScriptRoot/Test-HomeUpdate.ps1",'-AppPath',"$root/build/native/app") $root
 & "$PSScriptRoot/Run-Hidden.ps1" "$env:WINDIR/System32/WindowsPowerShell/v1.0/powershell.exe" @('-NoProfile','-STA','-File',"$PSScriptRoot/Test-SettingsQuota.ps1",'-AppPath',"$root/build/native/app") $root

@@ -56,6 +56,9 @@ namespace HardwarePulse {
             }
         }
         public Size CaptureAnalysis(Rect bounds,Color backing,int radius=6){
+            return CaptureAnalysis(bounds,backing,radius,1);
+        }
+        public Size CaptureAnalysis(Rect bounds,Color backing,int radius,double textOpacity){
             lock(gate){
                 if(!excluded)return Size.Empty;
                 int width=(int)bounds.Width,height=(int)bounds.Height;
@@ -77,7 +80,7 @@ namespace HardwarePulse {
                 if(step>1){sampleGraphics.DrawImage(bitmap,new Drawing.Rectangle(0,0,sampleWidth,sampleHeight),0,0,width,height,Drawing.GraphicsUnit.Pixel);source=sampled;}
                 var data=source.LockBits(new Drawing.Rectangle(0,0,sampleWidth,sampleHeight),Drawing.Imaging.ImageLockMode.ReadOnly,Drawing.Imaging.PixelFormat.Format32bppArgb);
                 try{for(int y=0;y<sampleHeight;y++)Marshal.Copy(IntPtr.Add(data.Scan0,y*data.Stride),pixels,y*sampleWidth*4,sampleWidth*4);}finally{source.UnlockBits(data);}
-                analysis.Analyze(pixels,sampleWidth,sampleHeight,Math.Max(1,(int)Math.Round(radius/(double)step)),backing.R,backing.G,backing.B,backing.A,previousBounds!=bounds);
+                analysis.Analyze(pixels,sampleWidth,sampleHeight,Math.Max(1,(int)Math.Round(radius/(double)step)),backing.R,backing.G,backing.B,backing.A,previousBounds!=bounds,textOpacity);
                 previousBounds=bounds;
                 return new Size(sampleWidth,sampleHeight);
             }

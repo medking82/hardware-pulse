@@ -227,25 +227,36 @@ namespace HardwarePulse {
             ScreenshotActive=true;contrastTimer.Stop();if(localContrast!=null)localContrast.Dispose();
             screenshotTimer.Stop();screenshotTimer.Start();
         }
+        Int32Rect ContrastRegion(FrameworkElement element,Size grid){
+            // TextBlock layout includes line leading and reserved/right-aligned
+            // whitespace. Only the rendered ink should vote on its background.
+            var text=element as TextBlock;
+            var ink=text==null?new Rect(0,0,element.ActualWidth,element.ActualHeight):VisualTreeHelper.GetContentBounds(text);
+            if(ink.IsEmpty||ink.Width<=0||ink.Height<=0)return Int32Rect.Empty;
+            var start=element.TranslatePoint(ink.TopLeft,this);var end=element.TranslatePoint(ink.BottomRight,this);
+            int left=Math.Max(0,(int)Math.Floor(start.X*grid.Width/ActualWidth)),top=Math.Max(0,(int)Math.Floor(start.Y*grid.Height/ActualHeight));
+            int right=Math.Min((int)grid.Width,(int)Math.Ceiling(end.X*grid.Width/ActualWidth)),bottom=Math.Min((int)grid.Height,(int)Math.Ceiling(end.Y*grid.Height/ActualHeight));
+            return right>left&&bottom>top?new Int32Rect(left,top,right-left,bottom-top):Int32Rect.Empty;
+        }
         void RefreshLocalContrast(){
             if(localContrast==null||!IsVisible||contrastBusy||ScreenshotActive)return;
+            double textOpacity=stack.Opacity;if(textOpacity<=0)return;
             contrastBusy=true;var capture=localContrast;
             var background=surface.Background as SolidColorBrush;
             var color=background==null?Colors.Transparent:background.Color;var bounds=capture.Bounds();
             int radius=Math.Max(2,(int)Math.Round(lastSize*.4*bounds.Width/ActualWidth));
-            System.Threading.Tasks.Task.Run(()=>capture.CaptureAnalysis(bounds,color,radius)).ContinueWith(task=>{
+            System.Threading.Tasks.Task.Run(()=>capture.CaptureAnalysis(bounds,color,radius,textOpacity)).ContinueWith(task=>{
                 var error=task.Exception; // Observe capture failure even if the window has closed.
                 if(Dispatcher.HasShutdownStarted)return;
                 Dispatcher.BeginInvoke(new Action(delegate{try{
-                if(localContrast!=capture||!IsVisible||ScreenshotActive||capture.Bounds()!=bounds)return;
+                if(localContrast!=capture||!IsVisible||ScreenshotActive||capture.Bounds()!=bounds||stack.Opacity!=textOpacity)return;
                 var grid=error==null?task.Result:Size.Empty;
                 if(grid.IsEmpty){LocalContrastAvailable=false;return;}
                 LocalContrastAvailable=true;
                 foreach(var row in rows.Values)if(row.Border.Visibility==Visibility.Visible)foreach(var text in new[]{row.Name,row.Value}){
                     if(text.ActualWidth<=0||text.ActualHeight<=0)continue;
-                    var point=text.TranslatePoint(new Point(),this);
+                    var region=ContrastRegion(text,grid);if(region.IsEmpty)continue;
                     var old=text.Foreground as SolidColorBrush;byte prior=old!=null&&DesktopContrast.Luminance(old.Color)<.4?(byte)20:(byte)245;
-                    var region=new Int32Rect((int)(point.X*grid.Width/ActualWidth),(int)(point.Y*grid.Height/ActualHeight),Math.Max(1,(int)Math.Ceiling(text.ActualWidth*grid.Width/ActualWidth)),Math.Max(1,(int)Math.Ceiling(text.ActualHeight*grid.Height/ActualHeight)));
                     double minority;byte shade=capture.RegionColor(region,prior,out minority);
                     if(old==null||old.Color.R!=shade||old.Color.G!=shade||old.Color.B!=shade){
                         var brush=new SolidColorBrush(Color.FromRgb(shade,shade,shade));brush.Freeze();text.Foreground=brush;
@@ -259,8 +270,7 @@ namespace HardwarePulse {
 
                 }
                 foreach(var row in rows.Values)if(row.Border.Visibility==Visibility.Visible&&row.IconHost.ActualWidth>0&&row.IconHost.ActualHeight>0){
-                    var point=row.IconHost.TranslatePoint(new Point(),this);
-                    var region=new Int32Rect((int)(point.X*grid.Width/ActualWidth),(int)(point.Y*grid.Height/ActualHeight),Math.Max(1,(int)Math.Ceiling(row.IconHost.ActualWidth*grid.Width/ActualWidth)),Math.Max(1,(int)Math.Ceiling(row.IconHost.ActualHeight*grid.Height/ActualHeight)));
+                    var region=ContrastRegion(row.IconHost,grid);if(region.IsEmpty)continue;
                     double minority;row.IconShade=capture.RegionColor(region,row.IconShade,out minority);ApplyIcon(row,AdaptiveIconTint(row));
                     bool edge=row.IconPalette||minority>(row.IconHost.Effect==null?.12:.06);
                     if(edge){

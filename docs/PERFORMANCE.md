@@ -734,3 +734,63 @@ checks. The first attempt stopped because PATH selected a runtime-only `dotnet`;
 the completed run used the existing local .NET SDK via process-local PATH.
 Local logs are `vendor/memory-retention-validation-initial.log` and
 `vendor/memory-retention-validation.log`.
+
+## Local Contrast precision after 0.6.39
+
+The reported Desktop used a transparent background. Two deterministic defects
+were reproduced against `713bb496` (0.6.39): a right-aligned short FPS reading
+sampled its entire reserved cell, and light text could remain on mid-gray because
+the previous 0.16–0.22 luminance hysteresis band was too wide. The native host now
+queries rendered glyph bounds and rounds/clips both endpoints when mapping to
+the capture grid. The per-pixel band comes from the actual #141414/#F5F5F5 ink
+contrast, retaining a previous choice within a 10% ratio advantage.
+
+The user's gaming setup also lowers text opacity. Core previously treated every
+glyph as opaque, even when WPF composited it at a lower opacity. Native capture
+now receives the saved text opacity. Cached channel tables evaluate both inks
+after compositing over the captured RGB/background; an equivalent luminance
+feeds the existing smoothing, hysteresis and region query. This adds six 256-entry
+double tables (12 KiB per analyzer), without new frame-sized buffers or a higher
+capture rate. At zero text opacity the native host skips capture. Outline effects
+continue inheriting the same text opacity; no backplate or opacity boost is added.
+
+### Transparent gaming-HUD comparison
+
+Two fresh-process pairs in reversed order compared the frozen 0.6.39 native
+payload with the complete precision/opacity candidate. The isolated Desktop used
+a fixed gradient behind a 400 × 850 DIP view, 16 DIP text, 6 DIP spacing,
+**0% background opacity and 40% text opacity**, 100 ms Local Contrast,
+500 ms synthetic FPS and 2 s synthetic readings. Each run warmed up for 10 seconds
+and measured for 30 seconds. It excludes the live collector, quota requests and
+ETW; it is not a real game or an FPS-impact benchmark. No forced GC or working-set
+trimming was used.
+
+| Metric | 0.6.39 run 1 / 2 | Candidate run 1 / 2 |
+| --- | ---: | ---: |
+| CPU, whole machine (16 logical processors) | 0.530% / 0.548% | 0.699% / 0.600% |
+| Mean working set, MiB | 132.74 / 135.80 | 132.04 / 132.79 |
+| Mean private bytes, MiB | 133.46 / 136.05 | 133.63 / 135.39 |
+| Managed allocation over 30 seconds, MiB | 20.64 / 20.45 | 21.02 / 21.19 |
+| Gen 0 / Gen 1 / Gen 2 collections | 3 / 1 / 0 in both runs | 3 / 1 / 0 in both runs |
+
+The more accurate translucent-ink analysis has a small CPU cost in this scene:
+roughly 0.05–0.17 percentage points of whole-machine CPU. Managed allocation is
+also slightly higher; neither GC counts nor private bytes show a consistent
+increase. This is a precision trade-off, not another CPU/RAM optimization claim.
+Local evidence: `vendor/opacity-memory-{1,2}-{baseline,candidate}.json`,
+`vendor/contrast-opacity-hashes.json` and `vendor/ContrastOpacityBench.cs`.
+
+Regression coverage includes actual capture through the excluded Desktop window,
+reserved FPS whitespace, fractional resize/downsampling, mid-gray recovery,
+100%/40%/0% opacity transitions without overriding the transparent surface,
+and a direct sRGB composite/contrast oracle for grayscale and colored backgrounds
+at 100%, 70%, 40% and 20% opacity. Existing palette, mixed-background edges and
+Screenshot-mode coverage remains in `Test-LocalContrast.ps1`.
+
+Targeted checks and the complete `Validate.ps1 -ModernCore` run passed, including
+the Framework/.NET 10 Core suites, native capture/layout/settings, collector,
+quota/FPS lifecycle, startup and updater regressions. Logs are
+`vendor/contrast-precision-targeted.log` and
+`vendor/contrast-precision-validation.log`. The installed-app gaming experience
+still needs real-game observation; these fixtures do not claim exclusive-fullscreen
+or HDR capture/contrast coverage.
