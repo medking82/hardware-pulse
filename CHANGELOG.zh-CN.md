@@ -20,6 +20,12 @@
 
 - 共享桌面应用支持自动跟随系统、英语、简体中文和繁体中文，覆盖监控、设置、传感器状态、Codex 额度与托盘操作。语言即时切换，不重启采样或重新读取登录信息，并保存到独立的预览版设置中。自动模式会区分中文书写体系和地区。
 
+## 0.6.39 — 2026-09-21
+
+- Local Contrast analysis 不再重复保留 bitmap copy。两组受控 30 秒测量中，Gen0 collection count 从 83／84 降至 3／4；managed allocation、RAM 和 CPU 没有显示一致下降。详见 [performance evidence](docs/PERFORMANCE.md#native-memory-retention-work-after-0638)。
+- Windows 采集器不再保留未使用的一天 LibreHardwareMonitor sensor history。Current readings 和 Session Max 保持可用；installed app 的长期 RAM 影响仍需 soak observation。
+- 保留 0.6.38 的 Claude recovery schedule、WPF glass UI、Windows 10/11 x64 scope 及自签名 Marck Wong certificate 状态；不宣称 macOS stable release。
+
 ## 0.6.38 — 2026-09-21
 
 - Claude 出现 `Login required` 后，首次 automatic retry 从五分钟缩短为 30 秒。连续 authentication 与 transient transport failure 共用 30／60／120／240／300 秒 bounded backoff；成功后恢复五分钟 cadence。

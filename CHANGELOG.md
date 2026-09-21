@@ -20,6 +20,12 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 
 - Shared Desktop supports Auto (System), English and Simplified/Traditional Chinese UI, including Monitor, Settings, sensor status, Codex quota and tray actions. Language switches immediately without restarting sampling or refreshing credentials and is saved in the isolated preview profile. Auto respects Chinese script and region preferences.
 
+## 0.6.39 — 2026-09-21
+
+- Local Contrast avoids a duplicate bitmap copy during analysis. In two controlled 30-second runs, Gen 0 collection counts fell from 83/84 to 3/4; managed allocation, RAM and CPU did not show a consistent reduction. See [performance evidence](docs/PERFORMANCE.md#native-memory-retention-work-after-0638).
+- The Windows collector no longer retains unused one-day LibreHardwareMonitor sensor history. Current readings and Session Max remain available; long-term installed-app RAM impact still requires soak observation.
+- Preserves the 0.6.38 Claude recovery schedule, WPF glass UI, Windows 10/11 x64 scope and self-signed Marck Wong certificate status. No macOS stable release is claimed.
+
 ## 0.6.38 — 2026-09-21
 
 - Claude `Login required` now retries after 30 seconds instead of initially waiting five minutes. Continued authentication and transient transport failures share bounded 30/60/120/240/300-second backoff; success restores the five-minute cadence.

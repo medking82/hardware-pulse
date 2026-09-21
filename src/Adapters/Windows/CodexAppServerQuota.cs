@@ -19,7 +19,7 @@ namespace HardwarePulse {
         }
         internal static object ReadProtocol(TextReader input,TextWriter output,CancellationToken cancel){
             int total=0;
-            output.WriteLine("{\"id\":1,\"method\":\"initialize\",\"params\":{\"clientInfo\":{\"name\":\"hardware_pulse\",\"title\":\"Hardware Pulse\",\"version\":\"0.6.38\"}}}");output.Flush();
+            output.WriteLine("{\"id\":1,\"method\":\"initialize\",\"params\":{\"clientInfo\":{\"name\":\"hardware_pulse\",\"title\":\"Hardware Pulse\",\"version\":\"0.6.39\"}}}");output.Flush();
             Response(input,1,ref total,cancel);
             output.WriteLine("{\"method\":\"initialized\",\"params\":{}}");
             output.WriteLine("{\"id\":2,\"method\":\"account/rateLimits/read\",\"params\":{}}");output.Flush();
