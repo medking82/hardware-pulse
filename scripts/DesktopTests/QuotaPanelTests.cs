@@ -39,7 +39,7 @@ static class QuotaPanelTests {
         if(output!=null){using var frame=window.CaptureRenderedFrame();frame!.Save(Path.Combine(output,"codex-quota.png"),Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);}
         refresh.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         Until(()=>Text(window).Any(x=>x.Text?.StartsWith("Login required")==true),"Login failure visible");
-        Check(!window.GetVisualDescendants().OfType<ProgressBar>().Any(),"Failure clears stale quota");
+        Check(!window.GetVisualDescendants().OfType<ProgressBar>().Any(),"Authentication failure clears prior account quota");
         refresh.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Until(()=>Volatile.Read(ref reads)==3,"Pending refresh started");
         enable.IsChecked=false;Until(()=>canceled.IsSet,"Disable cancels request");
         Check(Text(window).Any(x=>x.Text=="Off")&&!refresh.IsEnabled,"Disabled UI clears readings");

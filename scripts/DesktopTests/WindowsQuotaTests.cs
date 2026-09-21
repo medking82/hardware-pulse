@@ -1,7 +1,15 @@
 using System.Reflection;
+using System.Security.Cryptography;
+using System.Text;
 using HardwarePulse;
 
 static class WindowsQuotaTests {
+    sealed class Credentials: IWindowsCredentialReader {
+        public readonly List<string> Targets=[];
+        public readonly Dictionary<string,byte[]> Values=[];
+        public byte[]? Last;
+        public byte[]? Read(string target,CancellationToken cancel){cancel.ThrowIfCancellationRequested();Targets.Add(target);return Values.TryGetValue(target,out var value)?Last=(byte[])value.Clone():null;}
+    }
     static void Check(bool value,string message){if(!value)throw new Exception(message);}
     public static void Run() {
         if(OperatingSystem.IsWindows()) {
@@ -11,6 +19,14 @@ static class WindowsQuotaTests {
             Check((bool)ownership.Invoke(null,[pid,identity.User!.Value])!,"Modern WMI ownership accepts current user");
             Check(!(bool)ownership.Invoke(null,[pid,"S-1-0-0"])!,"Modern WMI ownership rejects another user");
         }
+        var credentials=new Credentials();
+        credentials.Values["Claude Code-credentials:test-user"]=Encoding.Unicode.GetBytes("{\"claudeAiOauth\":{\"accessToken\":\"synthetic-wincred\"}}");
+        var login=new WindowsClaudeLogin(_=>throw new QuotaFailure("Login required"),credentials,"test-user");
+        Check(login.Read(CancellationToken.None)=="synthetic-wincred","Windows Credential Manager credential shape");
+        Check(credentials.Targets.SequenceEqual(new[]{"Claude Code-credentials","Claude Code-credentials:test-user"}),"Windows Credential Manager target order");
+        Check(credentials.Last!.All(value=>value==0),"Windows credential copy cleared after parse");
+        credentials.Targets.Clear();
+        Check(new WindowsClaudeLogin(_=>"synthetic-file",credentials,"test-user").Read(CancellationToken.None)=="synthetic-file"&&credentials.Targets.Count==0,"Claude file credential remains first");
         // Exercise the modern bridge with synthetic wire data; never read login stores.
         var parse=typeof(QuotaProviders).Assembly.GetType("HardwarePulse.QuotaData")!.GetMethod("Parse",BindingFlags.Static|BindingFlags.NonPublic)!;
         object Read(string json)=>parse.Invoke(null,[json])!;

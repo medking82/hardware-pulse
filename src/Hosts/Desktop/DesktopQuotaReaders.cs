@@ -11,7 +11,8 @@ static class DesktopQuotaReaders {
         if(provider=="Antigravity")return OperatingSystem.IsWindows()?QuotaProviders.Read(provider,cancel):
             new(){Provider=provider,Status="Antigravity source unavailable on this platform",Observed=DateTimeOffset.UtcNow};
         if(provider=="Claude") {
-            Func<CancellationToken,string> login=OperatingSystem.IsMacOS()?MacClaudeLogin.Default().Read:ClaudeFileLogin.Default().Read;
+            Func<CancellationToken,string> login=OperatingSystem.IsMacOS()?MacClaudeLogin.Default().Read:
+                OperatingSystem.IsWindows()?WindowsClaudeLogin.Default().Read:ClaudeFileLogin.Default().Read;
             using var claude=new ClaudeQuotaClient(login);return claude.Read(cancel);
         }
         using FileCodexQuota adapter=OperatingSystem.IsLinux()?new LinuxCodexQuota():OperatingSystem.IsMacOS()?new MacCodexQuota():OperatingSystem.IsWindows()?new WindowsFileCodexQuota():throw new PlatformNotSupportedException();

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using HardwarePulse;
@@ -47,6 +48,24 @@ internal static class CoreQuotaSessionTests {
         using(var session=new QuotaSession((provider,cancel)=>{throw new Exception("private adapter error");})){
             session.Enable("Claude",true);Pump(session,now,()=>session.Readings[0].Status=="Quota unavailable");
             Check(session.Readings[0].Observed==now,"failed result did not use host time");
+        }
+        calls=0;
+        using(var session=new QuotaSession((provider,cancel)=>{
+            int count=Interlocked.Increment(ref calls);
+            if(count==1)return new QuotaReading{Provider=provider,Status="Live",Observed=now,
+                Windows=new List<QuotaWindow>{new QuotaWindow{Label="5-hour",Remaining=61}},
+                AllWindows=new List<QuotaWindow>{new QuotaWindow{Label="5-hour",Remaining=61}}};
+            if(count==2)return new QuotaReading{Provider=provider,Status="Quota unavailable",Observed=now.AddMinutes(5)};
+            return new QuotaReading{Provider=provider,Status="Live",Observed=now.AddMinutes(5).AddSeconds(30),
+                Windows=new List<QuotaWindow>{new QuotaWindow{Label="5-hour",Remaining=59}},
+                AllWindows=new List<QuotaWindow>{new QuotaWindow{Label="5-hour",Remaining=59}}};
+        })){
+            session.Enable("Codex",true);Pump(session,now,()=>session.Readings[0].Status=="Live");
+            Pump(session,now.AddMinutes(5),()=>session.Readings[0].Status=="Last update failed");
+            Check(session.Readings[0].Observed==now&&session.Readings[0].AllWindows[0].Remaining==61,"transient failure discarded last good quota");
+            session.Tick(now.AddMinutes(5).AddSeconds(29));Check(calls==2,"transient failure retried before backoff");
+            Pump(session,now.AddMinutes(5).AddSeconds(30),()=>session.Readings[0].Status=="Live"&&session.Readings[0].AllWindows[0].Remaining==59);
+            Check(calls==3,"transient failure did not retry after short backoff");
         }
         using(var entered=new ManualResetEventSlim())using(var finished=new ManualResetEventSlim()){
             CancellationToken disposeToken=CancellationToken.None;

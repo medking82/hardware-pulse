@@ -67,6 +67,7 @@ Unavailable|不可用
 Refreshing|正在刷新
 Refresh pending|等待刷新
 Quota unavailable|额度不可用
+Last update failed|最近一次更新失败
 Login unavailable|登录信息不可用
 Refresh rate limited|刷新频率受限
 Loading|正在加载

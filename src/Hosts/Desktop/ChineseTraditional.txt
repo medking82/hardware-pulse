@@ -67,6 +67,7 @@ Unavailable|無法使用
 Refreshing|正在更新
 Refresh pending|等待更新
 Quota unavailable|額度無法取得
+Last update failed|最近一次更新失敗
 Login unavailable|登入資訊無法取得
 Refresh rate limited|更新頻率受限
 Loading|正在載入
