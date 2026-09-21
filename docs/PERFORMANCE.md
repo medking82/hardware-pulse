@@ -647,3 +647,90 @@ Measured SHA-256 identities:
 - Candidate app: `F1851A24E45EBF6F43542821ED8BE8953AD0039A57D77BDBD0A3E4E0A594B8D1`
 - Baseline Windows adapter: `4B8E4BB38E8C2D66DA6242FCB635AA5DF283184B3A5F6968983C881DAEE6E05D`
 - Candidate Windows adapter: `81662DA0F3F6FBBE8589E66F92AC2EF5696B08AF60151D2005F959013FD94F5D`
+
+## Native memory retention work after 0.6.38
+
+Baseline source: `452f6f3523047d2b59a0c869e111f58a8f77a155` (0.6.38).
+Measured on 2026-09-21, Windows x64, 16 logical processors. This development
+candidate retains the existing WPF appearance and all refresh intervals.
+
+### Local Contrast without a per-frame diagnostic bitmap
+
+Desktop already queried the reusable `ContrastAnalysis` integral grid for its
+text and icon colors. The returned `BitmapSource` supplied only grid dimensions.
+It now calls `CaptureAnalysis` for those dimensions, avoiding creation and copying
+of a mask on every frame. Diagnostic `Capture` callers retain the frozen bitmap
+contract. Capture exclusion, bounded sampling, hysteresis, edges and Screenshot
+mode are unchanged.
+
+Two fresh-process pairs used the same isolated Desktop harness, with execution
+order reversed in pair 2. The scene is a fixed black/white gradient, 400 x 850 DIP
+Desktop, 16 DIP text, 6 DIP spacing, 100 ms Local Contrast, synthetic FPS every
+500 ms and synthetic hardware snapshots every two seconds. Each process warmed
+up for ten seconds before about 30 seconds of sampling (60 memory samples,
+79 total FPS ticks). The live collector, ETW and quota requests are excluded.
+There was no forced GC or working-set trimming.
+
+| Measurement | Baseline pair 1 / 2 | Candidate pair 1 / 2 |
+| --- | ---: | ---: |
+| CPU, percent of whole machine | 0.597 / 0.542% | 0.516 / 0.546% |
+| Mean working set | 135.77 / 136.19 MiB | 133.85 / 136.50 MiB |
+| Mean private bytes | 136.50 / 134.85 MiB | 133.68 / 136.36 MiB |
+| Reported managed allocation | 24.89 / 23.78 MB | 21.25 / 24.93 MB |
+| Gen 0 collections | 83 / 84 | 3 / 4 |
+| Gen 1 collections | 9 / 9 | 1 / 2 |
+| Gen 2 collections | 0 / 0 | 0 / 1 |
+
+The Gen 0 collection count fell in both runs. CPU, allocation totals and process
+memory did not improve consistently across the two pairs. This establishes
+removal of unnecessary bitmap work and fewer Gen 0 collections in this workload,
+**not** a repeatable whole-app RAM or CPU reduction. In particular, allocation,
+private committed bytes and resident working set must not be equated.
+
+These measurements cover the Local Contrast change before the collector change
+below. Local raw evidence and reproduction sources are
+`vendor/contrast-memory-{1,2}-{baseline,candidate}.json`,
+`vendor/contrast-memory-hashes.json`, `vendor/ContrastMemoryBench.cs` and
+`vendor/Run-ContrastMemory.ps1`. They are not installer payloads.
+
+- Baseline app SHA-256: `45F7BCC11FBA7779B02C2F0C067838E37A73BB39FF7FED91403C561A68629BAA`
+- Candidate app SHA-256: `8B03918FF79CFBB493D0AAB2AEB8F2C5F198F9BEAACEF199C4EC006380DC8717`
+- Baseline Core SHA-256: `A624D0929F5F3F5D9CF6B5230E7EF73710734A845756FC96CE653D7C37885230`
+- Candidate Core SHA-256: `BFE45F400F2FE5DD94CF4422DBABB594D0C9046FB6A060FD1A924E5D4058B63C`
+- Harness SHA-256: `2533A3D723643EC65921391B4043233D73B2B2BDBF5AFE32CCEFA49230E82D3B`
+
+### Unused collector sensor history
+
+LibreHardwareMonitor 0.9.6 `Hardware/Sensor.cs` defaults `ValuesTimeWindow` to one
+day and aggregates four readings per history point, with compression for repeated
+values. Pulse's native Collector publishes current `Value` only; its consumers
+do not read that history. Pulse's session maxima belong to `ReadingSession`.
+
+Collector now sets `ISensor.ValuesTimeWindow` to zero when it encounters each
+sensor after `hardware.Update()`, including sub-hardware and sensors newly
+activated by that update. The public LHM setter clears existing history and stops
+future appends; current `Value` and independent LHM Min/Max tracking remain active.
+This avoids unused history accumulating during long runs without adding a topology
+cache, changing sampling cadence or writing hardware controls.
+
+This is a retention change, not a measured reduction in the installed collector's
+steady-state RAM. A long-duration installed-app comparison is still needed to
+quantify the benefit on real sensors. The Local Contrast table above does not
+include this collector path.
+
+### Validation
+
+`Test-LocalContrast.ps1` verifies analysis-only dark/light region and minority
+parity, independent diagnostic mask pixels after a backing change, invalid bounds,
+large/small resize, disposal/resume, icon palettes, edges and Screenshot mode.
+`Test-CollectorHistory.ps1` fails on the 0.6.38 baseline and passes on the candidate;
+it checks sensors and sub-hardware appearing during Update, current/null values,
+metadata, and the real bundled LHM Sensor's history clearing while Value/Min/Max
+continue updating. It does not open hardware or load a driver.
+
+The complete `Validate.ps1 -ModernCore` run passed, including native sensor parity,
+session peaks, WPF/settings/layout, quota/FPS lifecycle, startup and package/updater
+checks. The first attempt stopped because PATH selected a runtime-only `dotnet`;
+the completed run used the existing local .NET SDK via process-local PATH.
+Local logs are `vendor/memory-retention-validation-initial.log` and
+`vendor/memory-retention-validation.log`.

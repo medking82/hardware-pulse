@@ -21,13 +21,19 @@ The native runtime has these existing boundaries:
 | UpdateCoordinator | Version selection, check schedule, operation state, retries and disposed-result handling | Headless UpdateCoordinatorTests |
 | Pulse.Core / MaterialPolicy | Derive effective opacity and backdrop flags from saved preferences and current display state | Shared Core tests, headless material tests and WPF lock/settings roundtrip |
 | Pulse.Core / ContrastAnalysis | Bounded luminance analysis, temporal hysteresis and local region color/edge confidence | Headless CoreTests; no WPF, Win32 or capture dependencies |
-| LocalContrast | Windows capture exclusion, reusable GDI buffers and WPF mask creation | Actual capture, resize, dispose/resume and Screenshot mode integration |
+| LocalContrast | Windows capture exclusion, reusable GDI buffers and optional diagnostic WPF masks | Actual capture, resize, dispose/resume and Screenshot mode integration |
 
 ReadingSession is synchronous and is called on the UI thread. It owns no timer,
 window, scheduler or driver. Its state is per Shell instance, and the UI treats
 Latest as read-only. Cards and overlay consume the same session. Closing to tray
 continues polling; shutdown/STOP handling and the two-second timer remain owned
 by Shell. These lifecycle semantics were preserved during extraction.
+
+The native Collector disables LHM's unused `ISensor.Values` history with
+`ValuesTimeWindow = TimeSpan.Zero` as sensors are discovered after each hardware
+update, including sub-hardware and newly activated sensors. Current readings,
+LHM's independent Min/Max tracking, and Pulse's `ReadingSession.Peaks` remain
+unchanged. This is an in-memory retention policy, not a hardware control write.
 
 `scripts/Test-ReadingSession.ps1` references the actual Pulse.Core and
 Pulse.Adapters.Windows DLLs for its headless integration fixture, including the
@@ -64,6 +70,10 @@ analysis buffers and the previous-frame state. It neither captures the screen no
 owns a timer, settings, credentials, files or threads. One instance is serialized
 by its caller. Region queries use the latest analyzed frame and allocate no pixel
 arrays. DesktopView maps its text bounds into the bounded analysis grid.
+The native Desktop calls `LocalContrast.CaptureAnalysis` for grid dimensions and
+queries `RegionColor` after the worker completes. It does not create a bitmap per
+frame. `Capture` retains the independent frozen mask for diagnostic consumers;
+both paths share the same serialized capture and analysis implementation.
 
 `scripts/Build-Core.ps1` builds an AnyCPU `Pulse.Core.dll` with the existing Windows
 Framework compiler. Build-Native references that DLL and the release payload

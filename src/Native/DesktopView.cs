@@ -233,19 +233,19 @@ namespace HardwarePulse {
             var background=surface.Background as SolidColorBrush;
             var color=background==null?Colors.Transparent:background.Color;var bounds=capture.Bounds();
             int radius=Math.Max(2,(int)Math.Round(lastSize*.4*bounds.Width/ActualWidth));
-            System.Threading.Tasks.Task.Run(()=>capture.Capture(bounds,color,radius)).ContinueWith(task=>{
+            System.Threading.Tasks.Task.Run(()=>capture.CaptureAnalysis(bounds,color,radius)).ContinueWith(task=>{
                 var error=task.Exception; // Observe capture failure even if the window has closed.
                 if(Dispatcher.HasShutdownStarted)return;
                 Dispatcher.BeginInvoke(new Action(delegate{try{
                 if(localContrast!=capture||!IsVisible||ScreenshotActive||capture.Bounds()!=bounds)return;
-                var image=error==null?task.Result:null;
-                if(image==null){LocalContrastAvailable=false;return;}
+                var grid=error==null?task.Result:Size.Empty;
+                if(grid.IsEmpty){LocalContrastAvailable=false;return;}
                 LocalContrastAvailable=true;
                 foreach(var row in rows.Values)if(row.Border.Visibility==Visibility.Visible)foreach(var text in new[]{row.Name,row.Value}){
                     if(text.ActualWidth<=0||text.ActualHeight<=0)continue;
                     var point=text.TranslatePoint(new Point(),this);
                     var old=text.Foreground as SolidColorBrush;byte prior=old!=null&&DesktopContrast.Luminance(old.Color)<.4?(byte)20:(byte)245;
-                    var region=new Int32Rect((int)(point.X*image.PixelWidth/ActualWidth),(int)(point.Y*image.PixelHeight/ActualHeight),Math.Max(1,(int)Math.Ceiling(text.ActualWidth*image.PixelWidth/ActualWidth)),Math.Max(1,(int)Math.Ceiling(text.ActualHeight*image.PixelHeight/ActualHeight)));
+                    var region=new Int32Rect((int)(point.X*grid.Width/ActualWidth),(int)(point.Y*grid.Height/ActualHeight),Math.Max(1,(int)Math.Ceiling(text.ActualWidth*grid.Width/ActualWidth)),Math.Max(1,(int)Math.Ceiling(text.ActualHeight*grid.Height/ActualHeight)));
                     double minority;byte shade=capture.RegionColor(region,prior,out minority);
                     if(old==null||old.Color.R!=shade||old.Color.G!=shade||old.Color.B!=shade){
                         var brush=new SolidColorBrush(Color.FromRgb(shade,shade,shade));brush.Freeze();text.Foreground=brush;
@@ -260,7 +260,7 @@ namespace HardwarePulse {
                 }
                 foreach(var row in rows.Values)if(row.Border.Visibility==Visibility.Visible&&row.IconHost.ActualWidth>0&&row.IconHost.ActualHeight>0){
                     var point=row.IconHost.TranslatePoint(new Point(),this);
-                    var region=new Int32Rect((int)(point.X*image.PixelWidth/ActualWidth),(int)(point.Y*image.PixelHeight/ActualHeight),Math.Max(1,(int)Math.Ceiling(row.IconHost.ActualWidth*image.PixelWidth/ActualWidth)),Math.Max(1,(int)Math.Ceiling(row.IconHost.ActualHeight*image.PixelHeight/ActualHeight)));
+                    var region=new Int32Rect((int)(point.X*grid.Width/ActualWidth),(int)(point.Y*grid.Height/ActualHeight),Math.Max(1,(int)Math.Ceiling(row.IconHost.ActualWidth*grid.Width/ActualWidth)),Math.Max(1,(int)Math.Ceiling(row.IconHost.ActualHeight*grid.Height/ActualHeight)));
                     double minority;row.IconShade=capture.RegionColor(region,row.IconShade,out minority);ApplyIcon(row,AdaptiveIconTint(row));
                     bool edge=row.IconPalette||minority>(row.IconHost.Effect==null?.12:.06);
                     if(edge){

@@ -48,9 +48,18 @@ namespace HardwarePulse {
         }
         public BitmapSource Capture(Rect bounds,Color backing,int radius=6){
             lock(gate){
-                if(!excluded)return null;
+                var size=CaptureAnalysis(bounds,backing,radius);
+                if(size.IsEmpty)return null;
+                // Diagnostic callers can request an independent mask; Desktop only
+                // needs the grid dimensions and queries the reusable analysis directly.
+                var image=BitmapSource.Create((int)size.Width,(int)size.Height,96,96,PixelFormats.Bgra32,null,pixels,(int)size.Width*4);image.Freeze();return image;
+            }
+        }
+        public Size CaptureAnalysis(Rect bounds,Color backing,int radius=6){
+            lock(gate){
+                if(!excluded)return Size.Empty;
                 int width=(int)bounds.Width,height=(int)bounds.Height;
-                if(width<1||height<1||(long)width*height>4000000)return null;
+                if(width<1||height<1||(long)width*height>4000000)return Size.Empty;
                 int step=ContrastAnalysis.SampleStep(width,height),sampleWidth=(width+step-1)/step,sampleHeight=(height+step-1)/step;
                 if(bitmap==null||bitmap.Width!=width||bitmap.Height!=height){
                     ReleaseBuffers();
@@ -70,8 +79,7 @@ namespace HardwarePulse {
                 try{for(int y=0;y<sampleHeight;y++)Marshal.Copy(IntPtr.Add(data.Scan0,y*data.Stride),pixels,y*sampleWidth*4,sampleWidth*4);}finally{source.UnlockBits(data);}
                 analysis.Analyze(pixels,sampleWidth,sampleHeight,Math.Max(1,(int)Math.Round(radius/(double)step)),backing.R,backing.G,backing.B,backing.A,previousBounds!=bounds);
                 previousBounds=bounds;
-                // BitmapSource copies the reusable buffer and is safe for the UI thread.
-                var image=BitmapSource.Create(sampleWidth,sampleHeight,96,96,PixelFormats.Bgra32,null,pixels,sampleWidth*4);image.Freeze();return image;
+                return new Size(sampleWidth,sampleHeight);
             }
         }
         void ReleaseBuffers(){
