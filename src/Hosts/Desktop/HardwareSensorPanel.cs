@@ -7,7 +7,7 @@ namespace HardwarePulse.Desktop;
 
 // UI-thread owner. Reuse text controls during normal polling; rebuild only on topology change.
 public sealed class HardwareSensorPanel : Border {
-    readonly StackPanel rows=new(){Spacing=12};
+    readonly StackPanel rows=new(){Spacing=6};
     readonly TextBlock status=new(){TextWrapping=TextWrapping.Wrap,Opacity=.75};
     readonly Dictionary<string,(TextBlock Label,TextBlock Value)> controls=new();
     string[] order=[];
@@ -16,9 +16,8 @@ public sealed class HardwareSensorPanel : Border {
     public HardwareSensorPanel(UiLanguage? language=null,string title="Temperature & fans",string emptyStatus="No temperature or fan sensors exposed by this device.") {
         this.language=language??new UiLanguage();
         this.emptyStatus=emptyStatus;
-        Name="HardwareSensors";Padding=new Thickness(20);CornerRadius=new CornerRadius(14);
-        BorderThickness=new Thickness(1);BorderBrush=Brushes.Gray;
-        var body=new StackPanel{Spacing=14};
+        Name="HardwareSensors";ReadingCard.Apply(this);
+        var body=new StackPanel{Spacing=8};
         body.Children.Add(this.language.Set(new TextBlock{FontWeight=FontWeight.SemiBold},title));
         body.Children.Add(status);body.Children.Add(rows);Child=body;
         Present([],false);

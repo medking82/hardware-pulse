@@ -10,6 +10,7 @@ static class Tests {
     static void Check(bool ok,string message){if(!ok)throw new Exception(message);}
     [STAThread]
     static void Main(string[] args) {
+        if(args.SequenceEqual(new[]{"--visual-fixture"})){HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();NativeVisualFixture.Run();return;}
         if(args.Length>0&&args[0]=="--ui-benchmark"){Environment.ExitCode=UiBenchmark.Run(args);return;}
         var expected=Environment.GetEnvironmentVariable("PULSE_TEST_ARCH");
         Check(expected==null||expected==System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture.ToString(),"Architecture mismatch");

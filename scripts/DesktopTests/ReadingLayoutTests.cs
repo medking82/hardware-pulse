@@ -23,12 +23,14 @@ static class ReadingLayoutTests {
             Check((string?)panel.Children[0].Tag=="hardware/fan"&&!panel.Children[0].IsVisible,"Stored order/hidden hardware lost");
             Check(panel.Children.Single(x=>(string?)x.Tag=="Memory").IsVisible,"Default display lost");
             var main=owner.GetVisualDescendants().OfType<TabControl>().Single(x=>x.Name=="MainTabs");main.SelectedIndex=1;Dispatcher.UIThread.RunJobs();
-            var tabs=owner.GetVisualDescendants().OfType<TabControl>().Single(x=>x.Name=="SettingsTabs");tabs.SelectedIndex=4;Dispatcher.UIThread.RunJobs();
-            var editors=owner.GetVisualDescendants().OfType<ReadingLayoutEditor>().ToArray();
-            var cards=editors.Single(x=>x.Name=="CardLayoutEditor");var desktop=editors.Single(x=>x.Name=="DesktopLayoutEditor");
+            SettingsTests.OpenSection(owner,"CardLayoutSection");
+            var cards=owner.GetVisualDescendants().OfType<ReadingLayoutEditor>().Single(x=>x.Name=="CardLayoutEditor");
+            SettingsTests.OpenSection(owner,"DesktopLayoutSection");
+            var desktop=owner.GetVisualDescendants().OfType<ReadingLayoutEditor>().Single(x=>x.Name=="DesktopLayoutEditor");
             var fan=Entry(desktop,"hardware/fan");((CheckBox)fan.Children[0]).IsChecked=true;
             var retained=panel.Children.Single(x=>(string?)x.Tag=="hardware/fan");Check(retained.IsVisible,"Show metric does not apply live");
             Click(fan,"MoveReadingDown");Check((string?)panel.Children[0].Tag=="Memory","Cross-group metric reorder failed");
+            SettingsTests.OpenSection(owner,"CardLayoutSection");
             var cpu=Entry(cards,"CPU");((CheckBox)cpu.Children[0]).IsChecked=false;
             Click(Entry(cards,"Memory"),"MoveReadingUp");
             main.SelectedIndex=0;Dispatcher.UIThread.RunJobs();
@@ -42,7 +44,7 @@ static class ReadingLayoutTests {
             Check((string?)panel.Children[0].Tag=="Memory"&&panel.Children.Single(x=>(string?)x.Tag=="hardware/fan").IsVisible,"Returning device loses preference");
             owner.Language.Select("zh-CN");Check((string?)panel.Children[0].Tag=="Memory","Localization changed stable order");owner.Language.Select("en");
             Check(!owner.GetVisualDescendants().OfType<FpsPanel>().Single().Enabled&&owner.GetVisualDescendants().OfType<CodexQuotaPanel>().All(x=>!x.QuotaEnabled),"Layout enabled optional acquisition");
-            main.SelectedIndex=1;Dispatcher.UIThread.RunJobs();tabs.SelectedIndex=4;owner.Width=360;owner.Height=850;Dispatcher.UIThread.RunJobs();
+            main.SelectedIndex=1;Dispatcher.UIThread.RunJobs();SettingsTests.OpenSection(owner,"DesktopLayoutSection");owner.Width=360;owner.Height=850;Dispatcher.UIThread.RunJobs();
             if(native){var until=DateTime.UtcNow.AddMilliseconds(500);while(DateTime.UtcNow<until){using var slice=new CancellationTokenSource(TimeSpan.FromMilliseconds(20));Dispatcher.UIThread.MainLoop(slice.Token);}}
             foreach(var row in desktop.Children.Cast<Grid>()) {
                 Check(((CheckBox)row.Children[0]).IsEnabled,"Visibility toggle accidentally disabled");

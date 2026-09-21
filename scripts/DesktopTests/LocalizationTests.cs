@@ -42,7 +42,7 @@ static class LocalizationTests {
             var source=new MonitorSource(true);var window=new MonitorWindow(source,store:store);window.Show();
             window.Present(source.Poll(null));var sampling=window.Sampling;
             var main=window.GetVisualDescendants().OfType<TabControl>().Single(x=>x.Name=="MainTabs");main.SelectedIndex=1;Dispatcher.UIThread.RunJobs();
-            var tabs=window.GetVisualDescendants().OfType<TabControl>().Single(x=>x.Name=="SettingsTabs");tabs.SelectedIndex=1;Dispatcher.UIThread.RunJobs();
+            SettingsTests.OpenSection(window,"AppearanceSection");
             var language=window.GetVisualDescendants().OfType<ComboBox>().Single(x=>x.Name=="PreviewLanguage");language.SelectedIndex=2;Dispatcher.UIThread.RunJobs();
             Check(window.Title=="Pulse · 桌面预览版"&&((TabItem)main.Items[1]!).Header?.ToString()=="设置","Title and tabs change immediately");
             Check(window.GetVisualDescendants().OfType<TextBlock>().Any(x=>x.Text=="主题"),"Appearance labels translated");
@@ -61,7 +61,11 @@ static class LocalizationTests {
                     window.UpdateLayout();
                     Console.WriteLine($"NATIVE_RESIZE settled: requested={window.Width} client={window.ClientSize.Width} widest={Widest()}");
                 }
-                foreach(var text in window.GetVisualDescendants().OfType<TextBlock>())Check(text.Bounds.Width<=360,$"Chinese text exceeds window: text={text.Bounds.Width}, client={window.ClientSize.Width}, requested={window.Width}");
+                void CheckVisibleText(){foreach(var text in window.GetVisualDescendants().OfType<TextBlock>().Where(x=>x.IsEffectivelyVisible))Check(text.Bounds.Width<=360,$"Chinese text exceeds window: text={text.Text}, width={text.Bounds.Width}, client={window.ClientSize.Width}");}
+                CheckVisibleText();
+                if(tab==1)foreach(var category in window.GetVisualDescendants().OfType<Button>().Where(x=>x.Name?.StartsWith("SettingsCategory_")==true).ToArray()) {
+                    category.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));Dispatcher.UIThread.RunJobs();CheckVisibleText();
+                }
                 if(output!=null){using var frame=window.CaptureRenderedFrame();frame!.Save(Path.Combine(output,$"traditional-{tab}.png"),Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);}
             }
             Check(window.GetVisualDescendants().OfType<TextBlock>().Any(x=>x.Text=="24.0%"),"Numeric snapshot survives language switch");

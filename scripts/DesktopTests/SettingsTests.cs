@@ -7,6 +7,12 @@ using Avalonia.VisualTree;
 using HardwarePulse.Desktop;
 
 static class SettingsTests {
+    public static void OpenSection(Control owner,string name) {
+        string category=name switch {"AppearanceSection"=>"AppAppearance","DesktopAppearanceSection" or "DesktopLayoutSection"=>"Desktop","CardLayoutSection"=>"AppCards","QuotaSection"=>"AIQuota","GameOverlaySection"=>"FPS",_=>"General"};
+        owner.GetVisualDescendants().OfType<Button>().Single(x=>x.Name=="SettingsCategory_"+category).RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+        owner.GetVisualDescendants().OfType<Expander>().Single(x=>x.Name==name).IsExpanded=true;
+        Dispatcher.UIThread.RunJobs();
+    }
     static void Check(bool ok,string message){if(!ok)throw new Exception(message);}
     static void Until(Func<bool> done) {
         var end=DateTime.UtcNow.AddSeconds(5);
@@ -17,6 +23,20 @@ static class SettingsTests {
         string directory=Directory.CreateTempSubdirectory("pulse-preview-settings-").FullName;
         try {
             string path=Path.Combine(directory,"settings.json");
+            string materialPath=Path.Combine(directory,"material.json");
+            File.WriteAllText(materialPath,"{\"monitorBackgroundOpacity\":37,\"monitorBackgroundBlur\":true}");
+            var materialStore=new PreviewSettingsStore(materialPath);
+            var materialWindow=new MonitorWindow(new MonitorSource(true),start:false,store:materialStore);
+            Check(materialWindow.TransparencyLevelHint.Contains(WindowTransparencyLevel.Blur),"Monitor has no glass backend request");
+            materialWindow.Show();
+            var materialTabs=materialWindow.GetVisualDescendants().OfType<TabControl>().Single(x=>x.Name=="MainTabs");materialTabs.SelectedIndex=1;
+            Dispatcher.UIThread.RunJobs();
+            OpenSection(materialWindow,"AppearanceSection");
+            Dispatcher.UIThread.RunJobs();
+            var materialSlider=materialWindow.GetVisualDescendants().OfType<Slider>().Single(x=>x.Name=="MonitorBackgroundOpacity");
+            Check(materialSlider.Value==37&&materialWindow.Opacity==1,"Background opacity must preserve foreground opacity");
+            materialSlider.Value=52;materialWindow.Close();
+            using(var savedMaterial=JsonDocument.Parse(File.ReadAllText(materialPath)))Check(savedMaterial.RootElement.GetProperty("monitorBackgroundOpacity").GetDouble()==52,"Monitor background preference not saved");
             File.WriteAllText(path,"{\"schema\":1,\"width\":-999,\"height\":99999,\"theme\":\"bad\",\"network\":\"missing-interface\",\"codex\":true,\"future\":{\"keep\":7}}");
             var store=new PreviewSettingsStore(path);var value=store.Load();
             Check(!value.Claude,"Existing settings must not opt into Claude credentials");
@@ -48,8 +68,8 @@ static class SettingsTests {
             var window=new MonitorWindow(new MonitorSource(true),store:new PreviewSettingsStore(path));window.Show();
             var main=window.GetVisualDescendants().OfType<TabControl>().Single(x=>x.Name=="MainTabs");main.SelectedIndex=1;
             Dispatcher.UIThread.RunJobs();
-            var groups=window.GetVisualDescendants().OfType<TabControl>().Single(x=>x.Name=="SettingsTabs");
-            var network=window.GetVisualDescendants().OfType<ComboBox>().Single();
+            OpenSection(window,"NetworkSection");
+            var network=window.GetVisualDescendants().OfType<ComboBox>().Single(x=>x.Name=="NetworkInterfaces");
             Until(()=>network.Items.Count>0);Check(network.SelectedItem==null,"Missing interface must not switch silently");
             window.PresentInterfaces(["other","missing-interface"]);
             Check((string?)network.SelectedItem=="missing-interface","Reconnected saved interface restored");
@@ -65,11 +85,11 @@ static class SettingsTests {
             window.PresentInterfaces(["missing-interface","other"]);
             Check((string?)network.SelectedItem=="other","Refresh preserves explicit selection regardless of ordering");
             network.SelectedItem="missing-interface";
-            groups.SelectedIndex=1;Dispatcher.UIThread.RunJobs();
+            OpenSection(window,"AppearanceSection");
             var theme=window.GetVisualDescendants().OfType<ComboBox>().Single(x=>x.Name=="PreviewTheme");theme.SelectedItem="Dark";
             Check(window.RequestedThemeVariant==ThemeVariant.Dark,"Theme applies immediately");
             Until(()=>new PreviewSettingsStore(path).Load().Theme=="Dark");
-            groups.SelectedIndex=3;Dispatcher.UIThread.RunJobs();window.OpenFloatingMonitor();
+            OpenSection(window,"DesktopAppearanceSection");window.OpenFloatingMonitor();
             var topmost=window.GetVisualDescendants().OfType<CheckBox>().Single(x=>x.Name=="DesktopTopmost");
             topmost.IsChecked=false;Check(!window.FloatingMonitor!.Topmost,"Settings topmost did not apply live");
             var floatingTopmost=window.FloatingMonitor.GetVisualDescendants().OfType<CheckBox>().Single();
@@ -113,7 +133,7 @@ static class SettingsTests {
             Check(window.FloatingMonitor.BackgroundBlur,"Blur preference lost on reopen");
             blur.IsChecked=false;Check(window.FloatingMonitor.MaterialStatus=="Background blur is off.","Disabling blur not reflected in status");
             opacity.Value=100;Check(window.FloatingMonitor.BackgroundOpacity==100,"Solid background not applied live");window.FloatingMonitor.Close();
-            groups.SelectedIndex=2;Dispatcher.UIThread.RunJobs();
+            OpenSection(window,"QuotaSection");
             var quota=window.GetVisualDescendants().OfType<CheckBox>().Single(x=>x.Name=="EnableCodexQuota");Check(quota.IsChecked==true,"Quota choice restored with explicit demo reader");quota.IsChecked=false;
             var claude=window.GetVisualDescendants().OfType<CheckBox>().Single(x=>x.Name=="EnableClaudeQuota");
             Check(claude.IsChecked==false,"Claude starts disabled independently of Codex");claude.IsChecked=true;

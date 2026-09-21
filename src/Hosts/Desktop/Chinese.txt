@@ -220,6 +220,11 @@ Waiting for frames|正在等待画面帧
 Compatible preferences were imported. Review layout and window placement. Your original settings are preserved.|已导入兼容的偏好设置。请检查布局和窗口位置。原有设置已保留。
 Waiting for target app|正在等待目标 App
 Waiting for FPS collector|正在等待 FPS collector
+General|通用
+App Cards|应用卡片
+App Appearance|应用外观
+Desktop Appearance|桌面外观
+Desktop Layout|桌面布局
 FPS capture failed|FPS capture 失败
 FPS capture needs administrator|FPS capture 需要 administrator 权限
 Preview · Windows FPS requires the matching installed collector. Hardware support depends on the platform and device.|Preview · Windows FPS 需要匹配的已安装 collector。硬件支持取决于平台和设备。

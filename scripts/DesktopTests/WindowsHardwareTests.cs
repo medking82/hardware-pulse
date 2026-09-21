@@ -28,11 +28,9 @@ static class WindowsHardwareTests {
                     PeakWindowsHardware=WindowsHardwarePresentation.Capture(session,true),
                     WindowsHardwareStatus=WindowsHardwarePresentation.Status(session.Latest)};
                 owner.Present(snapshot);Dispatcher.UIThread.RunJobs();
-                var panel=owner.GetVisualDescendants().OfType<HardwareSensorPanel>().Single(x=>x.Name=="WindowsHardware");
-                var controls=panel.GetVisualDescendants().OfType<Grid>().ToArray();
-                Check(controls.Length==rows.Length,"Live Monitor hardware row count differs from snapshot");
+                var controls=owner.GetVisualDescendants().OfType<DeviceReadingCard>().SelectMany(x=>x.GetVisualDescendants().OfType<TextBlock>()).Where(x=>x.Tag is string).ToArray();
                 for(int i=0;i<rows.Length;i++) {
-                    Check(((TextBlock)controls[i].Children[1]).Text==rows[i].Value,"Live Monitor hardware value differs from snapshot");
+                    Check(controls.Single(x=>Equals(x.Tag,"hardware/"+rows[i].Id)).Text==rows[i].Value,"Live Monitor hardware value differs from snapshot");
                     var floating=owner.FloatingMonitor!.GetVisualDescendants().OfType<Grid>().Single(x=>Equals(x.Tag,"hardware/"+rows[i].Id));
                     Check(((TextBlock)floating.Children[1]).Text==rows[i].Value,"Live Desktop hardware value differs from snapshot");
                 }
@@ -98,7 +96,9 @@ static class WindowsHardwareTests {
             var owner=new MonitorWindow(new MonitorSource(true),start:false);owner.Show();
             var snapshot=new MonitorSnapshot("25.0%","4.0 / 16.0 GiB","1 KiB/s","2 KiB/s",true,true){WindowsHardwareSupported=true,WindowsHardware=rows,PeakWindowsHardware=WindowsHardwarePresentation.Capture(session,true),WindowsHardwareStatus=WindowsHardwarePresentation.Status(session.Latest)};
             owner.Present(snapshot);owner.OpenFloatingMonitor();Dispatcher.UIThread.RunJobs();
-            var panel=owner.GetVisualDescendants().OfType<HardwareSensorPanel>().Single(x=>x.Name=="WindowsHardware");
+            Check(owner.GetVisualDescendants().OfType<Border>().Count(x=>x.Name?.StartsWith("DeviceCard_")==true)==6,"Windows readings must use the six 0.6.27 device cards");
+            var panel=owner.GetVisualDescendants().OfType<DeviceReadingCard>().Single(x=>x.Name=="DeviceCard_GPU");
+            foreach(var sensor in rows)Check(owner.GetVisualDescendants().OfType<TextBlock>().Single(x=>Equals(x.Tag,"hardware/"+sensor.Id)).Text==sensor.Value,"Grouped Monitor dropped or duplicated a sensor");
             Check(panel.IsVisible&&panel.GetVisualDescendants().OfType<TextBlock>().Any(x=>x.Text=="61.0 °C"),"Monitor shows collector GPU temperature");
             Check(owner.FloatingMonitor!.GetVisualDescendants().OfType<TextBlock>().Any(x=>x.Text=="61.0 °C"),"Floating Desktop shares collector reading");
             var retained=panel.GetVisualDescendants().OfType<TextBlock>().Single(x=>x.Text=="61.0 °C");
@@ -107,7 +107,7 @@ static class WindowsHardwareTests {
             snapshot=snapshot with{WindowsHardware=WindowsHardwarePresentation.Capture(session,false),PeakWindowsHardware=WindowsHardwarePresentation.Capture(session,true)};
             owner.Present(snapshot);Check(retained.Text=="50.0 °C","Live updates reuse Monitor controls");
             owner.Width=360;Dispatcher.UIThread.RunJobs();
-            foreach(var row in panel.GetVisualDescendants().OfType<Grid>()) {
+            foreach(var row in owner.GetVisualDescendants().OfType<Grid>().Where(x=>Equals(x.Tag,"device-reading"))) {
                 var label=(TextBlock)row.Children[0];var value=(TextBlock)row.Children[1];
                 Check(label.Bounds.Right<=value.Bounds.Left&&value.Bounds.Right<=row.Bounds.Width+.1,"Windows label/value overlap or clipping at narrow width");
             }

@@ -12,6 +12,7 @@
   </PropertyGroup>
   <ItemGroup>
     <AvaloniaResource Include="../../../assets/antigravity.svg" Link="Assets/antigravity.svg" />
+    <AvaloniaResource Include="../../../assets/gpu.svg;../../../assets/nvme.svg;../../../assets/airflow.svg;../../../assets/network.svg" Link="Assets/%(Filename)%(Extension)" />
     <AvaloniaResource Include="../../../vendor/desktop-fonts/*.otf" Link="Assets/Fonts/%(Filename)%(Extension)" />
     <EmbeddedResource Include="Chinese.txt" LogicalName="Pulse.Desktop.Chinese.txt" />
     <EmbeddedResource Include="ChineseTraditional.txt" LogicalName="Pulse.Desktop.ChineseTraditional.txt" />

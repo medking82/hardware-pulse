@@ -17,6 +17,11 @@ static class LegacyWindowsSettings {
         void Copy(string from,string to) {if(source.TryGetProperty(from,out var value))result[to]=value.Clone();}
         bool Flag(JsonElement map,string name,bool fallback=false)=>map.ValueKind==JsonValueKind.Object&&map.TryGetProperty(name,out var value)&&value.ValueKind is JsonValueKind.True or JsonValueKind.False?value.GetBoolean():fallback;
         foreach(string name in new[]{"width","height","language","desktopColumns","desktopShortcut","desktopShortcutEnabled","autoUpdates","autoDownload"})Copy(name,name);
+        Copy("opacity","monitorBackgroundOpacity");
+        Put("theme","Dark");
+        // WPF's Solid switch disables its backdrop and makes the tint opaque.
+        Put("monitorBackgroundBlur",!Flag(source,"solid"));
+        if(Flag(source,"solid"))Put("monitorBackgroundOpacity",100);
         foreach(var pair in new[]{("desktopWidth","floatingWidth"),("desktopHeight","floatingHeight"),
             ("desktopAlwaysOnTop","floatingTopmost"),("desktopBackgroundOpacity","floatingBackgroundOpacity"),
             ("desktopFontSize","floatingFontSize"),("desktopSpacing","floatingRowSpacing"),

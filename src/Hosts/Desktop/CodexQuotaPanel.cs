@@ -45,7 +45,7 @@ public sealed class CodexQuotaPanel : UserControl,IDisposable {
         SettingsContent=settings;if(inlineSettings)body.Children.Add(settings);
         if(!inlineSettings)this.language.Set(status,"Off · Enable in Settings → AI Quota");
         body.Children.Add(refresh);body.Children.Add(status);body.Children.Add(windows);
-        Content=new Border{Child=body,Padding=new Thickness(20),CornerRadius=new CornerRadius(14),BorderBrush=Brushes.Gray,BorderThickness=new Thickness(1)};
+        Content=ReadingCard.Apply(new Border{Child=body});
         enabled.PropertyChanged+=(_,e)=>{if(e.Property==ToggleButton.IsCheckedProperty)SetEnabled();};
         refresh.Click+=(_,_)=>{if(!disposed&&enabled.IsChecked==true){session.Refresh();Tick();}};
         timer.Tick+=(_,_)=>Tick();

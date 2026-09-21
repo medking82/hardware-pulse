@@ -28,7 +28,7 @@ static class ProfileMigrationTests {
             string target=Path.Combine(local,"HardwarePulse","shared-settings.json"),legacy=Path.Combine(local,"HardwarePulse","widget-settings.json");
             Directory.CreateDirectory(Path.GetDirectoryName(legacy)!);
             const string fixture="""
-                {"width":720,"height":610,"language":"zh-CN","desktopEnabled":true,
+                {"width":720,"height":610,"language":"zh-CN","desktopEnabled":true,"opacity":42,"solid":false,
                 "desktopWidth":690,"desktopHeight":520,"desktopLeft":-800,"desktopTop":50,
                 "desktopFontSize":22,"desktopSpacing":40,"desktopTextOpacity":70,"desktopBackgroundOpacity":25,
                 "desktopAutoContrast":false,"desktopColor":"#123456","desktopLocalContrast":true,
@@ -43,6 +43,7 @@ static class ProfileMigrationTests {
             var store=DesktopProfile.CreateStore(roaming,local,true)!;var settings=store.Load();
             Check(store.Error==null&&store.LegacyImported&&!File.Exists(target),"Read-only BOM legacy import");
             Check(settings.Width==720&&settings.Height==610&&settings.Language=="zh-CN"&&settings.StartupMode=="Desktop","Common preferences");
+            Check(settings.MonitorBackgroundOpacity==42&&settings.MonitorBackgroundBlur,"Legacy Monitor glass preference preserved");
             Check(settings.FloatingWidth==690&&settings.FloatingHeight==520&&!settings.FloatingPositionSet,"Dimensions without incompatible position");
             Check(settings.FloatingFontSize==22&&settings.FloatingRowSpacing==24&&settings.FloatingTextOpacity==70&&settings.FloatingBackgroundOpacity==25,"Bounded appearance");
             Check(settings.FloatingTextColor=="#123456"&&settings.FloatingLocalContrast&&settings.FloatingTopmost&&!settings.FloatingIconsFollowApp,"Desktop flags");
@@ -55,7 +56,14 @@ static class ProfileMigrationTests {
             File.Delete(target);store.Load();File.WriteAllText(target,winner);
             Check(!store.Save(settings)&&File.ReadAllText(target)==winner,"Concurrent create must preserve winner");
             var current=store.Load();Check(!store.LegacyImported&&current.Width==930&&store.Error==null,"Reload uses winner");
+            Check(current.MonitorBackgroundOpacity==42&&current.MonitorBackgroundBlur,"0.7.0 profile recovers omitted Monitor preferences");
+            current.MonitorBackgroundOpacity=63;current.MonitorBackgroundBlur=false;
             Check(store.Save(current),"Reload allows normal save");
+            var explicitMaterial=store.Load();
+            Check(explicitMaterial.MonitorBackgroundOpacity==63&&!explicitMaterial.MonitorBackgroundBlur,"Shared appearance choices must override legacy values");
+            File.WriteAllText(legacy,"{broken");
+            Check(store.Load().Width==930&&store.Error==null,"Damaged legacy source must not invalidate shared profile");
+            File.WriteAllText(legacy,fixture,new UTF8Encoding(true));
             using(var doc=JsonDocument.Parse(File.ReadAllText(target)))Check(doc.RootElement.GetProperty("future").GetProperty("keep").GetInt32()==7,"Stable unknown fields preserved");
             foreach(string bad in new[]{"{broken","[]",new string(' ',65537)}) {
                 File.WriteAllText(target,bad);var invalid=new PreviewSettingsStore(target,legacy);var value=invalid.Load();

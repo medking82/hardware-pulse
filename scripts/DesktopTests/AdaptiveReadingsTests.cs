@@ -8,6 +8,12 @@ using HardwarePulse.Desktop;
 static class AdaptiveReadingsTests {
     static void Check(bool ok,string message){if(!ok)throw new Exception(message);}
     public static void Run(string? output=null) {
+        var unequal=new AdaptiveReadingsPanel{RequestedColumns=2};
+        unequal.Children.Add(new Border{Height=300});
+        unequal.Children.Add(new Border{MinHeight=60,Child=new TextBlock{Text="Quota"}});
+        unequal.Measure(new Size(600,double.PositiveInfinity));
+        unequal.Arrange(new Rect(0,0,600,unequal.DesiredSize.Height));
+        Check(unequal.Children[1].Bounds.Height==unequal.Children[1].DesiredSize.Height,"Short quota card stretched to unrelated hardware card height");
         var panel=new AdaptiveReadingsPanel();
         for(int i=0;i<7;i++)panel.Children.Add(new TextBlock{Text="Long sensor name · 系统风扇 27.6 / 61.4 GiB",TextWrapping=Avalonia.Media.TextWrapping.Wrap});
         void Layout(double width){panel.Measure(new Size(width,double.PositiveInfinity));panel.Arrange(new Rect(0,0,width,panel.DesiredSize.Height));}

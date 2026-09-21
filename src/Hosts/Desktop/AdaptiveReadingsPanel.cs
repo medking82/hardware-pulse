@@ -30,7 +30,7 @@ public sealed class AdaptiveReadingsPanel : Panel {
         for(int start=0;start<active.Length;start+=Columns) {
             double height=0;
             for(int i=start;i<Math.Min(start+Columns,active.Length);i++)height=Math.Max(height,active[i].DesiredSize.Height);
-            for(int i=start;i<Math.Min(start+Columns,active.Length);i++)active[i].Arrange(new Rect((i-start)*(cellWidth+ColumnLayout.Gap),top,cellWidth,height));
+            for(int i=start;i<Math.Min(start+Columns,active.Length);i++)active[i].Arrange(new Rect((i-start)*(cellWidth+ColumnLayout.Gap),top,cellWidth,active[i].DesiredSize.Height));
             top+=height+spacing;
         }
         return finalSize;

@@ -5,6 +5,8 @@ namespace HardwarePulse.Desktop;
 public sealed class PreviewSettings {
     public double Width=800,Height=560;
     public string Theme="System";
+    public double MonitorBackgroundOpacity=30;
+    public bool MonitorBackgroundBlur=true;
     public string StartupMode="Monitor";
     public string Language="auto";
     public string? Network;
@@ -56,6 +58,17 @@ public sealed class PreviewSettingsStore {
                 fields=JsonSerializer.Deserialize<Dictionary<string,JsonElement>>(stream)??throw new InvalidDataException();
             }
             if(fields.TryGetValue("schema",out var schema)&&(!schema.TryGetInt32(out var version)||version!=1))throw new InvalidDataException();
+            // 0.7.0 omitted these preferences during import. Fill only the newly
+            // supported fields; never replace a choice saved by the shared host.
+            if(legacyPath!=null&&(!fields.ContainsKey("monitorBackgroundOpacity")||!fields.ContainsKey("monitorBackgroundBlur"))) {
+                try {
+                    var legacy=LegacyWindowsSettings.Read(legacyPath);
+                    foreach(string key in new[]{"monitorBackgroundOpacity","monitorBackgroundBlur"})
+                        if(!fields.ContainsKey(key)&&legacy.TryGetValue(key,out var setting))fields[key]=setting;
+                }catch(Exception e) when(e is IOException or UnauthorizedAccessException or JsonException or InvalidOperationException) {
+                    // An unavailable old profile must not block a valid current profile.
+                }
+            }
             var map=new Dictionary<string,object>();
             foreach(var field in fields) {
                 if(field.Value.ValueKind==JsonValueKind.String)map[field.Key]=field.Value.GetString()!;
@@ -63,6 +76,8 @@ public sealed class PreviewSettingsStore {
                 else if(field.Value.ValueKind==JsonValueKind.True||field.Value.ValueKind==JsonValueKind.False)map[field.Key]=field.Value.GetBoolean();
             }
             var values=new SettingsValues(map);
+            settings.MonitorBackgroundOpacity=values.Number("monitorBackgroundOpacity",30,0,100);
+            settings.MonitorBackgroundBlur=values.Flag("monitorBackgroundBlur",true);
             settings.Width=values.Number("width",800,360,2400);settings.Height=values.Number("height",560,400,1600);
             settings.FloatingWidth=values.Number("floatingWidth",440,360,2400);settings.FloatingHeight=values.Number("floatingHeight",420,240,1600);
             settings.FloatingX=(int)values.Number("floatingX",0,-100000,100000);settings.FloatingY=(int)values.Number("floatingY",0,-100000,100000);
@@ -110,6 +125,8 @@ public sealed class PreviewSettingsStore {
             string directory=Path.GetDirectoryName(path)!;Directory.CreateDirectory(directory);
             var updated=new Dictionary<string,JsonElement>(fields){
                 ["schema"]=JsonSerializer.SerializeToElement(1),["width"]=JsonSerializer.SerializeToElement(settings.Width),
+                ["monitorBackgroundOpacity"]=JsonSerializer.SerializeToElement(settings.MonitorBackgroundOpacity),
+                ["monitorBackgroundBlur"]=JsonSerializer.SerializeToElement(settings.MonitorBackgroundBlur),
                 ["height"]=JsonSerializer.SerializeToElement(settings.Height),["theme"]=JsonSerializer.SerializeToElement(settings.Theme),
                 ["startupMode"]=JsonSerializer.SerializeToElement(settings.StartupMode),
                 ["floatingLocalContrast"]=JsonSerializer.SerializeToElement(settings.FloatingLocalContrast),

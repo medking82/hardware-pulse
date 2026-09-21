@@ -34,7 +34,7 @@ static class StartupModeTests {
             var store=new PreviewSettingsStore(path);Check(store.Load().StartupMode=="Monitor","Invalid startup mode did not fall back");
             var window=new MonitorWindow(new MonitorSource(true),start:false,store:store);window.Show();
             window.GetVisualDescendants().OfType<TabControl>().Single(x=>x.Name=="MainTabs").SelectedIndex=1;Dispatcher.UIThread.RunJobs();
-            window.GetVisualDescendants().OfType<TabControl>().Single(x=>x.Name=="SettingsTabs").SelectedIndex=1;Dispatcher.UIThread.RunJobs();
+            SettingsTests.OpenSection(window,"AppearanceSection");
             var choice=window.GetVisualDescendants().OfType<ComboBox>().Single(x=>x.Name=="StartupMode");choice.SelectedItem="Tray";window.Close();
             Check(new PreviewSettingsStore(path).Load().StartupMode=="Tray","Startup preference did not persist");
         }finally{Directory.Delete(directory,true);}
