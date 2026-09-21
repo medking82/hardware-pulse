@@ -20,6 +20,12 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 
 - Shared Desktop supports Auto (System), English and Simplified/Traditional Chinese UI, including Monitor, Settings, sensor status, Codex quota and tray actions. Language switches immediately without restarting sampling or refreshing credentials and is saved in the isolated preview profile. Auto respects Chinese script and region preferences.
 
+## 0.6.40 — 2026-09-21
+
+- Local Contrast now samples rendered glyph bounds, maps both fractional-DPI endpoints safely, and recovers mid-gray choices using the actual `#141414` / `#F5F5F5` contrast instead of the previous broad luminance band. Reserved FPS cell whitespace no longer determines the text shade.
+- Transparent gaming layouts account for saved text opacity and the captured RGB background before choosing the shade. Zero text opacity skips capture; existing WPF glass UI, refresh cadence, settings and card geometry remain unchanged. No UI redesign is included.
+- In a controlled 0% background / 40% text opacity Desktop benchmark, whole-machine CPU increased by roughly 0.05–0.17 percentage points. RAM showed no consistent increase; this is a precision trade-off and not a game FPS benchmark. Windows 10/11 x64 scope and the existing self-signed Marck Wong certificate status are unchanged.
+
 ## 0.6.39 — 2026-09-21
 
 - Local Contrast avoids a duplicate bitmap copy during analysis. In two controlled 30-second runs, Gen 0 collection counts fell from 83/84 to 3/4; managed allocation, RAM and CPU did not show a consistent reduction. See [performance evidence](docs/PERFORMANCE.md#native-memory-retention-work-after-0638).

@@ -20,6 +20,12 @@
 
 - 共享桌面应用支持自动跟随系统、英语、简体中文和繁体中文，覆盖监控、设置、传感器状态、Codex 额度与托盘操作。语言即时切换，不重启采样或重新读取登录信息，并保存到独立的预览版设置中。自动模式会区分中文书写体系和地区。
 
+## 0.6.40 — 2026-09-21
+
+- Local Contrast 现在采样实际渲染的 glyph bounds，安全处理 fractional-DPI 两端映射，并根据真实 `#141414`／`#F5F5F5` contrast 进行 mid-gray recovery，不再使用过宽的旧 luminance band。FPS 保留区域中的空白不再决定文字颜色。
+- 透明 gaming layout 会根据保存的 text opacity 和捕获到的 RGB background 选择文字颜色。text opacity 为零时跳过 capture；现有 WPF glass UI、refresh cadence、settings 和 card geometry 保持不变。本次不包含 UI redesign。
+- 在受控的 0% background opacity／40% text opacity Desktop benchmark 中，whole-machine CPU 增加约 0.05–0.17 个百分点；RAM 没有显示一致增加。这是 precision trade-off，不是游戏 FPS benchmark。Windows 10/11 x64 scope 及现有自签名 Marck Wong certificate 状态保持不变。
+
 ## 0.6.39 — 2026-09-21
 
 - Local Contrast analysis 不再重复保留 bitmap copy。两组受控 30 秒测量中，Gen0 collection count 从 83／84 降至 3／4；managed allocation、RAM 和 CPU 没有显示一致下降。详见 [performance evidence](docs/PERFORMANCE.md#native-memory-retention-work-after-0638)。
