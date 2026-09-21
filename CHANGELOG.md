@@ -20,6 +20,12 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 
 - Shared Desktop supports Auto (System), English and Simplified/Traditional Chinese UI, including Monitor, Settings, sensor status, Codex quota and tray actions. Language switches immediately without restarting sampling or refreshing credentials and is saved in the isolated preview profile. Auto respects Chinese script and region preferences.
 
+## 0.6.38 — 2026-09-21
+
+- Claude `Login required` now retries after 30 seconds instead of initially waiting five minutes. Continued authentication and transient transport failures share bounded 30/60/120/240/300-second backoff; success restores the five-minute cadence.
+- Preserves 403/429 handling, server Retry-After deadlines, single-flight requests, cancellation, local snapshot polling and other providers' authentication cadence.
+- Faster detection of a credential owner's recovery does not renew expired tokens. Persistent failures can still wait up to five minutes plus request/UI processing time at the backoff cap. WPF appearance and settings are preserved.
+
 ## 0.6.37 — 2026-09-21
 
 - Windows App recomputes card density when geometry or sensor capabilities change instead of repeating the layout work on every poll. Existing glass materials, fonts, responsive cards and settings are preserved.

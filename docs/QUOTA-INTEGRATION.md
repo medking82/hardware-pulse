@@ -78,11 +78,16 @@ rejects late results. Clear old windows on failures/account transitions; no fabr
 
 HTTP status presentation distinguishes missing/rejected authentication (401,
 `Login required`) from forbidden access (403, `Quota access denied`). A 403 does
-not prove the login expired. Both retain the normal five-minute retry cadence;
+not prove the login expired. Claude `Login required` uses the bounded recovery
+schedule below; other providers' authentication failures and all 403 results
+retain the normal five-minute retry cadence.
 429 keeps a two-minute minimum backoff, extended by a valid server
 Retry-After deadline. Manual Refresh respects both the minimum and server deadline. Missing
 or invalid headers retain the two-minute default. The first transient failure retries after
 30 seconds; consecutive remote failures back off through 60, 120, 240 and 300 seconds.
+Claude authentication failures share this budget with transient failures so
+alternating errors cannot restart fast polling. A successful read restores the
+normal five-minute cadence. Pulse still relies on the credential owner for renewal.
 This classification does not refresh tokens, change endpoints or grant access.
 
 ### Sustained outage retry budget (Windows 0.6.35)
@@ -100,6 +105,8 @@ or enable/disable transition resets it; ignored late results cannot change it.
 Local CLI snapshots retain 30-second file polling even when no data exists. Server
 429 floors and RetryAt, authentication cadence, cancellation, no-overlap and normal
 successful five-minute refresh remain unchanged. No persisted settings or UI change.
+The later Claude owner-login recovery change extends this same counter to Claude
+`Login required`; see [Claude recovery](CLAUDE-QUOTA-RECOVERY.md#bounded-owner-login-recovery).
 CoreQuotaSessionTests demonstrates the old constant-delay behavior failing the new
 consecutive-outage contract and the corrected capped sequence passing, including
 manual recovery, success/re-enable reset and local polling. Time is simulated;

@@ -20,6 +20,12 @@
 
 - 共享桌面应用支持自动跟随系统、英语、简体中文和繁体中文，覆盖监控、设置、传感器状态、Codex 额度与托盘操作。语言即时切换，不重启采样或重新读取登录信息，并保存到独立的预览版设置中。自动模式会区分中文书写体系和地区。
 
+## 0.6.38 — 2026-09-21
+
+- Claude 出现 `Login required` 后，首次 automatic retry 从五分钟缩短为 30 秒。连续 authentication 与 transient transport failure 共用 30／60／120／240／300 秒 bounded backoff；成功后恢复五分钟 cadence。
+- 保留 403／429 handling、server Retry-After deadline、single-flight request、cancellation、local snapshot polling 和其他 provider 的 authentication cadence。
+- 此项加快发现 credential owner 已恢复的状态，不负责 expired token renewal。持续失败达到 backoff 上限后，仍可能等待五分钟加 request／UI processing 时间。保留 WPF appearance 和 settings。
+
 ## 0.6.37 — 2026-09-21
 
 - Windows App 在 geometry 或 sensor capability 变化时才重新计算 card density，减少每次 polling 的重复 layout。保留现有 glass material、字体、responsive cards 和 settings。

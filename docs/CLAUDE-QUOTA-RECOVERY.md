@@ -262,3 +262,38 @@ target is captured for rereads. Live store mutation is not part of these tests.
 
 This changes the credential-selection boundary and requires one independent review
 after deterministic checks, before commit/release.
+
+## Bounded owner-login recovery
+
+Windows release: 0.6.38.
+
+An owning client can replace a rejected credential immediately after Pulse has
+finished its read. The existing within-request retry cannot observe a replacement
+that arrives later, and the five-minute authentication cadence delays recovery.
+
+`QuotaSession` now schedules Claude `Login required` results using 30, 60, 120,
+240 and then at most 300 seconds between completed attempts. Authentication and
+transient transport failures share the existing per-provider saturating counter;
+alternating errors do not reset it. Success and enable/disable reset that budget.
+Successful reads return to the normal five-minute cadence. Persistent failures can
+still take up to five minutes plus request/UI processing time to recover at the cap.
+
+Only scheduling changes. The same asynchronous reader, cancellation, single-flight
+and source-selection boundaries apply in native Windows and shared Desktop hosts.
+403 retains its five-minute cadence, 429 retains its minimum and Retry-After
+deadline, and local CLI snapshots retain thirty-second polling. No file watcher,
+credential metadata cache, additional CLI launch path, token renewal or credential
+write is introduced. A genuinely missing or unusable login still needs its owner
+to recover; this is not indefinite unattended authentication.
+
+`CoreQuotaSessionTests` failed with the previous scheduler at the first thirty-second
+authentication retry. The revised scheduler passes on .NET Framework and .NET 10,
+including owner recovery after an initial failure, normal cadence after success,
+sustained authentication failures, alternating authentication/transport failures,
+other providers' unchanged authentication cadence, 403/429 deadlines, cancellation
+and queued requests. These are synthetic clock/reader tests, not forced expiry of
+a real account or an overnight acceptance run.
+
+The full `scripts/Validate.ps1 -ModernCore` run also passes, including native WPF,
+Windows adapters, settings, startup, status-line, quota child-process lifetime and
+updater regressions.

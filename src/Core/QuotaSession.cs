@@ -7,25 +7,27 @@ using System.Threading.Tasks;
 namespace HardwarePulse {
     // UI-thread owned orchestration; adapters execute on workers. No files or credentials retained here.
     public sealed class QuotaSession:IDisposable {
-        sealed class Slot {internal bool Enabled;internal bool RefreshQueued;internal CancellationTokenSource Cancel;internal Task<QuotaReading> Pending;internal DateTimeOffset Next;internal QuotaReading Reading;internal int Version;internal int PendingVersion;internal int TransientFailures;}
+        sealed class Slot {internal bool Enabled;internal bool RefreshQueued;internal CancellationTokenSource Cancel;internal Task<QuotaReading> Pending;internal DateTimeOffset Next;internal QuotaReading Reading;internal int Version;internal int PendingVersion;internal int RecoveryFailures;}
         readonly Dictionary<string,Slot> slots=new Dictionary<string,Slot>();
         readonly Func<string,CancellationToken,QuotaReading> read;
         bool disposed;
         public static readonly string[] Providers={"Codex","Antigravity","Claude"};
         public QuotaSession(Func<string,CancellationToken,QuotaReading> reader){read=reader;foreach(string provider in Providers)slots.Add(provider,new Slot{Reading=new QuotaReading{Provider=provider,Status="Refresh pending"}});}
         public QuotaReading[] Readings {get{return slots.Values.Where(s=>s.Enabled).Select(s=>s.Reading).ToArray();}}
-        public void Enable(string provider,bool enabled){var slot=slots[provider];if(slot.Enabled==enabled)return;slot.Enabled=enabled;slot.RefreshQueued=false;slot.TransientFailures=0;slot.Version++;if(slot.Cancel!=null)slot.Cancel.Cancel();slot.Reading=new QuotaReading{Provider=provider,Status="Refresh pending"};slot.Next=DateTimeOffset.MinValue;}
+        public void Enable(string provider,bool enabled){var slot=slots[provider];if(slot.Enabled==enabled)return;slot.Enabled=enabled;slot.RefreshQueued=false;slot.RecoveryFailures=0;slot.Version++;if(slot.Cancel!=null)slot.Cancel.Cancel();slot.Reading=new QuotaReading{Provider=provider,Status="Refresh pending"};slot.Next=DateTimeOffset.MinValue;}
         public void Tick(DateTimeOffset now){if(disposed)return;foreach(var pair in slots){var slot=pair.Value;
             if(slot.Pending!=null&&slot.Pending.IsCompleted){
                 if(slot.Pending.Status==TaskStatus.RanToCompletion&&slot.Enabled&&slot.Version==slot.PendingVersion)slot.Reading=slot.Pending.Result;
                 else{var ignored=slot.Pending.Exception;if(slot.Enabled&&slot.Version==slot.PendingVersion)slot.Reading=new QuotaReading{Provider=pair.Key,Status="Quota unavailable",Observed=now};}
                 if(slot.Enabled&&slot.Version==slot.PendingVersion) {
-                    // Recover a first transient failure quickly, but bound repeated
-                    // remote failures to the normal cadence. Local snapshots are cheap.
+                    // Retry transient failures and Claude owner-login recovery quickly,
+                    // sharing one budget so alternating errors cannot reset backoff.
+                    // Persistent failures cap at normal cadence; local snapshots are cheap.
                     bool overdue=slot.Reading.Status=="Live"&&slot.Reading.Observed!=default(DateTimeOffset)&&now-slot.Reading.Observed>=TimeSpan.FromMinutes(5)&&now>=slot.Next;
-                    bool local=slot.Reading.Source=="CLI snapshot",transient=slot.Reading.Status=="Quota unavailable"&&!local;
-                    slot.TransientFailures=transient?Math.Min(5,slot.TransientFailures+1):0;
-                    int delay=local?30:transient?Math.Min(300,30 << (slot.TransientFailures-1)):slot.Reading.Status=="Refresh rate limited"?120:300;
+                    bool local=slot.Reading.Source=="CLI snapshot";
+                    bool recovering=!local&&(slot.Reading.Status=="Quota unavailable"||(pair.Key=="Claude"&&slot.Reading.Status=="Login required"));
+                    slot.RecoveryFailures=recovering?Math.Min(5,slot.RecoveryFailures+1):0;
+                    int delay=local?30:recovering?Math.Min(300,30 << (slot.RecoveryFailures-1)):slot.Reading.Status=="Refresh rate limited"?120:300;
                     slot.Next=now.AddSeconds(delay);
                     if(slot.Reading.Status=="Refresh rate limited"&&slot.Reading.RetryAt.HasValue&&slot.Reading.RetryAt.Value>slot.Next)slot.Next=slot.Reading.RetryAt.Value;
                     // A completed pre-sleep observation must not postpone wake recovery.

@@ -11,7 +11,9 @@ internal static class CoreQuotaSessionTests {
         throw new Exception("Core quota completion timed out");
     }
     public static void Run(){
-        SustainedFailureBackoff();
+        SustainedFailureBackoff("Quota unavailable");
+        SustainedFailureBackoff("Login required");
+        SustainedFailureBackoff("Login required","Quota unavailable");
         Check(typeof(QuotaSession).Assembly==typeof(QuotaReading).Assembly,"session still depends on app assembly");
         var now=new DateTimeOffset(2026,9,15,0,0,0,TimeSpan.Zero);int calls=0;
         int localReads=0;
@@ -86,14 +88,30 @@ internal static class CoreQuotaSessionTests {
                 Check(attempts==2,"Effective deadline launches one recovery request");
             }
         }
+        foreach(string provider in QuotaSession.Providers)
         foreach(string failure in new[]{"Quota unavailable","Refresh rate limited","Login required","Quota access denied"}) {
-            int attempts=0;int delay=failure=="Quota unavailable"?30:failure=="Refresh rate limited"?120:300;
-            using(var retry=new QuotaSession((provider,cancel)=>new QuotaReading{Provider=provider,Status=Interlocked.Increment(ref attempts)==1?failure:"Live"})) {
-                retry.Enable("Claude",true);Pump(retry,now,()=>retry.Readings[0].Status==failure);
+            int attempts=0;int delay=failure=="Quota unavailable"||(provider=="Claude"&&failure=="Login required")?30:failure=="Refresh rate limited"?120:300;
+            using(var retry=new QuotaSession((requestedProvider,cancel)=>new QuotaReading{Provider=requestedProvider,Status=Interlocked.Increment(ref attempts)==1?failure:"Live"})) {
+                retry.Enable(provider,true);Pump(retry,now,()=>retry.Readings[0].Status==failure);
                 retry.Tick(now.AddSeconds(delay).AddTicks(-1));Check(attempts==1,"retry ran before its deadline");
                 Pump(retry,now.AddSeconds(delay),()=>retry.Readings[0].Status=="Live");
                 Check(attempts==2,"retry duplicated requests");
             }
+        }
+        // The credential owner recovers just after the first rejected read.
+        // Pulse must discover that recovery automatically, without another login or click.
+        int ownerReady=0,recoveryCalls=0;
+        using(var recovery=new QuotaSession((provider,cancel)=>{
+            Interlocked.Increment(ref recoveryCalls);
+            return new QuotaReading{Provider=provider,Status=Volatile.Read(ref ownerReady)==0?"Login required":"Live"};
+        })){
+            recovery.Enable("Claude",true);Pump(recovery,now,()=>recovery.Readings[0].Status=="Login required");
+            Volatile.Write(ref ownerReady,1);
+            Pump(recovery,now.AddSeconds(30),()=>recovery.Readings[0].Status=="Live");
+            Check(recoveryCalls==2,"owner recovery was not found on the first automatic retry");
+            recovery.Tick(now.AddSeconds(329));Thread.Sleep(50);
+            Check(recoveryCalls==2,"successful recovery kept fast polling");
+            Pump(recovery,now.AddSeconds(330),()=>Volatile.Read(ref recoveryCalls)==3);
         }
         using(var entered=new ManualResetEventSlim())using(var release=new ManualResetEventSlim())
         using(var session=new QuotaSession((provider,cancel)=>{
@@ -157,21 +175,22 @@ internal static class CoreQuotaSessionTests {
         Console.WriteLine("PASS quota lifecycle soak: 360 simulated refresh rounds / 36 hours, 810 reads, mixed failures, recovery, provider toggles and no overlapping requests");
         Console.WriteLine("PASS Core quota lifecycle: opt-in, host deadlines, manual refresh, no overlap, cancellation, re-enable late results, faults and disposal");
     }
-    static void SustainedFailureBackoff(){
-        var now=new DateTimeOffset(2026,9,21,0,0,0,TimeSpan.Zero);int attempts=0;string outcome="Quota unavailable";
+    static void SustainedFailureBackoff(params string[] failures){
+        var now=new DateTimeOffset(2026,9,21,0,0,0,TimeSpan.Zero);int attempts=0;string outcome=failures[0];
         using(var session=new QuotaSession((provider,cancel)=>{int count=Interlocked.Increment(ref attempts);return new QuotaReading{Provider=provider,Status=outcome,Observed=outcome=="Live"?default(DateTimeOffset):now.AddTicks(count)};})){
             session.Enable("Claude",true);Pump(session,now,()=>session.Readings[0].Observed==now.AddTicks(1));
             var clock=now;
             foreach(int delay in new[]{30,60,120,240,300,300}){
                 int before=attempts;session.Tick(clock.AddSeconds(delay).AddTicks(-1));Thread.Sleep(50);
                 Check(attempts==before,"sustained failure retry bypassed "+delay+"-second backoff");
+                outcome=failures[before%failures.Length];
                 clock=clock.AddSeconds(delay);Pump(session,clock,()=>session.Readings[0].Observed==now.AddTicks(before+1));
                 Check(attempts==before+1,"sustained retry duplicated work");
             }
             // Manual recovery remains immediate, even at the automatic backoff cap.
             outcome="Live";session.Refresh();int prior=attempts;Pump(session,clock,()=>session.Readings[0].Status=="Live");
             Check(attempts==prior+1,"manual recovery did not bypass transient backoff");
-            outcome="Quota unavailable";session.Refresh();prior=attempts;Pump(session,clock,()=>session.Readings[0].Status==outcome);
+            outcome=failures[0];session.Refresh();prior=attempts;Pump(session,clock,()=>session.Readings[0].Status==outcome);
             int expected=attempts+1;Pump(session,clock.AddSeconds(30),()=>session.Readings[0].Observed==now.AddTicks(expected));
             Check(attempts==expected,"successful recovery did not reset backoff");
             session.Enable("Claude",false);session.Enable("Claude",true);prior=attempts;
@@ -186,6 +205,6 @@ internal static class CoreQuotaSessionTests {
             for(int i=0;i<7;i++){int expected=i+1;Pump(local,now.AddSeconds(i*30),()=>local.Readings[0].Observed==now.AddTicks(expected));}
             Check(localReads==7,"local snapshot inherited remote backoff");
         }
-        Console.WriteLine("PASS sustained quota outage: bounded automatic backoff, manual recovery, success/re-enable reset and local polling; simulated time");
+        Console.WriteLine("PASS sustained quota recovery ("+string.Join("/",failures)+"): bounded automatic backoff, manual recovery, success/re-enable reset and local polling; simulated time");
     }
 }
