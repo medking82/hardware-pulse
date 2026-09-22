@@ -116,6 +116,15 @@ geometry, opacity, pin state, Solid Background, Larger Text and card order. Geom
 The release app and installer use a **self-signed Authenticode certificate, CN=Marck Wong**. This is not a public-CA-verified publisher identity: Windows/SmartScreen can still block or warn, and antivirus detection is independent of signing. No Root/TrustedPublisher certificate or security exclusion is installed. The non-exportable private key stays in the author's Windows certificate store and is never distributed. Releases include checksums and the public certificate for inspection. The current self-signed build is not timestamped.
 See [Microsoft signing options](https://learn.microsoft.com/windows/apps/package-and-deploy/code-signing-options).
 
+### Native release version
+
+Use `scripts/Set-Version.ps1 -Check` to verify the nine native release files. Before a
+version bump, preview with `scripts/Set-Version.ps1 -ExpectedVersion <current> -Version <next> -WhatIf`,
+then repeat without `-WhatIf`. The script preserves each file's UTF-8 BOM and newlines and
+rejects version drift before writing. Update changelogs and release descriptions separately;
+shared Desktop prerelease versions and historical notes are outside this script's ownership.
+`Build.ps1` checks versions before replacing build output; `Validate.ps1` also exercises the helper.
+
 ### Build
 
 Use PowerShell 7 on Windows 11 (build tool only):

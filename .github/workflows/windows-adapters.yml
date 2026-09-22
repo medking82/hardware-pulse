@@ -8,6 +8,10 @@ on:
       - 'src/Adapters/Windows/**'
       - 'src/Adapters/Common/**'
       - 'scripts/CodexQuotaTests.cs'
+      - 'scripts/Set-Version.ps1'
+      - 'scripts/Test-Version.ps1'
+      - 'scripts/Build.ps1'
+      - 'scripts/Validate.ps1'
       - 'scripts/Build-Core.ps1'
       - 'scripts/Build-WindowsAdapters.ps1'
       - 'scripts/Test-WindowsAdapters.ps1'
@@ -22,6 +26,10 @@ on:
       - 'src/Adapters/Windows/**'
       - 'src/Adapters/Common/**'
       - 'scripts/CodexQuotaTests.cs'
+      - 'scripts/Set-Version.ps1'
+      - 'scripts/Test-Version.ps1'
+      - 'scripts/Build.ps1'
+      - 'scripts/Validate.ps1'
       - 'scripts/Build-Core.ps1'
       - 'scripts/Build-WindowsAdapters.ps1'
       - 'scripts/Test-WindowsAdapters.ps1'
@@ -58,6 +66,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Exercise native release version tooling
+        shell: pwsh
+        run: ./scripts/Test-Version.ps1
       - name: Build and exercise Framework Windows adapters
         shell: pwsh
         run: ./scripts/Test-WindowsAdapters.ps1 -NativeArm64:($env:PULSE_TEST_ARCH -eq 'Arm64')

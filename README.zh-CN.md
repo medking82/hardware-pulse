@@ -81,6 +81,14 @@ DIMM 品牌、型号和已安装的槽位来自 SMBIOS。**SPD #1/#3 是传感�
 
 安装过程不会添加根证书／受信任发布者证书或安全排除项。不可导出的私钥留在作者本机的 Windows 证书存储区，不随软件分发。发行版附带校验值和可供检查的公钥证书；当前自签名构建没有时间戳。参见 [Microsoft 签名选项](https://learn.microsoft.com/windows/apps/package-and-deploy/code-signing-options)。
 
+### Native release version
+
+先运行 `scripts/Set-Version.ps1 -Check` 检查九个 native release 文件。更新 version 前，用
+`scripts/Set-Version.ps1 -ExpectedVersion <current> -Version <next> -WhatIf` 预览，
+确认后去掉 `-WhatIf` 执行。Script 保留每个文件原有的 UTF-8 BOM 和换行，并在写入前拒绝 version drift。
+Changelog 和 release description 另行更新；shared Desktop prerelease version 与历史记录不在 script 的修改范围内。
+`Build.ps1` 在替换 build output 前检查 version；`Validate.ps1` 同时验证 helper。
+
 ### 构建、编码与许可证
 
 在 Windows 11 上使用 PowerShell 7 进行构建；PowerShell 7 仅为构建工具，不是运行环境要求。

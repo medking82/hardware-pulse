@@ -1,6 +1,7 @@
 ﻿param([switch]$Installer,[string]$SigningCertificateThumbprint,[switch]$Win7Compatibility)
 $ErrorActionPreference='Stop'
 if($Win7Compatibility -and -not $Installer){throw 'Win7Compatibility requires Installer; the runtime selects capabilities from the OS.'}
+& "$PSScriptRoot/Set-Version.ps1" -Check
 $root=Split-Path $PSScriptRoot
 $app=Join-Path $root 'build/app'
 if(Test-Path $app){

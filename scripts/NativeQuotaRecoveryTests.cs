@@ -28,7 +28,7 @@ internal static class NativeQuotaRecoveryTests {
             field.SetValue(shell,fake);
             try{
                 fake.Enable("Claude",true);fake.Tick(now);Complete(fake,"Claude",now);
-                next=new QuotaReading{Provider="Claude",Status="Refresh rate limited",CacheScope="synthetic-source",HttpStatus=429,FailureKind="HTTP response",Observed=now,RetryAt=now.AddMinutes(15)};
+                next=new QuotaReading{Provider="Claude",Status="Refresh rate limited",CacheScope="synthetic-source",HttpStatus=429,FailureKind="HTTP response",Observed=now,RetryAt=now.AddMinutes(2)};
                 fake.Refresh();fake.Tick(now);Complete(fake,"Claude",now);Render(shell);
                 var card=Card(shell,"Claude");
                 Check(card.Any(s=>s.Contains("Retry in"))&&card.Any(s=>s.Contains("Cached 2 min ago")),"retry and cache age must be distinct from latest error age");
@@ -41,6 +41,12 @@ internal static class NativeQuotaRecoveryTests {
                 fake.GetState("Claude").LastGood.Observed=now.AddMinutes(-11);Render(shell);card=Card(shell,"Claude");
                 Check(card.Contains("5-hour")&&card.Contains("Weekly")&&card.Count(s=>s=="—")==2&&!card.Any(s=>s.Contains("91%")),"expired cache must keep basic structure with unknown values");
                 Check(Desktop(shell).Single().Value=="Refresh rate limited"&&Desktop(shell).Single().ToolTip.Contains("Next retry"),"Desktop error remains concise with retry detail");
+                fake.GetState("Claude").LastGood.Windows[0].Reset=now.AddMinutes(30);
+                fake.GetState("Claude").LastGood.Observed=now.AddMinutes(-2);Render(shell);card=Card(shell,"Claude");
+                Check(card.Any(s=>s.Contains("73%"))&&card.Any(s=>s.Contains("91%")),"scope fixture cache missing before rejection");
+                next=new QuotaReading{Provider="Claude",Status="Refresh rate limited",Observed=now,CacheScope="different-source",HttpStatus=429};
+                fake.Tick(now.AddMinutes(3));Complete(fake,"Claude",now.AddMinutes(3));Render(shell);
+                card=Card(shell,"Claude");Check(!card.Any(s=>s.Contains("73%")||s.Contains("91%")),"source change cannot reuse previous account values");
                 fake.Enable("Claude",false);
                 next=new QuotaReading{Provider="Antigravity",Status="Quota unavailable",Source="Desktop",HttpStatus=503,FailureKind="HTTP response",Observed=now};
                 fake.Enable("Antigravity",true);fake.Tick(now);Complete(fake,"Antigravity",now);Render(shell);
@@ -49,7 +55,6 @@ internal static class NativeQuotaRecoveryTests {
                 fake.Enable("Antigravity",false);
                 next=new QuotaReading{Provider="Claude",Status="Refresh rate limited",Observed=now,CacheScope="different-source",HttpStatus=429};
                 fake.Enable("Claude",true);fake.Tick(now);Complete(fake,"Claude",now);Render(shell);
-                card=Card(shell,"Claude");Check(!card.Any(s=>s.Contains("73%")||s.Contains("91%")),"source change cannot reuse previous account values");
                 Capture(shell,screenshot);
                 QuotaDiagnosticLogTests.Run(Path.GetDirectoryName(screenshot));
             }finally{field.SetValue(shell,original);Render(shell);}

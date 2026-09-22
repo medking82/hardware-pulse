@@ -189,11 +189,17 @@ internal static class CoreQuotaSessionTests {
             outcome="Refresh rate limited";session.Tick(now.AddMinutes(5));Pump(session,now.AddMinutes(5),()=>session.Readings[0].Status=="Refresh rate limited");
             var cached=session.CachedReading("Claude",now.AddMinutes(5));Check(cached!=null&&cached.Windows.Count==1&&cached.Windows[0].Remaining==42,"rate limit did not expose bounded last-good cache");
             sourceReading.Windows[0].Remaining=1;Check(session.GetState("Claude").LastGood.Windows[0].Remaining==42,"adapter source mutation escaped into last-good cache");
+            Check(session.CachedReading("Claude",now.AddMinutes(8))!=null,"scope fixture cache expired before rejection");
+            // CachedReading is a query; probing a future time does not advance the session clock.
             Check(session.CachedReading("Claude",now.AddMinutes(15))==null,"expired cache remained visible");
-            scope="owner-2";Pump(session,now.AddMinutes(12),()=>calls>=3&&!session.GetState("Claude").Refreshing);
-            Check(session.CachedReading("Claude",now.AddMinutes(12))==null,"changed cache scope reused old quota");
-            outcome="Login required";Pump(session,now.AddMinutes(20),()=>calls>=4&&!session.GetState("Claude").Refreshing);
-            Check(session.GetState("Claude").LastGood==null,"authentication failure retained cached quota");
+            scope="owner-2";Pump(session,now.AddMinutes(8),()=>calls>=3&&!session.GetState("Claude").Refreshing);
+            Check(session.CachedReading("Claude",now.AddMinutes(8))==null,"changed cache scope reused old quota");
+        }
+        int authCalls=0;using(var auth=new QuotaSession((provider,cancel)=>new QuotaReading{Provider=provider,Status=Interlocked.Increment(ref authCalls)==1?"Live":"Login required",Source="HTTP",CacheScope="owner-auth",Observed=now})){
+            auth.Enable("Claude",true);Pump(auth,now,()=>auth.Readings[0].Status=="Live");
+            Check(auth.GetState("Claude").LastGood!=null,"authentication fixture did not establish a last-good cache");
+            auth.Refresh();Pump(auth,now,()=>auth.Readings[0].Status=="Login required");
+            Check(auth.GetState("Claude").LastGood==null,"authentication failure retained cached quota");
         }
         Console.WriteLine("PASS Claude bounded last-good cache: scope, age, auth clearing and mutation isolation");
     }
