@@ -20,6 +20,12 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 
 - Shared Desktop supports Auto (System), English and Simplified/Traditional Chinese UI, including Monitor, Settings, sensor status, Codex quota and tray actions. Language switches immediately without restarting sampling or refreshing credentials and is saved in the isolated preview profile. Auto respects Chinese script and region preferences.
 
+## 0.6.42 — 2026-09-22
+
+- Antigravity CLI quota reads now have a 25-second parent deadline around the unchanged 15-second CLI print timeout. This leaves startup/output margin while retaining the 30-second session bound, hidden execution and owned-child cleanup. Codex keeps its 15-second deadline.
+- Distinguishes CLI timeout, unsuccessful exit and invalid response in the existing safe diagnostics/tooltips. The Desktop-first source policy, login ownership, quota cadence and WPF UI remain unchanged.
+- A local CLI diagnostic returned a complete quota report in 11.4 seconds; the earlier installed-app CLI failure took about 16 seconds and then recovered automatically through Desktop. The wider deadline addresses the demonstrated timeout-budget boundary, not a confirmed authentication or provider outage.
+
 ## 0.6.41 — 2026-09-22
 
 - Repeated quota rate limits back off for 2, 5, 10 and then 15 minutes, respecting a longer server retry deadline. App shows the next retry; Desktop keeps concise status and tooltip details.

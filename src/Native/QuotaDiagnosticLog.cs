@@ -13,7 +13,7 @@ namespace HardwarePulse {
             if(attempt==null||Array.IndexOf(QuotaSession.Providers,attempt.Provider)<0)return null;
             string status=Allowed(attempt.Status,new[]{"Live","CLI snapshot","Quota unavailable","Refresh rate limited","Login required","Login unavailable","Quota access denied","Refresh timed out","Open Antigravity to read quota"})??"Quota unavailable";
             string source=Allowed(attempt.Source,new[]{"Desktop","CLI","CLI snapshot"});
-            string reason=Allowed(attempt.FailureKind,new[]{"HTTP response","Transport timeout","Transport failure","Invalid response","Response too large","CLI failure","Local discovery","Local port unavailable","Request timeout"});
+            string reason=Allowed(attempt.FailureKind,new[]{"HTTP response","Transport timeout","Transport failure","Invalid response","Response too large","CLI failure","CLI timeout","CLI exit failure","Local discovery","Local port unavailable","Request timeout"});
             var entry=new {schema=1,provider=attempt.Provider,source=source,status=status,httpStatus=attempt.HttpStatus>=100&&attempt.HttpStatus<=599?(int?)attempt.HttpStatus:null,reason=reason,
                 started=attempt.Started.ToString("o"),completed=attempt.Completed.ToString("o"),durationMs=double.IsNaN(attempt.DurationMilliseconds)||double.IsInfinity(attempt.DurationMilliseconds)?(double?)null:Math.Max(0,Math.Round(attempt.DurationMilliseconds)),
                 retryAfter=attempt.RetryAt.HasValue?attempt.RetryAt.Value.ToString("o"):null,nextAttempt=attempt.NextAttempt.HasValue?attempt.NextAttempt.Value.ToString("o"):null,rateLimitFailures=Math.Max(0,Math.Min(4,attempt.RateLimitFailures))};

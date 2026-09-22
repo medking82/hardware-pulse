@@ -24,3 +24,7 @@ foreach($fixture in @(@('NativeCodexRpcFixture','RPC_NORMAL'),@('NativeCodexRpcF
 & "$PSScriptRoot/Run-Hidden.ps1" "$framework/csc.exe" @('/nologo','/target:winexe',"/out:$app\NativeClaudeStatusLineTests.exe","/reference:$app\Pulse.Core.dll",'/reference:System.Web.Extensions.dll',"$root\src\Native\ClaudeStatusLineReceiver.cs","$root\src\Native\ClaudeStatusLineCommand.cs","$root\scripts\ClaudeStatusLineTests.cs") $root
 Copy-Item "$app/HardwarePulse.exe.config" "$app/NativeClaudeStatusLineTests.exe.config" -Force
 & "$PSScriptRoot/Run-Hidden.ps1" "$app/NativeClaudeStatusLineTests.exe" @((Join-Path $root ('vendor/claude-statusline-'+[Guid]::NewGuid().ToString('N')))) $root
+
+& "$PSScriptRoot/Run-Hidden.ps1" "$framework/csc.exe" @('/nologo','/target:exe',"/out:$app\NativeAntigravityCliDeadlineTests.exe","/reference:$app\Pulse.Core.dll","/reference:$app\Pulse.Adapters.Windows.dll",'/reference:System.Core.dll',"$root\scripts\AntigravityCliDeadlineTests.cs") $root
+Copy-Item "$app/HardwarePulse.exe.config" "$app/NativeAntigravityCliDeadlineTests.exe.config" -Force
+& "$PSScriptRoot/Run-Hidden.ps1" "$app/NativeAntigravityCliDeadlineTests.exe" @((Join-Path $root ('vendor/antigravity-cli-deadline-'+[Guid]::NewGuid().ToString('N')))) $root

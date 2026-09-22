@@ -19,7 +19,7 @@ namespace HardwarePulse {
         }
         internal static object ReadProtocol(TextReader input,TextWriter output,CancellationToken cancel){
             int total=0;
-            output.WriteLine("{\"id\":1,\"method\":\"initialize\",\"params\":{\"clientInfo\":{\"name\":\"hardware_pulse\",\"title\":\"Hardware Pulse\",\"version\":\"0.6.41\"}}}");output.Flush();
+            output.WriteLine("{\"id\":1,\"method\":\"initialize\",\"params\":{\"clientInfo\":{\"name\":\"hardware_pulse\",\"title\":\"Hardware Pulse\",\"version\":\"0.6.42\"}}}");output.Flush();
             Response(input,1,ref total,cancel);
             output.WriteLine("{\"method\":\"initialized\",\"params\":{}}");
             output.WriteLine("{\"id\":2,\"method\":\"account/rateLimits/read\",\"params\":{}}");output.Flush();
@@ -39,19 +39,22 @@ namespace HardwarePulse {
             throw new QuotaFailure("Quota unavailable");
         }
     }
-    // Both installed quota clients share the same deadline and owned-child cleanup.
+    // Both installed quota clients share bounded owned-child cleanup; provider deadlines may differ.
     internal static class QuotaChildProcess {
         internal static object Read(string executable,string arguments,Func<TextReader,TextWriter,CancellationToken,object> read,CancellationToken cancel,bool requireSuccessfulExit=false){
+            return ReadWithDeadline(executable,arguments,read,cancel,requireSuccessfulExit,TimeSpan.FromSeconds(15));
+        }
+        internal static object ReadWithDeadline(string executable,string arguments,Func<TextReader,TextWriter,CancellationToken,object> read,CancellationToken cancel,bool requireSuccessfulExit,TimeSpan maximumDuration){
             using(var deadline=CancellationTokenSource.CreateLinkedTokenSource(cancel))
             using(var process=new Process()){
-                deadline.CancelAfter(TimeSpan.FromSeconds(15));
+                deadline.CancelAfter(maximumDuration);
                 process.StartInfo=new ProcessStartInfo(executable,arguments){
                     UseShellExecute=false,CreateNoWindow=true,WindowStyle=ProcessWindowStyle.Hidden,
                     WorkingDirectory=Path.GetDirectoryName(executable),RedirectStandardInput=true,
                     RedirectStandardOutput=true,RedirectStandardError=true,
                     StandardOutputEncoding=Encoding.UTF8,StandardErrorEncoding=Encoding.UTF8};
                 cancel.ThrowIfCancellationRequested();
-                if(!process.Start())throw new QuotaFailure("Quota unavailable");
+                if(!process.Start())throw new QuotaFailure("Quota unavailable",null,0,"CLI failure");
                 Action stop=delegate{try{if(!process.HasExited)process.Kill();}catch(InvalidOperationException){}catch(System.ComponentModel.Win32Exception){}};
                 using(deadline.Token.Register(()=>stop()))
                 using(var reading=CancellationTokenSource.CreateLinkedTokenSource(deadline.Token))
@@ -59,28 +62,31 @@ namespace HardwarePulse {
                 using(var stderr=new StreamReader(new QuotaPipeStream(process.StandardError.BaseStream,reading.Token),Encoding.UTF8)){
                     int diagnosticOverflow=0;
                     var errors=Task.Run(()=>{try{var buffer=new char[2048];int count,total=0;while((count=stderr.Read(buffer,0,buffer.Length))>0){total+=count;if(total>65536){Interlocked.Exchange(ref diagnosticOverflow,1);reading.Cancel();stop();break;}}}catch(OperationCanceledException){}catch(IOException){}catch(ObjectDisposedException){}});
-                    object body;
+                    object body=null;QuotaFailure readFailure=null;
                     try{
                         body=read(stdout,process.StandardInput,reading.Token);
                     }catch(OperationCanceledException){
-                        cancel.ThrowIfCancellationRequested();throw new QuotaFailure("Quota unavailable");
+                        cancel.ThrowIfCancellationRequested();if(deadline.IsCancellationRequested)throw new QuotaFailure("Quota unavailable",null,0,"CLI timeout");throw new QuotaFailure("Quota unavailable");
+                    }catch(QuotaFailure error){readFailure=error;
                     }finally{
                         // A child can close its pipe before the writer flushes. Even if
                         // closing stdin fails, always finish owned-process cleanup.
                         try{process.StandardInput.Close();}
                         finally{
-                            try{if(!process.WaitForExit(500)){stop();if(!process.WaitForExit(2000))throw new QuotaFailure("Quota unavailable");}}
+                            try{if(!process.WaitForExit(500)){stop();if(!process.WaitForExit(2000)){if(cancel.IsCancellationRequested)throw new OperationCanceledException(cancel);throw new QuotaFailure("Quota unavailable",null,0,deadline.IsCancellationRequested?"CLI timeout":"CLI failure");}}}
                             finally{
                                 // A descendant may retain stderr after the owned child exits.
                                 // Cancel the pipe reader before joining; never abandon a worker.
                                 reading.Cancel();
-                                if(!errors.Wait(2000))throw new QuotaFailure("Quota unavailable");
+                                if(!errors.Wait(2000)){if(cancel.IsCancellationRequested)throw new OperationCanceledException(cancel);throw new QuotaFailure("Quota unavailable",null,0,deadline.IsCancellationRequested?"CLI timeout":"CLI failure");}
                             }
                         }
                     }
                     cancel.ThrowIfCancellationRequested();
-                    if(deadline.IsCancellationRequested||diagnosticOverflow!=0)throw new QuotaFailure("Quota unavailable");
-                    if(requireSuccessfulExit&&process.ExitCode!=0)throw new QuotaFailure("Quota unavailable");
+                    if(deadline.IsCancellationRequested)throw new QuotaFailure("Quota unavailable",null,0,"CLI timeout");
+                    if(diagnosticOverflow!=0)throw new QuotaFailure("Quota unavailable",null,0,"CLI failure");
+                    if(requireSuccessfulExit&&process.ExitCode!=0)throw new QuotaFailure("Quota unavailable",null,0,"CLI exit failure");
+                    if(readFailure!=null)throw readFailure;
                     return body;
                 }
             }

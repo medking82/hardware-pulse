@@ -20,6 +20,12 @@
 
 - 共享桌面应用支持自动跟随系统、英语、简体中文和繁体中文，覆盖监控、设置、传感器状态、Codex 额度与托盘操作。语言即时切换，不重启采样或重新读取登录信息，并保存到独立的预览版设置中。自动模式会区分中文书写体系和地区。
 
+## 0.6.42 — 2026-09-22
+
+- Antigravity CLI quota 的 parent deadline 调整为 25 秒，CLI 自身的 print timeout 仍为 15 秒，为 startup／输出结束留出余量。保留 30 秒 session bound、hidden execution 和 owned-child cleanup；Codex deadline 仍为 15 秒。
+- 现有 diagnostics／tooltip 区分 CLI timeout、异常 exit 和 invalid response。Desktop-first source policy、login ownership、quota cadence 和 WPF UI 保持不变。
+- 一次本地 CLI diagnostic 在 11.4 秒后返回完整 quota report；此前 installed App 的 CLI failure 约耗时 16 秒，随后自动通过 Desktop 恢复。本次修正 timeout budget 边界，不代表已确认 authentication 或 provider outage 的根因。
+
 ## 0.6.41 — 2026-09-22
 
 - 连续 quota rate limit 的 retry 间隔依次延长为 2、5、10、15 分钟，并遵守 server 给出的更晚 deadline。App 显示下次 retry，Desktop 保留简洁 status 与 tooltip detail。

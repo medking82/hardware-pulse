@@ -30,9 +30,12 @@ Windows WPF Monitor status and Desktop name/value tooltips identify the source a
 `Source: Antigravity CLI`; the main Gemini label stays concise. The experimental
 shared host still identifies CLI sources inline.
 
-The existing bounded child-process lifetime is reused by Codex and Antigravity:
-15-second deadline, cancellation, hidden stdio, capped diagnostics, and owned-child
-cleanup. Antigravity stdout is capped at 64 KiB, requires a successful exit and a
+The bounded child-process lifetime is reused by Codex and Antigravity with
+cancellation, hidden stdio, capped diagnostics, and owned-child cleanup. Codex
+retains a 15-second parent deadline. Antigravity has a 25-second parent deadline
+around its CLI's fixed `--print-timeout 15s`, reserving startup/output margin and
+up to 4.5 seconds for cleanup inside QuotaSession's 30-second limit.
+Antigravity stdout is capped at 64 KiB, requires a successful exit and a
 complete two-window TSV report for every returned pool, and rejects duplicate
 windows, invalid percentages, missing timezone/reset and unknown report formats.
 No raw CLI report or diagnostic output enters application logs or settings.
@@ -45,7 +48,8 @@ It probes available bytes before reading, checks cancellation while waiting, and
 retains StreamReader UTF-8 decoding. It does not rely solely on killing the direct
 child to produce EOF: another writer may still hold a pipe handle. Cleanup cancels
 and joins the diagnostic reader even when the child has already exited. Existing
-output caps, fixed CLI arguments and the 15-second deadline remain in place.
+output caps and fixed CLI arguments remain in place; the provider-specific outer
+deadlines are described above.
 The stream borrows its handle from Process; it never closes an unrelated handle,
 changes credentials, starts a replacement refresh, or terminates other processes.
 
@@ -63,6 +67,25 @@ the installed native CLI independently returned weekly and five-hour Gemini
 quota. The revised Windows reader returned `Live`, `Source=CLI`, two windows,
 and no matching process remained after completion. This proves the local
 installed-CLI path, not behavior on machines without that CLI or login.
+
+### CLI deadline margin (Windows 0.6.42)
+
+On 2026-09-22, the installed 0.6.41 diagnostics recorded a CLI failure after about
+16 seconds, followed by automatic Desktop-source recovery on the next attempt.
+A single bounded diagnostic of the installed CLI's fixed `/usage` command then
+returned four complete quota rows, exit code zero and empty stderr in 11.4 seconds.
+That successful probe does not reproduce the earlier failure or demonstrate
+authentication renewal. It shows that a normal response can consume much of the
+old 15-second outer budget.
+
+The former parent deadline and CLI print timeout were both 15 seconds. The parent
+could terminate an otherwise valid response after CLI startup had consumed part
+of that budget. The Antigravity parent deadline is now 25 seconds; the CLI print
+timeout remains 15 seconds, and the Core session limit remains 30 seconds. No
+additional retry or account fallback is introduced. Timeout, nonzero exit and
+invalid report now retain separate safe diagnostic categories. The supported
+headless `/usage` text-report contract is documented in the
+[official CLI headless guide](https://antigravity.google/docs/cli/headless/).
 
 Allowed changes: Windows quota adapters, shared read-only Source metadata,
 existing quota labels, and focused tests. Preserve WPF layout/appearance,

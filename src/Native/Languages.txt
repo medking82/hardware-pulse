@@ -103,7 +103,7 @@ Leave a name blank to use device information. Hover over a field to see its auto
 SPD numbers identify sensor addresses, not physical slots. Installed slots are reported separately; assign a slot name only after confirming its sensor.|SPD 编号代表传感器地址，并非实体插槽。已安装插槽单独显示；确认对应关系后再命名。|SPD 編號代表感測器位址，並非實體插槽。已安裝插槽單獨顯示；確認對應關係後再命名。
 Changes save automatically.|更改自动保存。|變更自動儲存。
 About Pulse|关于 Pulse|關於 Pulse
-Version 0.6.41 · Marck Wong|版本 0.6.41 · Marck Wong|版本 0.6.41 · Marck Wong
+Version 0.6.42 · Marck Wong|版本 0.6.42 · Marck Wong|版本 0.6.42 · Marck Wong
 Sensors by LibreHardwareMonitor. Shared driver by PawnIO.|传感器：LibreHardwareMonitor。共享驱动：PawnIO。|感測器：LibreHardwareMonitor。共用驅動程式：PawnIO。
 Language|语言 / Language|語言 / Language
 Minimize|最小化|最小化
@@ -311,3 +311,5 @@ CLI failure|CLI quota 查询失败|CLI quota 查詢失敗
 Local discovery|未发现可用的本地 quota source|未發現可用的本機 quota source
 Local port unavailable|本地 quota endpoint 不可用|本機 quota endpoint 不可用
 Request timeout|Quota request 超时|Quota request 逾時
+CLI timeout|CLI quota 查询超时|CLI quota 查詢逾時
+CLI exit failure|CLI quota process 异常退出|CLI quota process 異常結束
