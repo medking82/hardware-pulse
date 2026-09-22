@@ -247,3 +247,30 @@ The documented `claude auth status` command reports authentication state; its
 quota-read or credential-renewal operation. A persistent-login claim requires an
 observed, supported renewal path, not repeated login prompts, inference calls to
 force refresh, or copying/rotating an application's refresh token behind its back.
+
+## Windows quota lifecycle and diagnostics (0.6.41)
+
+During a rate-limit failure, Claude may reuse the last successful observation for less than ten minutes when
+the known login source revision is unchanged. Cache use is revalidated against
+current source metadata, expires each window at its own reset deadline, and is
+shown as `Cached` with observation age and status/next-retry tooltip details.
+`CLAUDE_CODE_OAUTH_TOKEN` disables the cache. Missing, changed or unreadable
+source metadata invalidates it, and failures leave the reading's `Windows` collection
+empty. The 30-second request deadline retains pending ownership and rejects late
+completion from a cancelled or superseded read.
+
+Automatic 429 backoff uses 120, 300, 600 and 900 seconds, extended when the
+server supplies a later valid `Retry-After` deadline. Manual refresh cannot bypass
+that effective deadline. This policy remains bounded and does not renew
+credentials.
+
+Pulse writes only whitelisted metadata to `quota-diagnostics.jsonl`, retaining at
+most two 32 KiB files. Antigravity diagnostics classify sanitized HTTP response,
+transport, local discovery, local port and invalid-response outcomes. These labels
+describe the observed failure boundary; they do not prove the underlying cause or
+introduce a new fallback path. No token, command line, response body or host
+identifier is logged.
+
+The associated synthetic fixtures cover scheduling, presentation, metadata binding,
+and diagnostic bounds. They do not establish live availability, fix an installed-app outage, or
+demonstrate authentication renewal.

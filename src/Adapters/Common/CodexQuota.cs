@@ -19,7 +19,7 @@ namespace HardwarePulse {
                 cancel.ThrowIfCancellationRequested();
                 return QuotaDecoder.Decode("Codex",body,DateTimeOffset.UtcNow);
             }catch(OperationCanceledException){throw;}
-            catch(QuotaFailure e){return new QuotaReading {Provider="Codex",Status=e.Status,Observed=DateTimeOffset.UtcNow,RetryAt=e.RetryAt};}
+            catch(QuotaFailure e){return new QuotaReading {Provider="Codex",Status=e.Status,Observed=DateTimeOffset.UtcNow,RetryAt=e.RetryAt,HttpStatus=e.HttpStatus,FailureKind=e.FailureKind};}
             catch{cancel.ThrowIfCancellationRequested();return new QuotaReading {Provider="Codex",Status="Quota unavailable",Observed=DateTimeOffset.UtcNow};}
         }
     }
@@ -27,7 +27,11 @@ namespace HardwarePulse {
         public readonly string Status;
         public QuotaFailure(string status){Status=status;}
         public readonly DateTimeOffset? RetryAt;
+        public readonly int HttpStatus;
+        public readonly string FailureKind;
         public QuotaFailure(string status,DateTimeOffset? retryAt):this(status){RetryAt=retryAt;}
+        public QuotaFailure(string status,DateTimeOffset? retryAt,int httpStatus):this(status,retryAt){HttpStatus=httpStatus;}
+        public QuotaFailure(string status,DateTimeOffset? retryAt,int httpStatus,string failureKind):this(status,retryAt,httpStatus){FailureKind=failureKind;}
         public static DateTimeOffset? ParseRetryAfter(string value,DateTimeOffset now){
             if(string.IsNullOrWhiteSpace(value)||value.Length>128)return null;
             value=value.Trim();long seconds;

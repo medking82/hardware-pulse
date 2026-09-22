@@ -20,6 +20,13 @@
 
 - 共享桌面应用支持自动跟随系统、英语、简体中文和繁体中文，覆盖监控、设置、传感器状态、Codex 额度与托盘操作。语言即时切换，不重启采样或重新读取登录信息，并保存到独立的预览版设置中。自动模式会区分中文书写体系和地区。
 
+## 0.6.41 — 2026-09-22
+
+- 连续 quota rate limit 的 retry 间隔依次延长为 2、5、10、15 分钟，并遵守 server 给出的更晚 deadline。App 显示下次 retry，Desktop 保留简洁 status 与 tooltip detail。
+- Claude 在 rate limit 期间可显示十分钟以内、同一 login source revision 的成功 reading，并明确标为 `Cached`。Source 变化、authentication failure、过期及各 window 的 reset deadline 会使数值失效；未知值显示 `—`。
+- Antigravity failure 保留安全的 source、HTTP、transport/discovery detail。本地 diagnostics 最多保留两个 32 KiB 文件，仅记录 whitelist 内的 attempt metadata。Timeout 后等待原 worker 退出才释放 request ownership，拒绝 late result 覆盖当前 quota。
+- 保留 native WPF glass UI、Local Contrast 和 Windows 10/11 x64 packaging。不承诺 provider 永久可用，也不会 renew credentials；继续使用现有 Marck Wong self-signed certificate。
+
 ## 0.6.40 — 2026-09-21
 
 - Local Contrast 现在采样实际渲染的 glyph bounds，安全处理 fractional-DPI 两端映射，并根据真实 `#141414`／`#F5F5F5` contrast 进行 mid-gray recovery，不再使用过宽的旧 luminance band。FPS 保留区域中的空白不再决定文字颜色。

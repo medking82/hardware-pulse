@@ -20,6 +20,13 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 
 - Shared Desktop supports Auto (System), English and Simplified/Traditional Chinese UI, including Monitor, Settings, sensor status, Codex quota and tray actions. Language switches immediately without restarting sampling or refreshing credentials and is saved in the isolated preview profile. Auto respects Chinese script and region preferences.
 
+## 0.6.41 — 2026-09-22
+
+- Repeated quota rate limits back off for 2, 5, 10 and then 15 minutes, respecting a longer server retry deadline. App shows the next retry; Desktop keeps concise status and tooltip details.
+- Claude can show explicitly `Cached` values from a successful observation less than ten minutes old during a rate limit, only while the known login source revision matches. Source changes, authentication failures, expiry and individual reset deadlines invalidate values; unknown values display `—`.
+- Antigravity failures preserve safe source, HTTP and transport/discovery details. Local diagnostics retain at most two 32 KiB files containing only whitelisted attempt metadata. A timed-out worker keeps request ownership until it exits; late results cannot replace current quota.
+- Preserves native WPF glass UI, Local Contrast and Windows 10/11 x64 packaging. This does not guarantee provider availability or renew credentials. The existing self-signed Marck Wong certificate remains in use.
+
 ## 0.6.40 — 2026-09-21
 
 - Local Contrast now samples rendered glyph bounds, maps both fractional-DPI endpoints safely, and recovers mid-gray choices using the actual `#141414` / `#F5F5F5` contrast instead of the previous broad luminance band. Reserved FPS cell whitespace no longer determines the text shade.

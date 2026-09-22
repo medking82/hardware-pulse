@@ -21,6 +21,16 @@ enabled; disabling a provider cancels pending requests and removes its readings.
 Expired credentials must be renewed in the owning application. No chat history,
 token totals, billing history or purchased credit actions are read or performed.
 
+Quota recovery diagnostics stay in the local settings directory as
+`quota-diagnostics.jsonl` and one rotated copy, each limited to 32 KiB. These files
+contain only provider/source labels, safe status categories, HTTP status codes,
+attempt timestamps, duration and retry deadlines. They contain no credentials,
+account identifiers, command lines, response bodies or quota values and are not
+uploaded or included in Export Diagnostics. A temporary Claude display cache uses
+an in-memory, salted source-revision key derived only from file/store metadata;
+neither the key nor cached values are written to these logs. Repeated failures use
+backoff; the normal successful polling interval remains five minutes.
+
 When automatic update checks are enabled, or you choose Check for Updates, Pulse contacts the GitHub API for this repository's latest public release. GitHub receives the connection's IP address and a HardwarePulse update-check User-Agent. No machine inventory or sensor data is sent. Automatic checks and automatic downloads are opt-in and can be disabled in Settings. Downloads contact GitHub and its release-asset hosts and store the installer in `%LocalAppData%\HardwarePulse\updates`. Pulse checks the expected size and SHA-256 before offering installation; installation requires your action and Windows elevation. GitHub connections are subject to [GitHub's privacy policy](https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement).
 
 PresentMon is bundled for optional local FPS capture. It reads Windows graphics events for the selected process. LibreHardwareMonitor and PawnIO provide local hardware readings. Pulse does not use their data for remote analytics. There are no advertising or analytics SDKs in Pulse.

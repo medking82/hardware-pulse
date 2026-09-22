@@ -8,32 +8,63 @@ using System.Net;
 using System.Text;
 using System.Threading;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 
 namespace HardwarePulse {
     public static class QuotaProviders {
         [StructLayout(LayoutKind.Sequential,CharSet=CharSet.Unicode)]struct Credential {public uint Flags,Type;public string TargetName,Comment;public System.Runtime.InteropServices.ComTypes.FILETIME LastWritten;public uint BlobSize;public IntPtr Blob;public uint Persist,AttributeCount;public IntPtr Attributes;public string TargetAlias,UserName;}
         [DllImport("advapi32.dll",EntryPoint="CredReadW",CharSet=CharSet.Unicode,SetLastError=true)]static extern bool CredRead(string target,uint type,int flags,out IntPtr credential);
         [DllImport("advapi32.dll")]static extern void CredFree(IntPtr credential);
-        static Func<object> ClaudeLoginReader(){
-            string path=LoginFile("CLAUDE_CONFIG_DIR",".claude",".credentials.json");if(File.Exists(path))return ()=>ReadLogin(path);
+        static readonly string scopeSalt=Guid.NewGuid().ToString("N");
+        // Bind a short-lived display cache to source revision metadata, never to token contents.
+        static string Scope(string source){using(var hash=SHA256.Create())return Convert.ToBase64String(hash.ComputeHash(Encoding.UTF8.GetBytes(scopeSalt+source)));}
+        static string FileRevision(string path){var info=new FileInfo(path);return info.Exists?info.CreationTimeUtc.Ticks+":"+info.LastWriteTimeUtc.Ticks+":"+info.Length:null;}
+        static Func<object> ClaudeLoginReader(){return ClaudeScopedLoginReader(null);}
+        static Func<object> ClaudeScopedLoginReader(Action<string> scope){
+            string path=LoginFile("CLAUDE_CONFIG_DIR",".claude",".credentials.json");if(File.Exists(path))return delegate{
+                string before=FileRevision(path);var login=ReadLogin(path);string after=FileRevision(path);
+                if(scope!=null)scope(before!=null&&before==after?Scope("file:"+Path.GetFullPath(path)+":"+after):null);return login;
+            };
             foreach(string target in new[]{"Claude Code-credentials","Claude Code-credentials:"+Environment.UserName,"Claude Code-credentials/"+Environment.UserName}){
-                var initial=ReadClaudeCredential(target);if(initial==null)continue;
+                string initialScope=null;var initial=ReadClaudeCredential(target,value=>initialScope=value);if(initial==null)continue;
                 string selected=target;
                 return delegate{
-                    if(initial!=null){var login=initial;initial=null;return login;}
-                    var current=ReadClaudeCredential(selected);if(current==null)throw new QuotaFailure("Login required");return current;
+                    if(initial!=null){var login=initial;initial=null;if(scope!=null)scope(initialScope);return login;}
+                    var current=ReadClaudeCredential(selected,scope);if(current==null)throw new QuotaFailure("Login required");return current;
                 };
             }
             throw new QuotaFailure("Login required");
         }
-        static object ReadClaudeCredential(string target){
+        static object ReadClaudeCredential(string target,Action<string> scope){
                 IntPtr ptr;if(!CredRead(target,1,0,out ptr))return null;
-                try{var credential=(Credential)Marshal.PtrToStructure(ptr,typeof(Credential));if(credential.BlobSize==0||credential.BlobSize>1048576)return null;byte[] bytes=new byte[credential.BlobSize];Marshal.Copy(credential.Blob,bytes,0,bytes.Length);
+                try{var credential=(Credential)Marshal.PtrToStructure(ptr,typeof(Credential));if(credential.BlobSize==0||credential.BlobSize>1048576)return null;
+                    if(scope!=null)scope(Scope("store:"+target+":"+credential.LastWritten.dwHighDateTime+":"+credential.LastWritten.dwLowDateTime));
+                    byte[] bytes=new byte[credential.BlobSize];Marshal.Copy(credential.Blob,bytes,0,bytes.Length);
                     try{return QuotaData.Parse(Encoding.UTF8.GetString(bytes).TrimEnd('\0'));}catch{try{return QuotaData.Parse(Encoding.Unicode.GetString(bytes).TrimEnd('\0'));}catch{}}finally{Array.Clear(bytes,0,bytes.Length);}
                 }finally{CredFree(ptr);}
             return null;
         }
         static string LoginFile(string variable,string directory,string file){string root=Environment.GetEnvironmentVariable(variable);if(string.IsNullOrWhiteSpace(root))root=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),directory);return Path.Combine(root,file);}
+        static string CredentialScope(string target){
+            IntPtr ptr;if(!CredRead(target,1,0,out ptr))return null;
+            try{var credential=(Credential)Marshal.PtrToStructure(ptr,typeof(Credential));return Scope("store:"+target+":"+credential.LastWritten.dwHighDateTime+":"+credential.LastWritten.dwLowDateTime);}
+            finally{CredFree(ptr);}
+        }
+        public static bool IsClaudeCacheScopeCurrent(string expected){
+            if(string.IsNullOrEmpty(expected)||!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("CLAUDE_CODE_OAUTH_TOKEN")))return false;
+            try{
+                string configured=Environment.GetEnvironmentVariable("CLAUDE_CONFIG_DIR");
+                string path=LoginFile("CLAUDE_CONFIG_DIR",".claude",".credentials.json");
+                if(File.Exists(path)){
+                    string revision=FileRevision(path);return revision!=null&&expected==Scope("file:"+Path.GetFullPath(path)+":"+revision);
+                }
+                if(!string.IsNullOrWhiteSpace(configured))return false;
+                foreach(string target in new[]{"Claude Code-credentials","Claude Code-credentials:"+Environment.UserName,"Claude Code-credentials/"+Environment.UserName}){
+                    string scope=CredentialScope(target);if(scope!=null)return expected==scope;
+                }
+            }catch{}
+            return false;
+        }
         static object ReadLogin(string path){
             try{
                 using(var input=new FileStream(path,FileMode.Open,FileAccess.Read,FileShare.ReadWrite|FileShare.Delete))
@@ -49,6 +80,8 @@ namespace HardwarePulse {
         }
         public static QuotaReading Read(string provider,CancellationToken cancel){
             cancel.ThrowIfCancellationRequested();
+            string cacheScope=null;
+            string source=null;
             if(provider=="Codex"){
                 var reading=CodexQuota.Read(()=>ReadLogin(LoginFile("CODEX_HOME",".codex","auth.json")),RequestCodex,cancel);
                 // Avoid spawning a CLI for transient network errors or server throttling.
@@ -60,11 +93,13 @@ namespace HardwarePulse {
             try{
                 object body;
                 if(provider=="Antigravity"){
+                    source="Desktop";
                     try{body=AntigravityQuota.Read(cancel);}
                     catch(QuotaFailure failure){
                         if(failure.Status!="Open Antigravity to read quota")throw;
                         string executable=AntigravityCliQuota.InstalledExecutable();if(executable==null)throw;
-                        return AntigravityCliQuota.Read(executable,cancel);
+                        source="CLI";
+                        var cli=AntigravityCliQuota.Read(executable,cancel);if(cli.Status!="Live")cli.FailureKind="Invalid response";return cli;
                     }
                 }
                 else if(provider=="Claude"){
@@ -72,14 +107,14 @@ namespace HardwarePulse {
                     Func<object> selectedLogin=null;
                     body=ClaudeQuotaRequest.Read(delegate(CancellationToken ignored){
                         if(!string.IsNullOrEmpty(supplied))return supplied;
-                        if(selectedLogin==null)selectedLogin=ClaudeLoginReader();
+                        if(selectedLogin==null)selectedLogin=ClaudeScopedLoginReader(value=>cacheScope=value);
                         var login=selectedLogin();return QuotaDecoder.Text(QuotaDecoder.Get(QuotaDecoder.Get(login,"claudeAiOauth")??login,"accessToken"));
                     },(token,requestCancel)=>Request("https://api.anthropic.com/api/oauth/usage",new Dictionary<string,string>{{"Authorization","Bearer "+token},{"anthropic-beta","oauth-2025-04-20"}},null,requestCancel,false),cancel);
                 }else throw new QuotaFailure("Quota unavailable");
-                cancel.ThrowIfCancellationRequested();return QuotaDecoder.Decode(provider,body,DateTimeOffset.UtcNow);
-            }catch(OperationCanceledException){throw;}
-            catch(QuotaFailure e){return new QuotaReading{Provider=provider,Status=e.Status,Observed=DateTimeOffset.UtcNow,RetryAt=e.RetryAt};}
-            catch{cancel.ThrowIfCancellationRequested();return new QuotaReading{Provider=provider,Status="Quota unavailable",Observed=DateTimeOffset.UtcNow};}
+                cancel.ThrowIfCancellationRequested();var decoded=QuotaDecoder.Decode(provider,body,DateTimeOffset.UtcNow);decoded.CacheScope=cacheScope;decoded.Source=source;decoded.HttpStatus=provider=="Claude"?200:0;if(decoded.Status!="Live")decoded.FailureKind="Invalid response";return decoded;
+            }catch(QuotaFailure e){return new QuotaReading{Provider=provider,Status=e.Status,Observed=DateTimeOffset.UtcNow,RetryAt=e.RetryAt,CacheScope=cacheScope,HttpStatus=e.HttpStatus,Source=source,FailureKind=e.FailureKind??(source=="CLI"?"CLI failure":null)};}
+            catch(OperationCanceledException){cancel.ThrowIfCancellationRequested();return new QuotaReading{Provider=provider,Status="Quota unavailable",Observed=DateTimeOffset.UtcNow,Source=source,FailureKind="Transport timeout"};}
+            catch{cancel.ThrowIfCancellationRequested();return new QuotaReading{Provider=provider,Status="Quota unavailable",Observed=DateTimeOffset.UtcNow,Source=source,FailureKind=source=="CLI"?"CLI failure":"Transport failure"};}
         }
         static object RequestCodex(string token,string account,CancellationToken cancel){
             var headers=new Dictionary<string,string>{{"Authorization","Bearer "+token}};
@@ -100,13 +135,15 @@ namespace HardwarePulse {
                 try{
                     if(body!=null){request.Method="POST";request.ContentType="application/json";byte[] bytes=Encoding.UTF8.GetBytes(body);request.ContentLength=bytes.Length;using(var output=request.GetRequestStream())output.Write(bytes,0,bytes.Length);}
                     using(var response=(HttpWebResponse)request.GetResponse()){
-                        if((int)response.StatusCode<200||(int)response.StatusCode>=300)throw new QuotaFailure("Quota unavailable");
+                        if((int)response.StatusCode<200||(int)response.StatusCode>=300)throw new QuotaFailure("Quota unavailable",null,(int)response.StatusCode,"HTTP response");
                         using(var stream=response.GetResponseStream())using(var memory=new MemoryStream()){
-                            byte[] buffer=new byte[8192];int count;while((count=stream.Read(buffer,0,buffer.Length))>0){cancel.ThrowIfCancellationRequested();if(memory.Length+count>1048576)throw new QuotaFailure("Quota unavailable");memory.Write(buffer,0,count);}
-                            return QuotaData.Parse(Encoding.UTF8.GetString(memory.ToArray()));
+                            byte[] buffer=new byte[8192];int count;while((count=stream.Read(buffer,0,buffer.Length))>0){cancel.ThrowIfCancellationRequested();if(memory.Length+count>1048576)throw new QuotaFailure("Quota unavailable",null,(int)response.StatusCode,"Response too large");memory.Write(buffer,0,count);}
+                            try{return QuotaData.Parse(Encoding.UTF8.GetString(memory.ToArray()));}
+                            catch(ArgumentException){throw new QuotaFailure("Quota unavailable",null,(int)response.StatusCode,"Invalid response");}
+                            catch(InvalidOperationException){throw new QuotaFailure("Quota unavailable",null,(int)response.StatusCode,"Invalid response");}
                         }
                     }
-                }catch(WebException e){cancel.ThrowIfCancellationRequested();using(var response=e.Response as HttpWebResponse){int status=response==null?0:(int)response.StatusCode;throw new QuotaFailure(status==401?"Login required":status==403?"Quota access denied":status==429?"Refresh rate limited":"Quota unavailable",status==429?QuotaFailure.ParseRetryAfter(response.Headers["Retry-After"],DateTimeOffset.UtcNow):null);}}
+                }catch(WebException e){cancel.ThrowIfCancellationRequested();using(var response=e.Response as HttpWebResponse){int status=response==null?0:(int)response.StatusCode;throw new QuotaFailure(status==401?"Login required":status==403?"Quota access denied":status==429?"Refresh rate limited":"Quota unavailable",status==429?QuotaFailure.ParseRetryAfter(response.Headers["Retry-After"],DateTimeOffset.UtcNow):null,status,status!=0?"HTTP response":e.Status==WebExceptionStatus.Timeout?"Transport timeout":"Transport failure");}}
             }
         }
     }

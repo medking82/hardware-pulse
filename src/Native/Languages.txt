@@ -103,7 +103,7 @@ Leave a name blank to use device information. Hover over a field to see its auto
 SPD numbers identify sensor addresses, not physical slots. Installed slots are reported separately; assign a slot name only after confirming its sensor.|SPD 编号代表传感器地址，并非实体插槽。已安装插槽单独显示；确认对应关系后再命名。|SPD 編號代表感測器位址，並非實體插槽。已安裝插槽單獨顯示；確認對應關係後再命名。
 Changes save automatically.|更改自动保存。|變更自動儲存。
 About Pulse|关于 Pulse|關於 Pulse
-Version 0.6.40 · Marck Wong|版本 0.6.40 · Marck Wong|版本 0.6.40 · Marck Wong
+Version 0.6.41 · Marck Wong|版本 0.6.41 · Marck Wong|版本 0.6.41 · Marck Wong
 Sensors by LibreHardwareMonitor. Shared driver by PawnIO.|传感器：LibreHardwareMonitor。共享驱动：PawnIO。|感測器：LibreHardwareMonitor。共用驅動程式：PawnIO。
 Language|语言 / Language|語言 / Language
 Minimize|最小化|最小化
@@ -294,3 +294,20 @@ Command copied. Set it as Claude Code statusLine.command; preserve any existing 
 Clipboard busy; try again.|Clipboard 忙碌，请重试。|Clipboard 忙碌，請重試。
 Git Bash installed|已安装 Git Bash|已安裝 Git Bash
 PowerShell (without Git Bash)|PowerShell（未安装 Git Bash）|PowerShell（未安裝 Git Bash）
+Cached|Cached|Cached
+Retry in {0} min|{0} 分钟后重试|{0} 分鐘後重試
+Refreshing quota…|正在刷新 quota…|正在重新整理 quota…
+Refresh timed out|Quota refresh 超时|Quota refresh 逾時
+Waiting for request to stop|等待请求结束|等待請求結束
+Last successful update|上次成功更新|上次成功更新
+Last attempt|上次尝试|上次嘗試
+Next retry|下次重试|下次重試
+HTTP response|HTTP response|HTTP response
+Transport timeout|连接超时|連線逾時
+Transport failure|连接失败|連線失敗
+Invalid response|Response 无有效 quota|Response 無有效 quota
+Response too large|Response 超过大小限制|Response 超過大小限制
+CLI failure|CLI quota 查询失败|CLI quota 查詢失敗
+Local discovery|未发现可用的本地 quota source|未發現可用的本機 quota source
+Local port unavailable|本地 quota endpoint 不可用|本機 quota endpoint 不可用
+Request timeout|Quota request 超时|Quota request 逾時

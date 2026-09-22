@@ -297,3 +297,23 @@ a real account or an overnight acceptance run.
 The full `scripts/Validate.ps1 -ModernCore` run also passes, including native WPF,
 Windows adapters, settings, startup, status-line, quota child-process lifetime and
 updater regressions.
+
+## Bounded cached Claude observation (Windows 0.6.41)
+
+During a `Refresh rate limited` failure, when the last successful Claude observation
+and the current login source revision match, Pulse may display that observation
+for less than ten minutes from its successful observation time. Each
+quota window is also hidden when its own reset deadline has passed. The UI marks
+these values `Cached`, and the status/next-retry tooltip continues to show the
+observation age and retry timing. An explicit `CLAUDE_CODE_OAUTH_TOKEN` disables
+this cache path.
+
+Before using a cached observation, Windows revalidates the current source metadata
+without reading token contents. A changed, missing or unreadable source invalidates
+the cache. Failed readings keep their `Windows` collection empty rather than presenting
+stale values as a fresh read. The existing 30-second request deadline retains
+pending ownership; cancellation and generation checks reject late completions.
+
+The cache and source-revision checks use synthetic file metadata fixtures.
+These tests do not prove
+live provider availability, credential renewal, or recovery after real expiry.

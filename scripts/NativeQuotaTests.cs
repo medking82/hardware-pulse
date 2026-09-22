@@ -114,5 +114,6 @@ internal static class NativeQuotaTests {
                 foreach(string provider in QuotaSession.Providers){var toggle=shell.Control<CheckBox>("Quota"+provider);toggle.IsChecked=false;toggle.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));}shell.UpdatePanel();Check(shell.Control<StackPanel>("QuotaCards").Children.Count==0,"disable removes quota view");
             }finally{field.SetValue(shell,original);}
         }
+        NativeQuotaRecoveryTests.RunUI(shell,System.IO.Path.Combine(System.IO.Path.GetDirectoryName(screenshot),"quota-recovery.png"));
     }
 }

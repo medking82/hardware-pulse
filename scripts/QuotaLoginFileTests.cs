@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Text;
@@ -27,7 +28,24 @@ static class QuotaLoginFileTests {
         try{Read(path);}catch{rejected=true;}Check(rejected,"partial JSON must not be accepted");
         File.Delete(path);Directory.Delete(root);
         SelectedSource();
+        ScopedSourceMetadata();
         Console.WriteLine("PASS login file: compatible writer, atomic replacement, BOM, size bound, missing and partial data; synthetic files only");
+    }
+    static void ScopedSourceMetadata(){
+        string root=Path.Combine(Environment.CurrentDirectory,"vendor","quota-scope-"+Guid.NewGuid().ToString("N"));Directory.CreateDirectory(root);
+        string path=Path.Combine(root,".credentials.json");string previous=Environment.GetEnvironmentVariable("CLAUDE_CONFIG_DIR");string previousToken=Environment.GetEnvironmentVariable("CLAUDE_CODE_OAUTH_TOKEN");var scopes=new List<string>();
+        try{
+            Environment.SetEnvironmentVariable("CLAUDE_CONFIG_DIR",root);Environment.SetEnvironmentVariable("CLAUDE_CODE_OAUTH_TOKEN",null);File.WriteAllText(path,"{\"fixture\":\"secret-marker\"}");
+            var factory=typeof(QuotaProviders).GetMethod("ClaudeScopedLoginReader",BindingFlags.NonPublic|BindingFlags.Static);
+            var reader=(Func<object>)factory.Invoke(null,new object[]{(Action<string>)(value=>scopes.Add(value))});
+            reader();string stable=scopes[scopes.Count-1];Check(!string.IsNullOrEmpty(stable),"stable source scope missing");Check(!stable.Contains(root)&&!stable.Contains("secret-marker"),"scope exposes path or secret");
+            reader();Check(scopes[scopes.Count-1]==stable,"unchanged source scope changed");
+            File.WriteAllText(path,"{\"fixture\":\"other-marker\"}");File.SetLastWriteTimeUtc(path,DateTime.UtcNow.AddMinutes(1));reader();Check(scopes[scopes.Count-1]!=stable,"file metadata revision did not change scope");
+            Check(!QuotaProviders.IsClaudeCacheScopeCurrent(stable),"stale file scope accepted");string current=scopes[scopes.Count-1];Check(QuotaProviders.IsClaudeCacheScopeCurrent(current),"current file scope rejected");
+            File.Delete(path);Check(!QuotaProviders.IsClaudeCacheScopeCurrent(current),"missing source scope accepted");
+        }finally{Environment.SetEnvironmentVariable("CLAUDE_CONFIG_DIR",previous);Environment.SetEnvironmentVariable("CLAUDE_CODE_OAUTH_TOKEN",previousToken);if(File.Exists(path))File.Delete(path);if(Directory.Exists(root))Directory.Delete(root);}
+        string missing=Path.Combine(root,"missing");Environment.SetEnvironmentVariable("CLAUDE_CONFIG_DIR",missing);try{Check(!QuotaProviders.IsClaudeCacheScopeCurrent("synthetic"),"unknown source scope accepted");}finally{Environment.SetEnvironmentVariable("CLAUDE_CONFIG_DIR",previous);}
+        Console.WriteLine("PASS Claude cache scope: stable metadata, revision invalidation, missing source and secret/path-free scope; synthetic files only");
     }
     static void SelectedSource(){
         string root=Path.Combine(Environment.CurrentDirectory,"vendor","quota-source-"+Guid.NewGuid().ToString("N"));

@@ -31,6 +31,7 @@ namespace HardwarePulse {
         internal static object Read(CancellationToken cancel){
             string sid=WindowsIdentity.GetCurrent().User.Value;
             string failure="Open Antigravity to read quota";
+            QuotaFailure endpointFailure=null;
             using(var deadline=CancellationTokenSource.CreateLinkedTokenSource(cancel)){
                 deadline.CancelAfter(TimeSpan.FromSeconds(25));
                 using(var search=new ManagementObjectSearcher("SELECT ProcessId,CommandLine,ExecutablePath FROM Win32_Process WHERE Name LIKE 'language_server%'") {Options=new EnumerationOptions{Timeout=TimeSpan.FromSeconds(5),ReturnImmediately=false}})
@@ -45,20 +46,31 @@ namespace HardwarePulse {
                     failure="Quota unavailable";
                     foreach(int port in Ports(pid))foreach(string scheme in new[]{"https","http"}){
                         deadline.Token.ThrowIfCancellationRequested();if(!Ports(pid).Contains(port))continue;
-                        var body=TryReadEndpoint(()=>QuotaProviders.Request(scheme+"://127.0.0.1:"+port+"/exa.language_server_pb.LanguageServerService/RetrieveUserQuotaSummary",new Dictionary<string,string>{{"x-codeium-csrf-token",token},{"connect-protocol-version","1"}},"{\"forceRefresh\":true}",deadline.Token,true),ref failure);
+                        var body=TryReadEndpointDiagnostic(()=>QuotaProviders.Request(scheme+"://127.0.0.1:"+port+"/exa.language_server_pb.LanguageServerService/RetrieveUserQuotaSummary",new Dictionary<string,string>{{"x-codeium-csrf-token",token},{"connect-protocol-version","1"}},"{\"forceRefresh\":true}",deadline.Token,true),ref failure,ref endpointFailure);
                         if(body!=null)return body;
                     }
                 }
             }
-            throw new QuotaFailure(failure);
+            if(endpointFailure!=null)throw new QuotaFailure(failure,endpointFailure.RetryAt,endpointFailure.HttpStatus,endpointFailure.FailureKind);
+            throw new QuotaFailure(failure,null,0,failure=="Open Antigravity to read quota"?"Local discovery":"Local port unavailable");
         }
         internal static object TryReadEndpoint(Func<object> request,ref string failure){
-            try{var body=request();if(QuotaDecoder.Decode("Antigravity",body,DateTimeOffset.UtcNow).Status=="Live")return body;}
+            QuotaFailure endpointFailure=null;
+            return TryReadEndpointDiagnostic(request,ref failure,ref endpointFailure);
+        }
+        internal static object TryReadEndpointDiagnostic(Func<object> request,ref string failure,ref QuotaFailure endpointFailure){
+            try{
+                var body=request();
+                if(QuotaDecoder.Decode("Antigravity",body,DateTimeOffset.UtcNow).Status=="Live")return body;
+                if(endpointFailure==null||endpointFailure.Status!="Login required")endpointFailure=new QuotaFailure("Quota unavailable",null,0,"Invalid response");
+            }
+            catch(OperationCanceledException){throw;}
             catch(QuotaFailure error){
                 // A server backoff/access decision is not a failed port or scheme
                 // probe. Preserve it for QuotaSession instead of probing again.
                 if(error.Status=="Refresh rate limited"||error.Status=="Quota access denied")throw;
-                if(error.Status=="Login required")failure=error.Status;
+                if(endpointFailure==null||endpointFailure.Status!="Login required"||error.Status=="Login required")endpointFailure=error;
+                if(endpointFailure.Status=="Login required")failure=endpointFailure.Status;
             }
             return null;
         }
