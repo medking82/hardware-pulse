@@ -1,10 +1,17 @@
 using System;
 using System.Collections.Generic;
+using System.Reflection;
+using System.Threading;
 using HardwarePulse;
 
 class WindowsAdapterTests {
     static void Check(bool value,string message){if(!value)throw new Exception(message);}
-    static void Main(){
+    static int Main(string[] args){
+        if(IsAntigravityFakeChild(args)){
+            Console.WriteLine("Gemini Models\tWeekly Limit Remaining\t0%\t2099-10-01T00:00:00Z");
+            Console.WriteLine("Gemini Models\tFive Hour Limit Remaining\t100%\t2099-09-30T12:00:00+08:00");
+            return string.Equals(Environment.GetEnvironmentVariable("AGY_CLI_DISABLE_AUTO_UPDATE"),"true",StringComparison.Ordinal)?0:17;
+        }
         Check(WindowsCompatibility.RequiresDriverFreeCollector(new Version(6,1,7601)),"Win7 must not load PawnIO path");
         Check(WindowsCompatibility.RequiresDriverFreeCollector(new Version(6,3,9600)),"Win8.1 must not load PawnIO path");
         Check(!WindowsCompatibility.RequiresDriverFreeCollector(new Version(10,0,19045)),"Modern Windows lost hardware path");
@@ -23,6 +30,7 @@ class WindowsAdapterTests {
         CodexQuotaTests.Run();
         QuotaLoginFileTests.Run();
         ClaudeQuotaRequestTests.Run();
+        TestAntigravityChildEnvironment();
         AntigravityEndpointTests.Run();
         string architecture=System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture.ToString();
         string expected=Environment.GetEnvironmentVariable("PULSE_TEST_ARCH");
@@ -67,5 +75,26 @@ class WindowsAdapterTests {
             }
         }
         Console.WriteLine("PASS Windows network adapter: standalone assembly, host identifiers, optional links, speed/signal semantics and invalid Wi-Fi input");
+        return 0;
+    }
+
+    static bool IsAntigravityFakeChild(string[] args){
+        return args!=null&&args.Length==6&&args[0]=="--print"&&args[1]=="/usage"&&args[2]=="--print-timeout"&&args[3]=="15s"&&args[4]=="--log-file"&&args[5]=="NUL";
+    }
+
+    static void TestAntigravityChildEnvironment(){
+        string previous=Environment.GetEnvironmentVariable("AGY_CLI_DISABLE_AUTO_UPDATE");
+        try{
+            Environment.SetEnvironmentVariable("AGY_CLI_DISABLE_AUTO_UPDATE","parent-sentinel");
+            var type=typeof(QuotaProviders).Assembly.GetType("HardwarePulse.AntigravityCliQuota",true);
+            var read=type.GetMethod("Read",BindingFlags.Static|BindingFlags.NonPublic);
+            Check(read!=null,"Antigravity CLI quota reader was not found");
+            QuotaReading reading=null;
+            try{reading=(QuotaReading)read.Invoke(null,new object[]{System.Reflection.Assembly.GetExecutingAssembly().Location,CancellationToken.None});}
+            catch(TargetInvocationException error){throw new Exception("Antigravity CLI child did not receive AGY_CLI_DISABLE_AUTO_UPDATE=true",error.InnerException??error);}
+            Check(reading!=null&&reading.Status=="Live"&&reading.Source=="CLI","Antigravity CLI fake child did not return a live reading");
+            Check(Environment.GetEnvironmentVariable("AGY_CLI_DISABLE_AUTO_UPDATE")=="parent-sentinel","Antigravity CLI changed the parent process environment");
+        }finally{Environment.SetEnvironmentVariable("AGY_CLI_DISABLE_AUTO_UPDATE",previous);}
+        Console.WriteLine("PASS Antigravity CLI child environment is scoped to the child");
     }
 }

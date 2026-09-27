@@ -10,25 +10,30 @@ using HardwarePulse.Desktop;
 
 static class QuotaPanelTests {
     static void Check(bool ok,string message){if(!ok)throw new Exception(message);}
+    static void PumpFor(TimeSpan duration){
+        var deadline=DateTime.UtcNow+duration;
+        while(DateTime.UtcNow<deadline){using var slice=new CancellationTokenSource(TimeSpan.FromMilliseconds(20));Dispatcher.UIThread.MainLoop(slice.Token);}
+    }
     static IEnumerable<TextBlock> Text(Window window)=>window.GetVisualDescendants().OfType<TextBlock>();
     static void Until(Func<bool> ready,string message) {
         var deadline=DateTime.UtcNow.AddSeconds(5);
         while(!ready()&&DateTime.UtcNow<deadline){using var slice=new CancellationTokenSource(TimeSpan.FromMilliseconds(20));Dispatcher.UIThread.MainLoop(slice.Token);}
         Check(ready(),message);
     }
-    static QuotaReading Result(string provider) {
+    static QuotaReading Result(string provider,DateTimeOffset? observed=null) {
         var main=new QuotaWindow{Label="Weekly",Remaining=54,Reset=DateTimeOffset.UtcNow.AddDays(3)};
-        return new(){Provider=provider,Source=provider=="Antigravity"?"CLI":null,Status="Live",Observed=DateTimeOffset.UtcNow,Windows=[main],AllWindows=[main,new(){Label="Additional model pool · 5-hour",Remaining=72.5},new(){Label="Unknown availability",Remaining=null}]};
+        return new(){Provider=provider,Source=provider=="Antigravity"?"CLI":null,Status="Live",Observed=observed??DateTimeOffset.UtcNow,Windows=[main],AllWindows=[main,new(){Label="Additional model pool · 5-hour",Remaining=72.5},new(){Label="Unknown availability",Remaining=null}]};
     }
     public static void Run(string? output,string provider="Codex") {
         MonitorVisibility(provider);
-        int reads=0;using var canceled=new ManualResetEventSlim();using var release=new ManualResetEventSlim();
+        var now=DateTimeOffset.UtcNow;
+        int reads=0;using var canceled=new ManualResetEventSlim();using var release=new ManualResetEventSlim();using var staleReturned=new ManualResetEventSlim();
         var panel=new QuotaPanel(false,cancel=>{
             int call=Interlocked.Increment(ref reads);
             if(call==2)return new(){Provider=provider,Status="Login required"};
-            if(call==3){using var registration=cancel.Register(()=>canceled.Set());release.Wait(TimeSpan.FromSeconds(5));return new(){Provider=provider,Status="STALE RESULT"};}
-            return Result(provider);
-        },provider:provider);
+            if(call==3){using var registration=cancel.Register(()=>canceled.Set());release.Wait(TimeSpan.FromSeconds(5));staleReturned.Set();return new(){Provider=provider,Status="STALE RESULT"};}
+            return Result(provider,now);
+        },provider:provider,utcNow:()=>now);
         var desktop=new FloatingMonitorWindow(new UiLanguage("en")){Height=850};
         var snapshot=new MonitorSnapshot("1%","1 GiB","—","—",true,true);
         panel.ReadingChanged+=()=>desktop.Present(snapshot with {CodexQuota=provider=="Codex"?panel.CurrentReading:null,ClaudeQuota=provider=="Claude"?panel.CurrentReading:null,AntigravityQuota=provider=="Antigravity"?panel.CurrentReading:null},true);
@@ -67,16 +72,22 @@ static class QuotaPanelTests {
         }
         refresh.Focus();Check(refresh.IsFocused,"Quota refresh remains keyboard reachable at narrow width");
         if(output!=null){using var frame=window.CaptureRenderedFrame();frame!.Save(Path.Combine(output,provider.ToLowerInvariant()+"-quota-narrow-dark.png"),Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);}
-        refresh.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        now=now.AddSeconds(30);refresh.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         Until(()=>Text(window).Any(x=>x.Text?.StartsWith("Login required")==true),"Login failure visible");
         Check(Text(desktop).Any(x=>x.Text=="Login required")&&!Text(desktop).Any(x=>x.Text=="72.5% left"),"Desktop replaces stale quota with failure status");
         Check(!window.GetVisualDescendants().OfType<ProgressBar>().Any(),"Failure clears stale quota");
+        now=now.AddMinutes(5);
         refresh.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Until(()=>Volatile.Read(ref reads)==3,"Pending refresh started");
         enable.IsChecked=false;Until(()=>canceled.IsSet,"Disable cancels request");
         Check(Text(window).Any(x=>x.Text=="Off")&&!refresh.IsEnabled,"Disabled UI clears readings");
         Check(!desktop.GetVisualDescendants().OfType<Grid>().Any(x=>x.Name?.StartsWith("DesktopMetricquota"+provider)==true),"Disabling removes Desktop quota immediately");
         release.Set();enable.IsChecked=true;
-        Until(()=>Volatile.Read(ref reads)==4&&Text(window).Any(x=>x.Text=="72.5% left"),"Re-enable recovers after canceled request");
+        Until(()=>staleReturned.IsSet,"Canceled provider returns its late result");
+        PumpFor(TimeSpan.FromMilliseconds(1100));
+        refresh.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Check(Volatile.Read(ref reads)==3&&!Text(window).Any(x=>x.Text=="STALE RESULT"),"Late result is rejected and failed-read cooldown survives toggle");
+        now=now.AddMinutes(10);refresh.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Until(()=>Volatile.Read(ref reads)==4&&Text(window).Any(x=>x.Text=="72.5% left"),"Re-enable recovers after canceled request cooldown");
         Check(!Text(window).Any(x=>x.Text=="STALE RESULT"),"Prior generation must not publish");
         panel.Dispose();window.Close();desktop.Close();
 
@@ -128,7 +139,10 @@ static class QuotaPanelTests {
         Check(Text(desktop).Any(x=>x.Text=="Quota stale")&&!Text(desktop).Any(x=>x.Text=="54.0% left"),"Desktop receives stale transition without new provider data");
         // The second click while a read is pending queues one recovery read.
         // Initial + in-flight + queued is three, matching QuotaSession's contract.
-        release.Set();Until(()=>reads==3&&Text(window).Any(x=>x.Text=="54.0% left"),"Fresh completion and queued refresh restore percentages");
+        release.Set();PumpFor(TimeSpan.FromMilliseconds(1100));
+        Check(reads==2,"A queued refresh respects the successful-read 30-second floor");
+        now=now.AddSeconds(30);refresh.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Until(()=>reads==3&&Text(window).Any(x=>x.Text=="54.0% left"),"Fresh completion and queued refresh restore percentages");
         Check(reads==3,"Freshness rendering must preserve exactly one queued provider read");
         window.Close();desktop.Close();
     }

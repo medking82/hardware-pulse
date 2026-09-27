@@ -20,6 +20,13 @@
 
 - 共享桌面应用支持自动跟随系统、英语、简体中文和繁体中文，覆盖监控、设置、传感器状态、Codex 额度与托盘操作。语言即时切换，不重启采样或重新读取登录信息，并保存到独立的预览版设置中。自动模式会区分中文书写体系和地区。
 
+## 0.6.44 — 2026-09-27
+
+- Remote quota failure 的 retry 间隔依次为 5、10、20、30 分钟。HTTP 429 的 minimum backoff 为 15、30、60 分钟，并遵守更长的 Retry-After。后续 401 或 timeout 不再清除 rate-limit history，只有成功 reading 才会 reset。
+- Windows 在 restart、provider toggle 和 source switch 后保留 quota cooldown。Manual Refresh 遵守 failure cooldown，成功 reading 后至少间隔 30 秒。Local Claude CLI snapshot 仍独立以 30 秒间隔读取文件；仅保存 scheduling metadata，不保存 quota values 或 credentials。
+- Antigravity quota child 禁用已安装 CLI 的 automatic updater，阻止 quota polling 启动未隐藏的 version-check child。本次包含已在本机安装的 0.6.43 repair，0.6.43 未单独发布。原始间歇闪窗未捕获，不能确认所有反馈的闪窗都来自同一原因。
+- Core、native WPF、shared Desktop 和 child-process regression checks 已通过，quota tests 使用 synthetic reader。反馈设备上的 Codex/Claude transport timeout 仍未解决；本次减少重复 request，不代表 quota availability 已恢复。
+
 ## 0.6.42 — 2026-09-22
 
 - Antigravity CLI quota 的 parent deadline 调整为 25 秒，CLI 自身的 print timeout 仍为 15 秒，为 startup／输出结束留出余量。保留 30 秒 session bound、hidden execution 和 owned-child cleanup；Codex deadline 仍为 15 秒。

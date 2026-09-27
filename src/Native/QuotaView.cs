@@ -17,15 +17,15 @@ namespace HardwarePulse {
             var source=Control<ComboBox>("ClaudeQuotaSource");source.SelectedIndex=claudeSnapshotSource?1:0;
             Control<StackPanel>("ClaudeSnapshotTools").Visibility=claudeSnapshotSource?Visibility.Visible:Visibility.Collapsed;
             source.SelectionChanged+=delegate{
-                quotas.Enable("Claude",false);claudeSnapshotSource=source.SelectedIndex==1;
+                quotas.Enable("Claude",false,claudeSnapshotSource);claudeSnapshotSource=source.SelectedIndex==1;
                 settings.Data["claudeSnapshotSource"]=claudeSnapshotSource;
                 Control<StackPanel>("ClaudeSnapshotTools").Visibility=claudeSnapshotSource?Visibility.Visible:Visibility.Collapsed;
-                quotas.Enable("Claude",Checked("QuotaClaude"));if(!isolated)quotas.Tick(DateTimeOffset.UtcNow);
+                quotas.Enable("Claude",Checked("QuotaClaude"),claudeSnapshotSource);if(!isolated)quotas.Tick(DateTimeOffset.UtcNow);
                 RenderQuota();UpdateDesktop();QueueSave();
             };
             Click("ClaudeSnapshotRebind",delegate{
                 if(ClaudeStatusLineReceiver.Reset(paths.State)){
-                    quotas.Enable("Claude",false);quotas.Enable("Claude",Checked("QuotaClaude"));
+                    quotas.Enable("Claude",false,claudeSnapshotSource);quotas.Enable("Claude",Checked("QuotaClaude"),claudeSnapshotSource);
                     Text("ClaudeSnapshotSetupStatus",language.T("Waiting for the next CLI session. Other sessions will be rejected."));
                     RenderQuota();UpdateDesktop();
                 }else Text("ClaudeSnapshotSetupStatus",language.T("Snapshot busy; try again."));
@@ -40,8 +40,8 @@ namespace HardwarePulse {
             });
             var mode=Control<ComboBox>("QuotaDisplay");mode.SelectedIndex=settings.Flag("quotaFull")?1:0;
             mode.SelectionChanged+=delegate{settings.Data["quotaFull"]=mode.SelectedIndex==1;RenderQuota();QueueSave();};
-            foreach(string provider in QuotaSession.Providers){string name=provider;var control=Control<CheckBox>("Quota"+name);control.IsChecked=settings.Flag("quota"+name,false);quotas.Enable(name,control.IsChecked==true);
-                control.Click+=delegate{settings.Data["quota"+name]=control.IsChecked==true;quotas.Enable(name,control.IsChecked==true);if(!isolated)quotas.Tick(DateTimeOffset.UtcNow);RenderQuota();UpdateDesktop();QueueSave();};
+            foreach(string provider in QuotaSession.Providers){string name=provider;var control=Control<CheckBox>("Quota"+name);control.IsChecked=settings.Flag("quota"+name,false);quotas.Enable(name,control.IsChecked==true,name=="Claude"&&claudeSnapshotSource);
+                control.Click+=delegate{settings.Data["quota"+name]=control.IsChecked==true;quotas.Enable(name,control.IsChecked==true,name=="Claude"&&claudeSnapshotSource);if(!isolated)quotas.Tick(DateTimeOffset.UtcNow);RenderQuota();UpdateDesktop();QueueSave();};
             }
             Click("QuotaRefresh",delegate{quotas.Refresh();if(!isolated)quotas.Tick(DateTimeOffset.UtcNow);RenderQuota();});
         }

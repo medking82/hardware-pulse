@@ -20,6 +20,13 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 
 - Shared Desktop supports Auto (System), English and Simplified/Traditional Chinese UI, including Monitor, Settings, sensor status, Codex quota and tray actions. Language switches immediately without restarting sampling or refreshing credentials and is saved in the isolated preview profile. Auto respects Chinese script and region preferences.
 
+## 0.6.44 — 2026-09-27
+
+- Remote quota failures retry after 5, 10, 20 and then 30 minutes. HTTP 429 adds a 15, 30 and then 60-minute minimum, extended by a longer Retry-After. A following 401 or timeout no longer clears rate-limit history; only success resets it.
+- Windows preserves quota cooldowns across restart, provider toggles and source switches. Manual Refresh respects failed-request cooldowns and a 30-second interval after successful reads. Local Claude CLI snapshots retain independent 30-second file polling. Only scheduling metadata is persisted, without quota values or credentials.
+- Antigravity quota children disable the installed CLI's automatic updater, preventing its unhidden version-check child from being launched by quota polling. This includes the locally installed 0.6.43 repair; 0.6.43 was not published separately. The original intermittent terminal flash was not captured, so this does not establish that every reported flash had the same cause.
+- Core, native WPF, shared Desktop and child-process regression checks passed with synthetic quota readers. Codex/Claude transport timeouts remain unresolved on the reported workstation; this release reduces repeated requests and does not claim that quota availability is restored.
+
 ## 0.6.42 — 2026-09-22
 
 - Antigravity CLI quota reads now have a 25-second parent deadline around the unchanged 15-second CLI print timeout. This leaves startup/output margin while retaining the 30-second session bound, hidden execution and owned-child cleanup. Codex keeps its 15-second deadline.

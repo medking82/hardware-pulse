@@ -12,6 +12,9 @@ internal static class CoreQuotaSessionTests {
         throw new Exception("Core quota completion timed out");
     }
     public static void Run(){
+        ConservativeRequestBudget();
+        RestartAndAlternatingFailures();
+        PendingReservationAndLocalSource();
         CachedClaudeRecovery();
         RateLimitAndTimeoutContract();
         SustainedFailureBackoff("Quota unavailable");
@@ -21,7 +24,7 @@ internal static class CoreQuotaSessionTests {
         var now=new DateTimeOffset(2026,9,15,0,0,0,TimeSpan.Zero);int calls=0;
         int localReads=0;
         using(var local=new QuotaSession((provider,cancel)=>new QuotaReading{Provider=provider,Source="CLI snapshot",Status="CLI snapshot",Observed=now.AddTicks(Interlocked.Increment(ref localReads))})){
-            local.Enable("Claude",true);Pump(local,now,()=>local.Readings[0].Status=="CLI snapshot");
+            local.Enable("Claude",true,true);Pump(local,now,()=>local.Readings[0].Status=="CLI snapshot");
             local.Tick(now.AddSeconds(29));Check(localReads==1,"local snapshot polled before deadline");
             Pump(local,now.AddSeconds(30),()=>local.Readings[0].Observed==now.AddTicks(2));
             Check(localReads==2,"local source should refresh at 30 seconds, not remote five-minute cadence");
@@ -35,10 +38,12 @@ internal static class CoreQuotaSessionTests {
             Pump(session,now,()=>session.Readings[0].Status=="Live");
             session.Tick(now.AddMinutes(5).AddTicks(-1));Check(calls==1,"refresh ran before deadline");
             Pump(session,now.AddMinutes(5),()=>session.Readings[0].Observed==now.AddSeconds(2));
-            session.Refresh();Pump(session,now.AddMinutes(5),()=>session.Readings[0].Observed==now.AddSeconds(3));
+            for(int click=0;click<10;click++){session.Refresh();session.Tick(now.AddMinutes(5).AddSeconds(29));}
+            Check(calls==2&&!session.GetState("Codex").Refreshing,"successful manual refresh bypassed the 30-second floor");
+            Pump(session,now.AddMinutes(5).AddSeconds(30),()=>session.Readings[0].Observed==now.AddSeconds(3));
             Check(calls==3,"manual refresh duplicated requests");
         }
-        // A refresh clicked after re-login while an older read is pending must not be lost.
+        // Clicks during a pending request cannot bypass a failed completion's cooldown.
         foreach(string firstStatus in new[]{"Login required","Quota unavailable","Refresh rate limited"}){
             int attempts=0;
             using(var entered=new ManualResetEventSlim())using(var release=new ManualResetEventSlim())
@@ -53,9 +58,11 @@ internal static class CoreQuotaSessionTests {
                     Check(attempts==1,"queued clicks overlapped the running read");release.Set();
                     if(firstStatus=="Refresh rate limited"){
                         Pump(queued,now,()=>queued.Readings[0].Status==firstStatus);
-                        queued.Tick(now.AddSeconds(119));Check(attempts==1,"queued click bypassed rate-limit backoff");
+                        queued.Tick(now.AddMinutes(15).AddTicks(-1));Check(attempts==1,"queued click bypassed rate-limit backoff");
                     }
-                    var retryTime=firstStatus=="Refresh rate limited"?now.AddSeconds(120):now;
+                    // Consume the first completion before advancing the simulated clock.
+                    Pump(queued,now,()=>queued.Readings[0].Status==firstStatus);
+                    var retryTime=firstStatus=="Refresh rate limited"?now.AddMinutes(15):now.AddMinutes(5);
                     Pump(queued,retryTime,()=>queued.Readings[0].Status=="Live");
                     queued.Tick(retryTime.AddSeconds(1));Check(attempts==2,"queued clicks did not coalesce into one recovery read");
                 }finally{release.Set();}
@@ -76,10 +83,10 @@ internal static class CoreQuotaSessionTests {
         }
         calls=0;CancellationToken captured=CancellationToken.None;
         // Manual clicks must honor both the local floor and a longer server deadline.
-        foreach(DateTimeOffset? serverDeadline in new DateTimeOffset?[]{null,now.AddSeconds(-1),now.AddSeconds(30),now.AddMinutes(10)})
+        foreach(DateTimeOffset? serverDeadline in new DateTimeOffset?[]{null,now.AddSeconds(-1),now.AddSeconds(30),now.AddHours(1)})
         using(var premature=new ManualResetEventSlim()){
             int attempts=0;
-            var deadline=serverDeadline.HasValue&&serverDeadline.Value>now.AddSeconds(120)?serverDeadline.Value:now.AddSeconds(120);
+            var deadline=serverDeadline.HasValue&&serverDeadline.Value>now.AddMinutes(15)?serverDeadline.Value:now.AddMinutes(15);
             using(var retry=new QuotaSession((provider,cancel)=>{
                 if(Interlocked.Increment(ref attempts)>1){premature.Set();return new QuotaReading{Provider=provider,Status="Live"};}
                 return new QuotaReading{Provider=provider,Status="Refresh rate limited",RetryAt=serverDeadline};
@@ -93,7 +100,7 @@ internal static class CoreQuotaSessionTests {
         }
         foreach(string provider in QuotaSession.Providers)
         foreach(string failure in new[]{"Quota unavailable","Refresh rate limited","Login required","Quota access denied"}) {
-            int attempts=0;int delay=failure=="Quota unavailable"||(provider=="Claude"&&failure=="Login required")?30:failure=="Refresh rate limited"?120:300;
+            int attempts=0;int delay=failure=="Refresh rate limited"?900:300;
             using(var retry=new QuotaSession((requestedProvider,cancel)=>new QuotaReading{Provider=requestedProvider,Status=Interlocked.Increment(ref attempts)==1?failure:"Live"})) {
                 retry.Enable(provider,true);Pump(retry,now,()=>retry.Readings[0].Status==failure);
                 retry.Tick(now.AddSeconds(delay).AddTicks(-1));Check(attempts==1,"retry ran before its deadline");
@@ -110,11 +117,11 @@ internal static class CoreQuotaSessionTests {
         })){
             recovery.Enable("Claude",true);Pump(recovery,now,()=>recovery.Readings[0].Status=="Login required");
             Volatile.Write(ref ownerReady,1);
-            Pump(recovery,now.AddSeconds(30),()=>recovery.Readings[0].Status=="Live");
+            Pump(recovery,now.AddMinutes(5),()=>recovery.Readings[0].Status=="Live");
             Check(recoveryCalls==2,"owner recovery was not found on the first automatic retry");
-            recovery.Tick(now.AddSeconds(329));Thread.Sleep(50);
+            recovery.Tick(now.AddMinutes(10).AddTicks(-1));Thread.Sleep(50);
             Check(recoveryCalls==2,"successful recovery kept fast polling");
-            Pump(recovery,now.AddSeconds(330),()=>Volatile.Read(ref recoveryCalls)==3);
+            Pump(recovery,now.AddMinutes(10),()=>Volatile.Read(ref recoveryCalls)==3);
         }
         using(var entered=new ManualResetEventSlim())using(var release=new ManualResetEventSlim())
         using(var session=new QuotaSession((provider,cancel)=>{
@@ -128,7 +135,8 @@ internal static class CoreQuotaSessionTests {
                 session.Enable("Codex",false);Check(captured.IsCancellationRequested&&session.Readings.Length==0,"disable did not cancel/hide provider");
                 session.Enable("Codex",true);session.Tick(now);Check(calls==1,"re-enable overlapped old request");
                 release.Set();
-                Pump(session,now,()=>{Check(session.Readings[0].Status!="Old result","late result escaped version boundary");return session.Readings[0].Status=="New result";});
+                Pump(session,now,()=>!session.GetState("Codex").Refreshing);
+                Pump(session,session.GetState("Codex").NextAttempt.Value,()=>{Check(session.Readings[0].Status!="Old result","late result escaped version boundary");return session.Readings[0].Status=="New result";});
                 Check(calls==2,"re-enable did not fetch exactly once");
             } finally {release.Set();}
         }
@@ -164,7 +172,7 @@ internal static class CoreQuotaSessionTests {
             }finally{Interlocked.Decrement(ref active[index]);}
         })){
             for(int round=0;round<360;round++){
-                var instant=now.AddMinutes(round*6);Interlocked.Exchange(ref clockTicks,instant.UtcTicks);
+                var instant=now.AddHours(round*2);Interlocked.Exchange(ref clockTicks,instant.UtcTicks);
                 int hidden=round%4-1;int before=counts[0]+counts[1]+counts[2];
                 for(int provider=0;provider<3;provider++)soak.Enable(QuotaSession.Providers[provider],provider!=hidden);
                 if(round%7==0)soak.Refresh();
@@ -175,8 +183,71 @@ internal static class CoreQuotaSessionTests {
             }
             Check(overlap==0,"soak overlapped provider requests");
         }
-        Console.WriteLine("PASS quota lifecycle soak: 360 simulated refresh rounds / 36 hours, 810 reads, mixed failures, recovery, provider toggles and no overlapping requests");
+        Console.WriteLine("PASS quota lifecycle soak: 360 simulated refresh rounds / 30 days, 810 reads, mixed failures, recovery, provider toggles and no overlapping requests");
         Console.WriteLine("PASS Core quota lifecycle: opt-in, host deadlines, manual refresh, no overlap, cancellation, re-enable late results, faults and disposal");
+    }
+    static void ConservativeRequestBudget(){
+        var now=new DateTimeOffset(2026,9,27,0,0,0,TimeSpan.Zero);int calls=0;
+        using(var session=new QuotaSession((provider,cancel)=>{Interlocked.Increment(ref calls);return new QuotaReading{Provider=provider,Status="Quota unavailable",Observed=now};})){
+            session.Enable("Claude",true);Pump(session,now,()=>calls==1&&!session.GetState("Claude").Refreshing);
+            Check(session.GetState("Claude").NextAttempt>=now.AddMinutes(5),"a failed remote read must not retry sooner than five minutes");
+            for(int i=0;i<10;i++){session.Refresh();session.Tick(now.AddMinutes(1));}
+            Check(!session.GetState("Claude").Refreshing&&calls==1,"manual clicks bypassed failure cooldown");
+            session.Enable("Claude",false);session.Enable("Claude",true);session.Tick(now.AddMinutes(1));
+            Check(!session.GetState("Claude").Refreshing&&calls==1,"provider toggle bypassed failure cooldown");
+        }
+    }
+    static void RestartAndAlternatingFailures(){
+        var now=new DateTimeOffset(2026,9,27,0,0,0,TimeSpan.Zero);int calls=0;
+        string[] outcomes={"Refresh rate limited","Login required","Quota unavailable","Refresh rate limited","Live"};
+        QuotaSchedule[] saved=null;
+        var clock=now;
+        // Each iteration is a fresh process/session. 401 and timeout cannot erase prior 429 debt.
+        for(int step=0;step<outcomes.Length;step++){
+            string outcome=outcomes[step];int expected=step+1;
+            using(var session=new QuotaSession((provider,cancel)=>{Interlocked.Increment(ref calls);return new QuotaReading{Provider=provider,Status=outcome,Observed=clock,RetryAt=step==0?(DateTimeOffset?)now.AddHours(1):null};})){
+                session.RestoreSchedules(saved);session.Enable("Claude",true);
+                if(saved!=null){
+                    for(int click=0;click<10;click++){session.Refresh();session.Enable("Claude",false);session.Enable("Claude",true);session.Tick(clock.AddTicks(-1));}
+                    Check(!session.GetState("Claude").Refreshing&&calls==step,"restart/click/toggle bypassed a saved deadline");
+                    var savedClaude=Array.Find(saved,s=>s.Provider=="Claude");savedClaude.NextAttempt=now;savedClaude.NotBefore=now;
+                    session.Refresh();session.Tick(clock.AddTicks(-1));
+                    Check(!session.GetState("Claude").Refreshing&&calls==step,"caller mutation altered the restored schedule copy");
+                }
+                Pump(session,clock,()=>calls==expected&&!session.GetState("Claude").Refreshing);
+                int minutes=step==0?60:step==1?15:step==2?20:step==3?30:5;
+                Check(session.GetState("Claude").NextAttempt==clock.AddMinutes(minutes),"alternating error shortened backoff at step "+step);
+                Check(session.GetState("Claude").RateLimitFailures==(step==4?0:step==3?2:1),"only a successful read may clear rate-limit debt");
+                saved=session.CaptureSchedules();clock=session.GetState("Claude").NextAttempt.Value;
+            }
+        }
+        Check(calls==5,"restart sequence duplicated provider reads");
+        Console.WriteLine("PASS quota request budget: restart, Retry-After, 429/401/timeout alternation and success reset");
+    }
+    static void PendingReservationAndLocalSource(){
+        var now=new DateTimeOffset(2026,9,27,0,0,0,TimeSpan.Zero);QuotaSchedule[] saved=null;
+        using(var entered=new ManualResetEventSlim())using(var release=new ManualResetEventSlim())
+        using(var session=new QuotaSession((provider,cancel)=>{entered.Set();release.Wait(5000);return new QuotaReading{Provider=provider,Status="Refresh rate limited",RetryAt=now.AddHours(1)};})){
+            try{
+                session.ScheduleChanged+=value=>saved=value;session.Enable("Claude",true);session.Tick(now);
+                Check(saved!=null&&Array.Find(saved,s=>s.Provider=="Claude").NotBefore==now.AddMinutes(5),"in-flight request was not reserved before IO");
+                Check(entered.Wait(5000),"reservation fixture did not enter reader");
+                session.Enable("Claude",false);session.Enable("Claude",true);release.Set();
+                Pump(session,now,()=>!session.GetState("Claude").Refreshing);
+                Check(session.GetState("Claude").NextAttempt==now.AddHours(1),"discarded old observation lost its server cooldown");
+                Check(session.Readings[0].Windows.Count==0,"discarded observation leaked quota values");
+            }finally{release.Set();}
+        }
+        int localReads=0,remoteReads=0;bool local=true;
+        using(var session=new QuotaSession((provider,cancel)=>{if(local)Interlocked.Increment(ref localReads);else Interlocked.Increment(ref remoteReads);return new QuotaReading{Provider=provider,Status=local?"CLI snapshot":"Live",Source=local?"CLI snapshot":null,Observed=now};})){
+            session.RestoreSchedules(saved);session.Enable("Claude",true,true);
+            Pump(session,now,()=>localReads==1&&!session.GetState("Claude").Refreshing);
+            Pump(session,now.AddSeconds(30),()=>localReads==2&&!session.GetState("Claude").Refreshing);
+            local=false;session.Enable("Claude",true,false);session.Refresh();session.Tick(now.AddMinutes(1));
+            Check(remoteReads==0&&!session.GetState("Claude").Refreshing&&session.GetState("Claude").NextAttempt==now.AddHours(1),"local snapshot switch erased remote cooldown");
+            Pump(session,now.AddHours(1),()=>remoteReads==1&&!session.GetState("Claude").Refreshing);
+        }
+        Console.WriteLine("PASS quota reservations: save before IO, canceled result cooldown and independent local snapshot polling");
     }
     static void CachedClaudeRecovery(){
         var now=new DateTimeOffset(2026,9,21,0,0,0,TimeSpan.Zero);int calls=0;string outcome="Live";string scope="owner-1";QuotaReading sourceReading=null;
@@ -192,13 +263,13 @@ internal static class CoreQuotaSessionTests {
             Check(session.CachedReading("Claude",now.AddMinutes(8))!=null,"scope fixture cache expired before rejection");
             // CachedReading is a query; probing a future time does not advance the session clock.
             Check(session.CachedReading("Claude",now.AddMinutes(15))==null,"expired cache remained visible");
-            scope="owner-2";Pump(session,now.AddMinutes(8),()=>calls>=3&&!session.GetState("Claude").Refreshing);
-            Check(session.CachedReading("Claude",now.AddMinutes(8))==null,"changed cache scope reused old quota");
+            scope="owner-2";Pump(session,now.AddMinutes(20),()=>calls>=3&&!session.GetState("Claude").Refreshing);
+            Check(session.GetState("Claude").LastGood==null,"changed cache scope retained old quota");
         }
         int authCalls=0;using(var auth=new QuotaSession((provider,cancel)=>new QuotaReading{Provider=provider,Status=Interlocked.Increment(ref authCalls)==1?"Live":"Login required",Source="HTTP",CacheScope="owner-auth",Observed=now})){
             auth.Enable("Claude",true);Pump(auth,now,()=>auth.Readings[0].Status=="Live");
             Check(auth.GetState("Claude").LastGood!=null,"authentication fixture did not establish a last-good cache");
-            auth.Refresh();Pump(auth,now,()=>auth.Readings[0].Status=="Login required");
+            auth.Refresh();Pump(auth,now.AddSeconds(30),()=>auth.Readings[0].Status=="Login required");
             Check(auth.GetState("Claude").LastGood==null,"authentication failure retained cached quota");
         }
         Console.WriteLine("PASS Claude bounded last-good cache: scope, age, auth clearing and mutation isolation");
@@ -207,11 +278,11 @@ internal static class CoreQuotaSessionTests {
         var now=new DateTimeOffset(2026,9,21,0,0,0,TimeSpan.Zero);int calls=0;
         using(var retry=new QuotaSession((provider,cancel)=>{Interlocked.Increment(ref calls);return new QuotaReading{Provider=provider,Status="Refresh rate limited"};})){
             retry.Enable("Claude",true);var clock=now;Pump(retry,clock,()=>calls==1&&!retry.GetState("Claude").Refreshing);
-            foreach(int delay in new[]{120,300,600}){clock=clock.AddSeconds(delay);int expected=calls+1;Pump(retry,clock,()=>calls==expected&&!retry.GetState("Claude").Refreshing);Check(retry.GetState("Claude").RateLimitFailures==expected,"429 counter did not increase progressively");}
+            foreach(int delay in new[]{900,1800,3600}){clock=clock.AddSeconds(delay);int expected=calls+1;Pump(retry,clock,()=>calls==expected&&!retry.GetState("Claude").Refreshing);Check(retry.GetState("Claude").RateLimitFailures==expected,"429 counter did not increase progressively");}
             Check(calls==4,"repeated 429 did not preserve one request per deadline");
         }
         int timeoutEvents=0;int timeoutCalls=0;using(var entered=new ManualResetEventSlim())using(var release=new ManualResetEventSlim())using(var session=new QuotaSession((provider,cancel)=>{int n=Interlocked.Increment(ref timeoutCalls);if(n==1){entered.Set();release.Wait(5000);return new QuotaReading{Provider=provider,Status="Live",Windows=new List<QuotaWindow>{new QuotaWindow{Label="late",Remaining=99}}};}return new QuotaReading{Provider=provider,Status="Live"};})){
-            session.AttemptCompleted+=a=>{if(a.FailureKind=="Request timeout")Interlocked.Increment(ref timeoutEvents);};session.Enable("Codex",true);session.Tick(now);Check(entered.Wait(5000),"timeout fixture did not start");session.Tick(now.AddSeconds(30));Check(session.GetState("Codex").TimedOut&&timeoutEvents==1,"timeout was not marked and emitted once");release.Set();Pump(session,now.AddSeconds(30),()=>session.Readings[0].Status=="Quota unavailable");Check(session.Readings[0].Windows.Count==0&&timeoutCalls==1,"late success escaped timeout ownership");Pump(session,now.AddSeconds(60),()=>session.Readings[0].Status=="Live");Check(timeoutCalls==2,"timeout recovery overlapped or failed");
+            session.AttemptCompleted+=a=>{if(a.FailureKind=="Request timeout")Interlocked.Increment(ref timeoutEvents);};session.Enable("Codex",true);session.Tick(now);Check(entered.Wait(5000),"timeout fixture did not start");session.Tick(now.AddSeconds(30));Check(session.GetState("Codex").TimedOut&&timeoutEvents==1,"timeout was not marked and emitted once");release.Set();Pump(session,now.AddSeconds(30),()=>session.Readings[0].Status=="Quota unavailable");Check(session.Readings[0].Windows.Count==0&&timeoutCalls==1,"late success escaped timeout ownership");Pump(session,now.AddSeconds(330),()=>session.Readings[0].Status=="Live");Check(timeoutCalls==2,"timeout recovery overlapped or failed");
         }
         Console.WriteLine("PASS quota 429 progression and timeout ownership: bounded delays, one timeout event and late-result rejection");
     }
@@ -220,31 +291,30 @@ internal static class CoreQuotaSessionTests {
         using(var session=new QuotaSession((provider,cancel)=>{int count=Interlocked.Increment(ref attempts);return new QuotaReading{Provider=provider,Status=outcome,Observed=outcome=="Live"?default(DateTimeOffset):now.AddTicks(count)};})){
             session.Enable("Claude",true);Pump(session,now,()=>session.Readings[0].Observed==now.AddTicks(1));
             var clock=now;
-            foreach(int delay in new[]{30,60,120,240,300,300}){
+            foreach(int delay in new[]{300,600,1200,1800,1800,1800}){
                 int before=attempts;session.Tick(clock.AddSeconds(delay).AddTicks(-1));Thread.Sleep(50);
                 Check(attempts==before,"sustained failure retry bypassed "+delay+"-second backoff");
                 outcome=failures[before%failures.Length];
                 clock=clock.AddSeconds(delay);Pump(session,clock,()=>session.Readings[0].Observed==now.AddTicks(before+1));
                 Check(attempts==before+1,"sustained retry duplicated work");
             }
-            // Manual recovery remains immediate, even at the automatic backoff cap.
-            outcome="Live";session.Refresh();int prior=attempts;Pump(session,clock,()=>session.Readings[0].Status=="Live");
-            Check(attempts==prior+1,"manual recovery did not bypass transient backoff");
-            outcome=failures[0];session.Refresh();prior=attempts;Pump(session,clock,()=>session.Readings[0].Status==outcome);
-            int expected=attempts+1;Pump(session,clock.AddSeconds(30),()=>session.Readings[0].Observed==now.AddTicks(expected));
-            Check(attempts==expected,"successful recovery did not reset backoff");
-            session.Enable("Claude",false);session.Enable("Claude",true);prior=attempts;
-            Pump(session,clock,()=>session.Readings[0].Observed==now.AddTicks(prior+1));
-            expected=attempts+1;Pump(session,clock.AddSeconds(30),()=>session.Readings[0].Observed==now.AddTicks(expected));
-            Check(attempts==expected,"re-enable did not reset backoff");
+            // Repeated clicks/toggles retain the cooldown. Only success resets it.
+            outcome="Live";session.Refresh();int prior=attempts;
+            session.Enable("Claude",false);session.Enable("Claude",true);session.Tick(clock);
+            Check(attempts==prior&&!session.GetState("Claude").Refreshing,"manual/toggle bypassed sustained backoff");
+            clock=clock.AddMinutes(30);Pump(session,clock,()=>session.Readings[0].Status=="Live");
+            Check(attempts==prior+1,"recovery did not run once at deadline");
+            outcome=failures[0];session.Refresh();clock=clock.AddSeconds(30);prior=attempts;
+            Pump(session,clock,()=>session.Readings[0].Status==outcome);
+            Check(session.GetState("Claude").NextAttempt==clock.AddMinutes(5),"successful recovery did not reset backoff");
         }
         // Missing local files remain cheap polling, not remote retry storms.
         int localReads=0;
         using(var local=new QuotaSession((provider,cancel)=>new QuotaReading{Provider=provider,Source="CLI snapshot",Status="Quota unavailable",Observed=now.AddTicks(Interlocked.Increment(ref localReads))})){
-            local.Enable("Claude",true);
+            local.Enable("Claude",true,true);
             for(int i=0;i<7;i++){int expected=i+1;Pump(local,now.AddSeconds(i*30),()=>local.Readings[0].Observed==now.AddTicks(expected));}
             Check(localReads==7,"local snapshot inherited remote backoff");
         }
-        Console.WriteLine("PASS sustained quota recovery ("+string.Join("/",failures)+"): bounded automatic backoff, manual recovery, success/re-enable reset and local polling; simulated time");
+        Console.WriteLine("PASS sustained quota recovery ("+string.Join("/",failures)+"): bounded backoff, click/toggle protection, success reset and local polling; simulated time");
     }
 }

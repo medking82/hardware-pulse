@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Pipes;
@@ -19,7 +20,7 @@ namespace HardwarePulse {
         }
         internal static object ReadProtocol(TextReader input,TextWriter output,CancellationToken cancel){
             int total=0;
-            output.WriteLine("{\"id\":1,\"method\":\"initialize\",\"params\":{\"clientInfo\":{\"name\":\"hardware_pulse\",\"title\":\"Hardware Pulse\",\"version\":\"0.6.42\"}}}");output.Flush();
+            output.WriteLine("{\"id\":1,\"method\":\"initialize\",\"params\":{\"clientInfo\":{\"name\":\"hardware_pulse\",\"title\":\"Hardware Pulse\",\"version\":\"0.6.44\"}}}");output.Flush();
             Response(input,1,ref total,cancel);
             output.WriteLine("{\"method\":\"initialized\",\"params\":{}}");
             output.WriteLine("{\"id\":2,\"method\":\"account/rateLimits/read\",\"params\":{}}");output.Flush();
@@ -44,7 +45,7 @@ namespace HardwarePulse {
         internal static object Read(string executable,string arguments,Func<TextReader,TextWriter,CancellationToken,object> read,CancellationToken cancel,bool requireSuccessfulExit=false){
             return ReadWithDeadline(executable,arguments,read,cancel,requireSuccessfulExit,TimeSpan.FromSeconds(15));
         }
-        internal static object ReadWithDeadline(string executable,string arguments,Func<TextReader,TextWriter,CancellationToken,object> read,CancellationToken cancel,bool requireSuccessfulExit,TimeSpan maximumDuration){
+        internal static object ReadWithDeadline(string executable,string arguments,Func<TextReader,TextWriter,CancellationToken,object> read,CancellationToken cancel,bool requireSuccessfulExit,TimeSpan maximumDuration,IDictionary<string,string> environment=null){
             using(var deadline=CancellationTokenSource.CreateLinkedTokenSource(cancel))
             using(var process=new Process()){
                 deadline.CancelAfter(maximumDuration);
@@ -53,6 +54,7 @@ namespace HardwarePulse {
                     WorkingDirectory=Path.GetDirectoryName(executable),RedirectStandardInput=true,
                     RedirectStandardOutput=true,RedirectStandardError=true,
                     StandardOutputEncoding=Encoding.UTF8,StandardErrorEncoding=Encoding.UTF8};
+                if(environment!=null)foreach(var variable in environment)process.StartInfo.EnvironmentVariables[variable.Key]=variable.Value;
                 cancel.ThrowIfCancellationRequested();
                 if(!process.Start())throw new QuotaFailure("Quota unavailable",null,0,"CLI failure");
                 Action stop=delegate{try{if(!process.HasExited)process.Kill();}catch(InvalidOperationException){}catch(System.ComponentModel.Win32Exception){}};

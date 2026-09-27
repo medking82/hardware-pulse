@@ -13,7 +13,9 @@ namespace HardwarePulse {
             return File.Exists(path)?path:null;
         }
         internal static QuotaReading Read(string executable,CancellationToken cancel){
-            var body=QuotaChildProcess.ReadWithDeadline(executable,"--print /usage --print-timeout 15s --log-file NUL",ReadReport,cancel,true,TimeSpan.FromSeconds(25));
+            // The CLI updater can launch its own console child. Quota reads must not start it.
+            var environment=new Dictionary<string,string>{{"AGY_CLI_DISABLE_AUTO_UPDATE","true"}};
+            var body=QuotaChildProcess.ReadWithDeadline(executable,"--print /usage --print-timeout 15s --log-file NUL",ReadReport,cancel,true,TimeSpan.FromSeconds(25),environment);
             var reading=QuotaDecoder.Decode("Antigravity",body,DateTimeOffset.UtcNow);
             reading.Source="CLI";
             return reading;

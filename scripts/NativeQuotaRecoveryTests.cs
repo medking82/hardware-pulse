@@ -29,7 +29,7 @@ internal static class NativeQuotaRecoveryTests {
             try{
                 fake.Enable("Claude",true);fake.Tick(now);Complete(fake,"Claude",now);
                 next=new QuotaReading{Provider="Claude",Status="Refresh rate limited",CacheScope="synthetic-source",HttpStatus=429,FailureKind="HTTP response",Observed=now,RetryAt=now.AddMinutes(2)};
-                fake.Refresh();fake.Tick(now);Complete(fake,"Claude",now);Render(shell);
+                fake.Refresh();fake.Tick(now.AddSeconds(30));Complete(fake,"Claude",now.AddSeconds(30));Render(shell);
                 var card=Card(shell,"Claude");
                 Check(card.Any(s=>s.Contains("Retry in"))&&card.Any(s=>s.Contains("Cached 2 min ago")),"retry and cache age must be distinct from latest error age");
                 Check(card.Any(s=>s.Contains("73%"))&&card.Any(s=>s.Contains("91%"))&&!card.Any(s=>s.StartsWith("Live")),"same-source cached values must never appear Live");
@@ -45,7 +45,7 @@ internal static class NativeQuotaRecoveryTests {
                 fake.GetState("Claude").LastGood.Observed=now.AddMinutes(-2);Render(shell);card=Card(shell,"Claude");
                 Check(card.Any(s=>s.Contains("73%"))&&card.Any(s=>s.Contains("91%")),"scope fixture cache missing before rejection");
                 next=new QuotaReading{Provider="Claude",Status="Refresh rate limited",Observed=now,CacheScope="different-source",HttpStatus=429};
-                fake.Tick(now.AddMinutes(3));Complete(fake,"Claude",now.AddMinutes(3));Render(shell);
+                fake.Tick(now.AddMinutes(16));Complete(fake,"Claude",now.AddMinutes(16));Render(shell);
                 card=Card(shell,"Claude");Check(!card.Any(s=>s.Contains("73%")||s.Contains("91%")),"source change cannot reuse previous account values");
                 fake.Enable("Claude",false);
                 next=new QuotaReading{Provider="Antigravity",Status="Quota unavailable",Source="Desktop",HttpStatus=503,FailureKind="HTTP response",Observed=now};
@@ -57,6 +57,7 @@ internal static class NativeQuotaRecoveryTests {
                 fake.Enable("Claude",true);fake.Tick(now);Complete(fake,"Claude",now);Render(shell);
                 Capture(shell,screenshot);
                 QuotaDiagnosticLogTests.Run(Path.GetDirectoryName(screenshot));
+                QuotaScheduleStoreTests.Run(Path.GetDirectoryName(screenshot));
             }finally{field.SetValue(shell,original);Render(shell);}
         }
     }
