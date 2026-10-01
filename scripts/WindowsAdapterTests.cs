@@ -7,6 +7,17 @@ using HardwarePulse;
 class WindowsAdapterTests {
     static void Check(bool value,string message){if(!value)throw new Exception(message);}
     static int Main(string[] args){
+        if(Array.IndexOf(args,"--terminate_existing_session")>=0)return 0;
+        if(Array.IndexOf(args,"--process_id")>=0){
+            // Model a presenter whose display/GPU completion events are unavailable.
+            // Application present timing remains available and needs no display tracking.
+            if(Array.IndexOf(args,"--no_track_gpu")<0||Array.IndexOf(args,"--no_track_display")<0||Array.IndexOf(args,"--no_track_input")<0)return 17;
+            int targetIndex=Array.IndexOf(args,"--process_id")+1;
+            if(targetIndex>=args.Length||Array.IndexOf(args,"--v1_metrics")<0||Array.IndexOf(args,"--output_stdout")<0)return 18;
+            Console.WriteLine("Application,ProcessID,SwapChainAddress,msBetweenPresents");
+            Console.WriteLine("Presenter.exe,"+args[targetIndex]+",0x1,10.0");
+            return 0;
+        }
         if(IsAntigravityFakeChild(args)){
             Console.WriteLine("Gemini Models\tWeekly Limit Remaining\t0%\t2099-10-01T00:00:00Z");
             Console.WriteLine("Gemini Models\tFive Hour Limit Remaining\t100%\t2099-09-30T12:00:00+08:00");
@@ -37,6 +48,14 @@ class WindowsAdapterTests {
         Check(string.IsNullOrEmpty(expected)||expected==architecture,"Expected adapter process architecture "+expected+", got "+architecture);
         Console.WriteLine("Adapter test host: "+System.Runtime.InteropServices.RuntimeInformation.OSDescription+" / "+architecture+" / "+System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription);
         Check(typeof(FrameCapture).Assembly==typeof(SensorProfile).Assembly,"FPS capture did not enter adapter assembly");
+        using(var presentCapture=new FrameCapture()){
+            presentCapture.Start(Assembly.GetExecutingAssembly().Location,42);
+            var wait=System.Diagnostics.Stopwatch.StartNew();
+            while(!presentCapture.Read().Ready&&wait.ElapsedMilliseconds<3000)Thread.Sleep(20);
+            var sample=presentCapture.Read();
+            Check(sample.Ready&&sample.Count==1&&sample.Current==100,"Application FPS must remain available without GPU/display completion tracking");
+        }
+        Console.WriteLine("PASS actual capture launch and stdout parser with unavailable display/GPU events");
         var csv=FrameCapture.ParseCsv("\"Game, \"\"Demo\"\".exe\",42,0x1,16.0");
         Check(csv.Length==4&&csv[0]=="Game, \"Demo\".exe"&&csv[1]=="42","Quoted CSV fields changed");
         using(var capture=new FrameCapture()){
@@ -48,10 +67,14 @@ class WindowsAdapterTests {
             var reading=capture.Read();Check(reading.Ready&&reading.Count==1&&reading.Current==62.5,"CSV PID/invalid frame filtering changed");
             capture.Reset(43);Check(!capture.Read().Ready,"Target switch must clear history");
             capture.Feed("Game.exe,43,0x1,16");Check(!capture.Read().Ready,"Reset must require a fresh header");
+            capture.Feed("Application,ProcessID,SwapChainAddress,Runtime,SyncInterval,PresentFlags,Dropped,TimeInSeconds,msInPresentAPI,msBetweenPresents");
+            capture.Feed("Presenter.exe,43,0x2,DXGI,1,0,0,3.01,0.1,8.0");
+            Check(capture.Read().Ready&&capture.Read().Current==125,"Actual present-only v1 schema must work without display/GPU columns");
+            capture.Reset(43);
             capture.Add("main",20,10);Check(capture.ReadAt(10).Current==50&&!capture.ReadAt(12).Ready,"Core history bridge or freshness changed");
             capture.Dispose();Check(!capture.IsRunning&&capture.Read().Status=="FPS capture stopped","Dispose must retain stopped state");
         }
-        Console.WriteLine("PASS Windows FPS adapter: assembly ownership, quoted CSV, PID filtering, reset, freshness and stopped state; no process launched");
+        Console.WriteLine("PASS Windows FPS adapter: assembly ownership, quoted CSV, PID filtering, reset, freshness and stopped state; no real PresentMon launched");
         Check(typeof(WindowsHardware).Assembly==typeof(SensorProfile).Assembly,"Hardware queries did not enter adapter assembly");
         var memory=WindowsHardware.ReadMemory();
         Check(memory!=null&&memory.totalGb>0&&memory.usedGb>=0&&memory.usedGb<=memory.totalGb,"Live physical memory query returned invalid capacity/usage");

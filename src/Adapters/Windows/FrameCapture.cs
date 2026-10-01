@@ -53,7 +53,10 @@ public sealed class FrameCapture : IDisposable {
         Dispose(); Reset(pid);
         try {
             executable=exe; sessionName="HardwarePulse-" + Guid.NewGuid().ToString("N");
-            var info = new ProcessStartInfo(exe, "--process_id " + pid.ToString(CultureInfo.InvariantCulture) + " --output_stdout --v1_metrics --no_console_stats --terminate_on_proc_exit --session_name " + sessionName);
+            // FPS uses application presents only. Waiting for display/GPU completion
+            // adds an unnecessary dependency on HDR/flip event delivery. PresentMon
+            // requires no_track_gpu together with no_track_display to honor the latter.
+            var info = new ProcessStartInfo(exe, "--process_id " + pid.ToString(CultureInfo.InvariantCulture) + " --output_stdout --v1_metrics --no_track_gpu --no_track_display --no_track_input --no_console_stats --terminate_on_proc_exit --session_name " + sessionName);
             info.UseShellExecute=false; info.CreateNoWindow=true; info.RedirectStandardOutput=true; info.RedirectStandardError=true;
             process=new Process { StartInfo=info };
             process.OutputDataReceived += (s,e) => Feed(e.Data);

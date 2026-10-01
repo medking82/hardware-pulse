@@ -20,6 +20,11 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 
 - Shared Desktop supports Auto (System), English and Simplified/Traditional Chinese UI, including Monitor, Settings, sensor status, Codex quota and tray actions. Language switches immediately without restarting sampling or refreshing credentials and is saved in the isolated preview profile. Auto respects Chinese script and region preferences.
 
+## 0.6.45 — 2026-10-02
+
+- Collect application FPS without waiting for unused GPU/display completion or input events. This removes an unnecessary dependency that can delay fresh FPS readings during HDR/flip capture startup. Current, average and minimum statistics keep their existing meaning.
+- Verify the present-only path on an HDR-enabled Windows display and cover actual capture launch/compact CSV parsing in regression tests. The original failure was intermittent; this does not promise compatibility with every game, driver or exclusive-fullscreen overlay.
+
 ## 0.6.44 — 2026-09-27
 
 - Remote quota failures retry after 5, 10, 20 and then 30 minutes. HTTP 429 adds a 15, 30 and then 60-minute minimum, extended by a longer Retry-After. A following 401 or timeout no longer clears rate-limit history; only success resets it.
