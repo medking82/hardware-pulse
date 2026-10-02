@@ -20,6 +20,12 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 
 - Shared Desktop supports Auto (System), English and Simplified/Traditional Chinese UI, including Monitor, Settings, sensor status, Codex quota and tray actions. Language switches immediately without restarting sampling or refreshing credentials and is saved in the isolated preview profile. Auto respects Chinese script and region preferences.
 
+## 0.6.46 — 2026-10-02
+
+- Quota refresh now reports progress, completion or the exact next allowed request time in Settings. Each quota card has a single-provider refresh button, with visible progress and deferred-refresh feedback.
+- Explicit Claude refresh can recheck a previously rejected login after a five-minute minimum interval instead of waiting through an escalated 30-minute authentication backoff. Known login-source metadata changes also schedule this bounded recovery without reading token contents.
+- HTTP 429/Retry-After, transport/access failures, persistent rate-limit history and in-flight reservations retain their protections. Repeated clicks do not queue extra requests. Pulse still never signs in, writes credentials or renews tokens.
+
 ## 0.6.45 — 2026-10-02
 
 - Collect application FPS without waiting for unused GPU/display completion or input events. This removes an unnecessary dependency that can delay fresh FPS readings during HDR/flip capture startup. Current, average and minimum statistics keep their existing meaning.

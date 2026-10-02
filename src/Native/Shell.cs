@@ -78,7 +78,7 @@ namespace HardwarePulse {
         void StartCollector(){try{if(File.Exists(paths.Stop)){try{File.Delete(paths.Stop);}catch{ignoredStop=File.GetLastWriteTimeUtc(paths.Stop).Ticks;throw;}}if(SensorProfile.Read(paths.Snapshot,DateTimeOffset.Now).state!="LIVE")using(var store=new SchedulerStore())new Startup(store,paths.Exe,WindowsIdentity.GetCurrent().User.Value).StartCollector();}catch{collectorFailed=true;}}
         public void UpdatePanel(){
             if(!isolated&&File.Exists(paths.Stop)&&File.GetLastWriteTimeUtc(paths.Stop).Ticks!=ignoredStop){Exit();return;}
-            readings.Poll(DateTimeOffset.Now);if(!isolated)quotas.Tick(DateTimeOffset.UtcNow);UpdateDesktop();
+            readings.Poll(DateTimeOffset.Now);if(!isolated)TickQuotas(DateTimeOffset.UtcNow);RenderQuotaRefreshFeedback(DateTimeOffset.UtcNow);UpdateDesktop();
             // Keep collection, peaks, stale-state detection and STOP handling active
             // while Settings or the tray/minimized window has no visible cards to render.
             if(Window.IsVisible&&Window.WindowState!=WindowState.Minimized&&!settingsVisible)RenderPanel();

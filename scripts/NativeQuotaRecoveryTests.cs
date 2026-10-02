@@ -21,7 +21,65 @@ internal static class NativeQuotaRecoveryTests {
         try{hardware.Visibility=Visibility.Collapsed;shell.Window.Width=420;shell.Window.Height=560;shell.Window.UpdateLayout();var bitmap=new System.Windows.Media.Imaging.RenderTargetBitmap((int)shell.Window.ActualWidth,(int)shell.Window.ActualHeight,96,96,System.Windows.Media.PixelFormats.Pbgra32);bitmap.Render(shell.Window);var png=new System.Windows.Media.Imaging.PngBitmapEncoder();png.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmap));using(var file=File.Create(path))png.Save(file);}
         finally{hardware.Visibility=visible;shell.Window.Width=width;shell.Window.Height=height;}
     }
+    static void RefreshFeedback(Shell shell,string screenshot){
+        var field=typeof(Shell).GetField("quotas",Hidden);var original=(QuotaSession)field.GetValue(shell);var now=DateTimeOffset.UtcNow;int claudeCalls=0,codexCalls=0;
+        using(var entered=new ManualResetEventSlim())using(var release=new ManualResetEventSlim())
+        using(var fake=new QuotaSession((provider,cancel)=>{if(provider=="Claude"){Interlocked.Increment(ref claudeCalls);entered.Set();Check(release.Wait(5000),"feedback fixture not released");}else Interlocked.Increment(ref codexCalls);return new QuotaReading{Provider=provider,Status="Live",Observed=DateTimeOffset.UtcNow};})){
+            field.SetValue(shell,fake);
+            try{
+                fake.RestoreSchedules(new[]{new QuotaSchedule{Provider="Claude",Status="Login required",Observed=now.AddMinutes(-10),NextAttempt=now.AddMinutes(20),NotBefore=now.AddMinutes(20),RecoveryFailures=4,RateLimitFailures=1},new QuotaSchedule{Provider="Codex",Status="Live",Observed=now,NextAttempt=now.AddMinutes(5),NotBefore=now.AddSeconds(30)}});
+                fake.Enable("Claude",true);fake.Enable("Codex",true);Render(shell);
+                var card=shell.Control<StackPanel>("QuotaCards").Children.Cast<Border>().Single(c=>(string)c.Tag=="Claude");
+                var header=(Grid)((StackPanel)card.Child).Children[0];var button=header.Children.OfType<Button>().Single();
+                button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));fake.Tick(now);Check(entered.Wait(5000),"card refresh did not request Claude");Render(shell);
+                Check(shell.Control<TextBlock>("QuotaRefreshStatus").Text.Contains("Claude: Refreshing quota")&&Card(shell,"Claude").Any(s=>s.Contains("Refreshing quota")),"refresh progress missing in Settings/card");
+                Check(codexCalls==0,"Claude card button refreshed another provider");
+                release.Set();Complete(fake,"Claude",now);Render(shell);
+                Check(shell.Control<TextBlock>("QuotaRefreshStatus").Text=="Claude: Quota refresh complete","completed refresh missing explicit feedback");
+                shell.Control<Button>("QuotaRefresh").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Render(shell);
+                Check(shell.Control<TextBlock>("QuotaRefreshStatus").Text.Contains("Refresh deferred until"),"minimum request interval was silently skipped");
+                Capture(shell,Path.Combine(Path.GetDirectoryName(screenshot),"quota-refresh-feedback.png"));
+                fake.Enable("Claude",false);fake.Enable("Codex",false);
+                fake.RestoreSchedules(new[]{new QuotaSchedule{Provider="Claude",Status="Refresh rate limited",Observed=now,NextAttempt=now.AddHours(1),NotBefore=now.AddHours(1),RecoveryFailures=1,RateLimitFailures=1}});fake.Enable("Claude",true);
+                shell.Control<Button>("QuotaRefresh").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Render(shell);
+                Check(shell.Control<TextBlock>("QuotaRefreshStatus").Text.Contains("Refresh deferred until")&&shell.Control<TextBlock>("QuotaRefreshStatus").Text.Contains("Refresh rate limited"),"429 refresh must explain its wait");
+                fake.Tick(now);Check(claudeCalls==1,"feedback button bypassed real 429");
+                Capture(shell,Path.Combine(Path.GetDirectoryName(screenshot),"quota-refresh-wait.png"));
+                shell.ShowSettings(true);typeof(Shell).GetMethod("SelectSettingsCategory",Hidden).Invoke(shell,new object[]{"AI Quota"});shell.Window.UpdateLayout();
+                Capture(shell,Path.Combine(Path.GetDirectoryName(screenshot),"quota-refresh-settings.png"));shell.ShowSettings(false);
+                // Only metadata is consulted, using an injected synthetic predicate.
+                fake.RestoreSchedules(new[]{new QuotaSchedule{Provider="Claude",Status="Login required",Observed=now,NextAttempt=now.AddMinutes(30),NotBefore=now.AddMinutes(30),RecoveryFailures=4,RateLimitFailures=1}});
+                fake.Readings.Single().CacheScope="synthetic-rejected-revision";
+                typeof(Shell).GetField("nextClaudeRevisionCheck",Hidden).SetValue(shell,DateTimeOffset.MinValue);
+                int checks=0;var check=typeof(Shell).GetMethod("CheckClaudeLoginRecovery",Hidden);
+                check.Invoke(shell,new object[]{now,new Func<string,bool>(scope=>{checks++;return true;})});
+                Check(fake.GetState("Claude").NextAttempt==now.AddMinutes(30),"unchanged login metadata shortened automatic backoff");
+                check.Invoke(shell,new object[]{now.AddSeconds(29),new Func<string,bool>(scope=>{checks++;return false;})});Check(checks==1,"metadata checked more often than thirty seconds");
+                check.Invoke(shell,new object[]{now.AddSeconds(30),new Func<string,bool>(scope=>{checks++;return false;})});
+                Check(checks==2&&fake.GetState("Claude").NextAttempt==now.AddMinutes(5)&&fake.GetState("Claude").RateLimitFailures==1,"changed owner metadata failed bounded authentication recovery");
+            }finally{release.Set();typeof(Shell).GetField("quotaRefreshBefore",Hidden).GetValue(shell).GetType().GetMethod("Clear").Invoke(typeof(Shell).GetField("quotaRefreshBefore",Hidden).GetValue(shell),null);shell.Control<TextBlock>("QuotaRefreshStatus").Visibility=Visibility.Collapsed;field.SetValue(shell,original);Render(shell);}
+        }
+        Console.WriteLine("PASS native quota refresh feedback: single-provider button, progress, success, cooldown reason and metadata-only recovery");
+    }
+    static void TimeoutFeedback(Shell shell){
+        var field=typeof(Shell).GetField("quotas",Hidden);var original=(QuotaSession)field.GetValue(shell);var now=DateTimeOffset.UtcNow;int calls=0;
+        using(var entered=new ManualResetEventSlim())using(var release=new ManualResetEventSlim())
+        using(var fake=new QuotaSession((provider,cancel)=>{if(Interlocked.Increment(ref calls)==2){entered.Set();release.Wait(5000);}return new QuotaReading{Provider=provider,Status="Live",Observed=now};})){
+            field.SetValue(shell,fake);
+            try{
+                fake.Enable("Claude",true);fake.Tick(now);Complete(fake,"Claude",now);Render(shell);
+                typeof(Shell).GetMethod("RefreshQuota",Hidden).Invoke(shell,new object[]{"Claude"});fake.Tick(now.AddSeconds(30));Check(entered.Wait(5000),"timeout feedback fixture not started");
+                fake.Tick(now.AddSeconds(60));Render(shell);
+                Check(Card(shell,"Claude").Any(s=>s.StartsWith("Refresh timed out · Waiting for request to stop")),"timed-out card still claims Live while waiting for worker");
+                Check(shell.Control<TextBlock>("QuotaRefreshStatus").Text.Contains("Refresh timed out"),"Settings hides the pending timeout reason");
+            }finally{
+                release.Set();Complete(fake,"Claude",now.AddSeconds(60));
+                ((Dictionary<string,QuotaReading>)typeof(Shell).GetField("quotaRefreshBefore",Hidden).GetValue(shell)).Clear();shell.Control<TextBlock>("QuotaRefreshStatus").Visibility=Visibility.Collapsed;field.SetValue(shell,original);Render(shell);
+            }
+        }
+    }
     public static void RunUI(Shell shell,string screenshot){
+        RefreshFeedback(shell,screenshot);TimeoutFeedback(shell);
         var field=typeof(Shell).GetField("quotas",Hidden);var original=(QuotaSession)field.GetValue(shell);var now=DateTimeOffset.UtcNow;
         QuotaReading next=new QuotaReading{Provider="Claude",Status="Live",CacheScope="synthetic-source",Observed=now.AddMinutes(-2),Windows=new List<QuotaWindow>{new QuotaWindow{Label="5-hour",Remaining=73,Reset=now.AddMinutes(30)},new QuotaWindow{Label="Weekly",Remaining=91,Reset=now.AddDays(5)}}};
         using(var fake=new QuotaSession((provider,cancel)=>next)){

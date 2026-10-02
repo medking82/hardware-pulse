@@ -12,6 +12,7 @@ internal static class CoreQuotaSessionTests {
         throw new Exception("Core quota completion timed out");
     }
     public static void Run(){
+        ExplicitClaudeAuthenticationRecovery();
         ConservativeRequestBudget();
         RestartAndAlternatingFailures();
         PendingReservationAndLocalSource();
@@ -185,6 +186,50 @@ internal static class CoreQuotaSessionTests {
         }
         Console.WriteLine("PASS quota lifecycle soak: 360 simulated refresh rounds / 30 days, 810 reads, mixed failures, recovery, provider toggles and no overlapping requests");
         Console.WriteLine("PASS Core quota lifecycle: opt-in, host deadlines, manual refresh, no overlap, cancellation, re-enable late results, faults and disposal");
+    }
+    static void ExplicitClaudeAuthenticationRecovery(){
+        var now=new DateTimeOffset(2026,10,2,2,19,0,TimeSpan.Zero);int calls=0;
+        var saved=new QuotaSchedule{Provider="Claude",Status="Login required",Observed=now,NextAttempt=now.AddMinutes(30),NotBefore=now.AddMinutes(30),RecoveryFailures=4,RateLimitFailures=1};
+        using(var entered=new ManualResetEventSlim())using(var release=new ManualResetEventSlim())
+        using(var session=new QuotaSession((provider,cancel)=>{int n=Interlocked.Increment(ref calls);if(n==1){entered.Set();Check(release.Wait(5000),"auth recovery read not released");}return new QuotaReading{Provider=provider,Status=n==1?"Login required":"Live",Observed=now.AddMinutes(n==1?5:10)};})){
+            try{
+                session.RestoreSchedules(new[]{saved});session.Enable("Claude",true);
+                for(int i=0;i<10;i++){session.RequestRefresh("Claude",now.AddMinutes(2));session.Tick(now.AddMinutes(5).AddTicks(-1));}
+                Check(calls==0&&!session.GetState("Claude").Refreshing,"explicit authentication recovery bypassed five-minute floor");
+                Check(session.GetState("Claude").NextAttempt==now.AddMinutes(5)&&session.GetState("Claude").RateLimitFailures==1,"auth recovery failed to shorten local delay or erased 429 debt");
+                using(var restarted=new QuotaSession((provider,cancel)=>{throw new Exception("restart bypass");})){
+                    restarted.RestoreSchedules(session.CaptureSchedules());restarted.Enable("Claude",true);restarted.RequestRefresh("Claude",now.AddMinutes(2));restarted.Tick(now.AddMinutes(5).AddTicks(-1));
+                    Check(!restarted.GetState("Claude").Refreshing,"restart erased authentication floor");
+                }
+                session.Tick(now.AddMinutes(5));Check(entered.Wait(5000),"explicit auth recovery did not start");
+                using(var restarted=new QuotaSession((provider,cancel)=>{throw new Exception("in-flight reservation bypass");})){
+                    restarted.RestoreSchedules(session.CaptureSchedules());restarted.Enable("Claude",true);restarted.RequestRefresh("Claude",now.AddMinutes(6));restarted.Tick(now.AddMinutes(6));
+                    Check(!restarted.GetState("Claude").Refreshing&&restarted.GetState("Claude").NextAttempt==now.AddMinutes(10),"auth recovery bypassed crashed in-flight reservation");
+                }
+                for(int i=0;i<10;i++)session.RequestRefresh("Claude",now.AddMinutes(5));
+                Check(calls==1,"pending authentication refresh overlapped");release.Set();
+                Pump(session,now.AddMinutes(5),()=>!session.GetState("Claude").Refreshing);
+                Check(session.GetState("Claude").NextAttempt==now.AddMinutes(35),"explicit recovery erased automatic backoff");
+                for(int i=0;i<10;i++){session.RequestRefresh("Claude",now.AddMinutes(6));session.Tick(now.AddMinutes(10).AddTicks(-1));}
+                Check(calls==1&&!session.GetState("Claude").Refreshing,"repeat clicks created an authentication storm");
+                Pump(session,now.AddMinutes(10),()=>session.Readings[0].Status=="Live");
+                Check(calls==2&&session.GetState("Claude").RateLimitFailures==0&&session.GetState("Claude").NextAttempt==now.AddMinutes(15),"success failed to restore normal cadence");
+            }finally{release.Set();}
+        }
+        foreach(string status in new[]{"Refresh rate limited","Quota unavailable","Quota access denied"}){
+            using(var session=new QuotaSession((provider,cancel)=>{throw new Exception("cooldown bypass");})){
+                var schedule=new QuotaSchedule{Provider="Claude",Status=status,Observed=now,NextAttempt=now.AddHours(1),NotBefore=now.AddHours(1),RecoveryFailures=4,RateLimitFailures=1};
+                session.RestoreSchedules(new[]{schedule});session.Enable("Claude",true);
+                Check(!session.RecoverClaudeLogin(now.AddMinutes(10)),"authentication recovery admitted "+status);
+                session.RequestRefresh("Claude",now.AddMinutes(10));session.Tick(now.AddMinutes(10));
+                Check(!session.GetState("Claude").Refreshing&&session.GetState("Claude").NextAttempt==now.AddHours(1),"explicit refresh bypassed "+status);
+            }
+        }
+        using(var session=new QuotaSession((provider,cancel)=>{throw new Exception("other provider bypass");})){
+            saved.Provider="Codex";session.RestoreSchedules(new[]{saved});session.Enable("Codex",true);session.RequestRefresh("Codex",now.AddMinutes(10));session.Tick(now.AddMinutes(10));
+            Check(!session.GetState("Codex").Refreshing,"Claude auth recovery changed Codex policy");
+        }
+        Console.WriteLine("PASS explicit Claude auth recovery: persisted five-minute floor, one pending request, 429 debt, non-auth cooldowns and success reset");
     }
     static void ConservativeRequestBudget(){
         var now=new DateTimeOffset(2026,9,27,0,0,0,TimeSpan.Zero);int calls=0;

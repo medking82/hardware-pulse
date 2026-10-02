@@ -9,6 +9,10 @@ AI Quota|AI 额度|AI 額度
 Read remaining quota from existing local logins. Refreshes every 5 minutes.|使用本机已有登录读取剩余额度，每 5 分钟刷新。|使用本機已有登入讀取剩餘額度，每 5 分鐘更新。
 Login in Codex or Claude Code first. Antigravity can also use an installed, signed-in CLI. Pulse never changes your login.|请先登录 Codex 或 Claude Code。Antigravity 也可使用已安装并登录的 CLI。Pulse 不修改登录信息。|請先登入 Codex 或 Claude Code。Antigravity 也可使用已安裝並登入的 CLI。Pulse 不修改登入資訊。
 Refresh Quota|刷新额度|更新額度
+Quota refresh complete|额度刷新成功|額度更新成功
+Enable quota in Settings first|请先在设置中启用额度显示|請先在設定中啟用額度顯示
+Refresh deferred until {0}|暂未请求，将于 {0} 重试|暫未請求，將於 {0} 重試
+Last quota login check failed|上次额度查询认证失败|上次額度查詢驗證失敗
 Refresh pending|等待刷新|等待更新
 Login required|需要登录或重新登录|需要登入或重新登入
 Quota access denied|额度访问被拒绝|額度存取被拒絕
@@ -103,7 +107,7 @@ Leave a name blank to use device information. Hover over a field to see its auto
 SPD numbers identify sensor addresses, not physical slots. Installed slots are reported separately; assign a slot name only after confirming its sensor.|SPD 编号代表传感器地址，并非实体插槽。已安装插槽单独显示；确认对应关系后再命名。|SPD 編號代表感測器位址，並非實體插槽。已安裝插槽單獨顯示；確認對應關係後再命名。
 Changes save automatically.|更改自动保存。|變更自動儲存。
 About Pulse|关于 Pulse|關於 Pulse
-Version 0.6.45 · Marck Wong|版本 0.6.45 · Marck Wong|版本 0.6.45 · Marck Wong
+Version 0.6.46 · Marck Wong|版本 0.6.46 · Marck Wong|版本 0.6.46 · Marck Wong
 Sensors by LibreHardwareMonitor. Shared driver by PawnIO.|传感器：LibreHardwareMonitor。共享驱动：PawnIO。|感測器：LibreHardwareMonitor。共用驅動程式：PawnIO。
 Language|语言 / Language|語言 / Language
 Minimize|最小化|最小化

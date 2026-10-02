@@ -75,7 +75,7 @@ namespace HardwarePulse {
             }
             if(!slot.Enabled||slot.Pending!=null||now<slot.Next||(!slot.Local&&now<slot.Remote.NotBefore))continue;
             slot.Next=now.AddMinutes(5);
-            if(!slot.Local){slot.Remote.NotBefore=slot.Next;EmitSchedule();} // Reserve before IO, including process shutdown/crash.
+            if(!slot.Local){slot.Remote.NotBefore=slot.Next;slot.Remote.Status="Refresh pending";slot.Remote.Observed=now;EmitSchedule();} // Reserve before IO, including process shutdown/crash.
             slot.Cancel=new CancellationTokenSource(TimeSpan.FromSeconds(30));slot.PendingVersion=slot.Version;slot.PendingLocal=slot.Local;slot.Started=now;slot.TimedOut=false;slot.TimeoutReported=false;string provider=pair.Key;var token=slot.Cancel.Token;
             var source=slot.Cancel;slot.Pending=Task.Run(()=>ExecuteRead(provider,token,source));
         }}
@@ -92,6 +92,23 @@ namespace HardwarePulse {
             if(reading.RetryAt.HasValue&&reading.RetryAt.Value>deadline)deadline=reading.RetryAt.Value;
             if(schedule.NotBefore>deadline)deadline=schedule.NotBefore;
             schedule.NextAttempt=deadline;schedule.NotBefore=deadline;
+        }
+        // Explicit user action (or an owner revision change) can recheck Claude authentication,
+        // but never a 429, transport failure, in-flight reservation or another provider.
+        // The five-minute floor survives restart; throttling debt is only cleared by success.
+        public bool RecoverClaudeLogin(DateTimeOffset now){
+            var slot=slots["Claude"];
+            if(disposed||!slot.Enabled||slot.Local||slot.Pending!=null||slot.Remote.Status!="Login required"||slot.Remote.Observed==default(DateTimeOffset)||slot.Remote.Observed>now)return false;
+            var floor=slot.Remote.Observed.AddMinutes(5);
+            if(slot.Remote.NextAttempt<=floor&&slot.Remote.NotBefore<=floor)return false;
+            slot.Remote.NextAttempt=floor;slot.Remote.NotBefore=floor;EmitSchedule();return true;
+        }
+        public void RequestRefresh(string provider,DateTimeOffset now){
+            if(disposed)return;var slot=slots[provider];if(!slot.Enabled)return;
+            if(slot.Pending!=null)return; // One running request is already fulfilling this action.
+            if(provider=="Claude")RecoverClaudeLogin(now);
+            if(slot.Local)slot.Next=DateTimeOffset.MinValue;
+            else if(slot.Remote.RecoveryFailures==0&&slot.Remote.RateLimitFailures==0)slot.Next=slot.Remote.NotBefore;
         }
         public void Refresh(){if(disposed)return;foreach(var slot in slots.Values){if(!slot.Enabled)continue;if(slot.Pending!=null){slot.RefreshQueued=true;continue;}if(slot.Local)slot.Next=DateTimeOffset.MinValue;else if(slot.Remote.RecoveryFailures==0&&slot.Remote.RateLimitFailures==0)slot.Next=slot.Remote.NotBefore;}}
         public void Dispose(){if(disposed)return;disposed=true;foreach(var slot in slots.Values){if(slot.Cancel!=null){slot.Cancel.Cancel();var source=slot.Cancel;if(slot.Pending!=null)slot.Pending.ContinueWith(t=>{var ignored=t.Exception;source.Dispose();},TaskScheduler.Default);else source.Dispose();}}}

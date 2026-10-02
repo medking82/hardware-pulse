@@ -12,6 +12,8 @@ namespace HardwarePulse {
         readonly QuotaSession quotas;
         volatile bool claudeSnapshotSource;
         string quotaSignature;
+        DateTimeOffset nextClaudeRevisionCheck;
+        readonly Dictionary<string,QuotaReading> quotaRefreshBefore=new Dictionary<string,QuotaReading>();
         string[] QuotaOrder(){return settings.Order("quotaCardOrder",QuotaSession.Providers);}
         void WireQuota(){
             var source=Control<ComboBox>("ClaudeQuotaSource");source.SelectedIndex=claudeSnapshotSource?1:0;
@@ -43,7 +45,35 @@ namespace HardwarePulse {
             foreach(string provider in QuotaSession.Providers){string name=provider;var control=Control<CheckBox>("Quota"+name);control.IsChecked=settings.Flag("quota"+name,false);quotas.Enable(name,control.IsChecked==true,name=="Claude"&&claudeSnapshotSource);
                 control.Click+=delegate{settings.Data["quota"+name]=control.IsChecked==true;quotas.Enable(name,control.IsChecked==true,name=="Claude"&&claudeSnapshotSource);if(!isolated)quotas.Tick(DateTimeOffset.UtcNow);RenderQuota();UpdateDesktop();QueueSave();};
             }
-            Click("QuotaRefresh",delegate{quotas.Refresh();if(!isolated)quotas.Tick(DateTimeOffset.UtcNow);RenderQuota();});
+            Click("QuotaRefresh",delegate{RefreshQuota(null);});
+        }
+        void RefreshQuota(string provider){
+            var now=DateTimeOffset.UtcNow;quotaRefreshBefore.Clear();
+            foreach(var reading in quotas.Readings){if(provider!=null&&reading.Provider!=provider)continue;quotaRefreshBefore[reading.Provider]=reading;quotas.RequestRefresh(reading.Provider,now);}
+            if(quotaRefreshBefore.Count==0){Text("QuotaRefreshStatus",language.T("Enable quota in Settings first"));Control<TextBlock>("QuotaRefreshStatus").Visibility=Visibility.Visible;}
+            if(!isolated)quotas.Tick(now);
+            RenderQuota();UpdateDesktop();
+        }
+        void TickQuotas(DateTimeOffset now){CheckClaudeLoginRecovery(now,QuotaProviders.IsClaudeCacheScopeCurrent);quotas.Tick(now);}
+        void CheckClaudeLoginRecovery(DateTimeOffset now,Func<string,bool> isCurrent){
+            if(now<nextClaudeRevisionCheck)return;nextClaudeRevisionCheck=now.AddSeconds(30);
+            var reading=quotas.Readings.FirstOrDefault(r=>r.Provider=="Claude");
+            if(reading!=null&&reading.Status=="Login required"&&!claudeSnapshotSource&&!string.IsNullOrEmpty(reading.CacheScope)&&!quotas.GetState("Claude").Refreshing&&!isCurrent(reading.CacheScope))quotas.RecoverClaudeLogin(now);
+        }
+        void RenderQuotaRefreshFeedback(DateTimeOffset now){
+            var output=Control<TextBlock>("QuotaRefreshStatus");if(quotaRefreshBefore.Count==0)return;
+            var lines=new List<string>();
+            foreach(var pair in quotaRefreshBefore){
+                var reading=quotas.Readings.FirstOrDefault(r=>r.Provider==pair.Key);var refresh=quotas.GetState(pair.Key);
+                string state;
+                if(reading==null)state=language.T("Off");
+                else if(refresh.Refreshing)state=refresh.TimedOut?language.T("Refresh timed out")+" · "+language.T("Waiting for request to stop"):language.T("Refreshing quota…");
+                else if(!object.ReferenceEquals(reading,pair.Value))state=reading.Status=="Live"||reading.Status=="CLI snapshot"?language.T("Quota refresh complete"):QuotaRecoveryState(reading,reading,now);
+                else if(refresh.NextAttempt.HasValue&&refresh.NextAttempt.Value>now)state=string.Format(language.T("Refresh deferred until {0}"),refresh.NextAttempt.Value.ToLocalTime().ToString("HH:mm:ss"))+" · "+language.T(reading.Status);
+                else state=language.T("Refresh pending");
+                lines.Add(pair.Key+": "+state);
+            }
+            output.Text=string.Join("\n",lines);output.Visibility=Visibility.Visible;
         }
         void CopyClaudeStatusLineCommand(bool powershell){
             try{Clipboard.SetText(ClaudeStatusLineCommand.Create(paths.Exe,powershell));Text("ClaudeSnapshotSetupStatus",language.T("Command copied. Set it as Claude Code statusLine.command; preserve any existing command."));}
@@ -64,11 +94,13 @@ namespace HardwarePulse {
         }
         string QuotaRecoveryState(QuotaReading original,QuotaReading displayed,DateTimeOffset now){
             var refresh=quotas.GetState(original.Provider);bool healthy=(displayed.Status=="Live"||displayed.Status=="CLI snapshot")&&!refresh.TimedOut;
-            string state=QuotaState(healthy?displayed:original);
+            string state=original.Provider=="Claude"&&original.Status=="Login required"?language.T("Last quota login check failed"):QuotaState(healthy?displayed:original);
+            if(refresh.TimedOut||original.FailureKind=="Request timeout")state=language.T("Refresh timed out");
+            if(refresh.Refreshing)return state+" · "+language.T(refresh.TimedOut?"Waiting for request to stop":"Refreshing quota…");
+            QuotaReading before;
+            if(healthy&&quotaRefreshBefore.TryGetValue(original.Provider,out before)&&object.ReferenceEquals(original,before)&&refresh.NextAttempt.HasValue&&refresh.NextAttempt.Value>now)return state+" · "+string.Format(language.T("Refresh deferred until {0}"),refresh.NextAttempt.Value.ToLocalTime().ToString("HH:mm:ss"));
             if(!healthy){
-                if(refresh.TimedOut||original.FailureKind=="Request timeout")state=language.T("Refresh timed out");
-                if(refresh.Refreshing)state+=" · "+language.T(refresh.TimedOut?"Waiting for request to stop":"Refreshing quota…");
-                else if(refresh.NextAttempt.HasValue)state+=" · "+string.Format(language.T("Retry in {0} min"),Math.Max(1,(int)Math.Ceiling((refresh.NextAttempt.Value-now).TotalMinutes)));
+                if(refresh.NextAttempt.HasValue)state+=" · "+string.Format(language.T("Retry in {0} min"),Math.Max(1,(int)Math.Ceiling((refresh.NextAttempt.Value-now).TotalMinutes)));
                 if(displayed.Status=="Cached")state+=" · "+language.T("Cached")+" "+Math.Max(0,(int)(now-displayed.Observed).TotalMinutes)+" "+language.T("min ago");
             }else if(displayed.Observed!=default(DateTimeOffset))state+=" · "+Math.Max(0,(int)(now-displayed.Observed).TotalMinutes)+" "+language.T("min ago");
             return state;
@@ -86,7 +118,7 @@ namespace HardwarePulse {
             return string.Join("\n",lines);
         }
         void RenderQuota(){
-            var readings=quotas.Readings;var now=DateTimeOffset.UtcNow;
+            var readings=quotas.Readings;var now=DateTimeOffset.UtcNow;RenderQuotaRefreshFeedback(now);
             var panel=(ResponsivePanel)Control<StackPanel>("QuotaCards");if(panel.Dragging)return;
             bool full=settings.Flag("quotaFull");var order=QuotaOrder();
             var displayed=readings.ToDictionary(r=>r.Provider,r=>DisplayQuota(r,full,now));
@@ -96,11 +128,13 @@ namespace HardwarePulse {
                 var reading=displayed[original.Provider];
                 var body=new StackPanel();var foreground=SystemParameters.HighContrast?SystemColors.WindowTextBrush:Brush(light?"#17202B":"#F0F5FA");
                 string accent=SystemParameters.HighContrast?SystemColors.WindowTextColor.ToString():light?"#17202B":settings.Flag("unifiedReadingColors")?ReadingColor():reading.Provider=="Codex"?"#A5E7D5":reading.Provider=="Claude"?"#E7B497":"#A7CBFF";
-                var title=new Grid();title.ColumnDefinitions.Add(new ColumnDefinition{Width=GridLength.Auto});title.ColumnDefinitions.Add(new ColumnDefinition{Width=GridLength.Auto});title.ColumnDefinitions.Add(new ColumnDefinition());
+                var title=new Grid();title.ColumnDefinitions.Add(new ColumnDefinition{Width=GridLength.Auto});title.ColumnDefinitions.Add(new ColumnDefinition{Width=GridLength.Auto});title.ColumnDefinitions.Add(new ColumnDefinition());title.ColumnDefinitions.Add(new ColumnDefinition{Width=GridLength.Auto});
                 var grip=new Thumb{Width=16,Height=24,Margin=new Thickness(0,0,6,0),Cursor=Cursors.SizeAll,Focusable=true,Foreground=foreground,IsEnabled=!locked,Template=views["CPU"].Grip.Template,ToolTip=language.T("Drag To Reorder (Esc To Cancel)")};title.Children.Add(grip);
                 System.Windows.Automation.AutomationProperties.SetName(grip,reading.Provider+" · "+language.T("Reading Order"));
                 var icon=Icon(reading.Provider.ToLowerInvariant(),19,accent);icon.Margin=new Thickness(0,0,8,0);Grid.SetColumn(icon,1);title.Children.Add(icon);
-                var name=new TextBlock{Text=reading.Provider=="Antigravity"&&!full?"Antigravity · Gemini":reading.Provider,FontSize=13*Window.FontSize/12,FontWeight=FontWeights.SemiBold,Foreground=foreground,TextWrapping=TextWrapping.Wrap,VerticalAlignment=VerticalAlignment.Center};Grid.SetColumn(name,2);title.Children.Add(name);body.Children.Add(title);
+                var name=new TextBlock{Text=reading.Provider=="Antigravity"&&!full?"Antigravity · Gemini":reading.Provider,FontSize=13*Window.FontSize/12,FontWeight=FontWeights.SemiBold,Foreground=foreground,TextWrapping=TextWrapping.Wrap,VerticalAlignment=VerticalAlignment.Center};Grid.SetColumn(name,2);title.Children.Add(name);
+                string provider=reading.Provider;var refreshButton=new Button{Content="↻",ToolTip=language.T("Refresh Quota"),Padding=new Thickness(5,1,5,1),Margin=new Thickness(6,0,0,0),VerticalAlignment=VerticalAlignment.Center,IsEnabled=!quotas.GetState(provider).Refreshing};
+                System.Windows.Automation.AutomationProperties.SetName(refreshButton,provider+" · "+language.T("Refresh Quota"));refreshButton.Click+=delegate{RefreshQuota(provider);};Grid.SetColumn(refreshButton,3);title.Children.Add(refreshButton);body.Children.Add(title);
                 string state=QuotaRecoveryState(original,reading,now);
                 body.Children.Add(new TextBlock{Text=state,ToolTip=QuotaDetails(original,reading,now),Foreground=foreground,Opacity=.8,Margin=new Thickness(0,5,0,8),TextWrapping=TextWrapping.Wrap});
                 foreach(var window in reading.Windows){
