@@ -57,7 +57,10 @@ internal static class NativeQuotaRecoveryTests {
                 check.Invoke(shell,new object[]{now.AddSeconds(29),new Func<string,bool>(scope=>{checks++;return false;})});Check(checks==1,"metadata checked more often than thirty seconds");
                 check.Invoke(shell,new object[]{now.AddSeconds(30),new Func<string,bool>(scope=>{checks++;return false;})});
                 Check(checks==2&&fake.GetState("Claude").NextAttempt==now.AddMinutes(5)&&fake.GetState("Claude").RateLimitFailures==1,"changed owner metadata failed bounded authentication recovery");
-            }finally{release.Set();typeof(Shell).GetField("quotaRefreshBefore",Hidden).GetValue(shell).GetType().GetMethod("Clear").Invoke(typeof(Shell).GetField("quotaRefreshBefore",Hidden).GetValue(shell),null);shell.Control<TextBlock>("QuotaRefreshStatus").Visibility=Visibility.Collapsed;field.SetValue(shell,original);Render(shell);}
+                fake.Enable("Claude",false);var language=(Languages)typeof(Shell).GetField("language",Hidden).GetValue(shell);string preference=language.Preference;
+                try{language.Preference="zh-CN";Render(shell);Check(shell.Control<TextBlock>("QuotaRefreshStatus").Text=="Claude: 已关闭","Simplified Chinese disabled feedback is not localized");language.Preference="zh-TW";Render(shell);Check(shell.Control<TextBlock>("QuotaRefreshStatus").Text=="Claude: 已關閉","Traditional Chinese disabled feedback is not localized");}
+                finally{language.Preference=preference;}
+            }finally{release.Set();((Dictionary<string,QuotaReading>)typeof(Shell).GetField("quotaRefreshBefore",Hidden).GetValue(shell)).Clear();shell.Control<TextBlock>("QuotaRefreshStatus").Visibility=Visibility.Collapsed;field.SetValue(shell,original);Render(shell);}
         }
         Console.WriteLine("PASS native quota refresh feedback: single-provider button, progress, success, cooldown reason and metadata-only recovery");
     }

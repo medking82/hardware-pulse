@@ -77,6 +77,11 @@ internal static class CoreQuotaSessionTests {
                 return new QuotaReading{Provider=provider,Status="Live",Observed=attempt==1?now:wake};
             })){
                 session.Enable("Codex",true);session.Tick(now);Check(completed.Wait(5000),"pre-sleep read did not finish");
+                // The reader signal precedes Task.Run's completion. Advancing an hour before
+                // the task is completed tests a timeout instead of the intended wake case.
+                var slots=(System.Collections.IDictionary)typeof(QuotaSession).GetField("slots",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic).GetValue(session);
+                var slot=slots["Codex"];var pending=(System.Threading.Tasks.Task)slot.GetType().GetField("Pending",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic).GetValue(slot);
+                Check(pending.Wait(5000),"pre-sleep worker task did not finish");
                 Pump(session,wake,()=>session.Readings[0].Observed==wake);
                 Check(wakeCalls==2,"wake recovery must refresh an expired observation exactly once");
                 session.Tick(wake.AddMinutes(4));Check(wakeCalls==2,"wake recovery lost normal cadence");

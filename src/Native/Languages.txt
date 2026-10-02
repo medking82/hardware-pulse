@@ -11,6 +11,7 @@ Login in Codex or Claude Code first. Antigravity can also use an installed, sign
 Refresh Quota|刷新额度|更新額度
 Quota refresh complete|额度刷新成功|額度更新成功
 Enable quota in Settings first|请先在设置中启用额度显示|請先在設定中啟用額度顯示
+Off|已关闭|已關閉
 Refresh deferred until {0}|暂未请求，将于 {0} 重试|暫未請求，將於 {0} 重試
 Last quota login check failed|上次额度查询认证失败|上次額度查詢驗證失敗
 Refresh pending|等待刷新|等待更新
