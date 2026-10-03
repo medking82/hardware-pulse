@@ -1,0 +1,59 @@
+# Memory usage and app cleanup
+
+[简体中文](MEMORY-CLEANUP.zh-CN.md)
+
+## Behavior and boundaries
+
+Memory and GPU cards open a shared usage window. It takes an on-demand snapshot
+of processes in the current Windows user's interactive session, with RAM working
+set and optional reported dedicated GPU memory. Rows represent processes, not
+aggregated application totals. Refresh takes another snapshot;
+there is no background sampling timer, remote AI request or persisted process list.
+RAM/GPU sorting reuses the snapshot, including when entering from the other card.
+Closing and reopening the window while a read is pending reuses that same task,
+rather than spawning parallel scans. Local guidance uses valid physical RAM
+headroom, not a guess that a large app is unused. Missing, non-finite or inconsistent
+memory readings never produce a "cleanup unnecessary" recommendation.
+CPU, RAM and GPU monitoring in the elevated Collector remain read-only.
+
+The user selects one app and confirms a normal close request. Before dispatch,
+the Windows adapter revalidates its process creation time, user, session and main
+window. Pulse and the Windows shell are excluded. No main window, access denial,
+exit or identity change makes the action unavailable. No process is force-killed,
+no UAC elevation is requested, and no service, driver, cache or working set is
+purged. App save prompts and refusal remain authoritative. A successful request
+is not an exit or a promised number of freed bytes; refresh shows subsequent usage.
+
+RAM working set is resident memory, not private commit or reclaimable memory.
+GPU per-process memory is an estimate; shared resources can be counted in multiple
+processes, and Microsoft documents inaccurate dedicated counters on some systems.
+Unsupported or invalid GPU observations stay unavailable, never zero. Adapter-level
+VRAM totals retain their existing sensor source. Closing an app is the generic way
+to ask its owner to release RAM and GPU resources; there is no generic cross-process
+VRAM trimming API. This feature does not promise improved FPS or identify unused apps.
+
+## Ownership and checks
+
+`WindowsAppResources` owns Windows process/PDH observations and guarded close
+dispatch. The WPF `AppResources` partial owns the window, selection, confirmation,
+one in-flight operation and local advice. No shared Core contract or Collector IPC
+is added. Modern hosts and other operating systems are outside this first boundary.
+
+Identity inspection requests only Windows query access for the process token.
+Checks: isolated child windows verify close acceptance, refusal, stale identity,
+and disabled/modal main windows;
+pure fixtures verify GPU instance parsing and bounds. The authored WPF check uses
+a synthetic read delegate and never dispatches a close request. It covers both card
+entry points, disabled selection, sorting without another read, invalid RAM,
+localization, narrow layout, light/dark rendering and in-flight window teardown.
+`scripts/Validate.ps1` remains the pre-commit check. Cross-process actions require
+one independent frozen-diff review after deterministic checks. Classification is
+high risk because normal close dispatch introduces a cross-process action boundary.
+
+## Primary sources
+
+- [Windows working set](https://learn.microsoft.com/en-us/windows/win32/memory/working-set)
+- [Normal close request](https://learn.microsoft.com/en-us/dotnet/api/system.diagnostics.process.closemainwindow)
+- [GPU counter limitations](https://learn.microsoft.com/en-us/troubleshoot/windows-client/performance/gpu-process-memory-counters-report-wrong-value)
+- [Shared GPU resource accounting](https://devblogs.microsoft.com/directx/gpus-in-the-task-manager/)
+- [DXGI device-owned trim](https://learn.microsoft.com/en-us/windows/win32/api/dxgi1_3/nf-dxgi1_3-idxgidevice3-trim)

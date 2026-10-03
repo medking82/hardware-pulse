@@ -108,7 +108,7 @@ Leave a name blank to use device information. Hover over a field to see its auto
 SPD numbers identify sensor addresses, not physical slots. Installed slots are reported separately; assign a slot name only after confirming its sensor.|SPD 编号代表传感器地址，并非实体插槽。已安装插槽单独显示；确认对应关系后再命名。|SPD 編號代表感測器位址，並非實體插槽。已安裝插槽單獨顯示；確認對應關係後再命名。
 Changes save automatically.|更改自动保存。|變更自動儲存。
 About Pulse|关于 Pulse|關於 Pulse
-Version 0.6.46 · Marck Wong|版本 0.6.46 · Marck Wong|版本 0.6.46 · Marck Wong
+Version 0.6.47 · Marck Wong|版本 0.6.47 · Marck Wong|版本 0.6.47 · Marck Wong
 Sensors by LibreHardwareMonitor. Shared driver by PawnIO.|传感器：LibreHardwareMonitor。共享驱动：PawnIO。|感測器：LibreHardwareMonitor。共用驅動程式：PawnIO。
 Language|语言 / Language|語言 / Language
 Minimize|最小化|最小化
@@ -318,3 +318,30 @@ Local port unavailable|本地 quota endpoint 不可用|本機 quota endpoint 不
 Request timeout|Quota request 超时|Quota request 逾時
 CLI timeout|CLI quota 查询超时|CLI quota 查詢逾時
 CLI exit failure|CLI quota process 异常退出|CLI quota process 異常結束
+Manage RAM|管理内存|管理記憶體
+Manage GPU Memory|管理显存|管理顯示記憶體
+Memory Cleanup|内存与显存管理|記憶體與顯示記憶體管理
+Select an app you no longer need. Closing it can release RAM and GPU resources.|选择不再使用的应用。正常关闭后可释放内存与显存资源。|選擇不再使用的應用程式。正常關閉後可釋放記憶體與顯示記憶體資源。
+RAM is resident memory. GPU values are estimates and may include shared resources; — means unavailable.|内存显示当前驻留占用；显存为估算值，可能包含共享资源。— 表示无法获取。|記憶體顯示目前駐留用量；顯示記憶體為估算值，可能包含共用資源。— 表示無法取得。
+Each row is one process. Closing an app may also close its child processes.|每一行代表一个进程。关闭应用时，它可能一并关闭自己的子进程。|每一列代表一個程序。關閉應用程式時，它可能一併關閉自己的子程序。
+Close Selected App|正常关闭选中应用|正常關閉選取的應用程式
+App|应用|應用程式
+GPU (estimate)|显存（估算）|顯示記憶體（估算）
+Close status|关闭状态|關閉狀態
+Reading app usage…|正在读取应用占用…|正在讀取應用程式用量…
+Close available|可以正常关闭|可以正常關閉
+No close action|无法正常关闭|無法正常關閉
+Sort by|排序方式|排序方式
+Refresh|刷新|重新整理
+RAM pressure is unavailable. Choose only apps you know you no longer need.|无法判断内存余量。请只关闭确定不再使用的应用。|無法判斷記憶體餘量。請只關閉確定不再使用的應用程式。
+RAM headroom is low. Save your work, then close apps you no longer need.|内存余量偏低。先保存工作，再关闭不再使用的应用。|記憶體餘量偏低。先儲存工作，再關閉不再使用的應用程式。
+RAM has headroom. Cleanup is not needed based on this snapshot.|目前内存余量充足，根据此次读数无需清理。|目前記憶體餘量充足，根據此次讀數無需清理。
+Available RAM|可用内存|可用記憶體
+Usage updated. Nothing is closed automatically.|占用已更新，不会自动关闭任何应用。|用量已更新，不會自動關閉任何應用程式。
+Usage updated. GPU per-process readings are unavailable.|占用已更新，无法获取各应用的显存占用。|用量已更新，無法取得各應用程式的顯示記憶體用量。
+Could not read app usage. Try Refresh.|无法读取应用占用，请刷新重试。|無法讀取應用程式用量，請重新整理再試。
+Send a normal close request to this app? Save any work first. The app may show a save prompt or refuse to close.|是否请求正常关闭此应用？请先保存工作。应用可能提示保存或拒绝关闭。|是否要求正常關閉此應用程式？請先儲存工作。應用程式可能提示儲存或拒絕關閉。
+Requesting app close…|正在请求正常关闭…|正在要求正常關閉…
+Close requested. Complete any app prompt, then Refresh to check usage.|已发送关闭请求。请处理应用中的提示，然后刷新查看占用。|已傳送關閉要求。請處理應用程式中的提示，再重新整理查看用量。
+This process changed. Refresh before selecting it again.|此进程已改变，请刷新后重新选择。|此程序已改變，請重新整理後再次選取。
+The app could not be closed. It may have exited, denied access or opened a dialog.|无法关闭应用，可能已退出、权限不足或正在显示对话框。|無法關閉應用程式，可能已結束、權限不足或正在顯示對話框。

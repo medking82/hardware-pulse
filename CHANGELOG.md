@@ -20,6 +20,12 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 
 - Shared Desktop supports Auto (System), English and Simplified/Traditional Chinese UI, including Monitor, Settings, sensor status, Codex quota and tray actions. Language switches immediately without restarting sampling or refreshing credentials and is saved in the isolated preview profile. Auto respects Chinese script and region preferences.
 
+## 0.6.47 — 2026-10-03
+
+- Memory and GPU cards open an on-demand current-user process usage window, with resident RAM, optional GPU estimates and local RAM headroom guidance. Sorting and reopening reuse pending data without background polling.
+- Select an app and confirm a normal close request. Process identity, user/session and main-window state are rechecked; save prompts and refusal remain authoritative. No force termination, working-set purge, VRAM eviction or remote AI is used.
+- Verify isolated close/refusal fixtures and English/Simplified/Traditional Chinese views, narrow layouts and light/dark themes. GPU estimates can be unavailable or inaccurate; no reclaimed-space or FPS benefit is promised.
+
 ## 0.6.46 — 2026-10-02
 
 - Quota refresh now reports progress, completion or the exact next allowed request time in Settings. Each quota card has a single-provider refresh button, with visible progress and deferred-refresh feedback.

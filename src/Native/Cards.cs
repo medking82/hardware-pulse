@@ -34,6 +34,7 @@ namespace HardwarePulse {
             AddCard("Airflow","Case / Motherboard","#A8D4D0","system",new[]{new[]{"System Fan 1","bottom","RPM"},new[]{"System Fan 2","top","RPM"}});
             AddCard("Network","Active adapter","#A9D8E8",null,new[]{new[]{"LAN Link Speed","lanLink","link"},new[]{"Wi-Fi Link Speed","wifiLink","link"},new[]{"Wi-Fi Signal","wifiSignal","%"},new[]{"Link Speed","netLink","link"},new[]{"Download","netDown","rate"},new[]{"Upload","netUp","rate"}});
             AddUsage(views["Memory"],"ram");AddUsage(views["GPU"],"vram");
+            AddResourceAction(views["Memory"],false);AddResourceAction(views["GPU"],true);
             foreach(string key in settings.Order("cardOrder",new[]{"CPU","GPU","Memory","NVMe","Airflow","Network"}))cards.Children.Add(views[key].Border);
             foreach(var view in views.Values){
                 var check=new CheckBox {Content=view.Key,Margin=new Thickness(0,5,0,5),IsChecked=CardEnabled(view.Key)};

@@ -1,0 +1,77 @@
+using System;
+using System.Diagnostics;
+using System.Linq;
+using System.Reflection;
+using System.Runtime.InteropServices;
+using System.Threading;
+using System.Windows.Forms;
+using HardwarePulse;
+
+static class AppResourceTests {
+    [DllImport("user32.dll")]static extern bool IsWindowEnabled(IntPtr window);
+    sealed class FixtureForm:Form {
+        protected override CreateParams CreateParams {get{var value=base.CreateParams;value.ExStyle|=0x80;return value;}} // Tool window: no taskbar entry, no hidden owner.
+    }
+    static void Check(bool value,string message){if(!value)throw new Exception(message);}
+    static bool WaitUntil(Func<bool> condition,int timeout){var wait=Stopwatch.StartNew();while(wait.ElapsedMilliseconds<timeout){if(condition())return true;Thread.Sleep(25);}return condition();}
+    [STAThread]static int Main(string[] args){
+        if(args.Length==1&&args[0].StartsWith("--fixture-")){
+            string mode=args[0].Substring("--fixture-".Length);
+            if(!new[]{"accept","refuse","disabled","modal"}.Contains(mode))return 2;
+            using(var form=new FixtureForm {Text="Pulse resource fixture",Opacity=0,Width=100,Height=100})
+            using(var timer=new System.Windows.Forms.Timer {Interval=10000}){
+                // All fixtures expire independently, including a refused close or nested modal loop.
+                timer.Tick+=delegate{Environment.Exit(0);};timer.Start();
+                form.FormClosing+=delegate(object sender,FormClosingEventArgs e){if(mode=="refuse"){e.Cancel=true;form.Text="Pulse close refused";}};
+                form.Shown+=delegate{
+                    if(mode=="disabled")form.Enabled=false;
+                    if(mode=="modal"){
+                        using(var dialog=new FixtureForm {Text="Pulse hidden modal fixture",Opacity=0,Width=80,Height=80}){
+                            dialog.Shown+=delegate{form.Text="Pulse fixture ready "+mode;};
+                            dialog.ShowDialog(form);
+                        }
+                    }else form.Text="Pulse fixture ready "+mode;
+                };
+                Application.Run(form);return 0;
+            }
+        }
+        int pid;
+        Check(WindowsAppResources.TryGpuInstance("pid_42_luid_0x00000000_0x00001234_phys_0",100,out pid)&&pid==42,"GPU instance PID parse");
+        Check(!WindowsAppResources.TryGpuInstance("pid_42_luid_invalid",100,out pid),"Unknown GPU instance must stay unavailable");
+        Check(!WindowsAppResources.TryGpuInstance("pid_42_luid_0x00000000_0x00001234_phys_0",-1,out pid),"Negative GPU usage must not become zero");
+        Check(!WindowsAppResources.TryGpuInstance("pid_2147483648_luid_0x00000000_0x00001234_phys_0",100,out pid),"Overflow PID rejected");
+        Check(WindowsAppResources.RequestClose(null)==AppCloseResult.NotAllowed,"Null selection");
+        using(var own=Process.GetCurrentProcess())Check(WindowsAppResources.RequestClose(new AppResourceProcess {Pid=own.Id,StartedUtcTicks=own.StartTime.ToUniversalTime().Ticks,CanClose=true})==AppCloseResult.NotAllowed,"Pulse host must not close itself");
+        foreach(string mode in new[]{"accept","refuse","disabled","modal"}){
+            var info=new ProcessStartInfo(Assembly.GetExecutingAssembly().Location,"--fixture-"+mode){UseShellExecute=false,CreateNoWindow=true};
+            using(var child=Process.Start(info))try{
+                IntPtr hwnd=IntPtr.Zero;
+                Check(WaitUntil(delegate{child.Refresh();hwnd=child.MainWindowHandle;return hwnd!=IntPtr.Zero&&child.MainWindowTitle=="Pulse fixture ready "+mode;},4000),mode+" fixture main window ready");
+                bool blocked=mode=="disabled"||mode=="modal";
+                Check(IsWindowEnabled(hwnd)!=blocked,mode+" fixture enabled state");
+                var row=new AppResourceProcess {Pid=child.Id,StartedUtcTicks=child.StartTime.ToUniversalTime().Ticks,CanClose=true};
+                row.StartedUtcTicks--;Check(WindowsAppResources.RequestClose(row)==AppCloseResult.IdentityChanged,"PID reuse / stale birth must not dispatch close");
+                Check(!child.HasExited,"Identity rejection preserves process");row.StartedUtcTicks++;
+                var snapshot=WindowsAppResources.Read();var observed=snapshot.Processes.SingleOrDefault(p=>p.Pid==child.Id);
+                Check(observed!=null&&observed.CanClose!=blocked&&observed.StartedUtcTicks==row.StartedUtcTicks,"Current-user fixture listed with identity and enabled state");
+                Check(observed.RamBytes>0,"Resident RAM observed");
+                if(blocked){
+                    Check(WindowsAppResources.RequestClose(observed)==AppCloseResult.NotAllowed,"Disabled snapshot cannot dispatch close");
+                    Check(WindowsAppResources.RequestClose(row)==AppCloseResult.Unavailable,"Fresh disabled/modal window rejects stale enabled selection");
+                    Check(!child.HasExited,"Disabled/modal rejection preserves process");
+                    continue;
+                }
+                Check(WindowsAppResources.RequestClose(row)==AppCloseResult.Requested,"Normal close dispatch");
+                if(mode=="accept"){
+                    Check(child.WaitForExit(4000),"Accepted close actually exits");
+                    Check(WindowsAppResources.RequestClose(row)==AppCloseResult.Unavailable,"Exited selection unavailable");
+                }else{
+                    Check(WaitUntil(delegate{child.Refresh();return !child.HasExited&&child.MainWindowTitle=="Pulse close refused";},4000),"App actually handled and refused normal close");
+                    Check(!child.HasExited,"App refusal must not escalate to Kill");
+                }
+            }finally{if(!child.HasExited)Check(child.WaitForExit(12000),"Test-owned fixture must exit on its own lifetime timer");}
+        }
+        Console.WriteLine("PASS app resources: isolated close/refusal, disabled/modal rejection, identity guard, own-host exclusion, RAM observations and GPU parse bounds; no user app touched");
+        return 0;
+    }
+}

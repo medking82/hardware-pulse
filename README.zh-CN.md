@@ -8,7 +8,7 @@
 
 [更新记录](CHANGELOG.zh-CN.md) · [操作示意图](docs/QUICKSTART.zh-CN.md)
 
-**[下载 Windows 稳定版 0.6.46](https://github.com/medking82/hardware-pulse/releases/download/v0.6.46/HardwarePulse-Setup.exe)**
+**[下载 Windows 稳定版 0.6.47](https://github.com/medking82/hardware-pulse/releases/download/v0.6.47/HardwarePulse-Setup.exe)**
 
 macOS 可测试 [0.7.0-macos-rc.1 — Apple Silicon／Intel](https://github.com/medking82/hardware-pulse/releases/tag/v0.7.0-macos-rc.1)。此 RC 尚未完成 Developer ID signing 与 notarization，真实 Mac 的 Gatekeeper、温度和风扇 acceptance 仍未完成，不是 macOS stable release。
 
@@ -20,7 +20,7 @@ macOS 可测试 [0.7.0-macos-rc.1 — Apple Silicon／Intel](https://github.com/
 - **锁定位置与大小** 禁用移动、调整大小和卡片排序。锁定监控页面的背景不透明度降为原设置的四分之一并关闭模糊；设置保持可读。从托盘或设置解锁后恢复；纯色／高对比度设置优先。这还不是桌面层嵌入。
 - 应用程序默认 **自动（跟随系统）**，安装程序也根据 Windows UI 语言预选英语、简体或繁体中文。
 
-当前版本为 **0.6.46**，让额度刷新有明确反馈：设置页显示进度、成功结果或下一次允许请求的时间，每张额度卡片也新增独立刷新按钮。Claude 上次认证失败后，手动刷新或已知登录来源的修改信息变化，可在至少间隔五分钟的前提下重新检查，不必继续等待已延长的认证退避。真正的限流与 Retry-After 仍受保护；Pulse 不会续期 token 或修改登录。[恢复规则与限制](docs/CLAUDE-QUOTA-REFRESH.zh-CN.md)。保留现有 WPF 外观、HDR 帧率修复和 Antigravity 隐藏运行方式。可选的 Claude Code status-line 来源仍需手动配置。[配置与撤销](docs/CLAUDE-STATUSLINE.zh-CN.md)。
+当前版本为 **0.6.47**，新增按需读取的内存与显存进程占用列表，以及本地内存余量建议。用户选择应用并确认后，仅请求正常关闭，保留保存提示和拒绝关闭行为；不强制终止、不增加后台进程轮询，也不调用远程 AI。[读数与限制](docs/MEMORY-CLEANUP.zh-CN.md)。保留现有额度刷新反馈和 HDR 帧率修复。
 
 刷新时，点击额度卡片的 **↻** 按钮；也可进入 **设置 → AI Quota → 刷新额度**，刷新所有已启用的来源。暂缓请求会显示下一次允许请求的时间；连续点击不能绕过限流。
 
@@ -29,6 +29,8 @@ macOS 可测试 [0.7.0-macos-rc.1 — Apple Silicon／Intel](https://github.com/
 采用 WPF 毛玻璃背景、原创 SVG 图标和 Segoe UI 字体排版，支持调整背景不透明度、随窗口宽度缩放，以及保存卡片顺序。运行时不需要 HWiNFO、浏览器、Codex 或云服务；需要 Windows 自带的 .NET Framework 4.8；安装后的应用程序不再依赖 PowerShell 运行环境。
 
 ### 使用方式
+
+- 内存卡片的“管理内存”或 GPU 卡片的“管理显存”打开按需读取的进程占用列表，并显示本地内存余量建议。选择应用并确认后仅请求正常关闭，保留保存提示和拒绝关闭行为；不进行后台轮询或强制清理。[读数与限制](docs/MEMORY-CLEANUP.zh-CN.md)。
 
 - **设置 → 语言** 可即时切换英语、简体中文和繁體中文，自动保存选择；默认自动（跟随系统），保留手动选择。设备型号、自定义名称和单位保持原样。
 
@@ -65,13 +67,13 @@ DIMM 品牌、型号和已安装的槽位来自 SMBIOS。**SPD #1/#3 是传感�
 
 ### 原位升级
 
-可直接安装 0.6.46 覆盖现有版本，无需全新安装。安装程序会停止旧采集器、替换应用程序及其两个启动任务，并清理明确列出的旧脚本/源代码文件。偏好设置和桌面位置与大小保留在 LocalAppData；Windows PowerShell 和共享 PawnIO 保持安装。升级中断或失败时可能需要重新运行安装程序；文件清理不提供事务性回滚。
+可直接安装 0.6.47 覆盖现有版本，无需全新安装。安装程序会停止旧采集器、替换应用程序及其两个启动任务，并清理明确列出的旧脚本/源代码文件。偏好设置和桌面位置与大小保留在 LocalAppData；Windows PowerShell 和共享 PawnIO 保持安装。升级中断或失败时可能需要重新运行安装程序；文件清理不提供事务性回滚。
 
 ### 安装程序与自动启动
 
 安装程序会预先检查 .NET Framework 4.8。PawnIO 库或驱动注册缺失时，会自动运行内置的官方安装程序，并在完成后再次检查；失败时不会继续注册自动启动。Windows 自带的组件若缺失或损坏，需要先修复 Windows；安装程序不会自动修改 Windows 功能或安全设置。这些检查验证安装状态，不保证驱动能在所有安全策略下加载。
 
-发行版中的 `HardwarePulse-Setup.exe`（版本 0.6.46）包含应用程序、固定版本的 LibreHardwareMonitor 库、许可声明/源代码归档，以及官方 PawnIO 2.2.0 前置依赖安装包，无需在运行时下载依赖项。目标 Windows 版本自带 .NET Framework 4.8 和 Windows PowerShell 5.1；安装程序会检查 .NET 要求。
+发行版中的 `HardwarePulse-Setup.exe`（版本 0.6.47）包含应用程序、固定版本的 LibreHardwareMonitor 库、许可声明/源代码归档，以及官方 PawnIO 2.2.0 前置依赖安装包，无需在运行时下载依赖项。目标 Windows 版本自带 .NET Framework 4.8 和 Windows PowerShell 5.1；安装程序会检查 .NET 要求。
 
 请使用当前 Windows 管理员账户安装，并确认 UAC。代码安装到 Program Files；安装程序会注册当前用户的交互式采集器任务，以及普通权限的组件任务。组件在登录后延迟 10 秒启动。卸载会保留共享 PawnIO 和用户设置。此版本不支持使用另一个管理员账户，为标准用户代为安装。
 
