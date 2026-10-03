@@ -35,6 +35,11 @@ CPU, RAM and GPU monitoring in the elevated Collector remain read-only.
 The user checks one or more apps and confirms a single named batch of normal
 close requests. Cancellation dispatches nothing; requests are processed one at a
 time without automatic retry. Leaving Resources or hiding this window stops undispatched requests.
+Processes without an available normal-close window remain visible for usage, but
+cannot be checked. Clicking one shows an explanation to exit its app from the app
+or system tray. Background/helper processes are not promoted to force-close targets.
+Selected rows use an opaque theme-matched surface and contrasting text even when
+the App background is transparent. Disabled action buttons are visibly dimmed.
 Each result reports requested/unavailable counts, not reclaimed memory. Before each dispatch,
 the Windows adapter revalidates its process creation time, user, session and main
 window. Pulse and the Windows shell are excluded. No main window, access denial,

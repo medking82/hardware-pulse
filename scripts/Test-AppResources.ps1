@@ -72,6 +72,26 @@ function FindCheckbox($node){
         $found=FindCheckbox ([Windows.Media.VisualTreeHelper]::GetChild($node,$i));if($null -ne $found){return ,$found}
     }
 }
+function FindCellText($node,$text){
+    if($node -is [Windows.Controls.TextBlock] -and $node.Text -eq $text){return ,$node}
+    for($i=0;$i -lt [Windows.Media.VisualTreeHelper]::GetChildrenCount($node);$i++){
+        $found=FindCellText ([Windows.Media.VisualTreeHelper]::GetChild($node,$i)) $text;if($null -ne $found){return ,$found}
+    }
+}
+function Luminance($color){
+    $channels=@($color.R,$color.G,$color.B) | ForEach-Object {$v=$_/255.0;if($v -le 0.04045){$v/12.92}else{[Math]::Pow(($v+0.055)/1.055,2.4)}}
+    return 0.2126*$channels[0]+0.7152*$channels[1]+0.0722*$channels[2]
+}
+function AssertSelectedAppearance($list){
+    $list.UpdateLayout();Pump
+    $row=$list.SelectedItem;$container=$list.ItemContainerGenerator.ContainerFromItem($row)
+    $cell=FindCellText $container $row.Name
+    $surface=$container.Template.FindName('ResourceRowSurface',$container)
+    Assert ($cell -and $surface -and $surface.Background -is [Windows.Media.SolidColorBrush]) 'Selected row must have the owned selection surface'
+    $background=$surface.Background.Color;$foreground=$cell.Foreground.Color
+    $a=Luminance $background;$b=Luminance $foreground;$contrast=([Math]::Max($a,$b)+0.05)/([Math]::Min($a,$b)+0.05)
+    Assert ($background.A -eq 255 -and $foreground.A -eq 255 -and $contrast -ge 4.5) ('Selected cell contrast is unreadable: '+$contrast)
+}
 function Capture($window,$name){
     $window.UpdateLayout();Pump
     $bitmap=[Windows.Media.Imaging.RenderTargetBitmap]::new([int]$window.ActualWidth,[int]$window.ActualHeight,96,96,[Windows.Media.PixelFormats]::Pbgra32);$bitmap.Render($window)
@@ -109,7 +129,17 @@ try {
     Assert ($list.SelectedItems.Count -eq 1 -and $list.SelectedItem.Process.Pid -eq 102) 'Row checkbox did not select the intended process'
     $list.SelectedItems.Clear();Pump
     $list.SelectedIndex=0;Pump;Assert (-not $close.IsEnabled) 'Background process must not enable close'
+    Capture $shell.Window 'resources-unavailable-selection.png'
+    Assert ($list.SelectedItems.Count -eq 0 -and -not $firstBox.IsChecked) 'Unavailable row must not appear checked while close is disabled'
+    Assert ($window.FindName('ResourceSelectionStatus').Text -match 'Normal close is unavailable' -and $close.Opacity -lt 0.6) 'Unavailable close must explain its disabled state'
     $list.SelectedIndex=1;Pump;Assert ($close.IsEnabled) 'Closeable fixture selection not enabled'
+    Assert ($close.Opacity -eq 1 -and $window.FindName('ResourceSelectionStatus').Text -match 'Selected apps: 1') 'Eligible selection must visibly enable close and update its count'
+    AssertSelectedAppearance $list
+    Capture $shell.Window 'resources-selected-dark.png'
+    [void]$refresh.Focus();Pump;AssertSelectedAppearance $list
+    Capture $shell.Window 'resources-selected-unfocused.png'
+    $list.SelectedItems.Add($list.Items[0]);Pump
+    Assert ($list.SelectedItems.Count -eq 1 -and $list.SelectedItem.Process.Pid -eq 102 -and -not $firstBox.IsChecked -and $close.IsEnabled) 'Unavailable row must not clear eligible selection or become a close target'
     $same=OpenResources $true
     Assert ([object]::ReferenceEquals($same,$window)) 'Both cards must reuse one resource window'
     Assert ($list.Items[0].Process.Pid -eq 102) 'GPU entry did not sort existing snapshot'
@@ -181,6 +211,9 @@ try {
             $columnWidth=($list.View.Columns | Measure-Object -Property Width -Sum).Sum
             Assert ($columnWidth -le $list.ActualWidth-20) 'Usage columns are clipped at narrow width'
             Capture $shell.Window ('resources-'+$languageCode+'-'+$width+'.png')
+            $list.SelectedIndex=1;Pump;AssertSelectedAppearance $list
+            Capture $shell.Window ('resources-selected-'+$languageCode+'-'+$width+'.png')
+            $list.SelectedItems.Clear();Pump
         }
         $shell.Window.Width=280;$shell.Window.Height=340;$shell.Window.UpdateLayout();Pump
         $page=$shell.Window.FindName('ResourcesPage');$page.ScrollToBottom();$shell.Window.UpdateLayout();Pump
@@ -192,9 +225,14 @@ try {
     LeaveResources
     $settings=$shell.GetType().GetField('settings',$flags).GetValue($shell);$settings.Data['background']='#FFFFFF'
     [void]$shell.GetType().GetMethod('ApplyMaterial',$flags).Invoke($shell,@());Pump
+    $shell.Window.Width=760;$shell.Window.Height=700;Pump
     $window=OpenResources $false;$refresh=$window.FindName('ResourceRefresh');$list=$window.FindName('ResourceList')
     WaitUntil {$refresh.IsEnabled -and $list.Items.Count -eq 4}
+    $list.SelectedIndex=1;Pump;AssertSelectedAppearance $list
     Capture $shell.Window 'resources-light.png'
+    $shell.Window.FindName('OpacitySlider').Value=0;Pump;AssertSelectedAppearance $list
+    Capture $shell.Window 'resources-selected-zero-opacity.png'
+    $shell.Window.FindName('OpacitySlider').Value=65;Pump
     [AppResourceViewFixture]::Gate.Reset();$before=[AppResourceViewFixture]::Calls
     Click $refresh
     WaitUntil {[AppResourceViewFixture]::Calls -gt $before}
@@ -211,7 +249,7 @@ try {
     Assert ([AppResourceViewFixture]::Calls -eq $before+1) 'Shared read result started another snapshot'
     LeaveResources
     WaitUntil {$null -eq $shell.GetType().GetField('resourceReadTask',$flags).GetValue($shell)}
-    'PASS Resources tab: same App window, no separate appearance controls, Settings/Back, header sorting without resampling, explicit suggestions, batch cancel/duplicate/stale results and page teardown, shared App opacity, three languages/narrow views and pending read reuse; synthetic close callbacks only.'
+    'PASS Resources tab: eligible-only checks, unavailable explanation/disabled feedback, readable selected cells in focused/unfocused dark/light/transparent views, same App window, Settings/Back, sort without resampling, batch cancel/duplicate/stale results and page teardown, three languages/narrow views and pending read reuse; synthetic close callbacks only.'
     'Visual artifacts: '+$state
 } finally {
     [AppResourceViewFixture]::Gate.Set();[AppResourceViewFixture]::CloseGate.Set();$shell.Dispose()

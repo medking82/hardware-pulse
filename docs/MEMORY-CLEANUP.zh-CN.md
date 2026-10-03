@@ -31,6 +31,9 @@ Windows WPF 版本通过主窗口顶部的 Resources tab 打开占用列表。�
 关闭前会重新检查进程创建时间、用户、会话及主窗口状态，排除 Pulse 和 Windows
 桌面外壳。退出、身份变化、拒绝访问或主窗口被禁用时，不发送关闭请求。
 应用的保存提示和拒绝关闭行为始终有效；“已请求关闭”不代表应用已经退出。
+没有可用正常关闭窗口的 background/helper process 仍显示占用，但不能勾选；点击时提示
+通过对应 App 或 system tray 退出。selected row 使用成对的 background/foreground 保持
+可读，App 背景透明不会使 selection 消失；不可用的 action button 明确变淡。
 Pulse 不会强制终止进程、请求提权、清空工作集或缓存，也不尝试跨进程驱逐显存。
 硬件采集仍保持只读。移除此功能无法恢复用户已关闭的应用或未保存内容。
 

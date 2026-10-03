@@ -20,6 +20,12 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 
 - Shared Desktop supports Auto (System), English and Simplified/Traditional Chinese UI, including Monitor, Settings, sensor status, Codex quota and tray actions. Language switches immediately without restarting sampling or refreshing credentials and is saved in the isolated preview profile. Auto respects Chinese script and region preferences.
 
+## 0.6.50 — 2026-10-03
+
+- Fix unreadable selected rows in Resources by pairing an opaque selection surface with contrasting text in both light and dark themes. Selection remains readable after focus moves and at zero App background opacity; high contrast uses system colors.
+- Prevent processes without a normal-close target from appearing checked. Clicking such a row explains that its app must be exited through the app or system tray. Disabled resource actions are visibly dimmed; eligible selection enables the existing confirmation flow.
+- Reproduce the checked-but-disabled mismatch and verify selection contrast, mixed eligible/unavailable selection, sorting, three languages, narrow layouts and existing close cancellation guards with synthetic callbacks. Windows close eligibility and dispatch policy are unchanged.
+
 ## 0.6.49 — 2026-10-03
 
 - Move process usage into a main-window Resources tab beside Monitor. Remove the RAM/GPU card buttons and separate resource appearance controls; both pages share Settings → App Appearance. Back from Settings returns to Resources.

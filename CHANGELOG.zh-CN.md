@@ -20,6 +20,12 @@
 
 - 共享桌面应用支持自动跟随系统、英语、简体中文和繁体中文，覆盖监控、设置、传感器状态、Codex 额度与托盘操作。语言即时切换，不重启采样或重新读取登录信息，并保存到独立的预览版设置中。自动模式会区分中文书写体系和地区。
 
+## 0.6.50 — 2026-10-03
+
+- 修复 Resources selected row 的浅色高亮与浅色文字冲突。明暗 theme 使用成对的 selection background/foreground，focus 移走或 App 背景透明度为零时仍保持可读；high contrast 跟随 system colors。
+- 无法正常关闭的 process 不再显示为已勾选，点击时提示通过对应 App 或 system tray 退出。不可用的 resource action 明确变淡，符合条件的 selection 启用原有 confirmation flow。
+- Checks 复现并覆盖“已勾选但按钮不可用”、selection contrast、可关闭与不可关闭 row 混合选择、排序、三种语言、窄窗口及关闭取消 guards。使用 synthetic callbacks，不关闭用户 App；Windows close eligibility 和 dispatch policy 保持一致。
+
 ## 0.6.49 — 2026-10-03
 
 - 进程占用列表移到主窗口顶部 Resources tab，与 Monitor 切换。移除内存与 GPU 卡片中的管理按钮及独立外观设置，统一通过 Settings → App Appearance 调整；Back 返回 Resources。

@@ -84,6 +84,8 @@ namespace HardwarePulse {
             footer.Children.Add(new TextBlock {Text=language.T("RAM is resident memory. GPU values are estimates and may include shared resources; — means unavailable."),TextWrapping=TextWrapping.Wrap,FontSize=11,Opacity=0.85});
             var actions=new WrapPanel {Margin=new Thickness(0,10,0,0)};footer.Children.Add(actions);
             var close=new Button {Content=language.T("Close Selected Apps"),IsEnabled=false,Margin=new Thickness(0,0,0,4)};actions.Children.Add(suggestedClose);actions.Children.Add(close);
+            var actionStyle=new Style(typeof(Button),window.FindResource(typeof(Button)) as Style);var disabledAction=new Trigger {Property=UIElement.IsEnabledProperty,Value=false};disabledAction.Setters.Add(new Setter(UIElement.OpacityProperty,0.45));actionStyle.Triggers.Add(disabledAction);
+            foreach(var button in new[]{suggestedClose,refresh,close})button.Style=actionStyle;
             var list=new ListView {SelectionMode=SelectionMode.Extended,BorderBrush=Brush("#60718898"),BorderThickness=new Thickness(1)};
             ScrollViewer.SetHorizontalScrollBarVisibility(list,ScrollBarVisibility.Disabled);root.Children.Add(list);
             var columns=new GridView();list.View=columns;
@@ -102,17 +104,23 @@ namespace HardwarePulse {
             }
             var rowStyle=new Style(typeof(ListViewItem));rowStyle.Setters.Add(new Setter(FrameworkElement.ToolTipProperty,new Binding("Tooltip")));rowStyle.Setters.Add(new Setter(System.Windows.Controls.Control.PaddingProperty,new Thickness(4,5,4,5)));list.ItemContainerStyle=rowStyle;
             rowStyle.Setters.Add(new Setter(System.Windows.Controls.Control.HorizontalContentAlignmentProperty,HorizontalAlignment.Stretch));
+            // Own the selected surface: native selection gradients can pair a pale fill with App text.
+            rowStyle.Setters.Add(new Setter(System.Windows.Controls.Control.BackgroundProperty,Brushes.Transparent));rowStyle.Setters.Add(new Setter(System.Windows.Controls.Control.BorderBrushProperty,Brushes.Transparent));
+            rowStyle.Setters.Add(new Setter(System.Windows.Controls.Control.ForegroundProperty,new DynamicResourceExtension("ResourceForeground")));
+            rowStyle.Setters.Add(new Setter(System.Windows.Controls.Control.TemplateProperty,(ControlTemplate)System.Windows.Markup.XamlReader.Parse("<ControlTemplate xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\" xmlns:x=\"http://schemas.microsoft.com/winfx/2006/xaml\" TargetType=\"ListViewItem\"><Border x:Name=\"ResourceRowSurface\" Background=\"{TemplateBinding Background}\" BorderBrush=\"{TemplateBinding BorderBrush}\" BorderThickness=\"1\" CornerRadius=\"3\" Padding=\"{TemplateBinding Padding}\"><GridViewRowPresenter Content=\"{TemplateBinding Content}\" Columns=\"{Binding View.Columns,RelativeSource={RelativeSource AncestorType=ListView}}\" /></Border><ControlTemplate.Triggers><MultiTrigger><MultiTrigger.Conditions><Condition Property=\"IsMouseOver\" Value=\"True\"/><Condition Property=\"IsSelected\" Value=\"False\"/></MultiTrigger.Conditions><Setter Property=\"Background\" Value=\"{DynamicResource ResourceHoverBackground}\"/></MultiTrigger><Trigger Property=\"IsSelected\" Value=\"True\"><Setter Property=\"Background\" Value=\"{DynamicResource ResourceSelectionBackground}\"/><Setter Property=\"Foreground\" Value=\"{DynamicResource ResourceSelectionForeground}\"/></Trigger><Trigger Property=\"IsKeyboardFocusWithin\" Value=\"True\"><Setter Property=\"BorderBrush\" Value=\"{DynamicResource ResourceFocusBorder}\"/></Trigger></ControlTemplate.Triggers></ControlTemplate>")));
             var headerStyle=new Style(typeof(GridViewColumnHeader));headerStyle.Setters.Add(new Setter(System.Windows.Controls.Control.PaddingProperty,new Thickness(8,6,8,6)));
             headerStyle.Setters.Add(new Setter(System.Windows.Controls.Control.BackgroundProperty,new DynamicResourceExtension("ResourceHeaderBackground")));
             headerStyle.Setters.Add(new Setter(System.Windows.Controls.Control.ForegroundProperty,new DynamicResourceExtension("ResourceForeground")));
             headerStyle.Setters.Add(new Setter(System.Windows.Controls.Control.TemplateProperty,(ControlTemplate)System.Windows.Markup.XamlReader.Parse("<ControlTemplate xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\" TargetType=\"GridViewColumnHeader\"><Border Background=\"{TemplateBinding Background}\" BorderBrush=\"{TemplateBinding BorderBrush}\" BorderThickness=\"0,0,0,1\" Padding=\"{TemplateBinding Padding}\"><ContentPresenter HorizontalAlignment=\"{TemplateBinding HorizontalContentAlignment}\" VerticalAlignment=\"Center\" /></Border><ControlTemplate.Triggers><Trigger Property=\"IsMouseOver\" Value=\"True\"><Setter Property=\"Opacity\" Value=\"0.8\" /></Trigger><Trigger Property=\"IsKeyboardFocused\" Value=\"True\"><Setter Property=\"BorderBrush\" Value=\"#A5E7D5\" /></Trigger></ControlTemplate.Triggers></ControlTemplate>")));columns.ColumnHeaderContainerStyle=headerStyle;
             for(int i=1;i<columns.Columns.Count;i++)((GridViewColumnHeader)columns.Columns[i].Header).HorizontalContentAlignment=i==1?HorizontalAlignment.Left:HorizontalAlignment.Right;
-            foreach(var pair in new[]{Tuple.Create("ResourceList",(object)list),Tuple.Create("ResourceSuggestions",(object)suggestedClose),Tuple.Create("ResourceCandidates",(object)candidates),Tuple.Create("ResourceRefresh",(object)refresh),Tuple.Create("ResourceClose",(object)close),Tuple.Create("ResourceAdvice",(object)advice),Tuple.Create("ResourceStatus",(object)status)})root.RegisterName(pair.Item1,pair.Item2);
+            foreach(var pair in new[]{Tuple.Create("ResourceList",(object)list),Tuple.Create("ResourceSuggestions",(object)suggestedClose),Tuple.Create("ResourceCandidates",(object)candidates),Tuple.Create("ResourceRefresh",(object)refresh),Tuple.Create("ResourceClose",(object)close),Tuple.Create("ResourceAdvice",(object)advice),Tuple.Create("ResourceStatus",(object)status),Tuple.Create("ResourceSelectionStatus",(object)selectedStatus)})root.RegisterName(pair.Item1,pair.Item2);
             Action sizePage=()=>root.Height=Math.Max(440*TextElement.GetFontSize(root)/12,Math.Max(1,page.ActualHeight-8));
             SizeChangedEventHandler pageSize=delegate{sizePage();};page.SizeChanged+=pageSize;
             resourcesAppearance=delegate{
                 var foreground=SystemParameters.HighContrast?SystemColors.WindowTextBrush:Brush(light?"#17202B":"#E5EDF3");TextElement.SetForeground(root,foreground);
                 root.Resources["ResourceForeground"]=foreground;root.Resources["ResourceHeaderBackground"]=SystemParameters.HighContrast?SystemColors.ControlBrush:Brush(light?"#DDEEF1F4":"#8031485B");
+                root.Resources["ResourceSelectionBackground"]=SystemParameters.HighContrast?SystemColors.HighlightBrush:Brush(light?"#D6E7EF":"#35556A");root.Resources["ResourceSelectionForeground"]=SystemParameters.HighContrast?SystemColors.HighlightTextBrush:Brush(light?"#17202B":"#FFFFFF");
+                root.Resources["ResourceHoverBackground"]=SystemParameters.HighContrast?SystemColors.ControlBrush:Brush(light?"#40D6E7EF":"#4035556A");root.Resources["ResourceFocusBorder"]=SystemParameters.HighContrast?SystemColors.HighlightBrush:Brush(light?"#17634F":"#91DAD6");
                 list.Background=SystemParameters.HighContrast?SystemColors.WindowBrush:Brush("#00000000");list.Foreground=foreground;
                 foreach(var button in new[]{suggestedClose,refresh,close})button.Foreground=foreground;
                 foreach(var column in columns.Columns){var header=column.Header as GridViewColumnHeader;if(header!=null){header.Background=SystemParameters.HighContrast?SystemColors.ControlBrush:Brush(light?"#DDEEF1F4":"#8031485B");header.Foreground=foreground;header.BorderBrush=list.BorderBrush;}}
@@ -122,7 +130,14 @@ namespace HardwarePulse {
             bool busy=false,descending=true;int sortIndex=gpu?1:0;AppResourceProcess[] snapshot=null;AppResourceProcess[] suggestions=new AppResourceProcess[0];
             Func<ResourceRow[]> selected=()=>list.SelectedItems.Cast<ResourceRow>().Where(r=>r.Process.CanClose).OrderBy(r=>r.Process.Pid).ToArray();
             Action selection=delegate{var rows=selected();close.IsEnabled=!busy&&rows.Length>0;selectedStatus.Text=rows.Length==0?language.T("Check apps to close. Nothing is selected automatically."):language.T("Selected apps")+": "+rows.Length+" · "+language.T("Save work before closing.");};
-            list.SelectionChanged+=delegate{selection();};
+            bool normalizingSelection=false;
+            list.SelectionChanged+=delegate(object sender,SelectionChangedEventArgs e){
+                if(normalizingSelection)return;
+                var unavailable=e.AddedItems.Cast<ResourceRow>().Where(r=>!r.Process.CanClose).ToArray();
+                if(unavailable.Length>0){normalizingSelection=true;try{foreach(var row in unavailable)list.SelectedItems.Remove(row);}finally{normalizingSelection=false;}}
+                selection();
+                if(unavailable.Length>0)selectedStatus.Text=language.T("Normal close is unavailable for this process. Exit its app from the app or system tray.")+(selected().Length>0?" "+language.T("Selected apps")+": "+selected().Length:"");
+            };
             Action sortSnapshot=delegate{
                 if(snapshot==null)return;
                 var identities=new HashSet<string>(selected().Select(r=>r.Process.Pid+":"+r.Process.StartedUtcTicks));
@@ -131,7 +146,7 @@ namespace HardwarePulse {
                 else if(sortIndex==1)ordered=snapshot.OrderBy(p=>p.GpuBytes.HasValue?0:1).ThenBy(p=>descending?-(p.GpuBytes??0):p.GpuBytes??0);
                 else ordered=descending?snapshot.OrderByDescending(p=>p.RamBytes):snapshot.OrderBy(p=>p.RamBytes);
                 suggestions=WindowsAppResources.ReviewCandidates(snapshot,sortIndex==1);var recommended=new HashSet<AppResourceProcess>(suggestions);
-                var rows=ordered.ThenBy(p=>p.Name,StringComparer.OrdinalIgnoreCase).ThenBy(p=>p.Pid).Select(p=>new ResourceRow {Process=p,Action=language.T(recommended.Contains(p)?"Review if unused: high usage, normal close available. Keep it if you still need it.":p.CanClose?"Close available":"No close action")}).ToArray();
+                var rows=ordered.ThenBy(p=>p.Name,StringComparer.OrdinalIgnoreCase).ThenBy(p=>p.Pid).Select(p=>new ResourceRow {Process=p,Action=language.T(recommended.Contains(p)?"Review if unused: high usage, normal close available. Keep it if you still need it.":p.CanClose?"Close available":"Normal close is unavailable for this process. Exit its app from the app or system tray.")}).ToArray();
                 list.ItemsSource=rows;foreach(var row in rows)if(identities.Contains(row.Process.Pid+":"+row.Process.StartedUtcTicks))list.SelectedItems.Add(row);
                 candidates.Text=suggestions.Length==0?language.T("No high-usage close candidates in this snapshot."):language.T("Review if unused")+": "+string.Join(", ",suggestions.Select(p=>p.Name));
                 candidates.ToolTip=suggestions.Length==0?null:language.T("Suggestions use reported usage, not proof that an app is unused. Foreground and Windows shell/input apps are excluded.")+Environment.NewLine+string.Join(Environment.NewLine,suggestions.Select(p=>p.Name+" · RAM "+ResourceBytes(p.RamBytes)+" · GPU "+(p.GpuBytes.HasValue?ResourceBytes(p.GpuBytes.Value):"—")));
