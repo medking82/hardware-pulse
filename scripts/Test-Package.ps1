@@ -7,6 +7,10 @@ $assembly=[Reflection.Assembly]::LoadFrom("$app/HardwarePulse.exe")
 if($assembly.GetReferencedAssemblies().Name -notcontains 'Pulse.Core'){throw 'Native runtime is missing its Core reference'}
 if($assembly.GetReferencedAssemblies().Name -notcontains 'Pulse.Adapters.Windows'){throw 'Native runtime is missing its Windows adapter reference'}
 $adapters=[Reflection.Assembly]::LoadFrom((Join-Path $app 'Pulse.Adapters.Windows.dll'))
+foreach($type in @('WindowsAppResources','AppResourceProcess','AppResourceSnapshot','AppCloseResult')){
+    if($adapters.GetType("HardwarePulse.$type")){throw "Retired process-cleanup API remains in package: $type"}
+}
+if($assembly.GetType('HardwarePulse.Shell').GetMethod('ShowAppResources',[Reflection.BindingFlags]'Instance,NonPublic')){throw 'Retired Resources entry remains in package'}
 if($adapters.GetReferencedAssemblies().Name -notcontains 'Pulse.Core'){throw 'Windows adapters are missing the shared Core reference'}
 foreach($reference in $adapters.GetReferencedAssemblies()){
     if($reference.Name -notin @('mscorlib','System','System.Core','System.Web.Extensions','System.Management','Pulse.Core')){throw "Unexpected adapter dependency: $($reference.Name)"}
@@ -21,7 +25,7 @@ foreach($reference in $core.GetReferencedAssemblies()){
     if($reference.Name -notin @('mscorlib','System','System.Core')){throw "Platform dependency in Core payload: $($reference.Name)"}
 }
 if($assembly.GetReferencedAssemblies().Name -contains 'System.Management.Automation'){throw 'PowerShell runtime reference remains'}
-if($assembly.GetName().Version.ToString() -ne '0.6.51.0'){throw 'Wrong native assembly version'}
+if($assembly.GetName().Version.ToString() -ne '0.6.52.0'){throw 'Wrong native assembly version'}
 $installer=[IO.File]::ReadAllText("$root/installer/HardwarePulse.iss")
 if(-not $installer.Contains('AppId={{75E8FDDA-D799-4D8A-882D-972DC72151C2}')){throw 'Upgrade application identity changed'}
 $section=[regex]::Match($installer,'(?s)\[InstallDelete\](.*?)(?:\r?\n\[|$)').Groups[1].Value

@@ -87,7 +87,7 @@ namespace HardwarePulse {
         };}
         void ApplyDensity(bool force=true){
             if(measuring||cards==null)return;
-            Control<TextBlock>("CardsEmpty").Visibility=!settingsVisible&&!resourcesVisible&&views.Values.All(v=>v.Border.Visibility==Visibility.Collapsed)?Visibility.Visible:Visibility.Collapsed;
+            Control<TextBlock>("CardsEmpty").Visibility=!settingsVisible&&views.Values.All(v=>v.Border.Visibility==Visibility.Collapsed)?Visibility.Visible:Visibility.Collapsed;
             if(!force&&!densityDirty)return;var scroll=Control<ScrollViewer>("CardScroll");if(scroll.ActualHeight<=0||scroll.ActualWidth<=0)return;measuring=true;
             try{bool detail=settings.Flag("details");double scale=Window.FontSize/12;var layout=(ResponsivePanel)cards;layout.MinimumColumnWidth=270*scale;var quotaLayout=(ResponsivePanel)Control<StackPanel>("QuotaCards");quotaLayout.MinimumColumnWidth=270*scale;layout.Measure(new Size(Math.Max(1,scroll.ActualWidth-38),double.PositiveInfinity));double cardWidth=layout.CellWidth;Control<Button>("Details").Background=Brush(detail?"#607898A8":"#00000000");
                 for(int level=0;level<=3;level++){

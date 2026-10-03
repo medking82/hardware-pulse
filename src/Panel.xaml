@@ -210,10 +210,6 @@
           <Button x:Name="Close" Content="×" ToolTip="Close widget" Padding="10,3" Margin="0" />
         </StackPanel>
       </Grid>
-      <UniformGrid x:Name="MainTabs" Columns="2" MaxWidth="300" HorizontalAlignment="Left" Margin="0,10,0,8">
-        <Button x:Name="MonitorTab" Content="Monitor" MinWidth="90" MinHeight="34" Margin="0,0,6,0" />
-        <Button x:Name="ResourcesTab" Content="Resources" MinWidth="90" MinHeight="34" Margin="0" />
-      </UniformGrid>
       <WrapPanel x:Name="MonitorControls" Orientation="Horizontal" Margin="0,0,0,8">
         <Button x:Name="Live" Content="Live" />
         <Button x:Name="Max" Content="Session Max" />
@@ -242,7 +238,6 @@
       </ScrollViewer.Template>
       <StackPanel><StackPanel x:Name="Cards" /><StackPanel x:Name="QuotaCards" /></StackPanel>
     </ScrollViewer>
-    <ScrollViewer x:Name="ResourcesPage" Grid.Row="1" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="14,0,14,0" FocusVisualStyle="{x:Null}" />
     <TextBlock x:Name="CardsEmpty" Grid.Row="1" Text="No cards shown. Choose cards in Settings." Visibility="Collapsed" Margin="20" HorizontalAlignment="Center" VerticalAlignment="Center" />
     <Border x:Name="SettingsToolbar" Grid.Row="1" Visibility="Collapsed" VerticalAlignment="Top" Padding="18,8" Height="56">
         <StackPanel Orientation="Horizontal">
@@ -263,7 +258,7 @@
             </ComboBox>
             <CheckBox x:Name="StartWithWindows" Content="Start with Windows" Margin="0,0,0,10" />
             <TextBlock x:Name="StartupStatus" FontSize="11" Margin="0,0,0,10" />
-            <TextBlock Text="Version 0.6.51 · Marck Wong" FontSize="11" Foreground="#ADC1D2" Margin="0,0,0,8" />
+            <TextBlock Text="Version 0.6.52 · Marck Wong" FontSize="11" Foreground="#ADC1D2" Margin="0,0,0,8" />
             <Button x:Name="GitHub" Content="GitHub" HorizontalAlignment="Left" ToolTip="github.com/medking82/hardware-pulse" />
             <CheckBox x:Name="AutoUpdates" Content="Check for Updates Automatically" Margin="0,12,0,8" />
             <CheckBox x:Name="AutoDownload" Content="Download Updates Automatically" Margin="0,0,0,8" />

@@ -20,6 +20,12 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 
 - Shared Desktop supports Auto (System), English and Simplified/Traditional Chinese UI, including Monitor, Settings, sensor status, Codex quota and tray actions. Language switches immediately without restarting sampling or refreshing credentials and is saved in the isolated preview profile. Auto respects Chinese script and region preferences.
 
+## 0.6.52 — 2026-10-03
+
+- Retire Resources and the RAM/GPU process cleanup feature, including process grouping, close suggestions and normal-close actions. Remove the process observation/close adapter and its feature-only UI, state and tests.
+- Restore the main read-only monitor without Monitor/Resources navigation. Keep hardware RAM/VRAM readings, Settings/Back, Desktop, FPS, quota and existing appearance settings.
+- Verify the release payload no longer exposes the retired process-cleanup APIs. Historical release notes remain available; current documentation records the retirement.
+
 ## 0.6.51 — 2026-10-03
 
 - Group duplicate processes in Resources by executable identity. Show RAM/GPU sums, sort by group usage, and expand a row for read-only process/PID details. Different executable paths and missing-path observations stay separate.

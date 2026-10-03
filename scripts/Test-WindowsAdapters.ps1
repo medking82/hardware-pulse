@@ -14,7 +14,3 @@ if($NativeArm64){
 }else{
     & "$PSScriptRoot/Run-Hidden.ps1" "$output/WindowsAdapterTests.exe" @() $root
 }
-if(-not $NativeArm64){
-    & "$PSScriptRoot/Run-Hidden.ps1" $compiler @('/nologo','/target:exe','/reference:System.Windows.Forms.dll',"/out:$output\AppResourceTests.exe","/reference:$output\Pulse.Adapters.Windows.dll",(Join-Path $root 'scripts\AppResourceTests.cs')) $root
-    & "$PSScriptRoot/Run-Hidden.ps1" "$output/AppResourceTests.exe" @() $root
-}

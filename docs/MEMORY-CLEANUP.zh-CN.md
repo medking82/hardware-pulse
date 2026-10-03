@@ -1,56 +1,18 @@
-# 内存与显存管理
+# Resources 已退役
 
 [English](MEMORY-CLEANUP.md)
 
-Windows WPF 版本通过主窗口顶部的 Resources tab 打开占用列表。选择不再需要的 App 分组，
-点击“正常关闭选中应用”。可以勾选多个应用，一次确认后逐个请求正常关闭；取消确认
-不会发送任何请求，离开 Resources 或隐藏主窗口会停止尚未发送的请求。请完成各应用中的保存提示，
-再刷新列表查看最新占用。
+Windows Pulse 从 0.6.52 起退役 Resources 与 process cleanup，移除 process list、
+grouping、RAM/GPU 关闭建议、normal-close actions 及其 adapter。Pulse 不再提供
+RAM/VRAM cleanup，也没有 zombie-process detection。
 
-点击应用、内存或显存列标题切换排序，再次点击改变升降序；无法读取的显存始终排在
-末尾；再次点击当前 tab 保留排序。Resources 与 Monitor 共用 App 的颜色、背景不透明度
-和 Windows 毛玻璃，统一在 Settings → App Appearance 调整，Back 返回 Resources。
-占用列表不再放置独立的透明度设置。文字不会一起变淡；纯色、高对比度和不支持毛玻璃的
-环境仍使用不透明回退背景。
+这次实验没有可靠完成原定 job：正常关闭窗口的 request 不能保证 App 退出或释放
+RAM/VRAM，process usage 也无法证明 App 已无用途。UI readability 又反复出现问题，
+因此退役此功能，不继续扩展为 forced termination 或针对特定 App 的 system tray control。
 
-建议最多列出三个高占用且支持正常关闭的候选应用：内存至少 512 MiB，或显存估值至少
-128 MiB。排除采样时的前台进程及已知 Windows 桌面外壳、输入和会话组件。候选不代表
-“无用应用”，仍在使用请保留；悬停可查看占用依据。“关闭建议候选…”会先显示当前
-候选的确认名单，确认后才逐个请求正常关闭。另保留手动勾选后统一关闭的入口；
-读取和排序不会自动选中或关闭任何应用。
+CPU/GPU temperatures、RAM/VRAM usage、fans、network、Desktop、FPS 和 quota
+继续作为只读 monitoring features。保留已有 settings 与 installer identity；本次退役
+不会关闭任何 process，也不会修改 system settings。
 
-相同 process name 和 executable path 的 processes 合并显示，path 比较不区分大小写；
-不同安装位置的同名 App 分开保留，无法读取 path 时不合并。展开分组可查看各 PID 和占用；
-明细仅供查看，不能单独勾选关闭。RAM/GPU 按合计值排序，但共享资源可能重复计算，
-合计不等于可回收空间。部分 GPU 读数缺失时用 `*` 标记已知读数的小计，全部无法读取
-时显示 `—`，不会显示为零。
-
-勾选分组后，confirmation 列出每个符合原有 normal-close 条件的 process name 和 PID。
-建议候选仍使用原有 per-process thresholds，不因分组合并而扩展关闭名单。
-Grouping 不会把 child process 的关闭请求转给 parent，也不会操作隐藏的 message window
-或 system tray commands。Chrome/Wand 的 GPU helper 计入占用，但不是关闭目标；
-隐藏到 system tray 的 App 需要从自身菜单打开或退出。关闭请求不代表 App 已完全退出。
-
-本地建议依据系统物理内存余量，不会判断某个大应用是否“无用”，不调用远程 AI，
-也不承诺释放多少空间或提升 FPS。无效内存读数不会生成“无需清理”的建议。
-仅打开 Resources 或点击刷新时读取进程占用，排序复用已有数据；读取期间重新打开页面
-也复用该次操作。没有后台进程轮询，也不保存进程列表。共享桌面版本暂未加入此功能。
-
-关闭前会重新检查进程创建时间、用户、会话及主窗口状态，排除 Pulse 和 Windows
-桌面外壳。退出、身份变化、拒绝访问或主窗口被禁用时，不发送关闭请求。
-应用的保存提示和拒绝关闭行为始终有效；“已请求关闭”不代表应用已经退出。
-没有可用正常关闭窗口的 background/helper process 仍显示占用，但不能勾选；点击时提示
-通过对应 App 或 system tray 退出。selected row 使用成对的 background/foreground 保持
-可读，App 背景透明不会使 selection 消失；不可用的 action button 明确变淡。
-Pulse 不会强制终止进程、请求提权、清空工作集或缓存，也不尝试跨进程驱逐显存。
-硬件采集仍保持只读。移除此功能无法恢复用户已关闭的应用或未保存内容。
-
-独立测试窗口覆盖接受与拒绝关闭、禁用和模态窗口、旧进程身份以及读取边界；
-测试进程会自行到期退出，不关闭用户应用。界面测试使用虚构的读取、确认和关闭操作，
-覆盖三种语言、窄窗口、明暗主题、排序、不透明度、候选及手动批量关闭的确认与取消、
-重复点击、旧进程身份、Settings/Back 和读取期间重新打开。Grouping checks 覆盖 executable
-identity、缺失 path、合计与部分 GPU 读数、展开时不重新 sampling，以及 group close target 边界。
-发布前需要完整 validation；
-改变跨进程关闭边界时还需独立 review。0.6.49 仅调整 navigation 和 layout，保留已有 adapter 边界。
-
-计数器限制与 Windows API 原始资料见 [English 文档](MEMORY-CLEANUP.md#primary-sources)。
+旧实现和 release notes 保留在 Git history 与
+[v0.6.51](https://github.com/medking82/hardware-pulse/releases/tag/v0.6.51)。

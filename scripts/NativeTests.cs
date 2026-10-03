@@ -349,6 +349,10 @@ internal static class NativeTests {
             Json.WriteAtomic(Path.Combine(state,"widget-settings.json"),new {width=310,height=690,left=90,top=70,fontSize=12,language="en",unknownMigrationField="keep",overlay=new {enabled=true,processName="PulseTestGameNotRunning",background="#223344",opacity=37},cardOrder=new[]{"GPU","CPU","Memory","NVMe","Airflow"}});
             using(var shell=new Shell(paths,true)){
                 shell.Window.ShowInTaskbar=false;shell.Window.ShowActivated=false;shell.Show();Pump();shell.UpdatePanel();Pump();
+                foreach(string retired in new[]{"ResourcesTab","ResourcesPage","MainTabs"})Assert(shell.Window.FindName(retired)==null,"Retired cleanup UI remains: "+retired);
+                Assert(shell.Control<FrameworkElement>("MonitorControls").IsVisible&&shell.Control<ScrollViewer>("CardScroll").IsVisible,"Read-only monitor must remain the home view");
+                shell.ShowSettings(true);Pump();Assert(!shell.Control<ScrollViewer>("CardScroll").IsVisible&&shell.Control<ScrollViewer>("SettingsPage").IsVisible,"Settings must replace monitor content");
+                Click(shell,"Back");Pump();Assert(shell.Control<ScrollViewer>("CardScroll").IsVisible&&shell.Control<FrameworkElement>("MonitorControls").IsVisible&&!shell.Control<ScrollViewer>("SettingsPage").IsVisible,"Back must restore monitor without retired navigation");
                 Assert(shell.Control<Slider>("OpacitySlider").Value==85,"Missing opacity preference must use the readable glass default");
                 var defaultBackground=((SolidColorBrush)shell.Window.Background).Color;
                 Assert(defaultBackground.R==0x20&&defaultBackground.G==0x28&&defaultBackground.B==0x31&&shell.Window.Opacity==1,"Readable default must deepen the surface without fading content");

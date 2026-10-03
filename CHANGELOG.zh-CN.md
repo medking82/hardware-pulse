@@ -20,6 +20,12 @@
 
 - 共享桌面应用支持自动跟随系统、英语、简体中文和繁体中文，覆盖监控、设置、传感器状态、Codex 额度与托盘操作。语言即时切换，不重启采样或重新读取登录信息，并保存到独立的预览版设置中。自动模式会区分中文书写体系和地区。
 
+## 0.6.52 — 2026-10-03
+
+- 退役 Resources 与 RAM/GPU process cleanup，移除 process grouping、关闭建议及 normal-close actions，并删除对应 process observation/close adapter、UI、state 和专用 tests。
+- 主窗口恢复只读 monitor，不再显示 Monitor/Resources navigation。保留 hardware RAM/VRAM readings、Settings/Back、Desktop、FPS、quota 与已有 appearance settings。
+- 验证 release payload 不再包含退役的 process-cleanup APIs。保留历史 release notes，当前 documentation 明确记录退役状态。
+
 ## 0.6.51 — 2026-10-03
 
 - Resources 按 executable identity 合并重复 processes，显示 RAM/GPU 合计，按 group usage 排序；展开可查看只读 process/PID 明细。不同 executable path 及无法读取 path 的 observations 保持独立。
