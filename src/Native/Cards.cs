@@ -34,7 +34,6 @@ namespace HardwarePulse {
             AddCard("Airflow","Case / Motherboard","#A8D4D0","system",new[]{new[]{"System Fan 1","bottom","RPM"},new[]{"System Fan 2","top","RPM"}});
             AddCard("Network","Active adapter","#A9D8E8",null,new[]{new[]{"LAN Link Speed","lanLink","link"},new[]{"Wi-Fi Link Speed","wifiLink","link"},new[]{"Wi-Fi Signal","wifiSignal","%"},new[]{"Link Speed","netLink","link"},new[]{"Download","netDown","rate"},new[]{"Upload","netUp","rate"}});
             AddUsage(views["Memory"],"ram");AddUsage(views["GPU"],"vram");
-            AddResourceAction(views["Memory"],false);AddResourceAction(views["GPU"],true);
             foreach(string key in settings.Order("cardOrder",new[]{"CPU","GPU","Memory","NVMe","Airflow","Network"}))cards.Children.Add(views[key].Border);
             foreach(var view in views.Values){
                 var check=new CheckBox {Content=view.Key,Margin=new Thickness(0,5,0,5),IsChecked=CardEnabled(view.Key)};
@@ -88,7 +87,7 @@ namespace HardwarePulse {
         };}
         void ApplyDensity(bool force=true){
             if(measuring||cards==null)return;
-            Control<TextBlock>("CardsEmpty").Visibility=!settingsVisible&&views.Values.All(v=>v.Border.Visibility==Visibility.Collapsed)?Visibility.Visible:Visibility.Collapsed;
+            Control<TextBlock>("CardsEmpty").Visibility=!settingsVisible&&!resourcesVisible&&views.Values.All(v=>v.Border.Visibility==Visibility.Collapsed)?Visibility.Visible:Visibility.Collapsed;
             if(!force&&!densityDirty)return;var scroll=Control<ScrollViewer>("CardScroll");if(scroll.ActualHeight<=0||scroll.ActualWidth<=0)return;measuring=true;
             try{bool detail=settings.Flag("details");double scale=Window.FontSize/12;var layout=(ResponsivePanel)cards;layout.MinimumColumnWidth=270*scale;var quotaLayout=(ResponsivePanel)Control<StackPanel>("QuotaCards");quotaLayout.MinimumColumnWidth=270*scale;layout.Measure(new Size(Math.Max(1,scroll.ActualWidth-38),double.PositiveInfinity));double cardWidth=layout.CellWidth;Control<Button>("Details").Background=Brush(detail?"#607898A8":"#00000000");
                 for(int level=0;level<=3;level++){

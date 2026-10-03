@@ -20,6 +20,13 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 
 - Shared Desktop supports Auto (System), English and Simplified/Traditional Chinese UI, including Monitor, Settings, sensor status, Codex quota and tray actions. Language switches immediately without restarting sampling or refreshing credentials and is saved in the isolated preview profile. Auto respects Chinese script and region preferences.
 
+## 0.6.49 — 2026-10-03
+
+- Move process usage into a main-window Resources tab beside Monitor. Remove the RAM/GPU card buttons and separate resource appearance controls; both pages share Settings → App Appearance. Back from Settings returns to Resources.
+- Align hardware and quota card heights within each row across one, two and three columns, preserving card order and natural single-column sizing. Content changes recalculate row heights.
+- Theme resource table headers and align numeric cells to the right. Column headers provide sorting without another snapshot; the active tab retains its current sort. Leaving Resources stops undispatched close requests and pending reads remain shared.
+- Verify tab navigation, sorting, selection, close cancellation, appearance, three languages and narrow layouts, plus card resize/reorder and Desktop regression checks. Normal-close adapter policy remains unchanged.
+
 ## 0.6.48 — 2026-10-03
 
 - Resource usage adds clickable App/RAM/GPU sort headers and reversible ordering. Unavailable GPU readings stay last. Sorting reuses the existing snapshot.

@@ -8,7 +8,7 @@ namespace HardwarePulse {
         readonly System.Collections.Generic.List<Button> settingsTabs=new System.Collections.Generic.List<Button>();
         void ReplaceCardPanel(string name){
             var old=Control<StackPanel>(name);var parent=(Panel)old.Parent;int index=parent.Children.IndexOf(old);
-            var replacement=new ResponsivePanel{Name=name};parent.Children.Remove(old);parent.Children.Insert(index,replacement);
+            var replacement=new ResponsivePanel{Name=name,EqualRowHeight=true};parent.Children.Remove(old);parent.Children.Insert(index,replacement);
             Window.UnregisterName(name);Window.RegisterName(name,replacement);
         }
         void BuildSettingsLayout(){

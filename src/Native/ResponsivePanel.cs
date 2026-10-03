@@ -18,6 +18,7 @@ namespace HardwarePulse {
         public double CellWidth {get;private set;}
         public bool Dragging;
         public bool IndependentColumns;
+        public bool EqualRowHeight;
         readonly Dictionary<UIElement,Rect> slots=new Dictionary<UIElement,Rect>();
         const double Gap=ColumnLayout.Gap;
         double arrangedWidth;
@@ -40,7 +41,7 @@ namespace HardwarePulse {
             if(IndependentColumns){var heights=new double[Columns];for(int i=0;i<active.Length;i++){var child=active[i];int col=i%Columns;var rect=new Rect(col*(CellWidth+Gap),heights[col],CellWidth,child.DesiredSize.Height);Rect old;bool moved=slots.TryGetValue(child,out old)&&old.Location!=rect.Location;child.Arrange(rect);slots[child]=rect;if(moved&&!Dragging&&IsLoaded&&animateLayout)Offset(child,old.X-rect.X,old.Y-rect.Y);heights[col]+=child.DesiredSize.Height+RowGap;}return size;}
             double top=0;for(int start=0;start<active.Length;start+=Columns){double height=active.Skip(start).Take(Columns).Max(c=>c.DesiredSize.Height);
                 for(int col=0;col<Columns&&start+col<active.Length;col++){
-                    var child=active[start+col];var rect=new Rect(col*(CellWidth+Gap),top,CellWidth,child.DesiredSize.Height);Rect old;
+                    var child=active[start+col];var rect=new Rect(col*(CellWidth+Gap),top,CellWidth,EqualRowHeight?height:child.DesiredSize.Height);Rect old;
                     bool moved=slots.TryGetValue(child,out old)&&old.Location!=rect.Location;
                     child.Arrange(rect);slots[child]=rect;
                     if(moved&&!Dragging&&IsLoaded&&animateLayout)Offset(child,old.X-rect.X,old.Y-rect.Y);

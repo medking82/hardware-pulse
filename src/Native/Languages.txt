@@ -108,7 +108,7 @@ Leave a name blank to use device information. Hover over a field to see its auto
 SPD numbers identify sensor addresses, not physical slots. Installed slots are reported separately; assign a slot name only after confirming its sensor.|SPD 编号代表传感器地址，并非实体插槽。已安装插槽单独显示；确认对应关系后再命名。|SPD 編號代表感測器位址，並非實體插槽。已安裝插槽單獨顯示；確認對應關係後再命名。
 Changes save automatically.|更改自动保存。|變更自動儲存。
 About Pulse|关于 Pulse|關於 Pulse
-Version 0.6.48 · Marck Wong|版本 0.6.48 · Marck Wong|版本 0.6.48 · Marck Wong
+Version 0.6.49 · Marck Wong|版本 0.6.49 · Marck Wong|版本 0.6.49 · Marck Wong
 Sensors by LibreHardwareMonitor. Shared driver by PawnIO.|传感器：LibreHardwareMonitor。共享驱动：PawnIO。|感測器：LibreHardwareMonitor。共用驅動程式：PawnIO。
 Language|语言 / Language|語言 / Language
 Minimize|最小化|最小化
@@ -364,3 +364,6 @@ Close requests sent|已发送关闭请求|已發送關閉要求
 Complete app prompts, then Refresh to check usage.|请完成应用中的提示，再刷新查看占用。|請完成應用程式中的提示，再重新整理查看用量。
 Close suggestions…|关闭建议候选…|關閉建議候選…
 Close Suggested Apps|关闭建议应用|關閉建議應用程式
+Resources|资源管理|資源管理
+Monitor|监控|監控
+Click to sort; click again to reverse.|点击排序；再次点击切换升降序。|點擊排序；再次點擊切換升降序。

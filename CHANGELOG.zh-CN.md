@@ -20,6 +20,13 @@
 
 - 共享桌面应用支持自动跟随系统、英语、简体中文和繁体中文，覆盖监控、设置、传感器状态、Codex 额度与托盘操作。语言即时切换，不重启采样或重新读取登录信息，并保存到独立的预览版设置中。自动模式会区分中文书写体系和地区。
 
+## 0.6.49 — 2026-10-03
+
+- 进程占用列表移到主窗口顶部 Resources tab，与 Monitor 切换。移除内存与 GPU 卡片中的管理按钮及独立外观设置，统一通过 Settings → App Appearance 调整；Back 返回 Resources。
+- 一、二、三列下的硬件与额度卡片按行对齐高度，保留 card order 和单列自然高度；内容变化后重新计算 row height。
+- 占用列表的 header 跟随 App theme，数值右对齐。点击列标题排序不增加 snapshot，重复点击当前 tab 保留排序。离开 Resources 停止未发送的 close requests，进行中的读取仍复用同一 task。
+- Checks 覆盖 tab navigation、排序、勾选、关闭取消、外观、三种语言与窄窗口，以及 card resize/reorder 和 Desktop regression。正常关闭的 adapter policy 保持一致。
+
 ## 0.6.48 — 2026-10-03
 
 - 占用列表支持点击应用、内存和显存列标题排序，再次点击切换升降序；无法读取的显存始终排在末尾。排序复用已有读数。

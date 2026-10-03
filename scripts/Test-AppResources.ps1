@@ -60,11 +60,12 @@ function WaitUntil([scriptblock]$condition){
 }
 function OpenResources($gpu){
     [void]$shell.GetType().GetMethod('ShowAppResources',$flags).Invoke($shell,@([bool]$gpu));Pump
-    $resourceView=$shell.GetType().GetField('resourcesWindow',$flags).GetValue($shell)
-    Assert ($null -ne $resourceView) 'Resource window did not remain open'
+    $resourceView=$shell.GetType().GetField('resourcesView',$flags).GetValue($shell)
+    Assert ($null -ne $resourceView) 'Resource page did not remain open'
     return ,$resourceView
 }
 function Click($control){$control.RaiseEvent([Windows.RoutedEventArgs]::new([Windows.Controls.Primitives.ButtonBase]::ClickEvent));Pump}
+function LeaveResources {Click ($shell.Window.FindName('MonitorTab'))}
 function FindCheckbox($node){
     if($node -is [Windows.Controls.CheckBox]){return ,$node}
     for($i=0;$i -lt [Windows.Media.VisualTreeHelper]::GetChildrenCount($node);$i++){
@@ -92,8 +93,12 @@ try {
     $arguments=[object[]]@([HardwarePulse.RamUsage]@{totalGb=16;usedGb=8},[double]0)
     Assert ($headroom.Invoke($null,$arguments) -and $arguments[1] -eq 8) 'Valid RAM headroom calculation'
     $shell.Show();Pump
-    $window=OpenResources $false
-    $list=$window.FindName('ResourceList');$sort=$window.FindName('ResourceSort');$refresh=$window.FindName('ResourceRefresh');$close=$window.FindName('ResourceClose')
+    $shell.Window.Width=760;$shell.Window.Height=700;Pump
+    Click ($shell.Window.FindName('ResourcesTab'))
+    $window=$shell.GetType().GetField('resourcesView',$flags).GetValue($shell)
+    Assert ($shell.Window.FindName('ResourcesPage').IsVisible -and -not $shell.Window.FindName('CardScroll').IsVisible) 'Resources tab must switch content in the same App window'
+    Assert ($null -eq $window.FindName('ResourceOpacity') -and $null -eq $window.FindName('ResourceFollow')) 'Resource page must not expose separate appearance controls'
+    $list=$window.FindName('ResourceList');$refresh=$window.FindName('ResourceRefresh');$close=$window.FindName('ResourceClose')
     WaitUntil {$refresh.IsEnabled -and $list.Items.Count -eq 4}
     Assert ($list.Items[0].Process.Pid -eq 101) 'RAM entry is not sorted by RAM'
     Assert (-not $close.IsEnabled) 'No selection must not enable close'
@@ -107,17 +112,19 @@ try {
     $list.SelectedIndex=1;Pump;Assert ($close.IsEnabled) 'Closeable fixture selection not enabled'
     $same=OpenResources $true
     Assert ([object]::ReferenceEquals($same,$window)) 'Both cards must reuse one resource window'
-    Assert ($sort.SelectedIndex -eq 1 -and $list.Items[0].Process.Pid -eq 102) 'GPU entry did not sort existing snapshot'
+    Assert ($list.Items[0].Process.Pid -eq 102) 'GPU entry did not sort existing snapshot'
     Assert ([AppResourceViewFixture]::Calls -eq 1) 'Sorting must not sample processes again'
+    Click ($shell.Window.FindName('ResourcesTab'))
+    Assert ($list.Items[0].Process.Pid -eq 102 -and [AppResourceViewFixture]::Calls -eq 1) 'Selecting the active tab must preserve sorting and the snapshot'
     Assert ($list.Items[3].Gpu -eq '—') 'Unavailable GPU estimate must not become zero'
-    $direction=$window.FindName('ResourceDirection');Click $direction
+    $header=$list.View.Columns[3].Header;Click $header
     Assert ($list.Items[0].Process.Pid -eq 101 -and $list.Items[3].Process.Pid -eq 103) 'GPU ascending must be numeric with unavailable last'
     $header=$list.View.Columns[3].Header;Click $header
     Assert ($list.Items[0].Process.Pid -eq 102) 'Column header must toggle direction'
     $header=$list.View.Columns[1].Header;Click $header
-    Assert ($sort.SelectedIndex -eq 2 -and $list.Items[0].Process.Pid -eq 101) 'App header must sort names alphabetically'
+    Assert ($list.Items[0].Process.Pid -eq 101) 'App header must sort names alphabetically'
     Assert ([AppResourceViewFixture]::Calls -eq 1) 'Headers must not resample process usage'
-    $sort.SelectedIndex=0;Pump
+    Click ($list.View.Columns[2].Header)
     $suggestions=$window.FindName('ResourceSuggestions');Assert ($suggestions.IsEnabled) 'High-usage close suggestions missing'
     Assert ($list.SelectedItems.Count -eq 1) 'Sorting must preserve explicit eligible selection'
     $list.SelectedItems.Clear();Pump
@@ -133,31 +140,35 @@ try {
     Assert ([AppResourceViewFixture]::ClosedPids.Count -eq 2 -and [AppResourceViewFixture]::ClosedPids[0] -eq 102 -and [AppResourceViewFixture]::ClosedPids[1] -eq 104) 'Batch closed unselected process or changed deterministic order'
     Assert ([AppResourceViewFixture]::Prompt -match 'Window fixture' -and [AppResourceViewFixture]::Prompt -match 'Second window fixture') 'Batch confirmation must identify every selected app'
     Assert ($list.SelectedItems.Count -eq 0 -and -not $close.IsEnabled) 'Finished batch retained stale close eligibility'
-    $follow=$window.FindName('ResourceFollow');$opacity=$window.FindName('ResourceOpacity')
-    Assert ($follow.IsChecked -and -not $opacity.IsEnabled) 'Default resource appearance must follow App'
-    $follow.IsChecked=$false;Click $follow;$opacity.Value=35;Pump
-    Assert ($opacity.IsEnabled -and $window.FindName('ResourceOpacityValue').Text -eq '35%') 'Independent opacity adjustment missing'
-    $alpha=([Windows.Media.SolidColorBrush]$window.Background).Color.A
-    Assert ($alpha -eq [Math]::Round(255*0.35) -and $window.Opacity -eq 1) 'Opacity must affect background only'
-    $follow.IsChecked=$true;Click $follow;$shell.Window.FindName('OpacitySlider').Value=65;Pump
-    Assert ($window.FindName('ResourceOpacityValue').Text -like '65%*') 'App opacity changes must update open usage window'
+    $shell.Window.FindName('OpacitySlider').Value=35;Pump
+    $alpha=([Windows.Media.SolidColorBrush]$shell.Window.Background).Color.A
+    Assert ($alpha -eq [Math]::Round(255*0.35) -and $shell.Window.Opacity -eq 1) 'Resource page must share App background opacity without fading text'
+    $shell.Window.FindName('OpacitySlider').Value=65;Pump
     Click $refresh;WaitUntil {$refresh.IsEnabled}
     foreach($row in $list.Items){if($row.Process.Pid -in @(102,104)){$list.SelectedItems.Add($row)}};Pump
     [AppResourceViewFixture]::Confirm=$false;Click $close
     Assert ([AppResourceViewFixture]::Closes -eq 2) 'Manual selected batch cancellation dispatched a request'
     [AppResourceViewFixture]::Confirm=$true;[AppResourceViewFixture]::CloseGate.Reset();Click $close
     WaitUntil {[AppResourceViewFixture]::Closes -eq 3}
-    $window.Close();Pump;[AppResourceViewFixture]::CloseGate.Set()
+    LeaveResources;[AppResourceViewFixture]::CloseGate.Set()
     WaitUntil {[AppResourceViewFixture]::ClosedPids.Count -eq 3};Pump
-    Assert ([AppResourceViewFixture]::Closes -eq 3) 'Closing the resource window must stop undispatched batch requests'
+    Assert ([AppResourceViewFixture]::Closes -eq 3) 'Leaving the resource page must stop undispatched batch requests'
+    Assert ($shell.Window.FindName('CardScroll').IsVisible -and -not $shell.Window.FindName('ResourcesPage').IsVisible) 'Monitor tab must restore cards'
+    $window=OpenResources $false;WaitUntil {$window.FindName('ResourceRefresh').IsEnabled}
+    Click ($shell.Window.FindName('Settings'))
+    Assert ($shell.Window.FindName('SettingsPage').IsVisible -and -not $shell.Window.FindName('ResourcesPage').IsVisible) 'Settings must replace Resources rather than overlap it'
+    Click ($shell.Window.FindName('Back'))
+    $window=$shell.GetType().GetField('resourcesView',$flags).GetValue($shell)
+    Assert ($null -ne $window -and $shell.Window.FindName('ResourcesPage').IsVisible) 'Back from Settings must return to Resources'
+    WaitUntil {$window.FindName('ResourceRefresh').IsEnabled}
     foreach($languageCode in @('en','zh-CN','zh-TW')){
-        if($window.IsVisible){$window.Close();Pump}
+        LeaveResources
         $picker=$shell.Window.FindName('LanguagePicker');foreach($item in $picker.Items){if($item.Tag -eq $languageCode){$picker.SelectedItem=$item}}
         $window=OpenResources $false
         $list=$window.FindName('ResourceList');$refresh=$window.FindName('ResourceRefresh')
         WaitUntil {$refresh.IsEnabled -and $list.Items.Count -eq 4}
-        foreach($width in @(480,760)){
-            $window.Width=$width;$window.Height=$window.MinHeight;$window.UpdateLayout();Pump
+        foreach($width in @(280,480,760)){
+            $shell.Window.Width=$width;$shell.Window.Height=700;$shell.Window.UpdateLayout();Pump
             function FindScrollViewer($node){
                 if($node -is [Windows.Controls.ScrollViewer]){return $node}
                 for($i=0;$i -lt [Windows.Media.VisualTreeHelper]::GetChildrenCount($node);$i++){
@@ -169,21 +180,27 @@ try {
             Assert ($list.ActualHeight -ge 80) 'Usage list has no complete row at minimum height'
             $columnWidth=($list.View.Columns | Measure-Object -Property Width -Sum).Sum
             Assert ($columnWidth -le $list.ActualWidth-20) 'Usage columns are clipped at narrow width'
-            Capture $window ('resources-'+$languageCode+'-'+$width+'.png')
+            Capture $shell.Window ('resources-'+$languageCode+'-'+$width+'.png')
         }
+        $shell.Window.Width=280;$shell.Window.Height=340;$shell.Window.UpdateLayout();Pump
+        $page=$shell.Window.FindName('ResourcesPage');$page.ScrollToBottom();$shell.Window.UpdateLayout();Pump
+        $action=$window.FindName('ResourceClose');$position=$action.TransformToAncestor($page).Transform([Windows.Point]::new(0,0))
+        Assert ($page.ScrollableHeight -gt 0 -and $position.Y -ge 0 -and $position.Y+$action.ActualHeight -le $page.ActualHeight+1) 'Close action must remain reachable by scrolling at minimum window height'
+        Capture $shell.Window ('resources-'+$languageCode+'-minimum-height.png')
+        $page.ScrollToTop()
     }
-    $window.Close();Pump
+    LeaveResources
     $settings=$shell.GetType().GetField('settings',$flags).GetValue($shell);$settings.Data['background']='#FFFFFF'
     [void]$shell.GetType().GetMethod('ApplyMaterial',$flags).Invoke($shell,@());Pump
     $window=OpenResources $false;$refresh=$window.FindName('ResourceRefresh');$list=$window.FindName('ResourceList')
     WaitUntil {$refresh.IsEnabled -and $list.Items.Count -eq 4}
-    Capture $window 'resources-light.png'
+    Capture $shell.Window 'resources-light.png'
     [AppResourceViewFixture]::Gate.Reset();$before=[AppResourceViewFixture]::Calls
     Click $refresh
     WaitUntil {[AppResourceViewFixture]::Calls -gt $before}
     Assert (-not $refresh.IsEnabled) 'Refresh must be disabled during a snapshot'
-    $window.Close();Pump
-    Assert ($null -eq $shell.GetType().GetField('resourcesWindow',$flags).GetValue($shell)) 'Closed resource window retained'
+    LeaveResources
+    Assert ($null -eq $shell.GetType().GetField('resourcesView',$flags).GetValue($shell)) 'Hidden resource page retained'
     Assert ($null -eq $shell.GetType().GetField('resourcesSort',$flags).GetValue($shell)) 'Closed sort selector retained'
     $window=OpenResources $true
     Assert ([AppResourceViewFixture]::Calls -eq $before+1) 'Reopening started a parallel process snapshot'
@@ -192,9 +209,9 @@ try {
     [AppResourceViewFixture]::Gate.Set()
     WaitUntil {$refresh.IsEnabled -and $list.Items.Count -eq 4}
     Assert ([AppResourceViewFixture]::Calls -eq $before+1) 'Shared read result started another snapshot'
-    $window.Close();Pump
+    LeaveResources
     WaitUntil {$null -eq $shell.GetType().GetField('resourceReadTask',$flags).GetValue($shell)}
-    'PASS resource view: synthetic reads/close callbacks only; header numeric/name sorting, no resampling, explicit suggestions, batch cancel/duplicate/stale results, background opacity/follow App, three languages, narrow layout and pending read reuse.'
+    'PASS Resources tab: same App window, no separate appearance controls, Settings/Back, header sorting without resampling, explicit suggestions, batch cancel/duplicate/stale results and page teardown, shared App opacity, three languages/narrow views and pending read reuse; synthetic close callbacks only.'
     'Visual artifacts: '+$state
 } finally {
     [AppResourceViewFixture]::Gate.Set();[AppResourceViewFixture]::CloseGate.Set();$shell.Dispose()

@@ -50,6 +50,45 @@ internal static class NativeTests {
     static void Toggle(Shell shell,string name,bool value){var control=shell.Control<CheckBox>(name);control.IsChecked=value;control.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Pump();}
     static T Field<T>(Shell shell,string name){return (T)typeof(Shell).GetField(name,BindingFlags.Instance|BindingFlags.NonPublic).GetValue(shell);}
     static void Settle(){var until=DateTime.UtcNow.AddMilliseconds(250);while(DateTime.UtcNow<until){Pump();System.Threading.Thread.Sleep(10);}}
+    static Border LayoutFixtureCard(double height){return new Border{Child=new Border{Height=height}};}
+    static void ArrangeFixture(ResponsivePanel panel,double width){
+        // Disconnected fixtures do not receive the window's normal layout invalidation pass.
+        foreach(var element in Tree(panel).OfType<FrameworkElement>())element.InvalidateMeasure();
+        panel.Measure(new Size(width,double.PositiveInfinity));panel.Arrange(new Rect(new Point(),panel.DesiredSize));
+    }
+    static void AssertEqualRows(ResponsivePanel panel,string context){
+        Assert(panel.EqualRowHeight,context+" did not opt in to equal row heights");
+        var visible=panel.Children.Cast<FrameworkElement>().Where(c=>c.Visibility==Visibility.Visible).ToArray();
+        Assert(visible.Length>0,context+" equal-height check has no visible entries");
+        for(int start=0;start<visible.Length;start+=panel.Columns){
+            var row=visible.Skip(start).Take(panel.Columns).ToArray();double height=row[0].ActualHeight;
+            Assert(height>0&&row.All(c=>Math.Abs(c.ActualHeight-height)<1),context+" row has unequal actual heights");
+        }
+    }
+    static void ResponsivePanelChecks(){
+        var panel=new ResponsivePanel{RequestedColumns=2};
+        var small=LayoutFixtureCard(20);var tall=LayoutFixtureCard(60);var hidden=LayoutFixtureCard(1000);hidden.Visibility=Visibility.Collapsed;
+        var medium=LayoutFixtureCard(40);var last=LayoutFixtureCard(30);
+        foreach(var child in new[]{small,tall,hidden,medium,last})panel.Children.Add(child);
+        ArrangeFixture(panel,660);
+        Assert(!panel.EqualRowHeight&&small.ActualHeight==20&&tall.ActualHeight==60,"Default panel must preserve natural child heights");
+        double measured=panel.DesiredSize.Height;
+        panel.EqualRowHeight=true;ArrangeFixture(panel,660);AssertEqualRows(panel,"Opt-in fixture");
+        Assert(small.ActualHeight==60&&medium.ActualHeight==40&&Math.Abs(panel.DesiredSize.Height-measured)<.1,"Stretch must use each row maximum without changing measurement");
+        Assert(System.Windows.Controls.Primitives.LayoutInformation.GetLayoutSlot(medium).Y==70,"Collapsed child must not consume a row or inflate its maximum");
+        ((Border)tall.Child).Height=10;ArrangeFixture(panel,660);AssertEqualRows(panel,"Shrunk fixture");
+        Assert(small.ActualHeight==20&&tall.ActualHeight==20&&panel.DesiredSize.Height==70,"Content shrink must remove the old row maximum: small="+small.ActualHeight+" tall="+tall.ActualHeight+" panel="+panel.DesiredSize.Height+" content="+((Border)tall.Child).DesiredSize.Height+" outer="+tall.DesiredSize.Height);
+        panel.Children.Remove(medium);panel.Children.Insert(0,medium);ArrangeFixture(panel,660);AssertEqualRows(panel,"Reordered fixture");
+        Assert(medium.ActualHeight==40&&small.ActualHeight==40&&tall.ActualHeight==30&&last.ActualHeight==30,"Reorder must recompute maxima from the new visible row membership");
+        panel.IndependentColumns=true;panel.EqualRowHeight=false;ArrangeFixture(panel,660);
+        var slots=panel.Children.Cast<FrameworkElement>().Where(c=>c.Visibility==Visibility.Visible).Select(System.Windows.Controls.Primitives.LayoutInformation.GetLayoutSlot).ToArray();
+        measured=panel.DesiredSize.Height;panel.EqualRowHeight=true;ArrangeFixture(panel,660);
+        Assert(panel.Children.Cast<FrameworkElement>().Where(c=>c.Visibility==Visibility.Visible).Select(System.Windows.Controls.Primitives.LayoutInformation.GetLayoutSlot).SequenceEqual(slots)&&panel.DesiredSize.Height==measured,"Independent columns must ignore row stretching");
+        Assert(medium.ActualHeight==40&&small.ActualHeight==20&&tall.ActualHeight==10&&last.ActualHeight==30,"Independent columns changed natural heights");
+        panel.IndependentColumns=false;panel.RequestedColumns=1;ArrangeFixture(panel,310);AssertEqualRows(panel,"Single-column fixture");
+        Assert(medium.ActualHeight==40&&small.ActualHeight==20&&tall.ActualHeight==10&&last.ActualHeight==30,"Single-column stretching must preserve natural heights");
+        Console.WriteLine("PASS responsive row heights: opt-in/default, hidden entries, shrinking content, reorder, independent and single-column compatibility");
+    }
     static void LayoutChecks(Shell shell,string state){
         var panel=shell.Control<ResponsivePanel>("Cards");double width=shell.Window.Width,height=shell.Window.Height;
         shell.Window.Width=310;shell.Window.Height=340;Pump();shell.UpdatePanel();Settle();
@@ -76,7 +115,16 @@ internal static class NativeTests {
             var visible=panel.Children.Cast<Border>().Where(c=>c.Visibility==Visibility.Visible).ToArray();
             Assert(visible.All(c=>c.ActualWidth<=panel.CellWidth+.1),"Card exceeds its column");
             if(columns>1)Assert(Math.Abs(visible[0].TranslatePoint(new Point(),panel).Y-visible[1].TranslatePoint(new Point(),panel).Y)<1,"Cards are not side by side");
+            AssertEqualRows(panel,"Cards at "+columns+" columns");
             Capture(shell,Path.Combine(state,"layout-"+columns+"-columns.png"));
+            // Check the actual quota panel with bounded synthetic content, without enabling provider reads.
+            var quotaPanel=shell.Control<ResponsivePanel>("QuotaCards");var quotaChildren=quotaPanel.Children.Cast<UIElement>().ToArray();
+            try{
+                quotaPanel.Children.Clear();foreach(double contentHeight in new[]{25d,65d,40d,35d})quotaPanel.Children.Add(LayoutFixtureCard(contentHeight));
+                shell.Window.UpdateLayout();Pump();
+                Assert(quotaPanel.Columns==columns,"QuotaCards responsive columns differ from hardware cards");
+                AssertEqualRows(quotaPanel,"QuotaCards at "+columns+" columns");
+            }finally{quotaPanel.Children.Clear();foreach(var child in quotaChildren)quotaPanel.Children.Add(child);shell.Window.UpdateLayout();}
         }
         Toggle(shell,"FpsQuick",true);Assert(shell.Control<CheckBox>("OverlayEnabled").IsChecked==true&&shell.Control<CheckBox>("OverlayFps").IsChecked==true,"Home FPS did not enable existing controller");
         var trayFps=Field<System.Windows.Forms.ToolStripMenuItem>(shell,"trayFps");Assert(trayFps.Checked&&trayFps.Image!=null,"Tray FPS state or SVG image missing");trayFps.PerformClick();Pump();Assert(shell.Control<CheckBox>("FpsQuick").IsChecked==false&&shell.Control<CheckBox>("OverlayEnabled").IsChecked==false,"Tray FPS did not synchronize");
@@ -135,6 +183,7 @@ internal static class NativeTests {
         var encoder=new PngBitmapEncoder();encoder.Frames.Add(BitmapFrame.Create(composite));using(var file=File.Create(path))encoder.Save(file);
     }
     static void SharedFeatures(){
+        ResponsivePanelChecks();
         NativeFpsTests.Run();NativeQuotaTests.Run();
         using(var metrics=new FrameCapture()){
             metrics.Reset(42);for(int i=0;i<99;i++)metrics.Add("main",10,10);metrics.Add("main",100,10);var result=metrics.ReadAt(10);
