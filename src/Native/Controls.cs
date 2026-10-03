@@ -14,6 +14,13 @@ using Forms=System.Windows.Forms;
 namespace HardwarePulse {
     public sealed partial class Shell {
         void Click(string name,Action action){Control<Button>(name).Click+=delegate{action();};}
+        void SetSelected(Button button,bool selected){
+            button.Background=SystemParameters.HighContrast?(selected?SystemColors.HighlightBrush:Brushes.Transparent):Brush(selected?(light?"#D8E5EC":"#4A6574"):"#00000000");
+            button.Foreground=SystemParameters.HighContrast?(selected?SystemColors.HighlightTextBrush:SystemColors.WindowTextBrush):Brush(light?"#17202B":"#F0F5FA");
+            button.FontWeight=selected?FontWeights.SemiBold:FontWeights.Normal;
+            System.Windows.Automation.AutomationProperties.SetHelpText(button,selected?language.T("Selected"):"");
+        }
+        void UpdateMonitorControls(){SetSelected(Control<Button>("Live"),!maximum);SetSelected(Control<Button>("Max"),maximum);SetSelected(Control<Button>("Details"),settings.Flag("details"));}
         void WireSettings(){
             Control<Button>("Settings").Content=Icon("settings",20);Control<Button>("Back").Content=Icon("back",16);Control<Button>("Minimize").Content=Icon("minimize",14);Control<Button>("Close").Content=Icon("close",14);
             Click("Settings",()=>ShowSettings(true));Click("Back",()=>ShowSettings(false));Click("Minimize",()=>Window.WindowState=WindowState.Minimized);Click("Close",()=>Window.Close());
@@ -27,7 +34,7 @@ namespace HardwarePulse {
             Click("BackgroundColor",delegate{using(var dialog=new Forms.ColorDialog {FullOpen=true,Color=System.Drawing.ColorTranslator.FromHtml(BackgroundHex())})if(dialog.ShowDialog()==Forms.DialogResult.OK){settings.Data["background"]="#"+dialog.Color.R.ToString("X2")+dialog.Color.G.ToString("X2")+dialog.Color.B.ToString("X2");ApplyMaterial();QueueSave();}});
             Click("GitHub",()=>Process.Start(new ProcessStartInfo("https://github.com/medking82/hardware-pulse") {UseShellExecute=true}));
             foreach(var pair in new[]{new[]{"CPU","CPU Name"},new[]{"GPU","GPU Name"},new[]{"Memory","Memory Name"},new[]{"NVMe","NVMe Name"},new[]{"Airflow","Case / Motherboard"},new[]{"ramA","Module 1"},new[]{"ramB","Module 2"},new[]{"diskC","Drive 1"},new[]{"diskD","Drive 2"},new[]{"cpuFan","CPU Fan Name"},new[]{"bottom","System Fan 1"},new[]{"top","System Fan 2"}}){
-                string key=pair[0];var label=Label(pair[1],11);Catalog(label);Control<StackPanel>("NameFields").Children.Add(label);object saved;var editor=new TextBox {MaxLength=160,Padding=new Thickness(6),Margin=new Thickness(0,0,0,12),Text=settings.Map("names").TryGetValue(key,out saved)?Convert.ToString(saved):""};editor.TextChanged+=delegate{settings.Map("names")[key]=editor.Text.Trim();foreach(var view in views.Values)UpdateCard(view);ApplyDensity();QueueSave();};Control<StackPanel>("NameFields").Children.Add(editor);
+                string key=pair[0];var label=Label(pair[1],11);Catalog(label);Control<StackPanel>("NameFields").Children.Add(label);object saved;var editor=new TextBox {MaxLength=160,Padding=new Thickness(6),Margin=new Thickness(0,0,0,12),Text=settings.Map("names").TryGetValue(key,out saved)?Convert.ToString(saved):""};System.Windows.Automation.AutomationProperties.SetLabeledBy(editor,label);editor.TextChanged+=delegate{settings.Map("names")[key]=editor.Text.Trim();foreach(var view in views.Values)UpdateCard(view);ApplyDensity();QueueSave();};Control<StackPanel>("NameFields").Children.Add(editor);
             }
             if(!isolated)RefreshStartup();Control<CheckBox>("StartWithWindows").Click+=async delegate{
                 bool wanted=Checked("StartWithWindows");Control<CheckBox>("StartWithWindows").IsEnabled=false;
@@ -52,6 +59,7 @@ namespace HardwarePulse {
             Control<Button>("Settings").Content=Icon("settings",20,chrome);Control<Button>("Back").Content=Icon("back",16,chrome);Control<Button>("Minimize").Content=Icon("minimize",14,chrome);Control<Button>("Close").Content=Icon("close",14,chrome);
             Control<ContentControl>("BrandIcon").Content=Icon("live",22,SystemParameters.HighContrast?chrome:light?"#17634F":"#A5E7D5");
             ApplyReadingColors();
+            UpdateMonitorControls();
             var viewport=Control<Grid>("Viewport");if(viewport.Background!=null){var background=viewport.Background.Clone();background.Opacity=opacity;viewport.Background=background;}
             foreach(var view in views.Values){var background=Brush(light?"#DDEEF1F4":"#3031485B").Clone();background.Opacity=opacity;view.Border.Background=background;}
             ApplySettingsPresentation();

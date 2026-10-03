@@ -30,7 +30,7 @@ namespace HardwarePulse {
             SelectSettingsCategory(settingsCategory);
         }
         void SelectSettingsCategory(string category){settingsCategory=category;foreach(UIElement child in Control<ResponsivePanel>("SettingsSections").Children){var section=child as Expander;if(section!=null){bool selected=(string)section.Tag==category;section.Visibility=selected?Visibility.Visible:Visibility.Collapsed;if(selected)section.IsExpanded=true;}}Control<ScrollViewer>("SettingsPage").ScrollToTop();UpdateSettingsTabs();}
-        void UpdateSettingsTabs(){foreach(var button in settingsTabs){button.Content=language.T((string)button.Tag);button.Foreground=SystemParameters.HighContrast?SystemColors.ControlTextBrush:Brush(light?"#17202B":"#F0F5FA");button.FontWeight=(string)button.Tag==settingsCategory?FontWeights.Bold:FontWeights.Normal;button.BorderThickness=new Thickness((string)button.Tag==settingsCategory?2:1);System.Windows.Automation.AutomationProperties.SetHelpText(button,(string)button.Tag==settingsCategory?language.T("Selected"):"");}}
+        void UpdateSettingsTabs(){foreach(var button in settingsTabs){button.Content=language.T((string)button.Tag);bool selected=(string)button.Tag==settingsCategory;SetSelected(button,selected);button.BorderThickness=new Thickness(selected?2:1);}}
         void EnterDesktop(){
             settings.Data["desktopEnabled"]=true;settings.Data["desktopLocked"]=true;
             Control<CheckBox>("DesktopEnabled").IsChecked=true;Control<CheckBox>("DesktopLocked").IsChecked=true;

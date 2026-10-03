@@ -20,6 +20,13 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 
 - Shared Desktop supports Auto (System), English and Simplified/Traditional Chinese UI, including Monitor, Settings, sensor status, Codex quota and tray actions. Language switches immediately without restarting sampling or refreshing credentials and is saved in the isolated preview profile. Auto respects Chinese script and region preferences.
 
+## 0.6.53 — 2026-10-03
+
+- Group Live and Session Max visually, and keep Desktop/FPS together when the monitor toolbar wraps in narrow windows. Preserve existing controls, settings and actions.
+- Make selected Settings categories clear with a contrasting surface and correctly rendered border. Disabled buttons now visibly dim and recover when re-enabled.
+- Increase secondary hardware labels and status text for readability, retaining font-size preferences, card order and aligned row heights. Associate hardware-name editors with their accessible labels.
+- Verify toolbar bounds at 10/12/16 DIP, English and Simplified/Traditional Chinese layouts, selection and disabled-state rendering, and existing Desktop/FPS/Settings interactions.
+
 ## 0.6.52 — 2026-10-03
 
 - Retire Resources and the RAM/GPU process cleanup feature, including process grouping, close suggestions and normal-close actions. Remove the process observation/close adapter and its feature-only UI, state and tests.

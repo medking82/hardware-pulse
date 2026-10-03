@@ -97,13 +97,15 @@
       </Setter>
       <Setter Property="Foreground" Value="#F3F7FC" />
       <Setter Property="Background" Value="#223B536B" />
+      <Setter Property="BorderBrush" Value="#496F829A" />
+      <Setter Property="BorderThickness" Value="1" />
       <Setter Property="Padding" Value="10,5" />
       <Setter Property="Margin" Value="0,0,6,0" />
       <Setter Property="MinHeight" Value="28" />
       <Setter Property="Template">
         <Setter.Value>
           <ControlTemplate TargetType="Button">
-            <Border x:Name="Plate" Background="{TemplateBinding Background}" BorderBrush="#496F829A" BorderThickness="1" CornerRadius="15" Padding="{TemplateBinding Padding}">
+            <Border x:Name="Plate" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="15" Padding="{TemplateBinding Padding}">
               <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
             </Border>
             <ControlTemplate.Triggers>
@@ -115,6 +117,10 @@
               </Trigger>
               <Trigger Property="IsPressed" Value="True">
                 <Setter TargetName="Plate" Property="Background" Value="#8078A5B9" />
+              </Trigger>
+              <Trigger Property="IsEnabled" Value="False">
+                <Setter TargetName="Plate" Property="Opacity" Value="0.5" />
+                <Setter TargetName="Plate" Property="Background" Value="{Binding Background, RelativeSource={RelativeSource TemplatedParent}}" />
               </Trigger>
             </ControlTemplate.Triggers>
           </ControlTemplate>
@@ -211,16 +217,22 @@
         </StackPanel>
       </Grid>
       <WrapPanel x:Name="MonitorControls" Orientation="Horizontal" Margin="0,0,0,8">
-        <Button x:Name="Live" Content="Live" />
-        <Button x:Name="Max" Content="Session Max" />
-        <Button x:Name="Details" Content="Details" ToolTip="Show full hardware details" Padding="7,5" Margin="0" />
-        <Button x:Name="DesktopQuick" Content="Desktop" ToolTip="Show Desktop View" Padding="7,5" Margin="6,0,0,0" />
-        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,0,0">
-          <ContentControl x:Name="FpsQuickIcon" Width="16" Height="16" Margin="0,0,5,0" VerticalAlignment="Center" IsHitTestVisible="False" />
-          <CheckBox x:Name="FpsQuick" Content="FPS" ToolTip="Enable Game Overlay" VerticalAlignment="Center" />
+        <Border x:Name="ReadingModes" BorderBrush="#496F829A" BorderThickness="1" Background="#183B536B" CornerRadius="16" Padding="2" Margin="0,4,8,4">
+          <StackPanel Orientation="Horizontal">
+            <Button x:Name="Live" Content="Live" BorderThickness="0" Padding="8,4" Margin="0" MinHeight="30" />
+            <Button x:Name="Max" Content="Session Max" BorderThickness="0" Padding="8,4" Margin="0" MinHeight="30" />
+          </StackPanel>
+        </Border>
+        <Button x:Name="Details" Content="Details" ToolTip="Show full hardware details" Padding="7,5" Margin="0,4,8,4" MinHeight="34" VerticalAlignment="Center" />
+        <StackPanel x:Name="ViewControls" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,4,0,4">
+          <Button x:Name="DesktopQuick" Content="Desktop" ToolTip="Show Desktop View" Padding="7,5" Margin="0,0,10,0" MinHeight="34" />
+          <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+            <ContentControl x:Name="FpsQuickIcon" Width="16" Height="16" Margin="0,0,5,0" VerticalAlignment="Center" IsHitTestVisible="False" />
+            <CheckBox x:Name="FpsQuick" Content="FPS" ToolTip="Enable Game Overlay" VerticalAlignment="Center" Margin="0" />
+          </StackPanel>
         </StackPanel>
       </WrapPanel>
-      <TextBlock x:Name="Status" Text="Connecting to sensors…" Foreground="#ACDFD2" FontSize="10" />
+      <TextBlock x:Name="Status" Text="Connecting to sensors…" Foreground="#ACDFD2" FontSize="11" />
     </StackPanel>
     <ScrollViewer x:Name="CardScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="12,0,12,0" FocusVisualStyle="{x:Null}">
       <ScrollViewer.Template>
@@ -258,7 +270,7 @@
             </ComboBox>
             <CheckBox x:Name="StartWithWindows" Content="Start with Windows" Margin="0,0,0,10" />
             <TextBlock x:Name="StartupStatus" FontSize="11" Margin="0,0,0,10" />
-            <TextBlock Text="Version 0.6.52 · Marck Wong" FontSize="11" Foreground="#ADC1D2" Margin="0,0,0,8" />
+            <TextBlock Text="Version 0.6.53 · Marck Wong" FontSize="11" Foreground="#ADC1D2" Margin="0,0,0,8" />
             <Button x:Name="GitHub" Content="GitHub" HorizontalAlignment="Left" ToolTip="github.com/medking82/hardware-pulse" />
             <CheckBox x:Name="AutoUpdates" Content="Check for Updates Automatically" Margin="0,12,0,8" />
             <CheckBox x:Name="AutoDownload" Content="Download Updates Automatically" Margin="0,0,0,8" />

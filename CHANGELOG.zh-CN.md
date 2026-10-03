@@ -20,6 +20,13 @@
 
 - 共享桌面应用支持自动跟随系统、英语、简体中文和繁体中文，覆盖监控、设置、传感器状态、Codex 额度与托盘操作。语言即时切换，不重启采样或重新读取登录信息，并保存到独立的预览版设置中。自动模式会区分中文书写体系和地区。
 
+## 0.6.53 — 2026-10-03
+
+- 将 Live 与 Session Max 组成视觉分组；monitor toolbar 在窄窗口换行时，Desktop 与 FPS 保持同组。保留已有 controls、settings 和 actions。
+- Settings 的 selected category 使用更清楚的 surface，并修复 border 未实际显示的问题。Disabled buttons 显示变淡，重新启用后恢复。
+- 提高 secondary hardware labels 与 status text 的可读性，保留 font-size preferences、card order 和同排高度。Hardware-name editors 关联对应的 accessible labels。
+- 验证 10/12/16 DIP 下的 toolbar bounds、English 与简体／繁体中文 layout、selected/disabled rendering，以及原有 Desktop/FPS/Settings interactions。
+
 ## 0.6.52 — 2026-10-03
 
 - 退役 Resources 与 RAM/GPU process cleanup，移除 process grouping、关闭建议及 normal-close actions，并删除对应 process observation/close adapter、UI、state 和专用 tests。

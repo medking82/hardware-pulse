@@ -200,6 +200,17 @@ internal static class NativeTests {
         Assert(translations.T("System glass background is unavailable on this Windows version.")=="此 Windows 版本不支援系統玻璃背景。","Glass message must not include another translation entry");
     }
     static void Capture(Shell shell,string path){shell.Window.UpdateLayout();var bitmap=new RenderTargetBitmap((int)shell.Window.ActualWidth,(int)shell.Window.ActualHeight,96,96,PixelFormats.Pbgra32);bitmap.Render(shell.Window);var encoder=new PngBitmapEncoder();encoder.Frames.Add(BitmapFrame.Create(bitmap));using(var file=File.Create(path))encoder.Save(file);}
+    static void AssertToolbar(Shell shell){
+        var toolbar=shell.Control<FrameworkElement>("MonitorControls");var bounds=new System.Collections.Generic.List<Rect>();
+        foreach(string name in new[]{"Live","Max","Details","DesktopQuick","FpsQuick"}){
+            var control=shell.Control<FrameworkElement>(name);var point=control.TranslatePoint(new Point(),toolbar);var rect=new Rect(point,new Size(control.ActualWidth,control.ActualHeight));
+            Assert(control.IsVisible&&rect.Width>5&&rect.Height>5,"Toolbar control has no visible area: "+name);
+            Assert(rect.Left>=-1&&rect.Top>=-1&&rect.Right<=toolbar.ActualWidth+1&&rect.Bottom<=toolbar.ActualHeight+1,"Toolbar control clips: "+name+" width="+shell.Window.Width+" font="+shell.Window.FontSize);
+            Assert(!bounds.Any(previous=>{var intersection=Rect.Intersect(previous,rect);return !intersection.IsEmpty&&intersection.Width>.1&&intersection.Height>.1;}),"Toolbar controls overlap: "+name);bounds.Add(rect);
+        }
+        Assert(Math.Abs((bounds[0].Top+bounds[0].Bottom)-(bounds[1].Top+bounds[1].Bottom))<2,"Live and Session Max separated");
+        Assert(Math.Abs((bounds[3].Top+bounds[3].Bottom)-(bounds[4].Top+bounds[4].Bottom))<4,"FPS separated from Desktop action group");
+    }
     [STAThread] static int Main(string[] args){
         DiagnosticChecks();
         try{
@@ -352,6 +363,14 @@ internal static class NativeTests {
                 foreach(string retired in new[]{"ResourcesTab","ResourcesPage","MainTabs"})Assert(shell.Window.FindName(retired)==null,"Retired cleanup UI remains: "+retired);
                 Assert(shell.Control<FrameworkElement>("MonitorControls").IsVisible&&shell.Control<ScrollViewer>("CardScroll").IsVisible,"Read-only monitor must remain the home view");
                 shell.ShowSettings(true);Pump();Assert(!shell.Control<ScrollViewer>("CardScroll").IsVisible&&shell.Control<ScrollViewer>("SettingsPage").IsVisible,"Settings must replace monitor content");
+                var categoryTabs=Field<System.Collections.Generic.List<Button>>(shell,"settingsTabs");
+                foreach(string category in new[]{"Desktop","General"}){
+                    var selectedTab=categoryTabs.Single(b=>(string)b.Tag==category);selectedTab.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Pump();
+                    foreach(var tab in categoryTabs){tab.ApplyTemplate();var plate=(Border)tab.Template.FindName("Plate",tab);Assert(plate.BorderThickness==tab.BorderThickness,"Settings selected border is ignored by the rendered template: "+tab.Tag);}
+                }
+                var exportButton=shell.Control<Button>("ExportDiagnostics");exportButton.ApplyTemplate();var exportPlate=(Border)exportButton.Template.FindName("Plate",exportButton);
+                exportButton.IsEnabled=false;Pump();Assert(exportPlate.Opacity<1,"Disabled button has no rendered feedback");
+                exportButton.IsEnabled=true;Pump();Assert(exportPlate.Opacity==1,"Enabled button did not restore its rendered state");
                 Click(shell,"Back");Pump();Assert(shell.Control<ScrollViewer>("CardScroll").IsVisible&&shell.Control<FrameworkElement>("MonitorControls").IsVisible&&!shell.Control<ScrollViewer>("SettingsPage").IsVisible,"Back must restore monitor without retired navigation");
                 Assert(shell.Control<Slider>("OpacitySlider").Value==85,"Missing opacity preference must use the readable glass default");
                 var defaultBackground=((SolidColorBrush)shell.Window.Background).Color;
@@ -443,11 +462,19 @@ internal static class NativeTests {
                 Assert((string)overlayFormat.Invoke(null,new object[]{numeric,"absent","%"})=="—","Overlay missing value changed");
                 foreach(double size in new[]{10d,12d,16d})foreach(double width in new[]{240d,310d}){
                     shell.Control<Slider>("FontSizeSlider").Value=size;shell.Window.Width=width;shell.Window.Height=690;Pump();shell.UpdatePanel();Pump();
+                    AssertToolbar(shell);
                     foreach(var card in cards.Children.Cast<Border>()){
                         var header=((StackPanel)card.Child).Children[0] as Grid;if(header.Children.Count<2)continue;var title=(FrameworkElement)header.Children[0];var value=(FrameworkElement)header.Children[1];if(value.Visibility!=Visibility.Visible)continue;Assert(value.ActualWidth>5 && value.ActualHeight>5,"Hero has no layout area: "+card.Tag);var a=title.TranslatePoint(new Point(),header);var b=value.TranslatePoint(new Point(),header);
                         Assert(b.Y>=a.Y+title.ActualHeight-1||b.X>=a.X+title.ActualWidth-1,"Header overlap");Assert(b.X+value.ActualWidth<=header.ActualWidth+1,"Header clipping");
                     }
                 }
+                shell.Control<Slider>("FontSizeSlider").Value=12;
+                foreach(string locale in new[]{"en","zh-CN","zh-TW"})foreach(double width in new[]{310d,660d}){
+                    var localePicker=shell.Control<ComboBox>("LanguagePicker");foreach(ComboBoxItem choice in localePicker.Items)if((string)choice.Tag==locale)localePicker.SelectedItem=choice;
+                    shell.Window.Width=width;Pump();shell.UpdatePanel();Settle();AssertToolbar(shell);
+                    Capture(shell,Path.Combine(state,"toolbar-"+locale+"-"+width+".png"));
+                }
+                foreach(ComboBoxItem choice in shell.Control<ComboBox>("LanguagePicker").Items)if((string)choice.Tag=="en")shell.Control<ComboBox>("LanguagePicker").SelectedItem=choice;
                 shell.Control<Slider>("FontSizeSlider").Value=12;shell.Window.Width=310;Pump();Click(shell,"Details");Capture(shell,Path.Combine(state,"native-details.png"));Click(shell,"Details");Capture(shell,Path.Combine(state,"native-compact.png"));
                 shell.ShowSettings(false);shell.UpdatePanel();
                 var monitorText=Tree(shell.Control<StackPanel>("Cards")).OfType<TextBlock>().Select(t=>t.Text).ToArray();
