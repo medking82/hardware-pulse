@@ -55,6 +55,7 @@ namespace HardwarePulse {
             var viewport=Control<Grid>("Viewport");if(viewport.Background!=null){var background=viewport.Background.Clone();background.Opacity=opacity;viewport.Background=background;}
             foreach(var view in views.Values){var background=Brush(light?"#DDEEF1F4":"#3031485B").Clone();background.Opacity=opacity;view.Border.Background=background;}
             ApplySettingsPresentation();
+            if(resourcesAppearance!=null)resourcesAppearance();
         }
         void ApplySettingsPresentation(){
             UpdateSettingsTabs();

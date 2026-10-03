@@ -14,6 +14,35 @@ static class AppResourceTests {
     }
     static void Check(bool value,string message){if(!value)throw new Exception(message);}
     static bool WaitUntil(Func<bool> condition,int timeout){var wait=Stopwatch.StartNew();while(wait.ElapsedMilliseconds<timeout){if(condition())return true;Thread.Sleep(25);}return condition();}
+    static AppResourceProcess Candidate(int pid,string name,long ram,long? gpu){return new AppResourceProcess {Pid=pid,StartedUtcTicks=100+pid,Name=name,RamBytes=ram,GpuBytes=gpu,CanClose=true};}
+    static string CandidateState(AppResourceProcess row){return row==null?"null":string.Join("|",new object[]{row.Pid,row.StartedUtcTicks,row.Name,row.RamBytes,row.GpuBytes,row.CanClose,row.IsForeground});}
+    static void TestReviewCandidates(){
+        const long ram=536870912L,gpu=134217728L;
+        var boundary=Candidate(1,"Zulu",ram,gpu);var below=Candidate(5,"Below",ram-1,gpu-1);
+        Check(WindowsAppResources.ReviewCandidates(null,false).Length==0,"Null candidate snapshot");
+        Check(WindowsAppResources.ReviewCandidates(new AppResourceProcess[0],true).Length==0,"Empty candidate snapshot");
+        foreach(bool graphics in new[]{false,true}){
+            Check(WindowsAppResources.ReviewCandidates(new[]{below,boundary},graphics).Single()==boundary,"Inclusive candidate threshold");
+            foreach(string name in new[]{"ExPlOrEr","dwm","csrss","winlogon","sihost","ShellExperienceHost","StartMenuExperienceHost","TextInputHost","ctfmon","RuntimeBroker"})
+                Check(WindowsAppResources.ReviewCandidates(new[]{Candidate(8,name,ram*8,gpu*8)},graphics).Length==0,"Windows shell/input/session component excluded: "+name);
+        }
+        var foreground=Candidate(6,"Foreground",ram*8,gpu*8);foreground.IsForeground=true;
+        var background=Candidate(7,"No close",ram*8,gpu*8);background.CanClose=false;
+        var unknown=Candidate(9,"Unknown GPU",ram+1,null);
+        var missingIdentity=Candidate(10,"Missing identity",ram*8,gpu*8);missingIdentity.StartedUtcTicks=0;
+        var rows=new[]{boundary,Candidate(3,"Alpha",ram*2,gpu*4),below,foreground,background,
+            Candidate(4,"beta",ram*3,gpu*2),unknown,Candidate(2,"Alpha",ram*2,gpu*2),missingIdentity,null};
+        var original=rows.ToArray();var states=rows.Select(CandidateState).ToArray();
+        var ramCandidates=WindowsAppResources.ReviewCandidates(rows,false);
+        var gpuCandidates=WindowsAppResources.ReviewCandidates(rows,true);
+        Check(ramCandidates.Select(p=>p.Pid).SequenceEqual(new[]{4,2,3}),"RAM numeric ranking, name/PID ties and three-row limit");
+        Check(gpuCandidates.Select(p=>p.Pid).SequenceEqual(new[]{3,2,4}),"GPU numeric ranking and stable name ties");
+        Check(WindowsAppResources.ReviewCandidates(rows.Reverse().ToArray(),false).Select(p=>p.Pid).SequenceEqual(new[]{4,2,3}),"Candidate ties independent of input order");
+        Check(WindowsAppResources.ReviewCandidates(new[]{foreground,background,missingIdentity},false).Length==0,"Foreground, no-close and invalid identity excluded");
+        Check(WindowsAppResources.ReviewCandidates(new[]{unknown},false).Single()==unknown,"Unknown GPU still permits RAM review");
+        Check(WindowsAppResources.ReviewCandidates(new[]{unknown},true).Length==0,"Unknown GPU excluded from GPU review");
+        Check(rows.SequenceEqual(original)&&rows.Select(CandidateState).SequenceEqual(states),"Candidate policy must not reorder input or mutate process facts");
+    }
     [STAThread]static int Main(string[] args){
         if(args.Length==1&&args[0].StartsWith("--fixture-")){
             string mode=args[0].Substring("--fixture-".Length);
@@ -35,6 +64,7 @@ static class AppResourceTests {
                 Application.Run(form);return 0;
             }
         }
+        TestReviewCandidates();
         int pid;
         Check(WindowsAppResources.TryGpuInstance("pid_42_luid_0x00000000_0x00001234_phys_0",100,out pid)&&pid==42,"GPU instance PID parse");
         Check(!WindowsAppResources.TryGpuInstance("pid_42_luid_invalid",100,out pid),"Unknown GPU instance must stay unavailable");
@@ -71,7 +101,7 @@ static class AppResourceTests {
                 }
             }finally{if(!child.HasExited)Check(child.WaitForExit(12000),"Test-owned fixture must exit on its own lifetime timer");}
         }
-        Console.WriteLine("PASS app resources: isolated close/refusal, disabled/modal rejection, identity guard, own-host exclusion, RAM observations and GPU parse bounds; no user app touched");
+        Console.WriteLine("PASS app resources: candidate thresholds/ranking/exclusions without mutation, isolated close/refusal, disabled/modal rejection, identity guard, own-host exclusion, RAM observations and GPU parse bounds; no user app touched");
         return 0;
     }
 }

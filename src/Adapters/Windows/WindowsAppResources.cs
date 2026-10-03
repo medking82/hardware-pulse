@@ -10,7 +10,7 @@ using System.Text.RegularExpressions;
 namespace HardwarePulse {
     public sealed class AppResourceProcess {
         public int Pid;public long StartedUtcTicks,RamBytes;public long? GpuBytes;
-        public string Name;public bool CanClose;
+        public string Name;public bool CanClose,IsForeground;
     }
     public sealed class AppResourceSnapshot {
         public AppResourceProcess[] Processes;public RamUsage Ram;public bool GpuAvailable;
@@ -20,10 +20,16 @@ namespace HardwarePulse {
     // On-demand current-user observations. Never runs in the elevated Collector.
     public static class WindowsAppResources {
         static readonly Regex gpuInstance=new Regex(@"\Apid_([0-9]{1,10})_luid_0x[0-9a-fA-F]{1,8}_0x[0-9a-fA-F]{1,8}_phys_[0-9]{1,5}\z",RegexOptions.CultureInvariant);
+        static readonly HashSet<string> windowsComponents=new HashSet<string>(new[]{
+            "explorer","dwm","csrss","winlogon","wininit","smss","lsass","services","svchost","sihost",
+            "ShellExperienceHost","StartMenuExperienceHost","SearchHost","SearchApp","SearchUI",
+            "TextInputHost","ctfmon","InputApp","ApplicationFrameHost","RuntimeBroker","LockApp","UserOOBEBroker","conhost"
+        },StringComparer.OrdinalIgnoreCase);
         [DllImport("kernel32.dll",SetLastError=true)]static extern IntPtr OpenProcess(uint access,bool inherit,int pid);
         [DllImport("advapi32.dll",SetLastError=true)]static extern bool OpenProcessToken(IntPtr process,uint access,out IntPtr token);
         [DllImport("kernel32.dll")]static extern bool CloseHandle(IntPtr handle);
         [DllImport("user32.dll")]static extern IntPtr GetShellWindow();
+        [DllImport("user32.dll")]static extern IntPtr GetForegroundWindow();
         [DllImport("user32.dll")]static extern uint GetWindowThreadProcessId(IntPtr window,out uint pid);
         [DllImport("user32.dll")]static extern bool IsWindowEnabled(IntPtr window);
         [DllImport("pdh.dll",CharSet=CharSet.Unicode)]static extern uint PdhOpenQuery(string source,IntPtr user,out IntPtr query);
@@ -56,6 +62,15 @@ namespace HardwarePulse {
             var match=gpuInstance.Match(instance);
             return match.Success&&int.TryParse(match.Groups[1].Value,NumberStyles.None,CultureInfo.InvariantCulture,out pid)&&pid>0;
         }
+        // Input is a current-user Read().Processes snapshot. High usage warrants review, not an unused/safe-to-close claim.
+        public static AppResourceProcess[] ReviewCandidates(AppResourceProcess[] processes,bool gpu) {
+            if(processes==null)return new AppResourceProcess[0];
+            return processes.Where(p=>p!=null&&p.Pid>0&&p.StartedUtcTicks>0&&p.CanClose&&!p.IsForeground
+                    &&!string.IsNullOrEmpty(p.Name)&&!windowsComponents.Contains(p.Name)
+                    &&(gpu?p.GpuBytes.HasValue&&p.GpuBytes.Value>=134217728L:p.RamBytes>=536870912L))
+                .OrderByDescending(p=>gpu?p.GpuBytes.Value:p.RamBytes)
+                .ThenBy(p=>p.Name,StringComparer.OrdinalIgnoreCase).ThenBy(p=>p.Pid).Take(3).ToArray();
+        }
         static Dictionary<int,long> ReadGpu(out bool available) {
             available=false;var result=new Dictionary<int,long>();IntPtr query=IntPtr.Zero,buffer=IntPtr.Zero;
             try{
@@ -84,14 +99,15 @@ namespace HardwarePulse {
         public static AppResourceSnapshot Read() {
             bool gpuAvailable;var gpu=ReadGpu(out gpuAvailable);var rows=new List<AppResourceProcess>();
             using(var own=Process.GetCurrentProcess())using(var identity=WindowsIdentity.GetCurrent()){
-                int session=own.SessionId,shell=ShellPid();string sid=identity.User.Value;
+                int session=own.SessionId,shell=ShellPid();uint foregroundPid;GetWindowThreadProcessId(GetForegroundWindow(),out foregroundPid);string sid=identity.User.Value;
                 foreach(var process in Process.GetProcesses())using(process)try{
                     if(!Allowed(process,own.Id,session,shell,sid)||process.HasExited)continue;
                     long memory=process.WorkingSet64;if(memory<0)continue;
                     IntPtr window=process.MainWindowHandle;uint windowPid;
                     long bytes;long? dedicated=gpu.TryGetValue(process.Id,out bytes)?(long?)bytes:null;
                     rows.Add(new AppResourceProcess {Pid=process.Id,StartedUtcTicks=process.StartTime.ToUniversalTime().Ticks,Name=process.ProcessName,
-                        RamBytes=memory,GpuBytes=dedicated,CanClose=window!=IntPtr.Zero&&GetWindowThreadProcessId(window,out windowPid)!=0&&windowPid==(uint)process.Id&&IsWindowEnabled(window)});
+                        RamBytes=memory,GpuBytes=dedicated,IsForeground=(uint)process.Id==foregroundPid,
+                        CanClose=window!=IntPtr.Zero&&GetWindowThreadProcessId(window,out windowPid)!=0&&windowPid==(uint)process.Id&&IsWindowEnabled(window)});
                 }catch{/* Processes can disappear or deny access between observations. */}
             }
             return new AppResourceSnapshot {Processes=rows.OrderByDescending(p=>p.RamBytes).ToArray(),Ram=WindowsHardware.ReadMemory(),GpuAvailable=gpuAvailable};

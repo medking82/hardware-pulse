@@ -108,7 +108,7 @@ Leave a name blank to use device information. Hover over a field to see its auto
 SPD numbers identify sensor addresses, not physical slots. Installed slots are reported separately; assign a slot name only after confirming its sensor.|SPD 编号代表传感器地址，并非实体插槽。已安装插槽单独显示；确认对应关系后再命名。|SPD 編號代表感測器位址，並非實體插槽。已安裝插槽單獨顯示；確認對應關係後再命名。
 Changes save automatically.|更改自动保存。|變更自動儲存。
 About Pulse|关于 Pulse|關於 Pulse
-Version 0.6.47 · Marck Wong|版本 0.6.47 · Marck Wong|版本 0.6.47 · Marck Wong
+Version 0.6.48 · Marck Wong|版本 0.6.48 · Marck Wong|版本 0.6.48 · Marck Wong
 Sensors by LibreHardwareMonitor. Shared driver by PawnIO.|传感器：LibreHardwareMonitor。共享驱动：PawnIO。|感測器：LibreHardwareMonitor。共用驅動程式：PawnIO。
 Language|语言 / Language|語言 / Language
 Minimize|最小化|最小化
@@ -345,3 +345,22 @@ Requesting app close…|正在请求正常关闭…|正在要求正常關閉…
 Close requested. Complete any app prompt, then Refresh to check usage.|已发送关闭请求。请处理应用中的提示，然后刷新查看占用。|已傳送關閉要求。請處理應用程式中的提示，再重新整理查看用量。
 This process changed. Refresh before selecting it again.|此进程已改变，请刷新后重新选择。|此程序已改變，請重新整理後再次選取。
 The app could not be closed. It may have exited, denied access or opened a dialog.|无法关闭应用，可能已退出、权限不足或正在显示对话框。|無法關閉應用程式，可能已結束、權限不足或正在顯示對話框。
+Close Selected Apps|正常关闭选中应用|正常關閉選取的應用程式
+Follow App appearance|跟随 App 外观|跟隨 App 外觀
+Highest first|从高到低|由高至低
+Lowest first|从低到高|由低至高
+A to Z|A 到 Z|A 到 Z
+Z to A|Z 到 A|Z 到 A
+Select suggestions|勾选建议候选|勾選建議候選
+Review if unused|不再使用时可考虑关闭|不再使用時可考慮關閉
+No high-usage close candidates in this snapshot.|本次没有符合条件的高占用关闭候选。|本次沒有符合條件的高用量關閉候選。
+Review if unused: high usage, normal close available. Keep it if you still need it.|占用较高且支持正常关闭；不再使用时可考虑关闭，仍在使用请保留。|用量較高且支援正常關閉；不再使用時可考慮關閉，仍在使用請保留。
+Suggestions use reported usage, not proof that an app is unused. Foreground and Windows shell/input apps are excluded.|建议依据占用读数，无法判断应用是否仍有用途。已排除前台应用和 Windows 桌面外壳及输入组件。|建議依據用量讀數，無法判斷應用程式是否仍有用途。已排除前景應用程式與 Windows 桌面外殼及輸入元件。
+Check apps to close. Nothing is selected automatically.|勾选要关闭的应用；不会自动选中任何应用。|勾選要關閉的應用程式；不會自動選取任何應用程式。
+Selected apps|选中应用|已選應用程式
+Save work before closing.|关闭前请保存工作。|關閉前請儲存工作。
+Send normal close requests to these selected apps? Save your work first. Each app may show a save prompt or refuse to close.|向这些选中的应用发送正常关闭请求吗？请先保存工作。每个应用都可能显示保存提示或拒绝关闭。|向這些選取的應用程式發送正常關閉要求嗎？請先儲存工作。每個應用程式都可能顯示儲存提示或拒絕關閉。
+Close requests sent|已发送关闭请求|已發送關閉要求
+Complete app prompts, then Refresh to check usage.|请完成应用中的提示，再刷新查看占用。|請完成應用程式中的提示，再重新整理查看用量。
+Close suggestions…|关闭建议候选…|關閉建議候選…
+Close Suggested Apps|关闭建议应用|關閉建議應用程式

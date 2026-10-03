@@ -10,13 +10,31 @@ set and optional reported dedicated GPU memory. Rows represent processes, not
 aggregated application totals. Refresh takes another snapshot;
 there is no background sampling timer, remote AI request or persisted process list.
 RAM/GPU sorting reuses the snapshot, including when entering from the other card.
+Click App, RAM or GPU column headers to change the numeric/alphabetic order;
+click again to reverse it. Unavailable GPU readings stay last in both directions.
+The usage window follows App color, background opacity and Windows glass by
+default. Turn off Follow App appearance to adjust its own 0–100% background
+opacity. Text is never faded with the background; Solid/high contrast and missing
+glass support retain the existing opaque fallback.
+
+Review suggestions identify at most three high-usage normal-close candidates
+(RAM at least 512 MiB, or reported dedicated GPU memory at least 128 MiB).
+Foreground-at-snapshot and recognized Windows shell/input/session components are
+excluded. These are candidates to review if unused, not evidence of unused apps.
+Reported per-process usage is shown in the tooltip. Close suggestions opens one
+confirmation naming the current candidates, then sends their normal close requests
+only if confirmed. Manual checked-app closing remains separate. No automatic close
+or selection happens on reading or sorting the snapshot.
 Closing and reopening the window while a read is pending reuses that same task,
 rather than spawning parallel scans. Local guidance uses valid physical RAM
 headroom, not a guess that a large app is unused. Missing, non-finite or inconsistent
 memory readings never produce a "cleanup unnecessary" recommendation.
 CPU, RAM and GPU monitoring in the elevated Collector remain read-only.
 
-The user selects one app and confirms a normal close request. Before dispatch,
+The user checks one or more apps and confirms a single named batch of normal
+close requests. Cancellation dispatches nothing; requests are processed one at a
+time without automatic retry. Closing this window stops undispatched requests.
+Each result reports requested/unavailable counts, not reclaimed memory. Before each dispatch,
 the Windows adapter revalidates its process creation time, user, session and main
 window. Pulse and the Windows shell are excluded. No main window, access denial,
 exit or identity change makes the action unavailable. No process is force-killed,
@@ -42,9 +60,11 @@ is added. Modern hosts and other operating systems are outside this first bounda
 Identity inspection requests only Windows query access for the process token.
 Checks: isolated child windows verify close acceptance, refusal, stale identity,
 and disabled/modal main windows;
-pure fixtures verify GPU instance parsing and bounds. The authored WPF check uses
-a synthetic read delegate and never dispatches a close request. It covers both card
-entry points, disabled selection, sorting without another read, invalid RAM,
+pure fixtures verify GPU instance parsing, bounds and candidate eligibility/ranking.
+The authored WPF check uses synthetic read, confirmation and close delegates; it
+never closes a user app. It covers both card entry points, checkbox eligibility,
+numeric/alphabetic sorting without another read, invalid RAM, candidate and manual
+batch confirmation/cancellation, duplicate clicks, stale results, background opacity,
 localization, narrow layout, light/dark rendering and in-flight window teardown.
 `scripts/Validate.ps1` remains the pre-commit check. Cross-process actions require
 one independent frozen-diff review after deterministic checks. Classification is

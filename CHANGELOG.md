@@ -20,6 +20,13 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 
 - Shared Desktop supports Auto (System), English and Simplified/Traditional Chinese UI, including Monitor, Settings, sensor status, Codex quota and tray actions. Language switches immediately without restarting sampling or refreshing credentials and is saved in the isolated preview profile. Auto respects Chinese script and region preferences.
 
+## 0.6.48 — 2026-10-03
+
+- Resource usage adds clickable App/RAM/GPU sort headers and reversible ordering. Unavailable GPU readings stay last. Sorting reuses the existing snapshot.
+- The resource window follows App colors, glass and background opacity by default; an independent 0–100% background opacity control is available when Follow App appearance is off. Existing opaque accessibility and unsupported-glass fallbacks remain.
+- Review up to three high-usage normal-close candidates, excluding the snapshot foreground process and recognized Windows shell/input/session components. Close suggestions opens a named confirmation; manual checkbox batch closing is also available. Requests remain sequential, identity-checked and normal-close only, preserving app save prompts and refusal.
+- Deterministic checks cover candidate thresholds/exclusions, numeric sorting, batch cancellation/duplicate clicks/stale identities, window teardown, appearance and three-language narrow layouts. No user apps are closed by the UI checks.
+
 ## 0.6.47 — 2026-10-03
 
 - Memory and GPU cards open an on-demand current-user process usage window, with resident RAM, optional GPU estimates and local RAM headroom guidance. Sorting and reopening reuse pending data without background polling.
