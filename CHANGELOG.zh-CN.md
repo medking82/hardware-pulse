@@ -20,6 +20,12 @@
 
 - 共享桌面应用支持自动跟随系统、英语、简体中文和繁体中文，覆盖监控、设置、传感器状态、Codex 额度与托盘操作。语言即时切换，不重启采样或重新读取登录信息，并保存到独立的预览版设置中。自动模式会区分中文书写体系和地区。
 
+## 0.6.51 — 2026-10-03
+
+- Resources 按 executable identity 合并重复 processes，显示 RAM/GPU 合计，按 group usage 排序；展开可查看只读 process/PID 明细。不同 executable path 及无法读取 path 的 observations 保持独立。
+- 部分 GPU 读数缺失时用 `*` 标记小计，无法读取时仍显示 `—`。共享资源可能重复计算，合计不代表承诺可释放的空间。
+- Grouped normal-close requests 先确认符合条件的 process name 和 PID。GPU helper 与 tray-only process 不会成为关闭目标；建议沿用原有 per-process policy。不增加 forced termination 或 background scan。
+
 ## 0.6.50 — 2026-10-03
 
 - 修复 Resources selected row 的浅色高亮与浅色文字冲突。明暗 theme 使用成对的 selection background/foreground，focus 移走或 App 背景透明度为零时仍保持可读；high contrast 跟随 system colors。

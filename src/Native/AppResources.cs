@@ -22,12 +22,32 @@ namespace HardwarePulse {
         Func<AppResourceProcess,AppCloseResult> closeResourceApp=WindowsAppResources.RequestClose;
         Func<Window,string,string,bool> confirmResourceApps=(owner,prompt,title)=>MessageBox.Show(owner,prompt,title,MessageBoxButton.YesNo,MessageBoxImage.Question,MessageBoxResult.No)==MessageBoxResult.Yes;
         Task<AppResourceSnapshot> resourceReadTask;
+        // Presentation grouping only. An executable identity never grants close eligibility.
+        sealed class ResourceGroup {
+            public string Key;public AppResourceProcess[] Processes;
+            public string Name {get{return Processes[0].Name;}}
+            public long RamBytes {get{return Sum(Processes.Select(p=>p.RamBytes));}}
+            public long? GpuBytes {get{return Processes.Any(p=>p.GpuBytes.HasValue)?(long?)Sum(Processes.Where(p=>p.GpuBytes.HasValue).Select(p=>p.GpuBytes.Value)):null;}}
+            public bool PartialGpu {get{return GpuBytes.HasValue&&Processes.Any(p=>!p.GpuBytes.HasValue);}}
+            public AppResourceProcess[] CloseTargets {get{return Processes.Where(p=>p.CanClose&&p.Pid>0&&p.StartedUtcTicks>0).ToArray();}}
+            static long Sum(IEnumerable<long> values){long total=0;foreach(long value in values){if(value<0)continue;total=value>long.MaxValue-total?long.MaxValue:total+value;}return total;}
+            public static ResourceGroup[] Build(AppResourceProcess[] snapshot){
+                return snapshot.Where(p=>p!=null).GroupBy(p=>p.Pid+":"+p.StartedUtcTicks).Select(g=>g.First())
+                    .GroupBy(p=>string.IsNullOrEmpty(p.ExecutablePath)?"pid:"+p.Pid+":"+p.StartedUtcTicks:"exe:"+p.ExecutablePath+"\0"+p.Name,StringComparer.OrdinalIgnoreCase)
+                    .Select(g=>new ResourceGroup {Key=g.Key,Processes=g.OrderBy(p=>p.Pid).ThenBy(p=>p.StartedUtcTicks).ToArray()}).ToArray();
+            }
+        }
         sealed class ResourceRow {
             public AppResourceProcess Process {get;set;}
-            public bool CanClose {get{return Process.CanClose;}}
-            public string Name {get{return Process.Name+" · "+Process.Pid.ToString(CultureInfo.InvariantCulture);}}
-            public string Ram {get{return ResourceBytes(Process.RamBytes);}}
-            public string Gpu {get{return Process.GpuBytes.HasValue?ResourceBytes(Process.GpuBytes.Value):"—";}}
+            public ResourceGroup Group {get;set;}
+            public bool IsDetail {get;set;}
+            public string Name {get;set;}
+            public bool CanClose {get{return !IsDetail&&Group.CloseTargets.Length>0;}}
+            public Visibility CheckVisibility {get{return IsDetail?Visibility.Hidden:Visibility.Visible;}}
+            public Visibility ExpandVisibility {get{return !IsDetail&&Group.Processes.Length>1?Visibility.Visible:Visibility.Collapsed;}}
+            public string Disclosure {get;set;}
+            public string Ram {get{return ResourceBytes(IsDetail?Process.RamBytes:Group.RamBytes);}}
+            public string Gpu {get{var bytes=IsDetail?Process.GpuBytes:Group.GpuBytes;return bytes.HasValue?ResourceBytes(bytes.Value)+(!IsDetail&&Group.PartialGpu?" *":""):"—";}}
             public string Action {get;set;}
             public string Tooltip {get{return Name+Environment.NewLine+Action;}}
         }
@@ -80,8 +100,8 @@ namespace HardwarePulse {
             var suggestedClose=new Button {Content=language.T("Close suggestions…"),Margin=new Thickness(0,0,8,4),IsEnabled=false};
             var footer=new StackPanel {Margin=new Thickness(0,10,0,0)};DockPanel.SetDock(footer,Dock.Bottom);root.Children.Add(footer);
             var selectedStatus=new TextBlock {TextWrapping=TextWrapping.Wrap,Margin=new Thickness(0,0,0,6)};footer.Children.Add(selectedStatus);
-            footer.Children.Add(new TextBlock {Text=language.T("Each row is one process. Closing an app may also close its child processes."),TextWrapping=TextWrapping.Wrap,FontSize=11,Opacity=0.85});
-            footer.Children.Add(new TextBlock {Text=language.T("RAM is resident memory. GPU values are estimates and may include shared resources; — means unavailable."),TextWrapping=TextWrapping.Wrap,FontSize=11,Opacity=0.85});
+            footer.Children.Add(new TextBlock {Text=language.T("Apps are grouped by executable. Expand a group to see its processes; only available normal-close windows receive requests."),TextWrapping=TextWrapping.Wrap,FontSize=11,Opacity=0.85});
+            footer.Children.Add(new TextBlock {Text=language.T("RAM/GPU sums may count shared resources more than once. * means some GPU readings are missing; — means unavailable."),TextWrapping=TextWrapping.Wrap,FontSize=11,Opacity=0.85});
             var actions=new WrapPanel {Margin=new Thickness(0,10,0,0)};footer.Children.Add(actions);
             var close=new Button {Content=language.T("Close Selected Apps"),IsEnabled=false,Margin=new Thickness(0,0,0,4)};actions.Children.Add(suggestedClose);actions.Children.Add(close);
             var actionStyle=new Style(typeof(Button),window.FindResource(typeof(Button)) as Style);var disabledAction=new Trigger {Property=UIElement.IsEnabledProperty,Value=false};disabledAction.Setters.Add(new Setter(UIElement.OpacityProperty,0.45));actionStyle.Triggers.Add(disabledAction);
@@ -94,13 +114,24 @@ namespace HardwarePulse {
             checkStyle.Setters.Add(new Setter(FrameworkElement.HorizontalAlignmentProperty,HorizontalAlignment.Center));checkStyle.Setters.Add(new Setter(FrameworkElement.VerticalAlignmentProperty,VerticalAlignment.Center));
             var check=new FrameworkElementFactory(typeof(CheckBox));check.SetBinding(CheckBox.IsCheckedProperty,new Binding("IsSelected") {RelativeSource=new RelativeSource(RelativeSourceMode.FindAncestor,typeof(ListViewItem),1),Mode=BindingMode.TwoWay});
             check.SetValue(FrameworkElement.StyleProperty,checkStyle);
+            check.SetBinding(UIElement.VisibilityProperty,new Binding("CheckVisibility"));
             check.SetBinding(UIElement.IsEnabledProperty,new Binding("CanClose"));check.SetBinding(AutomationProperties.NameProperty,new Binding("Name"));
             columns.Columns.Add(new GridViewColumn {Header="",CellTemplate=new DataTemplate {VisualTree=check},Width=28});
             foreach(var entry in new[]{new[]{"App","Name"},new[]{"RAM","Ram"},new[]{"GPU (estimate)","Gpu"}}){
                 var text=new FrameworkElementFactory(typeof(TextBlock));text.SetBinding(TextBlock.TextProperty,new Binding(entry[1]));
                 text.SetValue(FrameworkElement.HorizontalAlignmentProperty,entry[1]=="Name"?HorizontalAlignment.Left:HorizontalAlignment.Right);
                 text.SetValue(TextBlock.TextWrappingProperty,TextWrapping.NoWrap);text.SetValue(TextBlock.TextTrimmingProperty,TextTrimming.CharacterEllipsis);
-                columns.Columns.Add(new GridViewColumn {Header=new GridViewColumnHeader {Content=language.T(entry[0]),Tag=entry[1]},CellTemplate=new DataTemplate {VisualTree=text},Width=entry[1]=="Name"?260:entry[1]=="Gpu"?130:80});
+                FrameworkElementFactory cell=text;
+                if(entry[1]=="Name"){
+                    cell=new FrameworkElementFactory(typeof(DockPanel));
+                    var expand=new FrameworkElementFactory(typeof(Button));expand.SetValue(FrameworkElement.NameProperty,"ResourceExpand");expand.SetValue(DockPanel.DockProperty,Dock.Left);
+                    expand.SetValue(FrameworkElement.WidthProperty,22.0);expand.SetValue(FrameworkElement.HeightProperty,20.0);expand.SetValue(System.Windows.Controls.Control.PaddingProperty,new Thickness(0));
+                    expand.SetBinding(System.Windows.Controls.Control.ForegroundProperty,new Binding("Foreground") {RelativeSource=new RelativeSource(RelativeSourceMode.FindAncestor,typeof(ListViewItem),1)});
+                    expand.SetBinding(ContentControl.ContentProperty,new Binding("Disclosure"));expand.SetBinding(UIElement.VisibilityProperty,new Binding("ExpandVisibility"));
+                    expand.SetValue(FrameworkElement.ToolTipProperty,language.T("Show or hide processes"));expand.SetBinding(AutomationProperties.NameProperty,new Binding("Name"));
+                    cell.AppendChild(expand);cell.AppendChild(text);
+                }
+                columns.Columns.Add(new GridViewColumn {Header=new GridViewColumnHeader {Content=language.T(entry[0]),Tag=entry[1]},CellTemplate=new DataTemplate {VisualTree=cell},Width=entry[1]=="Name"?260:entry[1]=="Gpu"?130:80});
             }
             var rowStyle=new Style(typeof(ListViewItem));rowStyle.Setters.Add(new Setter(FrameworkElement.ToolTipProperty,new Binding("Tooltip")));rowStyle.Setters.Add(new Setter(System.Windows.Controls.Control.PaddingProperty,new Thickness(4,5,4,5)));list.ItemContainerStyle=rowStyle;
             rowStyle.Setters.Add(new Setter(System.Windows.Controls.Control.HorizontalContentAlignmentProperty,HorizontalAlignment.Stretch));
@@ -128,31 +159,42 @@ namespace HardwarePulse {
             };
             list.SizeChanged+=delegate{double available=Math.Max(160,list.ActualWidth-36);bool narrow=available<400;columns.Columns[0].Width=24;columns.Columns[2].Width=narrow?56:80;columns.Columns[3].Width=narrow?60:130;columns.Columns[1].Width=Math.Max(20,available-columns.Columns[0].Width-columns.Columns[2].Width-columns.Columns[3].Width);};
             bool busy=false,descending=true;int sortIndex=gpu?1:0;AppResourceProcess[] snapshot=null;AppResourceProcess[] suggestions=new AppResourceProcess[0];
-            Func<ResourceRow[]> selected=()=>list.SelectedItems.Cast<ResourceRow>().Where(r=>r.Process.CanClose).OrderBy(r=>r.Process.Pid).ToArray();
+            var expanded=new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            Func<ResourceRow[]> selected=()=>list.SelectedItems.Cast<ResourceRow>().Where(r=>r.CanClose).OrderBy(r=>r.Process.Pid).ToArray();
             Action selection=delegate{var rows=selected();close.IsEnabled=!busy&&rows.Length>0;selectedStatus.Text=rows.Length==0?language.T("Check apps to close. Nothing is selected automatically."):language.T("Selected apps")+": "+rows.Length+" · "+language.T("Save work before closing.");};
             bool normalizingSelection=false;
             list.SelectionChanged+=delegate(object sender,SelectionChangedEventArgs e){
                 if(normalizingSelection)return;
-                var unavailable=e.AddedItems.Cast<ResourceRow>().Where(r=>!r.Process.CanClose).ToArray();
+                var unavailable=e.AddedItems.Cast<ResourceRow>().Where(r=>!r.CanClose).ToArray();
                 if(unavailable.Length>0){normalizingSelection=true;try{foreach(var row in unavailable)list.SelectedItems.Remove(row);}finally{normalizingSelection=false;}}
                 selection();
-                if(unavailable.Length>0)selectedStatus.Text=language.T("Normal close is unavailable for this process. Exit its app from the app or system tray.")+(selected().Length>0?" "+language.T("Selected apps")+": "+selected().Length:"");
+                if(unavailable.Length>0)selectedStatus.Text=language.T(unavailable.All(r=>r.IsDetail)?"Select the app group to request normal close. Process details are read-only.":"No normal-close window is available. Open or exit this app from its own menu or system tray.")+(selected().Length>0?" "+language.T("Selected apps")+": "+selected().Length:"");
             };
             Action sortSnapshot=delegate{
                 if(snapshot==null)return;
-                var identities=new HashSet<string>(selected().Select(r=>r.Process.Pid+":"+r.Process.StartedUtcTicks));
-                IOrderedEnumerable<AppResourceProcess> ordered;
-                if(sortIndex==2)ordered=descending?snapshot.OrderByDescending(p=>p.Name,StringComparer.OrdinalIgnoreCase):snapshot.OrderBy(p=>p.Name,StringComparer.OrdinalIgnoreCase);
-                else if(sortIndex==1)ordered=snapshot.OrderBy(p=>p.GpuBytes.HasValue?0:1).ThenBy(p=>descending?-(p.GpuBytes??0):p.GpuBytes??0);
-                else ordered=descending?snapshot.OrderByDescending(p=>p.RamBytes):snapshot.OrderBy(p=>p.RamBytes);
+                var identities=new HashSet<string>(selected().Select(r=>r.Group.Key),StringComparer.OrdinalIgnoreCase);
+                var groups=ResourceGroup.Build(snapshot);IOrderedEnumerable<ResourceGroup> ordered;
+                if(sortIndex==2)ordered=descending?groups.OrderByDescending(p=>p.Name,StringComparer.OrdinalIgnoreCase):groups.OrderBy(p=>p.Name,StringComparer.OrdinalIgnoreCase);
+                else if(sortIndex==1)ordered=groups.OrderBy(p=>p.GpuBytes.HasValue?0:1).ThenBy(p=>descending?-(p.GpuBytes??0):p.GpuBytes??0);
+                else ordered=descending?groups.OrderByDescending(p=>p.RamBytes):groups.OrderBy(p=>p.RamBytes);
                 suggestions=WindowsAppResources.ReviewCandidates(snapshot,sortIndex==1);var recommended=new HashSet<AppResourceProcess>(suggestions);
-                var rows=ordered.ThenBy(p=>p.Name,StringComparer.OrdinalIgnoreCase).ThenBy(p=>p.Pid).Select(p=>new ResourceRow {Process=p,Action=language.T(recommended.Contains(p)?"Review if unused: high usage, normal close available. Keep it if you still need it.":p.CanClose?"Close available":"Normal close is unavailable for this process. Exit its app from the app or system tray.")}).ToArray();
-                list.ItemsSource=rows;foreach(var row in rows)if(identities.Contains(row.Process.Pid+":"+row.Process.StartedUtcTicks))list.SelectedItems.Add(row);
-                candidates.Text=suggestions.Length==0?language.T("No high-usage close candidates in this snapshot."):language.T("Review if unused")+": "+string.Join(", ",suggestions.Select(p=>p.Name));
+                var rows=new List<ResourceRow>();
+                foreach(var group in ordered.ThenBy(p=>p.Name,StringComparer.OrdinalIgnoreCase).ThenBy(p=>p.Processes[0].Pid)){
+                    var first=group.Processes[0];string action=language.T(group.Processes.Any(recommended.Contains)?"Review if unused: high usage, normal close available. Keep it if you still need it.":group.CloseTargets.Length>0?"Close available":"No normal-close window is available. Open or exit this app from its own menu or system tray.");
+                    rows.Add(new ResourceRow {Group=group,Process=first,Name=group.Processes.Length==1?first.Name+" · "+first.Pid:group.Name+" · "+group.Processes.Length+" "+language.T("processes"),Action=action,Disclosure=expanded.Contains(group.Key)?"▾":"▸"});
+                    if(expanded.Contains(group.Key))foreach(var process in group.Processes)rows.Add(new ResourceRow {Group=group,Process=process,IsDetail=true,Name="    "+process.Name+" · "+process.Pid,Action=language.T("Select the app group to request normal close. Process details are read-only.")});
+                }
+                list.ItemsSource=rows;foreach(var row in rows)if(row.CanClose&&identities.Contains(row.Group.Key))list.SelectedItems.Add(row);
+                candidates.Text=suggestions.Length==0?language.T("No high-usage close candidates in this snapshot."):language.T("Review if unused")+": "+string.Join(", ",suggestions.Select(p=>p.Name).Distinct(StringComparer.OrdinalIgnoreCase));
                 candidates.ToolTip=suggestions.Length==0?null:language.T("Suggestions use reported usage, not proof that an app is unused. Foreground and Windows shell/input apps are excluded.")+Environment.NewLine+string.Join(Environment.NewLine,suggestions.Select(p=>p.Name+" · RAM "+ResourceBytes(p.RamBytes)+" · GPU "+(p.GpuBytes.HasValue?ResourceBytes(p.GpuBytes.Value):"—")));
                 suggestedClose.IsEnabled=!busy&&suggestions.Length>0;
                 for(int i=1;i<columns.Columns.Count;i++){var header=(GridViewColumnHeader)columns.Columns[i].Header;bool active=sortIndex==(i==1?2:i==2?0:1);header.Content=language.T(i==1?"App":i==2?"RAM":"GPU")+(active?(descending?" ↓":" ↑"):"");header.ToolTip=language.T(i==3?"GPU (estimate)":"Click to sort; click again to reverse.");}selection();
             };
+            list.AddHandler(Button.ClickEvent,new RoutedEventHandler(delegate(object sender,RoutedEventArgs e){
+                var button=e.OriginalSource as Button;var row=button==null?null:button.DataContext as ResourceRow;
+                if(button==null||button.Name!="ResourceExpand"||row==null||row.IsDetail||busy)return;
+                if(!expanded.Add(row.Group.Key))expanded.Remove(row.Group.Key);sortSnapshot();e.Handled=true;
+            }));
             resourcesSort=delegate(bool byGpu){sortIndex=byGpu?1:0;descending=true;sortSnapshot();};
             list.AddHandler(GridViewColumnHeader.ClickEvent,new RoutedEventHandler(delegate(object sender,RoutedEventArgs e){var header=e.OriginalSource as GridViewColumnHeader;if(header==null||header.Tag==null||busy)return;int index=(string)header.Tag=="Name"?2:(string)header.Tag=="Ram"?0:1;if(sortIndex==index)descending=!descending;else{sortIndex=index;descending=index!=2;}sortSnapshot();}));
             Func<Task> refreshSnapshot=async delegate{
@@ -169,28 +211,27 @@ namespace HardwarePulse {
                 finally{if(pending!=null&&object.ReferenceEquals(resourceReadTask,pending)&&pending.IsCompleted)resourceReadTask=null;if(resourcesView==root){busy=false;refresh.IsEnabled=true;suggestedClose.IsEnabled=suggestions.Length>0;selection();}}
             };
             refresh.Click+=async delegate{await refreshSnapshot();};
-            Func<ResourceRow[],string,Task> closeRows=async (rows,title)=>{
+            Func<AppResourceProcess[],string,Task> closeRows=async (rows,title)=>{
                 if(busy||rows.Length==0)return;
                 busy=true;refresh.IsEnabled=false;suggestedClose.IsEnabled=false;list.IsEnabled=false;selection();
                 try{
-                    string prompt=language.T("Send normal close requests to these selected apps? Save your work first. Each app may show a save prompt or refuse to close.")+"\n\n"+string.Join("\n",rows.Take(12).Select(r=>r.Name));
-                    if(rows.Length>12)prompt+="\n… "+language.T("Selected apps")+": "+rows.Length;
+                    string prompt=language.T("Send normal close requests to these selected apps? Save your work first. Each app may show a save prompt or refuse to close.")+"\n\n"+string.Join("\n",rows.Select(r=>r.Name+" · "+r.Pid));
                     if(!confirmResourceApps(window,prompt,title))return;
                     int requested=0,unavailable=0;
                     foreach(var row in rows){
                         if(disposed||resourcesView!=root)break;
                         status.Text=language.T("Requesting app close…")+" "+row.Name;
-                        var result=await Task.Run(()=>closeResourceApp(row.Process));
+                        var result=await Task.Run(()=>closeResourceApp(row));
                         if(result==AppCloseResult.Requested)requested++;else unavailable++;
-                        row.Process.CanClose=false;
+                        row.CanClose=false;
                     }
                     if(disposed||resourcesView!=root)return;
                     list.SelectedItems.Clear();sortSnapshot();status.Text=language.T("Close requests sent")+": "+requested+" · "+language.T("Unavailable")+": "+unavailable+". "+language.T("Complete app prompts, then Refresh to check usage.");
                 }catch{if(resourcesView==root)status.Text=language.T("The app could not be closed. It may have exited, denied access or opened a dialog.");}
                 finally{if(resourcesView==root){busy=false;refresh.IsEnabled=true;list.IsEnabled=true;suggestedClose.IsEnabled=suggestions.Length>0;selection();}}
             };
-            close.Click+=async delegate{await closeRows(selected(),language.T("Close Selected Apps"));};
-            suggestedClose.Click+=async delegate{await closeRows(list.Items.Cast<ResourceRow>().Where(r=>suggestions.Contains(r.Process)&&r.Process.CanClose).OrderBy(r=>r.Process.Pid).ToArray(),language.T("Close Suggested Apps"));};
+            close.Click+=async delegate{await closeRows(selected().SelectMany(r=>r.Group.CloseTargets).GroupBy(p=>p.Pid+":"+p.StartedUtcTicks).Select(g=>g.First()).OrderBy(p=>p.Pid).ToArray(),language.T("Close Selected Apps"));};
+            suggestedClose.Click+=async delegate{await closeRows(suggestions.Where(p=>p.CanClose).OrderBy(p=>p.Pid).ToArray(),language.T("Close Suggested Apps"));};
             root.PreviewKeyDown+=delegate(object sender,KeyEventArgs e){if(e.Key==Key.Escape){ShowMonitor();Control<Button>("MonitorTab").Focus();e.Handled=true;}};
             resourcesTeardown=delegate{page.SizeChanged-=pageSize;snapshot=null;list.ItemsSource=null;};
             resourcesAppearance();selection();refreshSnapshot();

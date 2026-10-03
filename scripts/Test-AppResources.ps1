@@ -23,6 +23,7 @@ public static class AppResourceViewFixture {
     public static readonly ManualResetEventSlim Gate=new ManualResetEventSlim(true);
     public static readonly ManualResetEventSlim CloseGate=new ManualResetEventSlim(true);
     public static bool Confirm=true;
+    public static bool Grouping;
     public static int Confirmations,Closes;
     public static string Prompt;
     public static readonly List<int> ClosedPids=new List<int>();
@@ -34,6 +35,21 @@ public static class AppResourceViewFixture {
     public static AppResourceSnapshot Read(){
         Interlocked.Increment(ref Calls);
         if(!Gate.Wait(3000))throw new Exception("Fixture snapshot gate timed out");
+        if(Grouping)return new AppResourceSnapshot {
+            Ram=new RamUsage {totalGb=16,usedGb=8},GpuAvailable=true,
+            Processes=new[]{
+                new AppResourceProcess {Name="Browser fixture",ExecutablePath=@"C:\Fixture\Browser.exe",Pid=201,StartedUtcTicks=201,RamBytes=104857600,GpuBytes=0,CanClose=true},
+                new AppResourceProcess {Name="Browser fixture",ExecutablePath=@"c:\fixture\browser.EXE",Pid=202,StartedUtcTicks=202,RamBytes=209715200,GpuBytes=134217728,CanClose=false},
+                new AppResourceProcess {Name="Browser fixture",ExecutablePath=@"C:\Fixture\Browser.exe",Pid=203,StartedUtcTicks=203,RamBytes=314572800,GpuBytes=null,CanClose=false},
+                new AppResourceProcess {Name="Browser fixture",ExecutablePath=@"C:\OtherFixture\Browser.exe",Pid=204,StartedUtcTicks=204,RamBytes=1048576,GpuBytes=0,CanClose=true},
+                new AppResourceProcess {Name="Browser fixture",ExecutablePath=@"C:\Fixture\Browser.exe",Pid=205,StartedUtcTicks=205,RamBytes=0,GpuBytes=0,CanClose=true},
+                new AppResourceProcess {Name="Unknown fixture",Pid=301,StartedUtcTicks=301,RamBytes=0,GpuBytes=null,CanClose=false},
+                new AppResourceProcess {Name="Unknown fixture",Pid=302,StartedUtcTicks=302,RamBytes=0,GpuBytes=null,CanClose=false},
+                new AppResourceProcess {Name="Overflow fixture",ExecutablePath=@"C:\Fixture\Overflow.exe",Pid=401,StartedUtcTicks=401,RamBytes=long.MaxValue,GpuBytes=long.MaxValue,CanClose=false},
+                new AppResourceProcess {Name="Overflow fixture",ExecutablePath=@"C:\Fixture\Overflow.exe",Pid=402,StartedUtcTicks=402,RamBytes=1,GpuBytes=1,CanClose=false},
+                new AppResourceProcess {Name="Overflow fixture",ExecutablePath=@"C:\Fixture\Overflow.exe",Pid=402,StartedUtcTicks=402,RamBytes=1,GpuBytes=1,CanClose=false}
+            }
+        };
         return new AppResourceSnapshot {
             Ram=new RamUsage {totalGb=16,usedGb=8},GpuAvailable=true,
             Processes=new[]{
@@ -76,6 +92,12 @@ function FindCellText($node,$text){
     if($node -is [Windows.Controls.TextBlock] -and $node.Text -eq $text){return ,$node}
     for($i=0;$i -lt [Windows.Media.VisualTreeHelper]::GetChildrenCount($node);$i++){
         $found=FindCellText ([Windows.Media.VisualTreeHelper]::GetChild($node,$i)) $text;if($null -ne $found){return ,$found}
+    }
+}
+function FindExpand($node){
+    if($node -is [Windows.Controls.Button] -and $node.Name -eq 'ResourceExpand'){return ,$node}
+    for($i=0;$i -lt [Windows.Media.VisualTreeHelper]::GetChildrenCount($node);$i++){
+        $found=FindExpand ([Windows.Media.VisualTreeHelper]::GetChild($node,$i));if($null -ne $found){return ,$found}
     }
 }
 function Luminance($color){
@@ -131,7 +153,7 @@ try {
     $list.SelectedIndex=0;Pump;Assert (-not $close.IsEnabled) 'Background process must not enable close'
     Capture $shell.Window 'resources-unavailable-selection.png'
     Assert ($list.SelectedItems.Count -eq 0 -and -not $firstBox.IsChecked) 'Unavailable row must not appear checked while close is disabled'
-    Assert ($window.FindName('ResourceSelectionStatus').Text -match 'Normal close is unavailable' -and $close.Opacity -lt 0.6) 'Unavailable close must explain its disabled state'
+    Assert ($window.FindName('ResourceSelectionStatus').Text -match 'No normal-close window' -and $close.Opacity -lt 0.6) 'Unavailable close must explain its disabled state'
     $list.SelectedIndex=1;Pump;Assert ($close.IsEnabled) 'Closeable fixture selection not enabled'
     Assert ($close.Opacity -eq 1 -and $window.FindName('ResourceSelectionStatus').Text -match 'Selected apps: 1') 'Eligible selection must visibly enable close and update its count'
     AssertSelectedAppearance $list
@@ -249,7 +271,43 @@ try {
     Assert ([AppResourceViewFixture]::Calls -eq $before+1) 'Shared read result started another snapshot'
     LeaveResources
     WaitUntil {$null -eq $shell.GetType().GetField('resourceReadTask',$flags).GetValue($shell)}
-    'PASS Resources tab: eligible-only checks, unavailable explanation/disabled feedback, readable selected cells in focused/unfocused dark/light/transparent views, same App window, Settings/Back, sort without resampling, batch cancel/duplicate/stale results and page teardown, three languages/narrow views and pending read reuse; synthetic close callbacks only.'
+    # Grouped app selection is synthetic: no live process receives a close request.
+    $picker=$shell.Window.FindName('LanguagePicker');foreach($item in $picker.Items){if($item.Tag -eq 'en'){$picker.SelectedItem=$item}}
+    [AppResourceViewFixture]::Grouping=$true
+    $window=OpenResources $false;$list=$window.FindName('ResourceList');$refresh=$window.FindName('ResourceRefresh');$close=$window.FindName('ResourceClose')
+    WaitUntil {$refresh.IsEnabled -and $list.Items.Count -eq 5}
+    $overflow=@($list.Items | Where-Object {$_.Process.Pid -eq 401})[0]
+    Assert ($overflow.Group.RamBytes -eq [long]::MaxValue -and $overflow.Group.GpuBytes -eq [long]::MaxValue -and $overflow.Group.Processes.Length -eq 2) 'Group sums must saturate and ignore duplicate process identities'
+    $browser=@($list.Items | Where-Object {$_.Process.Pid -eq 201})[0]
+    Assert ($browser.Name -eq 'Browser fixture · 4 processes' -and $browser.Ram -eq '600 MB' -and $browser.Gpu -eq '128 MB *' -and $browser.CanClose) 'Exact executable grouping, sums or partial GPU indicator failed'
+    Assert (@($list.Items | Where-Object {$_.Name -like 'Unknown fixture*'}).Count -eq 2) 'Missing executable paths must stay ungrouped'
+    Assert (@($list.Items | Where-Object {$_.Process.Pid -eq 204}).Count -eq 1) 'Same name at another executable path must remain separate'
+    $list.SelectedItem=$browser;Pump;AssertSelectedAppearance $list
+    $before=[AppResourceViewFixture]::Calls;$list.UpdateLayout()
+    $expand=FindExpand ($list.ItemContainerGenerator.ContainerFromItem($browser));Assert ($expand -and $expand.IsVisible) 'Grouped row needs a disclosure control'
+    Click $expand
+    Assert ($list.Items.Count -eq 9 -and [AppResourceViewFixture]::Calls -eq $before -and $list.SelectedItems.Count -eq 1) 'Expansion must preserve group selection without resampling'
+    $detail=@($list.Items | Where-Object {$_.IsDetail -and $_.Process.Pid -eq 202})[0]
+    $list.UpdateLayout();$box=FindCheckbox ($list.ItemContainerGenerator.ContainerFromItem($detail))
+    Assert ($detail.Name -match '202' -and $detail.Ram -eq '200 MB' -and -not $detail.CanClose -and $box.Visibility -eq [Windows.Visibility]::Hidden) 'Child process details must remain read-only'
+    $list.SelectedItems.Add($detail);Pump
+    Assert ($list.SelectedItems.Count -eq 1 -and $window.FindName('ResourceSelectionStatus').Text -match 'read-only') 'Child row must not become a close target'
+    Capture $shell.Window 'resources-grouped-expanded.png'
+    Click ($list.View.Columns[3].Header)
+    Assert ($list.Items[0].Process.Pid -eq 401 -and $list.Items[8].Gpu -eq '—' -and $list.SelectedItem.Process.Pid -eq 201) 'GPU group sort must preserve expansion and selection, unavailable last'
+    Click ($list.View.Columns[3].Header)
+    Assert ($list.Items[0].Process.Pid -eq 204 -and $list.Items[8].Gpu -eq '—') 'GPU ascending must use group totals with unavailable last'
+    $browser=$list.SelectedItem;$list.UpdateLayout();Click (FindExpand ($list.ItemContainerGenerator.ContainerFromItem($browser)))
+    Assert ($list.Items.Count -eq 5 -and $list.SelectedItems.Count -eq 1) 'Collapse must preserve selected group'
+    Assert ([AppResourceViewFixture]::Calls -eq $before) 'Group sorting/collapse must not resample'
+    Capture $shell.Window 'resources-grouped.png'
+    $closedBefore=[AppResourceViewFixture]::Closes;[AppResourceViewFixture]::Confirm=$false;Click $close
+    Assert ([AppResourceViewFixture]::Closes -eq $closedBefore -and [AppResourceViewFixture]::Prompt -match '201' -and [AppResourceViewFixture]::Prompt -match '205' -and [AppResourceViewFixture]::Prompt -notmatch '202|203|204') 'Group confirmation must name only its eligible targets; cancel dispatches nothing'
+    [AppResourceViewFixture]::Confirm=$true;Click $close;WaitUntil {$refresh.IsEnabled}
+    Assert ([AppResourceViewFixture]::Closes -eq $closedBefore+2 -and [AppResourceViewFixture]::ClosedPids[-2] -eq 201 -and [AppResourceViewFixture]::ClosedPids[-1] -eq 205) 'Group closing must exclude GPU helpers, read-only children and another executable'
+    Assert ($list.SelectedItems.Count -eq 0 -and -not $close.IsEnabled) 'Group close must clear stale eligibility'
+    LeaveResources
+    'PASS Resources tab: executable grouping, aggregate sorting, partial GPU sums, read-only expansion, exact grouped close targets, eligible-only checks, readable selection, navigation, cancellation/duplicate/stale results and teardown, three languages/narrow views and pending read reuse; synthetic close callbacks only.'
     'Visual artifacts: '+$state
 } finally {
     [AppResourceViewFixture]::Gate.Set();[AppResourceViewFixture]::CloseGate.Set();$shell.Dispose()

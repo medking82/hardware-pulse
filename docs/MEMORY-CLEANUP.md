@@ -6,8 +6,12 @@
 
 The main Resources tab opens a shared usage page. It takes an on-demand snapshot
 of processes in the current Windows user's interactive session, with RAM working
-set and optional reported dedicated GPU memory. Rows represent processes, not
-aggregated application totals. Refresh takes another snapshot;
+set and optional reported dedicated GPU memory. Rows group the same process name
+and exact executable path (case-insensitive); different installations remain separate.
+Missing paths stay as individual process rows. Expand a group for read-only PID details.
+RAM and GPU sorting use group sums; sums may count shared resources multiple times
+and do not promise reclaimable memory. A GPU subtotal with missing readings is marked
+with `*`; all unavailable readings remain `—`. Refresh takes another snapshot;
 there is no background sampling timer, remote AI request or persisted process list.
 RAM/GPU sorting reuses the snapshot. Clicking the active tab retains the current sort.
 Click App, RAM or GPU column headers to change the numeric/alphabetic order;
@@ -32,8 +36,11 @@ headroom, not a guess that a large app is unused. Missing, non-finite or inconsi
 memory readings never produce a "cleanup unnecessary" recommendation.
 CPU, RAM and GPU monitoring in the elevated Collector remain read-only.
 
-The user checks one or more apps and confirms a single named batch of normal
-close requests. Cancellation dispatches nothing; requests are processed one at a
+The user checks one or more app groups and confirms a single named batch of normal
+close requests, with each eligible process name and PID shown. Group selection includes
+only already eligible normal-close targets; details cannot be selected for closing.
+Suggestions retain the existing per-process eligibility and thresholds and never
+expand to other group members. Cancellation dispatches nothing; requests are processed one at a
 time without automatic retry. Leaving Resources or hiding this window stops undispatched requests.
 Processes without an available normal-close window remain visible for usage, but
 cannot be checked. Clicking one shows an explanation to exit its app from the app
@@ -42,7 +49,10 @@ Selected rows use an opaque theme-matched surface and contrasting text even when
 the App background is transparent. Disabled action buttons are visibly dimmed.
 Each result reports requested/unavailable counts, not reclaimed memory. Before each dispatch,
 the Windows adapter revalidates its process creation time, user, session and main
-window. Pulse and the Windows shell are excluded. No main window, access denial,
+window. Pulse and the Windows shell are excluded. Grouping does not route child
+process requests to parents, hidden message windows or tray commands. Chrome/Electron
+GPU helpers therefore contribute usage without becoming close targets; tray-only apps
+must be opened or exited through their own menu. No main window, access denial,
 exit or identity change makes the action unavailable. No process is force-killed,
 no UAC elevation is requested, and no service, driver, cache or working set is
 purged. App save prompts and refusal remain authoritative. A successful request
@@ -72,11 +82,25 @@ never closes a user app. It covers tab entry, Settings/Back navigation, checkbox
 numeric/alphabetic sorting without another read, invalid RAM, candidate and manual
 batch confirmation/cancellation, duplicate clicks, stale results, background opacity,
 localization, narrow layout, light/dark rendering and in-flight page teardown.
+Group fixtures cover exact executable identity, missing paths, sums, partial GPU readings,
+expansion without resampling, group sorting and explicit close-target boundaries.
 `scripts/Validate.ps1` remains the pre-commit check. Cross-process actions require
 one independent frozen-diff review after deterministic checks. Classification is
 high risk when changing the normal close dispatch cross-process action boundary.
 The 0.6.49 navigation and layout change preserves that adapter boundary and is
 classified as routine, with deterministic UI and affected regression checks.
+
+## Grouping change guardrails
+
+The entry point is the Resources snapshot; `WindowsAppResources.Read` supplies optional
+query-only executable metadata and `AppResources.ResourceGroup` projects it locally.
+The snapshot remains authoritative and ephemeral. Sorting and disclosure do not read
+again, and Refresh clears selection. Only Native presentation, the Windows observation
+adapter, their tests and documentation are in scope. No Collector, Core, FPS, persisted
+settings, elevated action, force termination or candidate-policy change is included.
+Existing process identity, session, user and window checks still run per dispatch.
+The synthetic UI test and adapter child-window fixtures precede full `Validate.ps1`;
+the grouped close selection receives one independent frozen-diff review before release.
 
 ## Primary sources
 

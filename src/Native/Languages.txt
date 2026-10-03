@@ -108,7 +108,7 @@ Leave a name blank to use device information. Hover over a field to see its auto
 SPD numbers identify sensor addresses, not physical slots. Installed slots are reported separately; assign a slot name only after confirming its sensor.|SPD 编号代表传感器地址，并非实体插槽。已安装插槽单独显示；确认对应关系后再命名。|SPD 編號代表感測器位址，並非實體插槽。已安裝插槽單獨顯示；確認對應關係後再命名。
 Changes save automatically.|更改自动保存。|變更自動儲存。
 About Pulse|关于 Pulse|關於 Pulse
-Version 0.6.50 · Marck Wong|版本 0.6.50 · Marck Wong|版本 0.6.50 · Marck Wong
+Version 0.6.51 · Marck Wong|版本 0.6.51 · Marck Wong|版本 0.6.51 · Marck Wong
 Sensors by LibreHardwareMonitor. Shared driver by PawnIO.|传感器：LibreHardwareMonitor。共享驱动：PawnIO。|感測器：LibreHardwareMonitor。共用驅動程式：PawnIO。
 Language|语言 / Language|語言 / Language
 Minimize|最小化|最小化
@@ -368,3 +368,9 @@ Resources|资源管理|資源管理
 Monitor|监控|監控
 Click to sort; click again to reverse.|点击排序；再次点击切换升降序。|點擊排序；再次點擊切換升降序。
 Normal close is unavailable for this process. Exit its app from the app or system tray.|此 process 无法正常关闭。请通过 App 或 system tray 退出对应 App。|此 process 無法正常關閉。請透過 App 或 system tray 結束對應 App。
+Apps are grouped by executable. Expand a group to see its processes; only available normal-close windows receive requests.|按 executable 分组，展开可查看各 process；仅向支持正常关闭的窗口发送请求。|依 executable 分組，展開可查看各 process；僅向支援正常關閉的視窗發送要求。
+RAM/GPU sums may count shared resources more than once. * means some GPU readings are missing; — means unavailable.|RAM/GPU 合计可能重复计算共享资源。* 表示部分 GPU 读数缺失；— 表示无法获取。|RAM/GPU 合計可能重複計算共用資源。* 表示部分 GPU 讀數缺失；— 表示無法取得。
+Show or hide processes|展开或收起 processes|展開或收起 processes
+processes|processes|processes
+Select the app group to request normal close. Process details are read-only.|请勾选 App 分组请求正常关闭。process 明细仅供查看。|請勾選 App 分組要求正常關閉。process 明細僅供查看。
+No normal-close window is available. Open or exit this app from its own menu or system tray.|没有可正常关闭的窗口。请从 App 自身菜单或 system tray 打开或退出。|沒有可正常關閉的視窗。請從 App 自身選單或 system tray 開啟或結束。

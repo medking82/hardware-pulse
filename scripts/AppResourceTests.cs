@@ -15,7 +15,7 @@ static class AppResourceTests {
     static void Check(bool value,string message){if(!value)throw new Exception(message);}
     static bool WaitUntil(Func<bool> condition,int timeout){var wait=Stopwatch.StartNew();while(wait.ElapsedMilliseconds<timeout){if(condition())return true;Thread.Sleep(25);}return condition();}
     static AppResourceProcess Candidate(int pid,string name,long ram,long? gpu){return new AppResourceProcess {Pid=pid,StartedUtcTicks=100+pid,Name=name,RamBytes=ram,GpuBytes=gpu,CanClose=true};}
-    static string CandidateState(AppResourceProcess row){return row==null?"null":string.Join("|",new object[]{row.Pid,row.StartedUtcTicks,row.Name,row.RamBytes,row.GpuBytes,row.CanClose,row.IsForeground});}
+    static string CandidateState(AppResourceProcess row){return row==null?"null":string.Join("|",new object[]{row.Pid,row.StartedUtcTicks,row.Name,row.RamBytes,row.GpuBytes,row.CanClose,row.IsForeground,row.ExecutablePath});}
     static void TestReviewCandidates(){
         const long ram=536870912L,gpu=134217728L;
         var boundary=Candidate(1,"Zulu",ram,gpu);var below=Candidate(5,"Below",ram-1,gpu-1);
@@ -65,6 +65,9 @@ static class AppResourceTests {
             }
         }
         TestReviewCandidates();
+        var imagePath=typeof(WindowsAppResources).GetMethod("ReadExecutablePath",BindingFlags.Static|BindingFlags.NonPublic);
+        Check((string)imagePath.Invoke(null,new object[]{0})==string.Empty,"Invalid PID path must stay unavailable");
+        Check((string)imagePath.Invoke(null,new object[]{-1})==string.Empty,"Negative PID path must stay unavailable");
         int pid;
         Check(WindowsAppResources.TryGpuInstance("pid_42_luid_0x00000000_0x00001234_phys_0",100,out pid)&&pid==42,"GPU instance PID parse");
         Check(!WindowsAppResources.TryGpuInstance("pid_42_luid_invalid",100,out pid),"Unknown GPU instance must stay unavailable");
@@ -85,6 +88,7 @@ static class AppResourceTests {
                 var snapshot=WindowsAppResources.Read();var observed=snapshot.Processes.SingleOrDefault(p=>p.Pid==child.Id);
                 Check(observed!=null&&observed.CanClose!=blocked&&observed.StartedUtcTicks==row.StartedUtcTicks,"Current-user fixture listed with identity and enabled state");
                 Check(observed.RamBytes>0,"Resident RAM observed");
+                Check(string.Equals(observed.ExecutablePath,Assembly.GetExecutingAssembly().Location,StringComparison.OrdinalIgnoreCase),"Isolated fixture exposes its exact executable path for local grouping");
                 if(blocked){
                     Check(WindowsAppResources.RequestClose(observed)==AppCloseResult.NotAllowed,"Disabled snapshot cannot dispatch close");
                     Check(WindowsAppResources.RequestClose(row)==AppCloseResult.Unavailable,"Fresh disabled/modal window rejects stale enabled selection");
@@ -101,7 +105,7 @@ static class AppResourceTests {
                 }
             }finally{if(!child.HasExited)Check(child.WaitForExit(12000),"Test-owned fixture must exit on its own lifetime timer");}
         }
-        Console.WriteLine("PASS app resources: candidate thresholds/ranking/exclusions without mutation, isolated close/refusal, disabled/modal rejection, identity guard, own-host exclusion, RAM observations and GPU parse bounds; no user app touched");
+        Console.WriteLine("PASS app resources: optional local executable metadata without path diagnostics, candidate thresholds/ranking/exclusions without mutation, isolated close/refusal, disabled/modal rejection, identity guard, own-host exclusion, RAM observations and GPU parse bounds; no user app touched");
         return 0;
     }
 }

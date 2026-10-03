@@ -20,6 +20,12 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 
 - Shared Desktop supports Auto (System), English and Simplified/Traditional Chinese UI, including Monitor, Settings, sensor status, Codex quota and tray actions. Language switches immediately without restarting sampling or refreshing credentials and is saved in the isolated preview profile. Auto respects Chinese script and region preferences.
 
+## 0.6.51 — 2026-10-03
+
+- Group duplicate processes in Resources by executable identity. Show RAM/GPU sums, sort by group usage, and expand a row for read-only process/PID details. Different executable paths and missing-path observations stay separate.
+- Mark partial GPU sums with `*` and retain `—` for unavailable readings. Shared resources may be counted more than once; displayed totals are not promised reclaimable memory.
+- Confirm the exact eligible process names and PIDs before grouped normal-close requests. GPU helpers and tray-only processes remain unavailable; suggestions keep their original per-process policy. No forced termination or background scan is added.
+
 ## 0.6.50 — 2026-10-03
 
 - Fix unreadable selected rows in Resources by pairing an opaque selection surface with contrasting text in both light and dark themes. Selection remains readable after focus moves and at zero App background opacity; high contrast uses system colors.

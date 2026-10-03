@@ -2,7 +2,7 @@
 
 [English](MEMORY-CLEANUP.md)
 
-Windows WPF 版本通过主窗口顶部的 Resources tab 打开占用列表。选择不再需要的应用进程，
+Windows WPF 版本通过主窗口顶部的 Resources tab 打开占用列表。选择不再需要的 App 分组，
 点击“正常关闭选中应用”。可以勾选多个应用，一次确认后逐个请求正常关闭；取消确认
 不会发送任何请求，离开 Resources 或隐藏主窗口会停止尚未发送的请求。请完成各应用中的保存提示，
 再刷新列表查看最新占用。
@@ -19,9 +19,17 @@ Windows WPF 版本通过主窗口顶部的 Resources tab 打开占用列表。�
 候选的确认名单，确认后才逐个请求正常关闭。另保留手动勾选后统一关闭的入口；
 读取和排序不会自动选中或关闭任何应用。
 
-每行代表当前用户交互会话中的一个进程，不是整个应用的汇总。内存显示驻留工作集，
-并不等于可回收空间；显存为驱动报告的专用内存估值，共享资源和计数器误差可能影响
-结果。无法读取时显示 `—`，不会显示为零。关闭应用时，应用自身也可能关闭子进程。
+相同 process name 和 executable path 的 processes 合并显示，path 比较不区分大小写；
+不同安装位置的同名 App 分开保留，无法读取 path 时不合并。展开分组可查看各 PID 和占用；
+明细仅供查看，不能单独勾选关闭。RAM/GPU 按合计值排序，但共享资源可能重复计算，
+合计不等于可回收空间。部分 GPU 读数缺失时用 `*` 标记已知读数的小计，全部无法读取
+时显示 `—`，不会显示为零。
+
+勾选分组后，confirmation 列出每个符合原有 normal-close 条件的 process name 和 PID。
+建议候选仍使用原有 per-process thresholds，不因分组合并而扩展关闭名单。
+Grouping 不会把 child process 的关闭请求转给 parent，也不会操作隐藏的 message window
+或 system tray commands。Chrome/Wand 的 GPU helper 计入占用，但不是关闭目标；
+隐藏到 system tray 的 App 需要从自身菜单打开或退出。关闭请求不代表 App 已完全退出。
 
 本地建议依据系统物理内存余量，不会判断某个大应用是否“无用”，不调用远程 AI，
 也不承诺释放多少空间或提升 FPS。无效内存读数不会生成“无需清理”的建议。
@@ -40,7 +48,9 @@ Pulse 不会强制终止进程、请求提权、清空工作集或缓存，也�
 独立测试窗口覆盖接受与拒绝关闭、禁用和模态窗口、旧进程身份以及读取边界；
 测试进程会自行到期退出，不关闭用户应用。界面测试使用虚构的读取、确认和关闭操作，
 覆盖三种语言、窄窗口、明暗主题、排序、不透明度、候选及手动批量关闭的确认与取消、
-重复点击、旧进程身份、Settings/Back 和读取期间重新打开。发布前需要完整 validation；
+重复点击、旧进程身份、Settings/Back 和读取期间重新打开。Grouping checks 覆盖 executable
+identity、缺失 path、合计与部分 GPU 读数、展开时不重新 sampling，以及 group close target 边界。
+发布前需要完整 validation；
 改变跨进程关闭边界时还需独立 review。0.6.49 仅调整 navigation 和 layout，保留已有 adapter 边界。
 
 计数器限制与 Windows API 原始资料见 [English 文档](MEMORY-CLEANUP.md#primary-sources)。

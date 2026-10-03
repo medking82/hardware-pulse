@@ -5,12 +5,14 @@ using System.Globalization;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace HardwarePulse {
     public sealed class AppResourceProcess {
         public int Pid;public long StartedUtcTicks,RamBytes;public long? GpuBytes;
         public string Name;public bool CanClose,IsForeground;
+        public string ExecutablePath; // Optional local grouping metadata; never display, export or persist.
     }
     public sealed class AppResourceSnapshot {
         public AppResourceProcess[] Processes;public RamUsage Ram;public bool GpuAvailable;
@@ -26,6 +28,7 @@ namespace HardwarePulse {
             "TextInputHost","ctfmon","InputApp","ApplicationFrameHost","RuntimeBroker","LockApp","UserOOBEBroker","conhost"
         },StringComparer.OrdinalIgnoreCase);
         [DllImport("kernel32.dll",SetLastError=true)]static extern IntPtr OpenProcess(uint access,bool inherit,int pid);
+        [DllImport("kernel32.dll",CharSet=CharSet.Unicode,SetLastError=true)]static extern bool QueryFullProcessImageName(IntPtr process,uint flags,StringBuilder path,ref uint size);
         [DllImport("advapi32.dll",SetLastError=true)]static extern bool OpenProcessToken(IntPtr process,uint access,out IntPtr token);
         [DllImport("kernel32.dll")]static extern bool CloseHandle(IntPtr handle);
         [DllImport("user32.dll")]static extern IntPtr GetShellWindow();
@@ -50,6 +53,17 @@ namespace HardwarePulse {
                 if(!OpenProcessToken(handle,8,out token))return false;
                 using(var identity=new WindowsIdentity(token))return identity.User!=null&&identity.User.Value==sid;
             }finally{if(token!=IntPtr.Zero)CloseHandle(token);CloseHandle(handle);}
+        }
+        static string ReadExecutablePath(int pid) {
+            if(pid<=0)return string.Empty;
+            IntPtr handle=IntPtr.Zero;
+            try{
+                handle=OpenProcess(0x1000,false,pid);if(handle==IntPtr.Zero)return string.Empty;
+                var path=new StringBuilder(32768);uint size=(uint)path.Capacity;
+                if(!QueryFullProcessImageName(handle,0,path,ref size)||size==0||size>=path.Capacity||size!=path.Length)return string.Empty;
+                return path.ToString();
+            }catch{return string.Empty;}
+            finally{if(handle!=IntPtr.Zero)CloseHandle(handle);}
         }
         static int ShellPid(){uint pid;GetWindowThreadProcessId(GetShellWindow(),out pid);return (int)pid;}
         static bool Allowed(Process process,int own,int session,int shell,string sid) {
@@ -105,7 +119,7 @@ namespace HardwarePulse {
                     long memory=process.WorkingSet64;if(memory<0)continue;
                     IntPtr window=process.MainWindowHandle;uint windowPid;
                     long bytes;long? dedicated=gpu.TryGetValue(process.Id,out bytes)?(long?)bytes:null;
-                    rows.Add(new AppResourceProcess {Pid=process.Id,StartedUtcTicks=process.StartTime.ToUniversalTime().Ticks,Name=process.ProcessName,
+                    rows.Add(new AppResourceProcess {Pid=process.Id,StartedUtcTicks=process.StartTime.ToUniversalTime().Ticks,Name=process.ProcessName,ExecutablePath=ReadExecutablePath(process.Id),
                         RamBytes=memory,GpuBytes=dedicated,IsForeground=(uint)process.Id==foregroundPid,
                         CanClose=window!=IntPtr.Zero&&GetWindowThreadProcessId(window,out windowPid)!=0&&windowPid==(uint)process.Id&&IsWindowEnabled(window)});
                 }catch{/* Processes can disappear or deny access between observations. */}
