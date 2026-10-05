@@ -20,6 +20,12 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 
 - Shared Desktop supports Auto (System), English and Simplified/Traditional Chinese UI, including Monitor, Settings, sensor status, Codex quota and tray actions. Language switches immediately without restarting sampling or refreshing credentials and is saved in the isolated preview profile. Auto respects Chinese script and region preferences.
 
+## 0.6.54 — 2026-10-05
+
+- Retry brief Windows snapshot sharing/lock conflicts before reporting hardware readings unavailable. Reads make at most three attempts with up to 40 ms of added delay; no extra polling or cached live values are introduced.
+- Keep persistent read failures, invalid snapshots and the 15-second freshness limit authoritative. Time spent retrying counts toward freshness, so an expired snapshot cannot recover as live.
+- Regression checks cover transient sharing/lock conflicts, retry exhaustion, unrelated errors, expiry during retry and an actual exclusively locked fixture file. Collector, FPS, appearance and settings behavior remain unchanged.
+
 ## 0.6.53 — 2026-10-03
 
 - Group Live and Session Max visually, and keep Desktop/FPS together when the monitor toolbar wraps in narrow windows. Preserve existing controls, settings and actions.

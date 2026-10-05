@@ -20,6 +20,12 @@
 
 - 共享桌面应用支持自动跟随系统、英语、简体中文和繁体中文，覆盖监控、设置、传感器状态、Codex 额度与托盘操作。语言即时切换，不重启采样或重新读取登录信息，并保存到独立的预览版设置中。自动模式会区分中文书写体系和地区。
 
+## 0.6.54 — 2026-10-05
+
+- Windows snapshot 遇到短暂 sharing/lock conflict 时，先 retry 再报告 hardware readings 不可用。最多尝试三次，额外等待不超过 40 ms；不增加 polling，也不把旧数值标为 LIVE。
+- 持续 read failure、invalid snapshot 和原有 15 秒 freshness limit 仍有效。Retry 耗时计入 freshness，避免过期 snapshot 在恢复后被误判为 LIVE。
+- Regression checks 覆盖短暂 conflict、retry exhaustion、其他错误、retry 期间过期及实际独占锁定的 fixture file。保留 Collector、FPS、appearance 和 settings behavior。
+
 ## 0.6.53 — 2026-10-03
 
 - 将 Live 与 Session Max 组成视觉分组；monitor toolbar 在窄窗口换行时，Desktop 与 FPS 保持同组。保留已有 controls、settings 和 actions。

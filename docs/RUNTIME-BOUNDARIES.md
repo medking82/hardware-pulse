@@ -123,6 +123,13 @@ checks and its snapshot identity. Core treats identity as an opaque string: the
 same identity may update Latest but must not advance peaks. The host passes time
 and serializes calls; the session does not sample independently.
 
+Windows snapshot reads retry only sharing and lock violations (HRESULT
+0x80070020/0x80070021), with three total attempts and two 20 ms delays. Persistent
+conflicts and all other failures retain the OFFLINE contract. The adapter includes
+monotonic retry elapsed time in its freshness check, and never substitutes cached
+numeric values. This policy covers the Framework and modern Windows readers;
+generic JSON/settings I/O and the collector protocol are unchanged.
+
 On unavailable readings, the session retains the preceding availability, display
 names, GPU fan count, usage capabilities and peaks. A new LIVE reading replaces
 capability metadata. A collector restart keeps the current UI session's peaks;

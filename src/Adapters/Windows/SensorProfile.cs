@@ -1,7 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading;
 
 namespace HardwarePulse {
     public static class SensorProfile {
@@ -50,13 +53,31 @@ namespace HardwarePulse {
             if(double.IsNaN(u)||double.IsNaN(t)||double.IsInfinity(u)||double.IsInfinity(t)||u<0||t<=0||u>t)return null;
             return new Usage {used=u,total=t,percent=100*u/t};
         }
-        public static Reading Read(string path,DateTimeOffset now) {
-            try{
+        static readonly Func<string,RawSnapshot> readSnapshot=ReadRaw;
+        static RawSnapshot ReadRaw(string path) {
 #if NET
-                return Parse(WindowsSnapshotReadings.ReadRaw(path),now);
+            return WindowsSnapshotReadings.ReadRaw(path);
 #else
-                return Parse(Json.Serializer().Deserialize<RawSnapshot>(Json.Read(path)),now);
+            return Json.Serializer().Deserialize<RawSnapshot>(Json.Read(path));
 #endif
+        }
+        public static Reading Read(string path,DateTimeOffset now) {return ReadWithRetry(path,now,readSnapshot);}
+        internal static Reading ReadWithRetry(string path,DateTimeOffset now,Func<string,RawSnapshot> read) {
+            try{
+                long started=Stopwatch.GetTimestamp();
+                for(int attempt=0;;attempt++){
+                    RawSnapshot raw;
+                    try{raw=read(path);}
+                    catch(IOException e){
+                        // A competing handle can briefly deny even shared reads. Bound the
+                        // retry on the WPF UI thread; all other errors remain unavailable.
+                        if(attempt==2||(e.HResult!=unchecked((int)0x80070020)&&e.HResult!=unchecked((int)0x80070021)))throw;
+                        Thread.Sleep(20);continue;
+                    }
+                    // Retry time must not turn a now-expired snapshot into a LIVE reading.
+                    if(attempt>0)now=now.AddSeconds((Stopwatch.GetTimestamp()-started)/(double)Stopwatch.Frequency);
+                    return Parse(raw,now);
+                }
             }
             catch(Exception e){return new Reading {error=e.Message};}
         }
