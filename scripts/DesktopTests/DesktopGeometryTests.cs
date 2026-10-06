@@ -27,7 +27,7 @@ static class DesktopGeometryTests {
             Check(desktop.MinWidth==280&&desktop.MinHeight==140,"Original Desktop minimum size");
             if(screen!=null) {
                 var area=screen.WorkingArea;
-                Check(desktop.Position.X>=area.X&&desktop.Position.Y>=area.Y&&desktop.Position.X<area.Right&&desktop.Position.Y<area.Bottom,$"Offscreen saved Desktop returns to working area: actual={desktop.Position}; size={desktop.Width}x{desktop.Height}; area={area}; scale={screen.Scaling}");
+                Check(desktop.Position.X>=area.X&&desktop.Position.Y>=area.Y&&desktop.Position.X+(int)Math.Ceiling(desktop.Width*screen.Scaling)<=area.Right&&desktop.Position.Y+(int)Math.Ceiling(desktop.Height*screen.Scaling)<=area.Bottom,$"Offscreen saved Desktop returns to working area: actual={desktop.Position}; size={desktop.Width}x{desktop.Height}; area={area}; scale={screen.Scaling}");
             }
             desktop.Width=420;desktop.Height=310;desktop.KeepOnScreen(reset:true);Pump();
             var position=desktop.Position;double width=desktop.Width,height=desktop.Height;

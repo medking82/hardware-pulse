@@ -207,10 +207,12 @@ public sealed class MonitorWindow : Window {
         antigravity.EnabledChanged+=on=>{settings.Antigravity=on;SaveLater();};antigravity.QuotaEnabled=settings.Antigravity;
         saveTimer.Tick+=(_,_)=>SaveNow();
         SizeChanged+=(_,_)=>{LayoutCards();ApplyCardDensity();if(WindowState==WindowState.Normal){settings.Width=Width;settings.Height=Height;SaveLater();}};LayoutCards();
+        // X11 must receive the saved position before mapping: moving inside
+        // Opened races the window manager's initial placement/ConfigureNotify.
+        WindowGeometry.RestoreApp(this,settings);
         bool appGeometryReady=false;
         Opened+=(_,_)=>{
             ApplyMaterial();
-            WindowGeometry.RestoreApp(this,settings);
             settings.AppX=Position.X;settings.AppY=Position.Y;
             appGeometryReady=true;
         };
@@ -284,9 +286,10 @@ public sealed class MonitorWindow : Window {
             FloatingMonitor.ApplyPreferences(settings);
             FloatingMonitor.ApplyAppPalette(new(settings.UnifiedReadingColors,settings.ReadingColor),ActualThemeVariant==ThemeVariant.Light);
             var desktop=FloatingMonitor;bool tracking=false;
+            desktop.RestoreGeometry(settings);
             desktop.ContrastChanged+=()=>syncDesktopContrast?.Invoke();
             void RememberGeometry(){if(!tracking||desktop.WindowState!=WindowState.Normal)return;settings.DesktopWidth=desktop.Width;settings.DesktopHeight=desktop.Height;settings.DesktopX=desktop.Position.X;settings.DesktopY=desktop.Position.Y;SaveLater();}
-            desktop.Opened+=(_,_)=>{tracking=false;desktop.RestoreGeometry(settings);tracking=true;RememberGeometry();};
+            desktop.Opened+=(_,_)=>{tracking=true;RememberGeometry();};
             desktop.SizeChanged+=(_,_)=>RememberGeometry();desktop.PositionChanged+=(_,_)=>RememberGeometry();
             desktop.Closing+=(_,_)=>RememberGeometry();
             FloatingMonitor.TopmostChanged+=value=>{settings.DesktopTopmost=value;if(desktopPin!=null)desktopPin.IsChecked=value;SaveLater();};
