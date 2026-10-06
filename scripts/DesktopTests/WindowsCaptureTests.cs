@@ -14,28 +14,39 @@ static class WindowsCaptureTests {
     [DllImport("gdi32.dll")] static extern uint GetPixel(nint dc,int x,int y);
     static void Check(bool ok,string text){if(!ok)throw new Exception(text);}
     static void Pump(){using var stop=new CancellationTokenSource(200);Dispatcher.UIThread.MainLoop(stop.Token);}
-    static string FixturePixel(Window window) {
+    static uint FixturePixel(Window window) {
         nint dc=GetDC(0);
-        if(dc==0)return "no DC";
-        try{return GetPixel(dc,window.Position.X+(int)(window.Bounds.Width*window.RenderScaling/2),window.Position.Y+(int)(window.Bounds.Height*window.RenderScaling/2)).ToString("X8");}
+        if(dc==0)return uint.MaxValue;
+        try{return GetPixel(dc,window.Position.X+(int)(window.Bounds.Width*window.RenderScaling/2),window.Position.Y+(int)(window.Bounds.Height*window.RenderScaling/2));}
         finally{ReleaseDC(0,dc);}
+    }
+    static uint WaitForFixture(Window window,uint expected,string name) {
+        uint actual=uint.MaxValue;
+        for(int retry=0;retry<15;retry++) {
+            Pump();actual=FixturePixel(window);
+            if(actual==expected)return actual;
+        }
+        throw new Exception($"{name} fixture did not render before capture exclusion: expected COLORREF={expected:X8}, actual={actual:X8}; position={window.Position}; bounds={window.Bounds}; scale={window.RenderScaling}");
     }
     public static void Native() {
         if(!OperatingSystem.IsWindows())return;
         Check(WindowsBackgroundCapture.Supported,"Capture acceptance requires Windows 10 2004+");
         bool refused=false;try{using var foreign=new WindowsBackgroundCapture(GetDesktopWindow());}catch(InvalidOperationException){refused=true;}
         Check(refused,"Capture accepted a foreign window");
-        var below=new Window{Width=640,Height=480,Position=new PixelPoint(120,120),Background=Brushes.Blue,Topmost=true};
-        var above=new Window{Width=400,Height=300,Position=new PixelPoint(160,160),Background=Brushes.Red,Topmost=true};
-        below.Show();Pump();
-        string belowPixel=FixturePixel(below);
-        above.Show();Pump();
-        string abovePixel=FixturePixel(above);
-        nint hwnd=above.TryGetPlatformHandle()!.Handle;
+        // Paint explicit content, so the test does not depend on Window theme
+        // backgrounds. Confirm both native pixels before testing exclusion.
+        var below=new Window{Width=640,Height=480,Position=new PixelPoint(120,120),WindowDecorations=WindowDecorations.None,Content=new Border{Background=Brushes.Blue},Topmost=true};
+        var above=new Window{Width=400,Height=300,Position=new PixelPoint(160,160),WindowDecorations=WindowDecorations.None,Content=new Border{Background=Brushes.Red},Topmost=true};
+        uint belowPixel=uint.MaxValue,abovePixel=uint.MaxValue;
+        nint hwnd=0;
         using var process=System.Diagnostics.Process.GetCurrentProcess();
         uint before=GetGuiResources(process.Handle,0);
         byte[]? buffer=null;
         try {
+            below.Show();belowPixel=WaitForFixture(below,0x00FF0000,"Blue");
+            above.Show();abovePixel=WaitForFixture(above,0x000000FF,"Red");
+            hwnd=above.TryGetPlatformHandle()!.Handle;
+            before=GetGuiResources(process.Handle,0);
             using(var capture=new WindowsBackgroundCapture(hwnd)) {
                 Check(!capture.Read(_=>throw new Exception("Disabled capture read pixels")),"Read worked before opt-in");
                 Check(capture.Enable(),"Could not exclude own window");Pump();
@@ -49,7 +60,7 @@ static class WindowsCaptureTests {
                         Check(frame.Width*frame.Height<=ContrastAnalysis.MaximumPixels,"Capture grid exceeded analysis bound");
                     });if(!blue)Pump();
                 }
-                Check(blue,$"Capture did not see underlying blue fixture through excluded red window: {sample}; below={below.Position}/{below.Bounds}; above={above.Position}/{above.Bounds}; scale={above.RenderScaling}; fixture COLORREF before exclusion: below={belowPixel}, above={abovePixel}");
+                Check(blue,$"Capture did not see underlying blue fixture through excluded red window: {sample}; below={below.Position}/{below.Bounds}; above={above.Position}/{above.Bounds}; scale={above.RenderScaling}; fixture COLORREF before exclusion: below={belowPixel:X8}, above={abovePixel:X8}");
                 Check(capture.Read(frame=>Check(ReferenceEquals(buffer,frame.Pixels),"Capture reallocated same-size buffer")),"Second frame unavailable");
                 above.Hide();Check(!capture.Read(_=>throw new Exception("Hidden capture read pixels")),"Hidden capture ran");
                 above.Show();Pump();above.Width=460;Pump();
