@@ -134,7 +134,7 @@ namespace HardwarePulse {
                     string kind;readings.Latest.names.TryGetValue("netConnection",out kind);double link,signal;
                     string value=readings.Latest.state=="LIVE"&&readings.Latest.values.TryGetValue("netLink",out link)?language.T(NetworkRate.Link(link)):"—";
                     result.Add(new DesktopMetric("netConnection",kind??language.T("Connection"),value,kind=="Wi-Fi"?"wifi":kind=="Ethernet"||kind=="LAN"?"ethernet":"network"));
-                    if(readings.Latest.state=="LIVE"&&readings.Latest.values.TryGetValue("netSignal",out signal))result.Add(new DesktopMetric("netSignal",language.T("Wi-Fi Signal"),signal.ToString("0")+"%","signal"));
+                    if(readings.Latest.state=="LIVE"&&readings.Latest.values.TryGetValue("netSignal",out signal))result.Add(new DesktopMetric("wifiSignal",language.T("Wi-Fi Signal"),signal.ToString("0")+"%","signal"));
                 }
                 if(key=="Network")foreach(string connection in new[]{"lanLink","wifiLink","wifiSignal"})if(Available(connection)){
                     double value;string display="—";

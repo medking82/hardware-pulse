@@ -171,9 +171,9 @@ namespace HardwarePulse {
                 if(result.available!=null)result.available[key]=true;
                 if(!link.connected)result.values[key]=0;
                 else if(link.bitsPerSecond>0)result.values[key]=link.bitsPerSecond.Value;
-                if(kind=="Wi-Fi"&&link.connected&&link.signalPercent>=0&&link.signalPercent<=100){
-                    result.values["wifiSignal"]=link.signalPercent.Value;
+                if(kind=="Wi-Fi"&&link.connected){
                     if(result.available!=null)result.available["wifiSignal"]=true;
+                    if(link.signalPercent>=0&&link.signalPercent<=100)result.values["wifiSignal"]=link.signalPercent.Value;
                 }
             }
             result.state="LIVE";result.identity=raw.pid+":"+raw.sequence;return result;

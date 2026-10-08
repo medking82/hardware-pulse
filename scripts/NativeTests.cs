@@ -34,6 +34,28 @@ internal static class NativeTests {
         Console.WriteLine("PASS diagnostic report: device/fan evidence, missing/invalid snapshots and private metadata exclusion");
     }
     static void Pump(){var frame=new DispatcherFrame();Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle,new Action(()=>frame.Continue=false));Dispatcher.PushFrame(frame);}
+    static void WifiPreferenceChecks(Shell shell){
+        var settings=Field<Settings>(shell,"settings");object originalOrder,originalVisible;
+        bool hadOrder=settings.Data.TryGetValue("desktopOrder",out originalOrder),hadVisible=settings.Data.TryGetValue("desktopVisible",out originalVisible);
+        var orderMethod=typeof(Shell).GetMethod("DesktopOrderKeys",BindingFlags.Instance|BindingFlags.NonPublic);
+        var enabledMethod=typeof(Shell).GetMethod("DesktopMetricEnabled",BindingFlags.Instance|BindingFlags.NonPublic);
+        try{
+            var legacyOrder=new[]{"netSignal","CPU","GPU"};settings.Data["desktopOrder"]=legacyOrder;
+            var order=(string[])orderMethod.Invoke(shell,null);
+            Assert(order[0]=="wifiSignal"&&order.Count(key=>key=="wifiSignal")==1&&!order.Contains("netSignal"),"Legacy signal order must map to one canonical option");
+            Assert(object.ReferenceEquals(settings.Data["desktopOrder"],legacyOrder),"Reading legacy signal order must not rewrite saved settings");
+            settings.Data["desktopOrder"]=new[]{"netSignal","CPU","GPU","wifiSignal"};order=(string[])orderMethod.Invoke(shell,null);
+            Assert(Array.IndexOf(order,"CPU")<Array.IndexOf(order,"GPU")&&Array.IndexOf(order,"GPU")<Array.IndexOf(order,"wifiSignal"),"Explicit Wi-Fi Signal position must take precedence over its legacy alias");
+            var visible=new Dictionary<string,object>{{"netSignal",false}};settings.Data["desktopVisible"]=visible;
+            Assert(!(bool)enabledMethod.Invoke(shell,new object[]{"wifiSignal"}),"Legacy signal visibility preference was lost");
+            visible["wifiSignal"]=true;Assert((bool)enabledMethod.Invoke(shell,new object[]{"wifiSignal"}),"Explicit signal visibility must take precedence over its legacy alias");
+            visible["wifiSignal"]=false;visible["netSignal"]=true;Assert(!(bool)enabledMethod.Invoke(shell,new object[]{"netSignal"}),"Legacy metric output bypassed canonical visibility");
+        }finally{
+            if(hadOrder)settings.Data["desktopOrder"]=originalOrder;else settings.Data.Remove("desktopOrder");
+            if(hadVisible)settings.Data["desktopVisible"]=originalVisible;else settings.Data.Remove("desktopVisible");
+        }
+        Console.WriteLine("PASS Wi-Fi Signal preferences: one option, legacy order/visibility and explicit canonical precedence");
+    }
     static RawSnapshot Snapshot(){return new RawSnapshot {schema=2,pid=1,sequence=1,time=DateTimeOffset.Now.ToString("o"),boardName="Demo board",memoryName="32 GB DDR4-3200 configured",ramUsage=new RamUsage {usedGb=12,totalGb=32},sensors=new[]{
         new Sensor {id="/cpu/temperature/0",hardwareId="/cpu",hardwareType="Cpu",hardware="Demo CPU",name="CPU Package",type="Temperature",value=59},
         new Sensor {id="/cpu/load/0",hardwareId="/cpu",hardwareType="Cpu",hardware="Demo CPU",name="CPU Total",type="Load",value=15},
@@ -406,6 +428,10 @@ internal static class NativeTests {
                 Assert(netReading.names["netConnection"]=="Wi-Fi"&&netReading.values["netSignal"]==72,"Wi-Fi signal must belong to the selected adapter");
                 var desktopMetrics=(List<DesktopMetric>)typeof(Shell).GetMethod("DesktopMetrics",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(shell,null);
                 Assert(desktopMetrics.Any(m=>m.Key=="wifiLink"&&m.Title=="Wi-Fi Link Speed"&&m.Value=="2.5 Gbit/s")&&desktopMetrics.Any(m=>m.Key=="wifiSignal"&&m.Value=="72%"),"Desktop connection or signal missing");
+                networkSnapshot.networkLinks[0].physical=false;networkSnapshot.sequence++;Json.WriteAtomic(paths.Snapshot,networkSnapshot);shell.UpdatePanel();
+                desktopMetrics=(List<DesktopMetric>)typeof(Shell).GetMethod("DesktopMetrics",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(shell,null);
+                Assert(desktopMetrics.Count(m=>m.Key=="wifiSignal")==1&&desktopMetrics.Single(m=>m.Key=="wifiSignal").Value=="72%"&&!desktopMetrics.Any(m=>m.Key=="netSignal"),"Legacy active-adapter signal must use the canonical visibility and order key");
+                networkSnapshot.networkLinks[0].physical=true;
                 networkSnapshot.networkLinks[0].signalPercent=101;networkSnapshot.sequence++;Json.WriteAtomic(paths.Snapshot,networkSnapshot);shell.UpdatePanel();Assert(!Field<ReadingSession>(shell,"readings").Latest.values.ContainsKey("netSignal"),"Invalid signal must not become a reading");
                 networkSnapshot.networkLinks[0].connectionType="Ethernet";networkSnapshot.networkLinks[0].signalPercent=72;networkSnapshot.sequence++;Json.WriteAtomic(paths.Snapshot,networkSnapshot);shell.UpdatePanel();Assert(!Field<ReadingSession>(shell,"readings").Latest.values.ContainsKey("netSignal"),"Ethernet must not retain Wi-Fi signal");
                 networkSnapshot.sequence++;networkSnapshot.networkLinks[0].connected=false;Json.WriteAtomic(paths.Snapshot,networkSnapshot);shell.UpdatePanel();Pump();Assert(Tree(networkCard).OfType<TextBlock>().Any(t=>t.Text=="Disconnected"),"Disconnected link must not retain negotiated speed");
@@ -420,8 +446,18 @@ internal static class NativeTests {
                     var metrics=(List<DesktopMetric>)typeof(Shell).GetMethod("DesktopMetrics",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(shell,null);
                     Assert(metrics.Any(m=>m.Key=="wifiLink"&&m.Value==NetworkRate.Link(speed))&&metrics.Any(m=>m.Key=="lanLink"&&m.Value=="2.5 Gbit/s"),"Desktop dual link rates missing");
                 }
+                networkSnapshot.networkLinks[1].signalPercent=null;networkSnapshot.sequence++;Json.WriteAtomic(paths.Snapshot,networkSnapshot);shell.UpdatePanel();Pump();
+                var missingSignal=Field<ReadingSession>(shell,"readings").Latest;
+                Assert(missingSignal.state=="LIVE"&&!missingSignal.values.ContainsKey("wifiSignal")&&missingSignal.available.ContainsKey("wifiSignal")&&missingSignal.available["wifiSignal"],"Connected Wi-Fi must retain its signal capability without caching a missing reading");
+                desktopMetrics=(List<DesktopMetric>)typeof(Shell).GetMethod("DesktopMetrics",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(shell,null);
+                Assert(desktopMetrics.Count(m=>m.Key=="wifiSignal")==1&&desktopMetrics.Single(m=>m.Key=="wifiSignal").Value=="—"&&desktopMetrics.Any(m=>m.Key=="wifiLink"&&m.Value=="1.2 Gbit/s"),"Missing Wi-Fi signal must keep one unavailable row and the valid link speed");
+                networkSnapshot.networkLinks[1].signalPercent=0;networkSnapshot.sequence++;Json.WriteAtomic(paths.Snapshot,networkSnapshot);shell.UpdatePanel();
+                desktopMetrics=(List<DesktopMetric>)typeof(Shell).GetMethod("DesktopMetrics",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(shell,null);
+                Assert(desktopMetrics.Single(m=>m.Key=="wifiSignal").Value=="0%","Wi-Fi signal recovery must retain a real zero reading");
                 networkSnapshot.networkLinks[1].connected=false;networkSnapshot.sequence++;Json.WriteAtomic(paths.Snapshot,networkSnapshot);shell.UpdatePanel();
                 Assert(Field<ReadingSession>(shell,"readings").Latest.values["wifiLink"]==0&&!Field<ReadingSession>(shell,"readings").Latest.values.ContainsKey("wifiSignal"),"Disconnected Wi-Fi must clear rate/signal");
+                desktopMetrics=(List<DesktopMetric>)typeof(Shell).GetMethod("DesktopMetrics",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(shell,null);
+                Assert(!desktopMetrics.Any(m=>m.Key=="wifiSignal"),"Disconnected Wi-Fi must clear its signal row");
                 networkSnapshot.networkLinks[1].connected=true;networkSnapshot.networkLinks[1].bitsPerSecond=null;networkSnapshot.sequence++;Json.WriteAtomic(paths.Snapshot,networkSnapshot);shell.UpdatePanel();
                 Assert(!Field<ReadingSession>(shell,"readings").Latest.values.ContainsKey("wifiLink"),"Unknown Wi-Fi speed must not retain old rate");
                 networkSnapshot.sequence++;networkSnapshot.networkLinks=null;Json.WriteAtomic(paths.Snapshot,networkSnapshot);shell.UpdatePanel();Pump();Assert(!Tree(networkCard).OfType<TextBlock>().Any(t=>t.Text=="2.5 Gbit/s"),"Legacy snapshot cannot retain link speed");
@@ -494,9 +530,18 @@ internal static class NativeTests {
                 Assert(desktop!=null&&!desktop.Locked&&desktop.IsVisible&&!shell.Window.IsVisible,"Desktop did not open an editable preview");
                 Assert(Tree(desktop).OfType<Button>().Count(b=>b.IsVisible)==2,"Desktop editor actions missing");shell.Show();shell.ShowSettings(true);shell.Control<Expander>("DesktopSection").IsExpanded=true;
                 var desktopOrder=shell.Control<StackPanel>("DesktopOrderList");
+                Assert(desktopOrder.Children.Cast<Border>().Count(b=>(string)b.Tag=="wifiSignal")==1&&!desktopOrder.Children.Cast<Border>().Any(b=>(string)b.Tag=="netSignal"),"Settings must expose one Wi-Fi Signal option");
+                WifiPreferenceChecks(shell);
                 double editorHeight=shell.Window.Height; shell.Window.Height=900;
                 shell.Control<Expander>("DesktopSection").BringIntoView();Pump();Capture(shell,Path.Combine(state,"desktop-editor.png"));shell.Window.Height=editorHeight;Pump();
                 Assert((string)((Border)desktopOrder.Children[0]).Tag=="CPU","Desktop inherited fan-first monitor ordering");
+                var wifiDesktopSnapshot=Snapshot();wifiDesktopSnapshot.networkLinks=new[]{new NetworkLink{hardwareId="/nic/wifi",connectionType="Wi-Fi",physical=true,connected=true,bitsPerSecond=1201000000,signalPercent=null}};
+                Json.WriteAtomic(paths.Snapshot,wifiDesktopSnapshot);shell.UpdatePanel();Pump();
+                var wifiPanel=Tree(desktop).OfType<ResponsivePanel>().Single();var wifiText=Tree(wifiPanel).OfType<TextBlock>().Select(t=>t.Text).ToArray();
+                Assert(wifiText.Count(text=>text=="Wi-Fi Signal")==1&&wifiText.Contains("—")&&wifiText.Contains("1.2 Gbit/s"),"Rendered Desktop must retain one unavailable signal row and valid link speed");
+                var wifiBitmap=new RenderTargetBitmap((int)desktop.ActualWidth,(int)desktop.ActualHeight,96,96,PixelFormats.Pbgra32);wifiBitmap.Render(desktop);
+                var wifiEncoder=new PngBitmapEncoder();wifiEncoder.Frames.Add(BitmapFrame.Create(wifiBitmap));using(var file=File.Create(Path.Combine(state,"desktop-wifi-unavailable.png")))wifiEncoder.Save(file);
+                Json.WriteAtomic(paths.Snapshot,Snapshot());shell.UpdatePanel();Pump();
                 var monitorOrder=shell.Control<StackPanel>("Cards").Children.Cast<Border>().Select(b=>(string)b.Tag).ToArray();
                 var vramRow=desktopOrder.Children.Cast<Border>().Single(b=>(string)b.Tag=="vram");
                 var reorderDesktop=new CardDrag.Gesture(desktopOrder,vramRow,delegate{typeof(Shell).GetMethod("SaveDesktopOrder",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(shell,null);},false);

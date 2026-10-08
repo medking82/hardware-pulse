@@ -20,6 +20,13 @@
 
 - 共享桌面应用支持自动跟随系统、英语、简体中文和繁体中文，覆盖监控、设置、传感器状态、Codex 额度与托盘操作。语言即时切换，不重启采样或重新读取登录信息，并保存到独立的预览版设置中。自动模式会区分中文书写体系和地区。
 
+## 0.6.55 — 2026-10-09
+
+- 支持的 Windows 系统改用实时连接质量读取 Wi-Fi 信号，无需 Location permission；旧版 Windows 保留原有 connected-interface fallback，不增加扫描或 sampling task。
+- Connected Wi-Fi 缺少有效 signal reading 时保留 Wi-Fi Signal row，显示 `—`；恢复后显示实际百分比，断开后清除 signal row，不沿用旧数值。
+- 移除重复的 Wi-Fi Signal setting，兼容旧 order/visibility preferences；明确保存的当前 preference 优先。
+- Checks 覆盖 native query selection、fallback、denied/malformed replies、百分比范围和 buffer release，以及 Desktop reading 缺失、恢复、断开和 settings compatibility。
+
 ## 0.6.54 — 2026-10-05
 
 - Windows snapshot 遇到短暂 sharing/lock conflict 时，先 retry 再报告 hardware readings 不可用。最多尝试三次，额外等待不超过 40 ms；不增加 polling，也不把旧数值标为 LIVE。

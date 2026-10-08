@@ -42,7 +42,11 @@ namespace HardwarePulse {
             if(key=="quotaCodex")return DesktopMetricEnabled("quotaCodex0");
             if(key=="quotaAntigravity")return DesktopMetricEnabled("quotaAntigravity0")||DesktopMetricEnabled("quotaAntigravity1");
             if(key=="quotaClaude")return DesktopMetricEnabled("quotaClaude0")||DesktopMetricEnabled("quotaClaude1");
-            object value;return !settings.Map("desktopVisible").TryGetValue(key,out value)||!(value is bool)||(bool)value;
+            if(key=="netSignal")key="wifiSignal";
+            object value;var visible=settings.Map("desktopVisible");
+            if(visible.TryGetValue(key,out value)&&value is bool)return (bool)value;
+            if(key=="wifiSignal"&&visible.TryGetValue("netSignal",out value)&&value is bool)return (bool)value;
+            return true;
         }
         string QuotaDesktopTitle(string key){
             return key=="quotaCodex0"?"Codex · "+language.T("Weekly"):

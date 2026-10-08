@@ -31,6 +31,10 @@ Reading Order independently arranges individual desktop rows: drag a handle with
 reordering, press Esc to cancel, or focus the handle and use Up/Down. Missing channels retain
 their place, and monitor card order is unchanged. Animation follows Windows reduced-motion settings.
 Unsupported readings disappear; stale readings show dashes and a collector status.
+Connected Wi-Fi keeps a single Wi-Fi Signal row when its reading is unavailable,
+displaying `—` until a valid percentage returns. A disconnected Wi-Fi link clears
+the signal row. The legacy signal visibility/order setting maps to the same option;
+an explicit current Wi-Fi Signal preference takes precedence.
 
 Move on Desktop unlocks the readout and hides the editor. Drag the shaded area to
 position it, with snapping 16 logical px inside all four screen work-area edges. Pull away to release without
@@ -47,7 +51,7 @@ for existing and new installations unless explicitly enabled.
 
 Auto Contrast samples six pixels in transparent padding on both sides at most once per two seconds while the desktop is foreground and the readout is locked. Samples are processed locally and never stored or transmitted. Light/dark selection has hysteresis; when sampling is unavailable, protected light text replaces a potentially stale dark choice. Local backing behind labels, values and icons preserves readability on mixed backgrounds without blurring the text layer. Auto Contrast and topmost mode respect the full 0–100% text and background opacity ranges. Custom color mode disables sampling. Nearby samples do not represent every glyph's background.
 
-Download and Upload participate in Reading Order. Their units follow Cards → Network Speed Unit. Network uses the same Collector, shows one busiest adapter, and does not add counters from overlapping adapters. Monitor icon/temperature color settings are separate from Desktop Auto Contrast.
+Download and Upload participate in Reading Order. Their units follow Cards → Network Speed Unit. Network uses the same Collector and one busiest adapter for throughput, without adding counters from overlapping adapters. Physical LAN and Wi-Fi link readings update independently of throughput selection. On supported Windows versions, Wi-Fi Signal uses connection quality without requiring Location permission; older Windows versions retain their existing connected-interface query. Monitor icon/temperature color settings are separate from Desktop Auto Contrast.
 
 ## Local adaptive text contrast and Desktop FPS
 

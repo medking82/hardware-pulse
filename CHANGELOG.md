@@ -20,6 +20,13 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 
 - Shared Desktop supports Auto (System), English and Simplified/Traditional Chinese UI, including Monitor, Settings, sensor status, Codex quota and tray actions. Language switches immediately without restarting sampling or refreshing credentials and is saved in the isolated preview profile. Auto respects Chinese script and region preferences.
 
+## 0.6.55 — 2026-10-09
+
+- Read Wi-Fi Signal through Windows realtime connection quality without requiring Location permission on supported systems. Keep the connected-interface fallback for older Windows versions; no scanning or new sampling task is added.
+- Keep the Wi-Fi Signal row visible as `—` when a connected link has no valid signal reading. Restore the actual percentage when available and clear the signal row on disconnect, without caching old values.
+- Remove the duplicate Wi-Fi Signal setting. Preserve legacy order/visibility preferences, with explicit current preferences taking precedence.
+- Verify native query selection, fallback, denied/malformed replies, percentage bounds and buffer release, plus missing/recovered/disconnected Desktop readings and settings compatibility.
+
 ## 0.6.54 — 2026-10-05
 
 - Retry brief Windows snapshot sharing/lock conflicts before reporting hardware readings unavailable. Reads make at most three attempts with up to 40 ms of added delay; no extra polling or cached live values are introduced.

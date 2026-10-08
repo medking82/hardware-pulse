@@ -288,11 +288,22 @@ serialized by Collector's existing sampling loop; no timer or process is added.
 
 Unavailable speed/signal stays null, and no second connection is assumed. The WLAN
 query reads the connected interface only; it does not scan or change connections.
+`WifiSignal` first requests `wlan_intf_opcode_realtime_connection_quality`, which
+excludes location-sensitive information and provides the actual 0–100 link quality.
+Only unsupported-opcode errors (50/87) fall back to the legacy connected-interface
+query. Access denied, other errors and malformed data remain unavailable; returned
+native buffers and the WLAN handle are released. No polling cadence is changed.
+`SensorProfile` retains connected Wi-Fi's signal capability when the numeric query
+is unavailable. Desktop renders `—`, clears the signal row on disconnect and shares
+one visibility/order option with legacy `netSignal` settings.
 WindowsAdapterTests compile against the real adapter DLL without the app or WPF,
 then perform read-only live checks of host identifier mapping, optional links,
 speed/signal semantics and invalid Wi-Fi input. These are smoke checks on this
 Windows machine, not simulated disconnect/reconnect or hardware coverage for every
 NIC. Existing differential fixtures still verify the downstream sensor mapping.
+Deterministic native-query fixtures additionally check API selection, unavailable
+replies, percentage bounds, legacy fallback and native buffer ownership. WPF fixtures
+check missing/recovered/disconnected signals and canonical settings compatibility.
 Test-WindowsAdapters is included in Validate. Source rollback requires no settings
 migration; no CPU/RAM improvement is claimed for this extraction.
 

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Threading;
 using HardwarePulse;
 
@@ -85,6 +86,7 @@ class WindowsAdapterTests {
         Console.WriteLine("PASS Windows hardware adapter: live RAM bounds, optional module and disk metadata; no identifiers exported");
         Check(typeof(WindowsNetwork).Assembly==typeof(SensorProfile).Assembly,"Network sampling did not enter the adapter assembly");
         Check(WifiSignal.Read("not-an-interface-id")==null,"Invalid Wi-Fi interface fabricated a signal");
+        TestWifiSignalQueries();
         var mapped=new HashSet<string>();
         var network=new WindowsNetwork(id=>{var value="test:"+id;mapped.Add(value);return value;});
         // Read-only live smoke check: no assumption that this machine has Wi-Fi or two links.
@@ -99,6 +101,56 @@ class WindowsAdapterTests {
         }
         Console.WriteLine("PASS Windows network adapter: standalone assembly, host identifiers, optional links, speed/signal semantics and invalid Wi-Fi input");
         return 0;
+    }
+
+    sealed class WifiReply {public uint Opcode,Status,Size,Signal,State=1;public bool NoData;}
+    static Queue<WifiReply> wifiReplies;
+    static readonly HashSet<IntPtr> wifiBuffers=new HashSet<IntPtr>();
+    static int wifiAllocated,wifiReleased;
+    static readonly Type connectionType=typeof(WifiSignal).GetNestedType("Connection",BindingFlags.NonPublic);
+    static WifiReply Realtime(uint signal,uint size=24){return new WifiReply{Opcode=19,Signal=signal,Size=size};}
+    static WifiReply Legacy(uint signal,uint state=1){return new WifiReply{Opcode=7,Signal=signal,State=state,Size=(uint)Marshal.SizeOf(connectionType)};}
+    static uint QueryWifiFixture(uint opcode,out uint size,out IntPtr data){
+        Check(wifiReplies.Count>0,"Unexpected Wi-Fi query fallback");var reply=wifiReplies.Dequeue();
+        Check(opcode==reply.Opcode,"Wi-Fi query must prefer realtime quality and fall back only when unsupported");
+        size=reply.Size;data=IntPtr.Zero;
+        if(reply.NoData||size==0)return reply.Status;
+        data=Marshal.AllocHGlobal((int)size);wifiBuffers.Add(data);wifiAllocated++;
+        if(opcode==19){for(int i=0;i<(int)size;i++)Marshal.WriteByte(data,i,0);if(size>=8)Marshal.WriteInt32(data,4,unchecked((int)reply.Signal));}
+        else if(size>=Marshal.SizeOf(connectionType)){
+            var ssidType=typeof(WifiSignal).GetNestedType("Ssid",BindingFlags.NonPublic);var ssid=Activator.CreateInstance(ssidType);ssidType.GetField("Bytes").SetValue(ssid,new byte[32]);
+            var associationType=typeof(WifiSignal).GetNestedType("Association",BindingFlags.NonPublic);var association=Activator.CreateInstance(associationType);
+            associationType.GetField("Ssid").SetValue(association,ssid);associationType.GetField("Bssid").SetValue(association,new byte[6]);associationType.GetField("Signal").SetValue(association,reply.Signal);
+            var connection=Activator.CreateInstance(connectionType);connectionType.GetField("State").SetValue(connection,reply.State);connectionType.GetField("Profile").SetValue(connection,"");connectionType.GetField("Association").SetValue(connection,association);
+            Marshal.StructureToPtr(connection,data,false);
+        }
+        return reply.Status;
+    }
+    static void ReleaseWifiFixture(IntPtr data){Check(wifiBuffers.Remove(data),"Wi-Fi native buffer freed twice or was not owned");wifiReleased++;Marshal.FreeHGlobal(data);}
+    static int? ReadWifiFixture(params WifiReply[] replies){
+        wifiReplies=new Queue<WifiReply>(replies);wifiAllocated=wifiReleased=0;
+        try{
+            var method=typeof(WifiSignal).GetMethod("ReadSignal",BindingFlags.Static|BindingFlags.NonPublic);
+            Check(method!=null,"Wi-Fi query reader seam missing");
+            var query=Delegate.CreateDelegate(method.GetParameters()[0].ParameterType,typeof(WindowsAdapterTests).GetMethod("QueryWifiFixture",BindingFlags.Static|BindingFlags.NonPublic));
+            var signal=(int?)method.Invoke(null,new object[]{query,new Action<IntPtr>(ReleaseWifiFixture)});
+            Check(wifiReplies.Count==0,"Wi-Fi query did not exercise its expected replies");
+            Check(wifiBuffers.Count==0&&wifiAllocated==wifiReleased,"Wi-Fi native buffer leaked");return signal;
+        }finally{foreach(var data in wifiBuffers)Marshal.FreeHGlobal(data);wifiBuffers.Clear();}
+    }
+    static void TestWifiSignalQueries(){
+        Check(ReadWifiFixture(Realtime(98))==98,"Realtime Wi-Fi signal not read from the fixed native prefix");
+        Check(ReadWifiFixture(Realtime(0))==0&&ReadWifiFixture(Realtime(100))==100,"Valid Wi-Fi signal boundaries rejected");
+        Check(ReadWifiFixture(Realtime(101))==null&&ReadWifiFixture(Realtime(uint.MaxValue))==null,"Invalid Wi-Fi signal fabricated a reading");
+        Check(ReadWifiFixture(Realtime(98,20))==null&&ReadWifiFixture(new WifiReply{Opcode=19,Size=24,NoData=true})==null,"Malformed realtime reply must remain unavailable without fallback");
+        Check(ReadWifiFixture(new WifiReply{Opcode=19,Status=5,Size=24})==null,"Access denied must not request location-sensitive connection data");
+        Check(ReadWifiFixture(new WifiReply{Opcode=19,Status=5023})==null,"Disconnected Wi-Fi must not trigger a fallback");
+        Check(ReadWifiFixture(new WifiReply{Opcode=19,Status=50,Size=24},Legacy(72))==72,"Unsupported realtime API must release its buffer and read the legacy signal");
+        Check(ReadWifiFixture(new WifiReply{Opcode=19,Status=87},Legacy(0))==0,"Older Windows opcode rejection must retain a valid legacy zero signal");
+        Check(ReadWifiFixture(new WifiReply{Opcode=19,Status=50},new WifiReply{Opcode=7,Status=5})==null,"Legacy access denied must remain unavailable");
+        Check(ReadWifiFixture(new WifiReply{Opcode=19,Status=50},Legacy(72,0))==null&&ReadWifiFixture(new WifiReply{Opcode=19,Status=50},Legacy(101))==null,"Invalid legacy connection or signal fabricated a reading");
+        Check(ReadWifiFixture(new WifiReply{Opcode=19,Status=50},new WifiReply{Opcode=7,Size=20})==null,"Short legacy buffer must remain unavailable");
+        Console.WriteLine("PASS Wi-Fi quality: privacy-safe query, unsupported-OS fallback, denied/disconnected/malformed replies, bounds and native buffer ownership");
     }
 
     static bool IsAntigravityFakeChild(string[] args){
