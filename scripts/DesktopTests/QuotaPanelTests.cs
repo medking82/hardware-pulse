@@ -74,9 +74,12 @@ static class QuotaPanelTests {
         Until(()=>Text(missing).Any(x=>x.Text=="Login required · Open Antigravity to read quota"),"Expired source directs the user to Antigravity");missing.Close();
         var owner=new MonitorWindow(new MonitorSource(true),start:false);owner.Show();
         var panels=owner.GetVisualDescendants().OfType<CodexQuotaPanel>().ToDictionary(x=>x.Provider);
-        foreach(var provider in QuotaSession.Providers)panels[provider].QuotaEnabled=true;
+        // Shared preview has no API-key editor yet; its supported provider set is explicit.
+        string[] hostProviders=["Codex","Claude","Antigravity"];
+        Check(panels.Keys.Order().SequenceEqual(hostProviders.Order()),"Shared preview provider set must stay explicit");
+        foreach(var provider in hostProviders)panels[provider].QuotaEnabled=true;
         owner.OpenFloatingMonitor();
-        Until(()=>QuotaSession.Providers.All(provider=>Text(owner.FloatingMonitor!).Any(x=>x.Text==provider+" · Live")),"All providers reach floating monitor from owner");
+        Until(()=>hostProviders.All(provider=>Text(owner.FloatingMonitor!).Any(x=>x.Text==provider+" · Live")),"All supported providers reach floating monitor from owner");
         Check(panels["Antigravity"].CurrentReading!.Provider=="Antigravity","Correct Antigravity snapshot identity");
         if(output!=null){using var frame=owner.FloatingMonitor!.CaptureRenderedFrame();frame!.Save(Path.Combine(output,"antigravity-floating.png"),Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);}
         owner.FloatingMonitor!.Close();owner.OpenFloatingMonitor();Dispatcher.UIThread.RunJobs();

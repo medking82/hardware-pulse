@@ -27,20 +27,25 @@ namespace HardwarePulse {
         static string LoginFile(string variable,string directory,string file){string root=Environment.GetEnvironmentVariable(variable);if(string.IsNullOrWhiteSpace(root))root=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),directory);return Path.Combine(root,file);}
         static object ReadLogin(string path){var info=new FileInfo(path);if(!info.Exists)throw new QuotaFailure("Login required");if(info.Length>1048576)throw new QuotaFailure("Login unavailable");return QuotaData.Parse(File.ReadAllText(path));}
         public static QuotaReading Read(string provider,CancellationToken cancel){
+            return Read(provider,cancel,id=>"");
+        }
+        public static QuotaReading Read(string provider,CancellationToken cancel,Func<string,string> credential){
             cancel.ThrowIfCancellationRequested();
             if(provider=="Codex")return CodexQuota.Read(()=>ReadLogin(LoginFile("CODEX_HOME",".codex","auth.json")),RequestCodex,cancel);
             try{
                 object body;
                 if(provider=="Antigravity")body=AntigravityQuota.Read(cancel);
                 else if(provider=="Claude"){
-                    string token=Environment.GetEnvironmentVariable("CLAUDE_CODE_OAUTH_TOKEN");
-                    if(string.IsNullOrEmpty(token)){var login=ClaudeLogin();token=QuotaDecoder.Text(QuotaDecoder.Get(QuotaDecoder.Get(login,"claudeAiOauth")??login,"accessToken"));}
-                    if(string.IsNullOrEmpty(token))throw new QuotaFailure("Login required");
-                    body=Request("https://api.anthropic.com/api/oauth/usage",new Dictionary<string,string>{{"Authorization","Bearer "+token},{"anthropic-beta","oauth-2025-04-20"}},null,cancel,false);
+                    body=ClaudeQuota.Read(ClaudeLogin,()=>Environment.GetEnvironmentVariable("CLAUDE_CODE_OAUTH_TOKEN"),(token,ct)=>Request("https://api.anthropic.com/api/oauth/usage",new Dictionary<string,string>{{"Authorization","Bearer "+token},{"anthropic-beta","oauth-2025-04-20"}},null,ct,false),cancel);
+                }else if(provider=="DeepSeek"){
+                    string key=credential(provider);
+                    if(string.IsNullOrEmpty(key))throw new QuotaFailure("API key required");
+                    if(key.Length>16384||Array.Exists(key.ToCharArray(),c=>c<=32||c>=127))throw new QuotaFailure("Credential unavailable");
+                    body=Request("https://api.deepseek.com/user/balance",new Dictionary<string,string>{{"Authorization","Bearer "+key}},null,cancel,false);
                 }else throw new QuotaFailure("Quota unavailable");
                 cancel.ThrowIfCancellationRequested();return QuotaDecoder.Decode(provider,body,DateTimeOffset.UtcNow);
             }catch(OperationCanceledException){throw;}
-            catch(QuotaFailure e){return new QuotaReading{Provider=provider,Status=e.Status,Observed=DateTimeOffset.UtcNow};}
+            catch(QuotaFailure e){return new QuotaReading{Provider=provider,Status=MapStatus(provider,e.Status),Observed=DateTimeOffset.UtcNow};}
             catch{cancel.ThrowIfCancellationRequested();return new QuotaReading{Provider=provider,Status="Quota unavailable",Observed=DateTimeOffset.UtcNow};}
         }
         static object RequestCodex(string token,string account,CancellationToken cancel){
@@ -48,10 +53,18 @@ namespace HardwarePulse {
             if(account!="")headers["ChatGPT-Account-Id"]=account;
             return Request("https://chatgpt.com/backend-api/wham/usage",headers,null,cancel,false);
         }
+        // A Claude/DeepSeek 403 is access denial, not proof that login expired. Codex and
+        // the Antigravity local server keep their historical "Login required" guidance,
+        // which their UI hints depend on.
+        internal static string MapStatus(string provider,string status){
+            if(provider=="DeepSeek"&&status=="Login required")return "API key rejected";
+            if(status=="Quota access denied"&&(provider=="Codex"||provider=="Antigravity"))return "Login required";
+            return status;
+        }
         // All callers supply fixed endpoints or a verified local process endpoint. Never follow redirects with login headers.
         internal static object Request(string url,Dictionary<string,string> headers,string body,CancellationToken cancel,bool local){
             cancel.ThrowIfCancellationRequested();var uri=new Uri(url);
-            if(local?uri.Host!="127.0.0.1":url!="https://chatgpt.com/backend-api/wham/usage"&&url!="https://api.anthropic.com/api/oauth/usage")throw new QuotaFailure("Quota unavailable");
+            if(local?uri.Host!="127.0.0.1":url!="https://chatgpt.com/backend-api/wham/usage"&&url!="https://api.anthropic.com/api/oauth/usage"&&url!="https://api.deepseek.com/user/balance")throw new QuotaFailure("Quota unavailable");
             // Enable TLS 1.2 and TLS 1.3 (numeric value for the older compiler).
             // Pinning TLS 1.2 fails the Codex endpoint on current Windows configurations.
             ServicePointManager.SecurityProtocol=SecurityProtocolType.Tls12 | (SecurityProtocolType)12288;
@@ -68,7 +81,7 @@ namespace HardwarePulse {
                             return QuotaData.Parse(Encoding.UTF8.GetString(memory.ToArray()));
                         }
                     }
-                }catch(WebException e){cancel.ThrowIfCancellationRequested();using(var response=e.Response as HttpWebResponse){int status=response==null?0:(int)response.StatusCode;throw new QuotaFailure(status==401||status==403?"Login required":status==429?"Refresh rate limited":"Quota unavailable");}}
+                }catch(WebException e){cancel.ThrowIfCancellationRequested();using(var response=e.Response as HttpWebResponse){int status=response==null?0:(int)response.StatusCode;throw new QuotaFailure(status==401?"Login required":status==403?"Quota access denied":status==429?"Refresh rate limited":"Quota unavailable");}}
             }
         }
     }

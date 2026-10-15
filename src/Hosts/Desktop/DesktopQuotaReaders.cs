@@ -4,6 +4,9 @@ namespace HardwarePulse.Desktop;
 static class DesktopQuotaReaders {
     public static QuotaReading Read(bool demo,string provider,CancellationToken cancel) {
         cancel.ThrowIfCancellationRequested();
+        if(!QuotaSession.Providers.Contains(provider))throw new ArgumentException("Unsupported quota provider",nameof(provider));
+        // This increment's credential editor belongs to native Windows. Never fall through to Codex.
+        if(provider=="DeepSeek")return new(){Provider=provider,Status="Credential editor unavailable on this host",Observed=DateTimeOffset.UtcNow};
         if(demo) {
             var rows=new List<QuotaWindow>{new(){Label="5-hour",Remaining=72.5,Reset=DateTimeOffset.UtcNow.AddHours(2)},new(){Label="Weekly",Remaining=54,Reset=DateTimeOffset.UtcNow.AddDays(4)}};
             return new(){Provider=provider,Status="Live",Observed=DateTimeOffset.UtcNow,Windows=rows,AllWindows=rows};

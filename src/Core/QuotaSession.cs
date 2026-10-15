@@ -11,7 +11,7 @@ namespace HardwarePulse {
         readonly Dictionary<string,Slot> slots=new Dictionary<string,Slot>();
         readonly Func<string,CancellationToken,QuotaReading> read;
         bool disposed;
-        public static readonly string[] Providers={"Codex","Antigravity","Claude"};
+        public static readonly string[] Providers=QuotaCatalog.Ids;
         public QuotaSession(Func<string,CancellationToken,QuotaReading> reader){read=reader;foreach(string provider in Providers)slots.Add(provider,new Slot{Reading=new QuotaReading{Provider=provider,Status="Refresh pending"}});}
         public QuotaReading[] Readings {get{return slots.Values.Where(s=>s.Enabled).Select(s=>s.Reading).ToArray();}}
         public void Enable(string provider,bool enabled){var slot=slots[provider];if(slot.Enabled==enabled)return;slot.Enabled=enabled;slot.Version++;if(slot.Cancel!=null)slot.Cancel.Cancel();slot.Reading=new QuotaReading{Provider=provider,Status="Refresh pending"};slot.Next=DateTimeOffset.MinValue;}

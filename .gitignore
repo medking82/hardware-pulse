@@ -12,3 +12,4 @@ widget-settings.json
 *.pfx
 *.p12
 *.key
+*.dpapi

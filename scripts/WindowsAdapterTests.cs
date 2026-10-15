@@ -21,6 +21,10 @@ class WindowsAdapterTests {
         Check(!system.Read(DateTimeOffset.UtcNow).values.ContainsKey("cpuLoad"),"Zero CPU interval fabricated load");
         Console.WriteLine("PASS Framework driver-free CPU/RAM and Windows version policy");
         CodexQuotaTests.Run();
+        QuotaSecurityTests.Run();
+        var missingFan=new RawSnapshot{schema=2,pid=1,sequence=1,time=DateTimeOffset.UtcNow.ToString("o"),boardName="B850M MORTAR",sensors=new[]{new Sensor{id="/lpc/nct6687dr/0/fan/10",name="System Fan #1",hardwareId="/board",hardwareType="SuperIO",type="Fan",value=null},new Sensor{id="/lpc/nct6687dr/0/fan/12",name="System Fan #3",hardwareId="/board",hardwareType="SuperIO",type="Fan",value=900}}};
+        var mappedFan=SensorProfile.Parse(missingFan,DateTimeOffset.UtcNow);
+        Check(mappedFan.available["bottom"]&&!mappedFan.values.ContainsKey("bottom")&&mappedFan.values["top"]==900,"Transient null sample must retain fan identity/capability without fabricating RPM");
         string architecture=System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture.ToString();
         string expected=Environment.GetEnvironmentVariable("PULSE_TEST_ARCH");
         Check(string.IsNullOrEmpty(expected)||expected==architecture,"Expected adapter process architecture "+expected+", got "+architecture);

@@ -29,6 +29,9 @@ LobeHub Icons as vendored by the same Token Monitor checkout. Antigravity uses
 the mask silhouette for themeable monochrome rendering. See LobeIcons-MIT.txt
 (copyright 2023 LobeHub), https://github.com/lobehub/lobe-icons.
 Provider names and marks belong to their respective owners; no affiliation implied.
+DeepSeek's themeable 24x24 SVG silhouette is also from LobeHub Icons as vendored
+in medking82/token-monitor commit 2db5808e82482ff0f9c165928480ab7a28380fd0,
+assets/icons/deepseek.svg; covered by LobeIcons-MIT.txt. No raster logo is used.
 # Shared Desktop preview dependencies
 
 The self-contained preview uses Avalonia 12.1.2 and .NET 10.0.12. Vendored

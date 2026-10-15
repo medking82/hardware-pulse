@@ -37,6 +37,11 @@ Windows x64 稳定版 [0.6.53](https://github.com/medking82/hardware-pulse/relea
 - DIMM 和两块 NVMe 采用等宽列。RAM/VRAM 用量在本次峰值中仍实时更新；GB 使用二进制单位，分母为操作系统/驱动报告的可用容量，可能小于实际安装的容量。
 - **GPU 风扇转速** 显示的是 RPM 遥测通道，不代表实体风扇的数量。
 
+开发分支（native Windows，尚未发布）在“设置 → AI 额度”增加 DeepSeek API
+余额和密码式密钥输入框，使用 Windows 当前用户级加密保存；保存不自动开启监控。
+余额保留 CNY／USD 金额，完整显示可查看赠送／充值分项，不显示百分比进度条。
+提供方注册与百分比／金额组件见[接入说明](docs/QUOTA-INTEGRATION.md)。
+
 ### 硬件发现与范围
 
 根据同一设备内的传感器名称／类型自动匹配一个 CPU、一个 GPU、最多两条支持温度读取的 DIMM，以及两块 NVMe。多 GPU 环境优先选择 NVIDIA，其次为 AMD 独立显卡，再次为集成显卡。未知或有歧义的读数显示 `—`；电压不会使用 VID 代替。

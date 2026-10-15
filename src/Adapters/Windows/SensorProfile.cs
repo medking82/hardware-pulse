@@ -88,10 +88,10 @@ namespace HardwarePulse {
                 chosen["vcore"]=Find(board,"Voltage","^Vcore$","^CPU VCore$");
                 chosen["cpuFan"]=Find(board,"Fan","^CPU Fan$","^CPU$");
                 chosen["system"]=Find(board,"Temperature","^System$","^Motherboard$");
-                var fans=board.Where(s=>s.type=="Fan"&&(chosen["cpuFan"]==null||s.id!=chosen["cpuFan"].id)&&s.value.HasValue).OrderBy(s=>s.id,StringComparer.OrdinalIgnoreCase).ToArray();
+                var fans=board.Where(s=>s.type=="Fan"&&(chosen["cpuFan"]==null||s.id!=chosen["cpuFan"].id)).OrderBy(s=>s.id,StringComparer.OrdinalIgnoreCase).ToArray();
                 if(Match(raw.boardName,"B850M MORTAR")){
                     chosen["bottom"]=fans.FirstOrDefault(s=>s.id=="/lpc/nct6687dr/0/fan/10");chosen["top"]=fans.FirstOrDefault(s=>s.id=="/lpc/nct6687dr/0/fan/12");
-                }else{chosen["bottom"]=fans.ElementAtOrDefault(0);chosen["top"]=fans.ElementAtOrDefault(1);}
+                }else{var reporting=fans.Where(s=>s.value.HasValue).ToArray();chosen["bottom"]=reporting.ElementAtOrDefault(0);chosen["top"]=reporting.ElementAtOrDefault(1);}
                 result.names["Airflow"]=string.IsNullOrEmpty(raw.boardName)?"Motherboard":raw.boardName;
                 string memory=string.IsNullOrEmpty(raw.memoryName)?"Memory":raw.memoryName;
                 var modules=raw.memoryModules??new MemoryModule[0];

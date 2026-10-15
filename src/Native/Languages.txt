@@ -6,8 +6,8 @@ FPS capture is unavailable on this Windows version.|此 Windows 版本不支持 
 Local Contrast requires Windows 10 version 2004 or later.|局部对比度需要 Windows 10 2004 或更高版本。|局部對比度需要 Windows 10 2004 或更新版本。
 Disconnected|未连接|未連線
 AI Quota|AI 额度|AI 額度
-Read remaining quota from existing local logins. Refreshes every 5 minutes.|使用本机已有登录读取剩余额度，每 5 分钟刷新。|使用本機已有登入讀取剩餘額度，每 5 分鐘更新。
-Login in Codex or Claude Code first. Keep Antigravity open. Pulse never changes your login.|请先登录 Codex 或 Claude Code，并保持 Antigravity 运行。Pulse 不修改登录信息。|請先登入 Codex 或 Claude Code，並保持 Antigravity 執行。Pulse 不修改登入資訊。
+Read remaining quota from existing logins and stored API keys. Refreshes every 5 minutes.|使用本机已有登录和已保存的 API 密钥读取剩余额度，每 5 分钟刷新。|使用本機已有登入和已儲存的 API 金鑰讀取剩餘額度，每 5 分鐘更新。
+Login in Codex or Claude Code first. Keep Antigravity open. Store a DeepSeek API key above to read balance. Pulse never changes your login.|请先登录 Codex 或 Claude Code，保持 Antigravity 运行；在上方保存 DeepSeek API 密钥以读取余额。Pulse 不修改登录信息。|請先登入 Codex 或 Claude Code，保持 Antigravity 執行；在上方儲存 DeepSeek API 金鑰以讀取餘額。Pulse 不修改登入資訊。
 Refresh Quota|刷新额度|更新額度
 Refresh pending|等待刷新|等待更新
 Login required|需要登录或重新登录|需要登入或重新登入
@@ -236,7 +236,7 @@ Font Size|文字大小|文字大小
 App quota display|App 额度显示|App 額度顯示
 Essential quotas|精简额度|精簡額度
 All available quotas|完整额度|完整額度
-Desktop keeps its essential quotas. Drag the handles to reorder the three provider cards.|桌面保留精简额度。拖动把手可调整三个服务卡片的顺序。|桌面保留精簡額度。拖曳把手可調整三個服務卡片的順序。
+Percentages show remaining quota; balances keep their currency. Drag the handles to reorder provider cards.|百分比表示剩余额度，余额保留原币种。拖动把手可调整服务卡片顺序。|百分比表示剩餘額度，餘額保留原幣別。拖曳把手可調整服務卡片順序。
 Drag the center to move. Drag any edge or corner to resize.|拖动中间移动，拖动任意边缘或角落调整大小。|拖曳中間移動，拖曳任意邊緣或角落調整大小。
 Done|完成|完成
 Return to App|返回 App|返回 App
@@ -279,3 +279,29 @@ Save device model and sensor readings for support. No account credentials, netwo
 Exporting diagnostics…|正在导出诊断…|正在匯出診斷…
 Diagnostics saved. You can share this file for support.|诊断已保存，可将文件发送给技术支持。|診斷已儲存，可將檔案傳送給技術支援。
 Could not save diagnostics. Choose another location and try again.|无法保存诊断，请选择其他位置后重试。|無法儲存診斷，請選擇其他位置後重試。
+Available balance|可用余额|可用餘額
+Collector data is missing or stale. No previous sample is shown as live.|采集数据缺失或已过期，不会将旧读数冒充实时数据。|擷取資料缺失或已過期，不會將舊讀數當作即時資料。
+This device does not expose this sensor.|此设备未提供该传感器。|此裝置未提供此感測器。
+This sensor did not report a valid value in the current sample. Waiting for the next sample.|此传感器本次未返回有效读数，等待下一次采样。|此感測器本次未回傳有效讀數，等待下一次取樣。
+No peak recorded for this session yet.|本次会话还没有记录峰值。|本次工作階段還沒有記錄峰值。
+Balance|余额|餘額
+Granted|赠送余额|贈送餘額
+Topped up|充值余额|儲值餘額
+DeepSeek API Key|DeepSeek API 密钥|DeepSeek API 金鑰
+Save encrypted|加密保存|加密儲存
+Remove key|删除密钥|刪除金鑰
+Encrypted key saved; check the quota card for connection status.|密钥已加密保存，连接状态请查看额度卡片|金鑰已加密儲存，連線狀態請查看額度卡片
+Saving encrypted key…|正在加密保存…|正在加密儲存…
+API key required|请配置 API 密钥|請設定 API 金鑰
+API key rejected|API 密钥被拒绝，请替换密钥|API 金鑰遭拒，請更換金鑰
+API key removed|API 密钥已删除|API 金鑰已刪除
+Credential unavailable|无法解密或读取凭据，请重新配置|無法解密或讀取憑證，請重新設定
+Could not save encrypted key|无法加密保存密钥|無法加密儲存金鑰
+Could not remove key|无法删除密钥|無法刪除金鑰
+Enter a valid API key. The previous key was not changed.|请输入有效的 API 密钥，原密钥未更改。|請輸入有效的 API 金鑰，原金鑰未變更。
+Quota access denied|访问被拒绝，不一定是登录失效|存取遭拒，不一定是登入失效
+Login expired|Claude Code 登录已过期|Claude Code 登入已過期
+Open Claude Code and renew its login, then refresh. Pulse does not refresh your login.|请打开 Claude Code 更新登录后再刷新；Pulse 不修改或续期登录。|請開啟 Claude Code 更新登入後再重新整理；Pulse 不修改或續期登入。
+Stored with Windows user encryption. Saving a key does not enable monitoring.|使用 Windows 用户级加密保存，保存密钥不会自动开启监控。|使用 Windows 使用者層級加密儲存，儲存金鑰不會自動開啟監控。
+Key privacy and permissions|密钥隐私与权限|金鑰隱私與權限
+Encrypted for this Windows user. Sent only to the selected provider for quota queries. Not included in settings, diagnostics or sync. The key may also allow paid API calls; encryption is not protection against malware running as you.|仅为当前 Windows 用户加密保存，只向所选服务商发送以查询额度。不写入设置、诊断或同步。密钥可能允许付费调用；加密不能防御以当前用户身份运行的恶意程序。|僅為目前 Windows 使用者加密儲存，只傳送至所選服務商查詢額度。不寫入設定、診斷或同步。金鑰可能允許付費呼叫；加密無法防禦以目前使用者身分執行的惡意程式。

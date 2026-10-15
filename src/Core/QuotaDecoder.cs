@@ -24,6 +24,7 @@ namespace HardwarePulse {
             Add(r,(label==""?"":label+" · ")+period,Get(w,"used_percent","usedPercent"),Get(w,"reset_at","resetAt","resets_at","resetsAt"),false);
         }}
         public static QuotaReading Decode(string provider,object body,DateTimeOffset now){
+            if(provider=="DeepSeek")return DeepSeekBalance.Decode(body,now);
             var compact=DecodeWindows(provider,body,now,false);
             compact.AllWindows=DecodeWindows(provider,body,now,true).Windows;
             return compact;

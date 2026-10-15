@@ -34,6 +34,12 @@ percentages and reset times are read, every five minutes. Token Monitor is not
 required. Sign in through Codex/Claude Code first; keep Antigravity running.
 Each provider is off by default. Expired login must be renewed in its owning app.
 
+Development branch (native Windows, not yet released): AI Quota adds DeepSeek API
+balance cards with CNY/USD amounts, optional granted/top-up detail, and a masked,
+Windows-user-encrypted key editor. Saving a key does not enable monitoring. Money
+never becomes a percentage or a progress bar. See [quota integration](docs/QUOTA-INTEGRATION.md)
+for provider components, security boundaries and verification limits.
+
 Version 0.6.27 also displays negotiated Network Link Speed for the selected
 adapter, in Mbit/s or Gbit/s. This is the adapter connection rate, not a measured
 internet speed or the current Download/Upload throughput. Missing speed is shown

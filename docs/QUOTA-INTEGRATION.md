@@ -1,5 +1,63 @@
 # Independent quota readings
 
+## Native Windows development: typed balance providers
+
+This increment targets the currently installed native WPF runtime, not an installer
+release or the separate shared-host preview. `QuotaCatalog` owns provider IDs,
+SVG names, accents, metric kind and authentication kind. `QuotaSession` consumes
+those IDs and remains the sole five-minute scheduling/cancellation owner. Percent
+windows and decimal `QuotaBalance` rows are separate contracts: balance rows keep
+currency and total/granted/topped-up amounts and never acquire a percentage bar.
+Native settings generate opt-ins from the catalog; API-key providers share a masked
+credential editor and user-bound DPAPI store. Native Monitor and Desktop consume
+the same sanitized reading. New observations fade in over 160 ms only when Windows
+client-area animations are enabled; existing reorder animation is retained.
+
+To add a provider such as Grok or Qwen, declare its metadata, implement a fixed-origin
+credential/transport adapter and response decoder, supply a themeable 24×24 SVG with
+provenance, and add parser/transport/lifecycle fixtures. The catalog is not a
+universal API protocol or automatic permission to send keys to arbitrary URLs.
+Do not add provider-specific cards or store secrets in ordinary settings. The
+shared-host preview explicitly refuses the new source instead of falling through
+to Codex; it does not yet expose the DPAPI editor.
+
+DeepSeek uses only GET `https://api.deepseek.com/user/balance`. Its key remains in
+the native UI user's encrypted local store. Requests are bounded, cancellable,
+redirect-free and opt-in. Saving/removing a key invalidates in-flight results;
+provider failures clear old balances. No Chrome debugging or browser-session
+extraction is added. Key saved means saved, not that the provider validated it.
+Concurrent saves are not serialized; a rare file-replace race surfaces the standard
+"Could not save encrypted key" status and keeps the previous key intact.
+
+Claude 403 is access denied, not proof of an expired login. File expiry is explicit;
+if Claude Code rotates its token during a rejected request, Pulse re-reads once
+and retries only when the credential changed. It never refreshes or writes the
+owning app's login. This does not repair a genuinely expired session. Current PC
+Claude live quota succeeded during investigation; that is not proof that all
+intermittent authentication failures are resolved.
+
+The B850M known SYS1/SYS3 mapping now retains a channel when one value is null;
+no previous RPM is substituted. Unknown-board discovery is unchanged. Missing
+values have explanatory tooltips. The live PC sample captured no missing sensor;
+the intermittent user symptom as a whole remains unproven. Synthetic null-channel
+regression reproduced the capability bug before its fix.
+
+DSH source investigation: its platform account reader queries
+`/api/v0/users/get_user_summary` with an `x-dsh-auth-token`, projecting
+`normal_wallets` and `bonus_wallets` with CNY/USD balances. This is a separate
+authentication route, not a percentage subscription. No DSH token is copied into
+Pulse, and no GA401 summary service is deployed by this increment. Whether the
+user's API key and DSH login address the same account/wallet has not been verified.
+
+Focused Windows acceptance is `Test-Core.ps1`, `Test-WindowsAdapters.ps1`,
+`Test-NativeSensors.ps1`, and `Test-QuotaFeature.ps1` after the native build.
+The latter exercises real WPF controls with synthetic credentials and captures
+narrow bilingual Settings and mixed metric cards. Live DeepSeek API acceptance
+requires a key supplied directly to the app; synthetic balances are not a claim
+of successful account access. The full native UI suite currently also fails
+`Desktop auto columns ignore resize` on the unchanged base under the same SSH
+desktop, so it is not reported as passing.
+
 ## Shared Antigravity (P02)
 
 The shared host composes readers in `DesktopQuotaReaders`; quota panels receive

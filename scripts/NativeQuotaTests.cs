@@ -41,19 +41,32 @@ internal static class NativeQuotaTests {
         using(var session=new QuotaSession((provider,cancel)=>{throw new Exception("sensitive diagnostic must not escape");})){
             session.Enable("Claude",true);session.Tick(DateTimeOffset.UtcNow);for(int i=0;i<100&&session.Readings[0].Status=="Refresh pending";i++){Thread.Sleep(10);session.Tick(DateTimeOffset.UtcNow);}Check(session.Readings[0].Status=="Quota unavailable","fault sanitized");
         }
+        int raceCalls=0;using(var entered=new ManualResetEventSlim())using(var release=new ManualResetEventSlim())
+        using(var raced=new QuotaSession((provider,cancel)=>{entered.Set();release.Wait(TimeSpan.FromSeconds(3));int call=Interlocked.Increment(ref raceCalls);return new QuotaReading{Provider=provider,Status="Live",Observed=DateTimeOffset.UtcNow,Windows=new System.Collections.Generic.List<QuotaWindow>{new QuotaWindow{Label="Weekly",Remaining=call==1?11:22}}};})){
+            raced.Enable("DeepSeek",true);raced.Tick(DateTimeOffset.UtcNow);Check(entered.Wait(3000),"key-replacement race request started");
+            raced.Enable("DeepSeek",false);raced.Enable("DeepSeek",true);release.Set();
+            for(int i=0;i<100&&raced.Readings[0].Status!="Live";i++){Thread.Sleep(10);raced.Tick(DateTimeOffset.UtcNow);}
+            Check(raced.Readings[0].Status=="Live"&&raceCalls==2&&raced.Readings[0].Windows[0].Remaining==22,"key reset must discard the stale generation and publish only the fresh one");
+        }
         Console.WriteLine("Quota parser and refresh lifecycle checks passed");
     }
     public static void RunUI(Shell shell,string screenshot){
         var field=typeof(Shell).GetField("quotas",BindingFlags.NonPublic|BindingFlags.Instance);var original=(QuotaSession)field.GetValue(shell);
-        using(var fake=new QuotaSession((provider,cancel)=>new QuotaReading{Provider=provider,Status="Live",Observed=DateTimeOffset.UtcNow,Windows=new System.Collections.Generic.List<QuotaWindow>{new QuotaWindow{Label="5-hour",Remaining=74,Reset=DateTimeOffset.UtcNow.AddMinutes(30)},new QuotaWindow{Label="Weekly",Remaining=96,Reset=DateTimeOffset.UtcNow.AddDays(6)}}})){
+        using(var fake=new QuotaSession((provider,cancel)=>provider=="DeepSeek"?Decode(provider,"{\"is_available\":true,\"balance_infos\":[{\"currency\":\"CNY\",\"total_balance\":\"110.00\",\"granted_balance\":\"10.00\",\"topped_up_balance\":\"100.00\"}]}"):new QuotaReading{Provider=provider,Status="Live",Observed=DateTimeOffset.UtcNow,Windows=new System.Collections.Generic.List<QuotaWindow>{new QuotaWindow{Label="5-hour",Remaining=74,Reset=DateTimeOffset.UtcNow.AddMinutes(30)},new QuotaWindow{Label="Weekly",Remaining=96,Reset=DateTimeOffset.UtcNow.AddDays(6)}}})){
             field.SetValue(shell,fake);try{
                 foreach(string provider in QuotaSession.Providers){var toggle=shell.Control<CheckBox>("Quota"+provider);Check(toggle.IsChecked!=true,"providers opt in");toggle.IsChecked=true;toggle.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));}
                 fake.Tick(DateTimeOffset.UtcNow);for(int i=0;i<100&&fake.Readings.Any(r=>r.Status!="Live");i++){Thread.Sleep(10);fake.Tick(DateTimeOffset.UtcNow);}shell.UpdatePanel();
-                Check(shell.Control<StackPanel>("QuotaCards").Children.Count==3,"three provider cards");
+                Check(shell.Control<StackPanel>("QuotaCards").Children.Count==QuotaCatalog.Entries.Count,"registered provider cards");
+                var balanceCard=shell.Control<StackPanel>("QuotaCards").Children.Cast<Border>().Single(c=>(string)c.Tag=="DeepSeek");
+                var texts=((StackPanel)balanceCard.Child).Children.OfType<TextBlock>().Select(t=>t.Text).ToArray();
+                Check(texts.Any(t=>t.Contains("CNY"))&&!texts.Any(t=>t.Contains("%"))&&!((StackPanel)balanceCard.Child).Children.OfType<ProgressBar>().Any(),"money card must not use a percentage/progress bar");
                 var metrics=(System.Collections.IEnumerable)typeof(Shell).GetMethod("DesktopMetrics",BindingFlags.NonPublic|BindingFlags.Instance).Invoke(shell,null);Check(metrics.Cast<object>().Count()>=6,"Desktop quota readings");
-                var hardware=shell.Control<StackPanel>("Cards");var previous=hardware.Visibility;double height=shell.Window.Height;shell.Window.Height=920;hardware.Visibility=Visibility.Collapsed;shell.Window.UpdateLayout();
+                var deepMetric=(DesktopMetric)metrics.Cast<object>().Single(m=>((DesktopMetric)m).Key=="quotaDeepSeekCNY");
+                Check(deepMetric.Icon=="deepseek"&&deepMetric.Value.Contains("CNY")&&deepMetric.Value.Contains("110.00"),"DeepSeek money desktop metric uses the catalog icon and formatted balance");
+                var hardware=shell.Control<StackPanel>("Cards");var previous=hardware.Visibility;double height=shell.Window.Height,width=shell.Window.Width;shell.Window.Height=920;shell.Window.Width=680;hardware.Visibility=Visibility.Collapsed;shell.Window.UpdateLayout();
+                var settle=System.Diagnostics.Stopwatch.StartNew();while(settle.ElapsedMilliseconds<300){shell.Window.Dispatcher.Invoke(new Action(()=>{}),System.Windows.Threading.DispatcherPriority.Background);Thread.Sleep(10);}
                 var bitmap=new System.Windows.Media.Imaging.RenderTargetBitmap((int)shell.Window.ActualWidth,(int)shell.Window.ActualHeight,96,96,System.Windows.Media.PixelFormats.Pbgra32);bitmap.Render(shell.Window);var png=new System.Windows.Media.Imaging.PngBitmapEncoder();png.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmap));using(var file=System.IO.File.Create(screenshot))png.Save(file);
-                hardware.Visibility=previous;shell.Window.Height=height;
+                hardware.Visibility=previous;shell.Window.Height=height;shell.Window.Width=width;
                 foreach(string provider in QuotaSession.Providers){var toggle=shell.Control<CheckBox>("Quota"+provider);toggle.IsChecked=false;toggle.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));}shell.UpdatePanel();Check(shell.Control<StackPanel>("QuotaCards").Children.Count==0,"disable removes quota view");
             }finally{field.SetValue(shell,original);}
         }

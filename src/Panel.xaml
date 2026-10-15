@@ -352,15 +352,14 @@
         </Expander>
         <Expander Header="AI Quota" Foreground="#F0F5FA" Margin="0,16,0,0">
           <StackPanel>
-            <TextBlock Text="Read remaining quota from existing local logins. Refreshes every 5 minutes." TextWrapping="Wrap" Margin="0,0,0,10" />
-            <CheckBox x:Name="QuotaCodex" Content="Codex" Margin="0,6" />
-            <CheckBox x:Name="QuotaAntigravity" Content="Antigravity" Margin="0,6" />
-            <CheckBox x:Name="QuotaClaude" Content="Claude" Margin="0,6" />
+            <TextBlock Text="Read remaining quota from existing logins and stored API keys. Refreshes every 5 minutes." TextWrapping="Wrap" Margin="0,0,0,10" />
+            <StackPanel x:Name="QuotaProviderOptions" />
+            <StackPanel x:Name="QuotaCredentialOptions" Margin="0,12,0,0" />
             <TextBlock Text="App quota display" Margin="0,12,0,6" />
             <ComboBox x:Name="QuotaDisplay" AutomationProperties.Name="App quota display"><ComboBoxItem Content="Essential quotas"/><ComboBoxItem Content="All available quotas"/></ComboBox>
-            <TextBlock Text="Desktop keeps its essential quotas. Drag the handles to reorder the three provider cards." FontSize="12" Opacity="0.8" Margin="0,8,0,0" />
+            <TextBlock Text="Percentages show remaining quota; balances keep their currency. Drag the handles to reorder provider cards." TextWrapping="Wrap" FontSize="12" Opacity="0.8" Margin="0,8,0,0" />
             <Button x:Name="QuotaRefresh" Content="Refresh Quota" Margin="0,12,0,8" />
-            <TextBlock Text="Login in Codex or Claude Code first. Keep Antigravity open. Pulse never changes your login." TextWrapping="Wrap" Opacity="0.8" />
+            <TextBlock Text="Login in Codex or Claude Code first. Keep Antigravity open. Store a DeepSeek API key above to read balance. Pulse never changes your login." TextWrapping="Wrap" Opacity="0.8" />
           </StackPanel>
         </Expander>
         <Expander Header="Game Overlay" Foreground="#F0F5FA" Margin="0,16,0,0">

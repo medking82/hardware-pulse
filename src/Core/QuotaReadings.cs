@@ -12,5 +12,6 @@ namespace HardwarePulse {
         public DateTimeOffset Observed;
         public List<QuotaWindow> Windows=new List<QuotaWindow>();
         public List<QuotaWindow> AllWindows=new List<QuotaWindow>();
+        public List<QuotaBalance> Balances=new List<QuotaBalance>();
     }
 }

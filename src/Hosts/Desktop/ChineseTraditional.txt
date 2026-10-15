@@ -222,3 +222,4 @@ Waiting for FPS collector|正在等待 FPS collector
 FPS capture failed|FPS capture 失敗
 FPS capture needs administrator|FPS capture 需要 administrator 權限
 Preview · Windows FPS requires the matching installed collector. Hardware support depends on the platform and device.|Preview · Windows FPS 需要匹配的已安裝 collector。硬體支援取決於平台和裝置。
+Credential editor unavailable on this host|此應用程式版本未提供金鑰編輯器，請在 native Windows 版中設定

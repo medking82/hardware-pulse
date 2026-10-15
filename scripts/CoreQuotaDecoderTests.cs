@@ -30,6 +30,15 @@ internal static class CoreQuotaDecoderTests {
     }
 #endif
     public static void Run(){
+        var balance=Decode("DeepSeek","{\"is_available\":true,\"balance_infos\":[{\"currency\":\"CNY\",\"total_balance\":\"110.00\",\"granted_balance\":\"10.00\",\"topped_up_balance\":\"100.00\"}]}");
+        Check(balance.Status=="Live"&&balance.Windows.Count==0,"DeepSeek money is live without percentage windows");
+        Check(balance.Balances.Count==1&&balance.Balances[0].Total==110m&&balance.Balances[0].Granted==10m&&balance.Balances[0].ToppedUp==100m,"money preserves decimal components");
+        var zero=Decode("DeepSeek","{\"is_available\":false,\"balance_infos\":[{\"currency\":\"USD\",\"total_balance\":\"0.00\",\"granted_balance\":\"0\",\"topped_up_balance\":\"0\"}]}");
+        Check(zero.Status=="Live"&&zero.Balances[0].Total==0m&&zero.Windows.Count==0,"insufficient balance is not missing data");
+        foreach(string invalid in new[]{"{}","{\"is_available\":true,\"balance_infos\":[{\"currency\":\"EUR\"}]}","{\"is_available\":true,\"balance_infos\":[{\"currency\":\"CNY\",\"total_balance\":\"NaN\"}]}","{\"is_available\":true,\"balance_infos\":[{\"currency\":\"CNY\",\"total_balance\":123,\"granted_balance\":\"0\",\"topped_up_balance\":\"123\"}]}"})Check(Decode("DeepSeek",invalid).Balances.Count==0,"malformed money must not become a zero balance");
+        var mixed=Decode("DeepSeek","{\"is_available\":true,\"balance_infos\":[{\"currency\":\"CNY\",\"total_balance\":\"110.00\",\"granted_balance\":\"10.00\",\"topped_up_balance\":\"100.00\"},{\"currency\":\"EUR\",\"total_balance\":\"5\",\"granted_balance\":\"1\",\"topped_up_balance\":\"4\"},{\"currency\":\"USD\",\"total_balance\":\"-1\",\"granted_balance\":\"0\",\"topped_up_balance\":\"0\"},{\"currency\":\"USD\",\"total_balance\":\"2.00\",\"granted_balance\":\"0\",\"topped_up_balance\":\"2.00\"}]}");
+        Check(mixed.Status=="Live"&&mixed.Balances.Count==2&&mixed.Balances[0].Currency=="CNY"&&mixed.Balances[1].Currency=="USD"&&mixed.Balances[1].Total==2m,"valid rows survive malformed siblings; invalid rows do not consume a currency slot");
+        Check(QuotaCatalog.Find("DeepSeek").Metric==QuotaMetric.Money&&QuotaCatalog.Find("Claude").Metric==QuotaMetric.Percentage&&QuotaCatalog.Ids.Distinct().Count()==QuotaCatalog.Entries.Count,"provider metadata keeps metric types separate and ids unique");
         var codex=Decode("Codex","{\"rate_limit\":{\"primary_window\":{\"used_percent\":0,\"limit_window_seconds\":18000,\"reset_at\":1800000000},\"secondary_window\":{\"used_percent\":36,\"limit_window_seconds\":604800}},\"additional_rate_limits\":[{\"metered_feature\":\"spark\",\"rate_limit\":{\"primary_window\":{\"used_percent\":100,\"limit_window_seconds\":18000}}}]}");
         Check(codex.Status=="Live"&&codex.Windows.Count==1,"Codex main weekly only");Check(codex.Windows[0].Label=="Weekly"&&codex.Windows[0].Remaining==64,"used to remaining weekly conversion");
         Check(codex.AllWindows.Count==3&&codex.AllWindows.Any(w=>w.Label=="spark · 5-hour"&&w.Remaining==0),"Codex HTTP additional_rate_limits missing from full display");

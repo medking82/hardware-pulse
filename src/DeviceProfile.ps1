@@ -30,12 +30,13 @@ function Get-DeviceProfile($raw){
     $chosen.vcore=Find-ProfileSensor $board 'Voltage' @('^Vcore$','^CPU VCore$')
     $chosen.cpuFan=Find-ProfileSensor $board 'Fan' @('^CPU Fan$','^CPU$')
     $chosen.system=Find-ProfileSensor $board 'Temperature' @('^System$','^Motherboard$')
-    $fans=@($board | Where-Object {$_.type -eq 'Fan' -and $_.id -ne $chosen.cpuFan.id -and $null -ne $_.value} | Sort-Object id)
+    $fans=@($board | Where-Object {$_.type -eq 'Fan' -and $_.id -ne $chosen.cpuFan.id} | Sort-Object id)
     # This board's verified SYS1/SYS3 inputs retain their slots, without guessing physical placement.
     if($raw.boardName -match 'B850M MORTAR'){
         $chosen.bottom=@($fans | Where-Object {$_.id -eq '/lpc/nct6687dr/0/fan/10'} | Select-Object -First 1)[0]
         $chosen.top=@($fans | Where-Object {$_.id -eq '/lpc/nct6687dr/0/fan/12'} | Select-Object -First 1)[0]
     }else{
+        $fans=@($fans | Where-Object {$null -ne $_.value})
         if($fans.Count -gt 0){$chosen.bottom=$fans[0]}
         if($fans.Count -gt 1){$chosen.top=$fans[1]}
     }
