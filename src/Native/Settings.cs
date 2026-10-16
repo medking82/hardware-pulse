@@ -18,6 +18,12 @@ namespace HardwarePulse {
         public static string Resolve(string preference,string culture){if(preference=="auto"){if(Regex.IsMatch(culture,@"^zh-(TW|HK|MO|Hant)",RegexOptions.IgnoreCase))return "zh-TW";if(Regex.IsMatch(culture,@"^zh(?:-|$)",RegexOptions.IgnoreCase))return "zh-CN";return "en";}return preference=="zh-CN"||preference=="zh-TW"?preference:"en";}
         public bool Contains(string text){return catalog.ContainsKey(text);}
         public string T(string text){string[] values;return text!=null&&Current!="en"&&catalog.TryGetValue(text,out values)?values[Current=="zh-TW"?1:0]:text;}
+        // Presentation only: never change translation keys, persisted values, brands or units.
+        public string Label(string text){
+            string translated=T(text);
+            if(Current!="en"||text==null||!catalog.ContainsKey(text)||text.Length>64||text.Split(' ').Length>8||text.IndexOfAny(new[]{'.',';','!','?'})>=0)return translated;
+            return Regex.Replace(translated,@"(?<![\p{L}\p{N}])\p{Ll}",m=>m.Value.ToUpperInvariant());
+        }
         public string Device(string text){string result=T(text)??"";foreach(string phrase in new[]{"System Temperature","Composite Temperature","Bottom Intake","Top Exhaust","Pump Fan","System Fan","Slots","configured"})result=Regex.Replace(result,@"(?<![\p{L}\p{N}])"+Regex.Escape(phrase)+@"(?![\p{L}\p{N}])",m=>T(phrase));return result;}
     }
 }

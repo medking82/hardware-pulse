@@ -256,6 +256,13 @@ Could not store the key for this Windows user.|无法为当前 Windows 用户保
 Could not remove the key. The stored key was not changed.|无法移除密钥，已保存的密钥未更改。|無法移除金鑰，已儲存的金鑰未變更。
 The key is encrypted for the current Windows user and sent only to api.deepseek.com. Saving a key does not enable monitoring.|密钥以当前 Windows 用户身份加密，仅发送至 api.deepseek.com。保存密钥不会开启监控。|金鑰以目前 Windows 使用者身分加密，僅傳送至 api.deepseek.com。儲存金鑰不會開啟監控。
 Available balance|可用余额|可用餘額
+Balance|余额|餘額
+DeepSeek Currency|DeepSeek 显示币种|DeepSeek 顯示幣種
+CNY (RMB)|人民币（CNY）|人民幣（CNY）
+All Currencies|全部币种|全部幣種
+Applies to App and Desktop. Filters balances; does not convert currencies.|同时作用于 App 和桌面，仅筛选余额，不进行换汇。|同時套用至 App 和桌面，僅篩選餘額，不進行換匯。
+No {0} Balance|无 {0} 余额|無 {0} 餘額
+No Balance|无余额|無餘額
 Granted|赠送|贈送
 Topped up|充值|儲值
 Drag the center to move. Drag any edge or corner to resize.|拖动中间移动，拖动任意边缘或角落调整大小。|拖曳中間移動，拖曳任意邊緣或角落調整大小。

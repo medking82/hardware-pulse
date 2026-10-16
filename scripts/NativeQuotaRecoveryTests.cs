@@ -32,17 +32,17 @@ internal static class NativeQuotaRecoveryTests {
                 var card=shell.Control<StackPanel>("QuotaCards").Children.Cast<Border>().Single(c=>(string)c.Tag=="Claude");
                 var header=(Grid)((StackPanel)card.Child).Children[0];var button=header.Children.OfType<Button>().Single();
                 button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));fake.Tick(now);Check(entered.Wait(5000),"card refresh did not request Claude");Render(shell);
-                Check(shell.Control<TextBlock>("QuotaRefreshStatus").Text.Contains("Claude: Refreshing quota")&&Card(shell,"Claude").Any(s=>s.Contains("Refreshing quota")),"refresh progress missing in Settings/card");
+                Check(shell.Control<TextBlock>("QuotaRefreshStatus").Text.Contains("Claude: Refreshing Quota")&&Card(shell,"Claude").Any(s=>s.Contains("Refreshing Quota")),"refresh progress missing in Settings/card");
                 Check(codexCalls==0,"Claude card button refreshed another provider");
                 release.Set();Complete(fake,"Claude",now);Render(shell);
-                Check(shell.Control<TextBlock>("QuotaRefreshStatus").Text=="Claude: Quota refresh complete","completed refresh missing explicit feedback");
+                Check(shell.Control<TextBlock>("QuotaRefreshStatus").Text=="Claude: Quota Refresh Complete","completed refresh missing explicit feedback");
                 shell.Control<Button>("QuotaRefresh").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Render(shell);
-                Check(shell.Control<TextBlock>("QuotaRefreshStatus").Text.Contains("Refresh deferred until"),"minimum request interval was silently skipped");
+                Check(shell.Control<TextBlock>("QuotaRefreshStatus").Text.Contains("Refresh Deferred Until"),"minimum request interval was silently skipped");
                 Capture(shell,Path.Combine(Path.GetDirectoryName(screenshot),"quota-refresh-feedback.png"));
                 fake.Enable("Claude",false);fake.Enable("Codex",false);
                 fake.RestoreSchedules(new[]{new QuotaSchedule{Provider="Claude",Status="Refresh rate limited",Observed=now,NextAttempt=now.AddHours(1),NotBefore=now.AddHours(1),RecoveryFailures=1,RateLimitFailures=1}});fake.Enable("Claude",true);
                 shell.Control<Button>("QuotaRefresh").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Render(shell);
-                Check(shell.Control<TextBlock>("QuotaRefreshStatus").Text.Contains("Refresh deferred until")&&shell.Control<TextBlock>("QuotaRefreshStatus").Text.Contains("Refresh rate limited"),"429 refresh must explain its wait");
+                Check(shell.Control<TextBlock>("QuotaRefreshStatus").Text.Contains("Refresh Deferred Until")&&shell.Control<TextBlock>("QuotaRefreshStatus").Text.Contains("Refresh Rate Limited"),"429 refresh must explain its wait");
                 fake.Tick(now);Check(claudeCalls==1,"feedback button bypassed real 429");
                 Capture(shell,Path.Combine(Path.GetDirectoryName(screenshot),"quota-refresh-wait.png"));
                 shell.ShowSettings(true);typeof(Shell).GetMethod("SelectSettingsCategory",Hidden).Invoke(shell,new object[]{"AI Quota"});shell.Window.UpdateLayout();
@@ -73,8 +73,8 @@ internal static class NativeQuotaRecoveryTests {
                 fake.Enable("Claude",true);fake.Tick(now);Complete(fake,"Claude",now);Render(shell);
                 typeof(Shell).GetMethod("RefreshQuota",Hidden).Invoke(shell,new object[]{"Claude"});fake.Tick(now.AddSeconds(30));Check(entered.Wait(5000),"timeout feedback fixture not started");
                 fake.Tick(now.AddSeconds(60));Render(shell);
-                Check(Card(shell,"Claude").Any(s=>s.StartsWith("Refresh timed out · Waiting for request to stop")),"timed-out card still claims Live while waiting for worker");
-                Check(shell.Control<TextBlock>("QuotaRefreshStatus").Text.Contains("Refresh timed out"),"Settings hides the pending timeout reason");
+                Check(Card(shell,"Claude").Any(s=>s.StartsWith("Refresh Timed Out · Waiting For Request To Stop")),"timed-out card still claims Live while waiting for worker");
+                Check(shell.Control<TextBlock>("QuotaRefreshStatus").Text.Contains("Refresh Timed Out"),"Settings hides the pending timeout reason");
             }finally{
                 release.Set();Complete(fake,"Claude",now.AddSeconds(60));
                 ((Dictionary<string,QuotaReading>)typeof(Shell).GetField("quotaRefreshBefore",Hidden).GetValue(shell)).Clear();shell.Control<TextBlock>("QuotaRefreshStatus").Visibility=Visibility.Collapsed;field.SetValue(shell,original);Render(shell);
@@ -92,7 +92,7 @@ internal static class NativeQuotaRecoveryTests {
                 next=new QuotaReading{Provider="Claude",Status="Refresh rate limited",CacheScope="synthetic-source",HttpStatus=429,FailureKind="HTTP response",Observed=now,RetryAt=now.AddMinutes(2)};
                 fake.Refresh();fake.Tick(now.AddSeconds(30));Complete(fake,"Claude",now.AddSeconds(30));Render(shell);
                 var card=Card(shell,"Claude");
-                Check(card.Any(s=>s.Contains("Retry in"))&&card.Any(s=>s.Contains("Cached 2 min ago")),"retry and cache age must be distinct from latest error age");
+                Check(card.Any(s=>s.Contains("Retry In"))&&card.Any(s=>s.Contains("Cached 2 Min Ago")),"retry and cache age must be distinct from latest error age");
                 Check(card.Any(s=>s.Contains("73%"))&&card.Any(s=>s.Contains("91%"))&&!card.Any(s=>s.StartsWith("Live")),"same-source cached values must never appear Live");
                 Check(Desktop(shell).All(m=>m.Value.Contains("Cached")&&m.ToolTip.Contains("HTTP 429")),"Desktop cached readings must visibly label their age/state");
                 var stableCard=shell.Control<StackPanel>("QuotaCards").Children[0];Render(shell);Check(object.ReferenceEquals(stableCard,shell.Control<StackPanel>("QuotaCards").Children[0]),"unchanged countdown must not rebuild cards each tick");
@@ -100,8 +100,8 @@ internal static class NativeQuotaRecoveryTests {
                 fake.GetState("Claude").LastGood.Windows[0].Reset=now.AddSeconds(-1);Render(shell);card=Card(shell,"Claude");
                 Check(!card.Any(s=>s.Contains("73%"))&&card.Any(s=>s.Contains("91%")),"cache reset must invalidate each window independently");
                 fake.GetState("Claude").LastGood.Observed=now.AddMinutes(-11);Render(shell);card=Card(shell,"Claude");
-                Check(card.Contains("5-hour")&&card.Contains("Weekly")&&card.Count(s=>s=="—")==2&&!card.Any(s=>s.Contains("91%")),"expired cache must keep basic structure with unknown values");
-                Check(Desktop(shell).Single().Value=="Refresh rate limited"&&Desktop(shell).Single().ToolTip.Contains("Next retry"),"Desktop error remains concise with retry detail");
+                Check(card.Contains("5-Hour")&&card.Contains("Weekly")&&card.Count(s=>s=="—")==2&&!card.Any(s=>s.Contains("91%")),"expired cache keeps Title Case labels and unknown values");
+                Check(Desktop(shell).Single().Value=="Refresh Rate Limited"&&Desktop(shell).Single().ToolTip.Contains("Next Retry"),"Desktop error remains concise with retry detail");
                 fake.GetState("Claude").LastGood.Windows[0].Reset=now.AddMinutes(30);
                 fake.GetState("Claude").LastGood.Observed=now.AddMinutes(-2);Render(shell);card=Card(shell,"Claude");
                 Check(card.Any(s=>s.Contains("73%"))&&card.Any(s=>s.Contains("91%")),"scope fixture cache missing before rejection");
@@ -111,7 +111,7 @@ internal static class NativeQuotaRecoveryTests {
                 fake.Enable("Claude",false);
                 next=new QuotaReading{Provider="Antigravity",Status="Quota unavailable",Source="Desktop",HttpStatus=503,FailureKind="HTTP response",Observed=now};
                 fake.Enable("Antigravity",true);fake.Tick(now);Complete(fake,"Antigravity",now);Render(shell);
-                Check(Card(shell,"Antigravity").Any(s=>s.Contains("Retry in")),"Antigravity unavailable must expose scheduled retry");
+                Check(Card(shell,"Antigravity").Any(s=>s.Contains("Retry In")),"Antigravity unavailable must expose scheduled retry");
                 Check(Desktop(shell).Single().ToolTip.Contains("HTTP 503"),"Antigravity failure detail must retain safe HTTP code");
                 fake.Enable("Antigravity",false);
                 next=new QuotaReading{Provider="Claude",Status="Refresh rate limited",Observed=now,CacheScope="different-source",HttpStatus=429};

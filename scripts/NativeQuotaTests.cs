@@ -85,7 +85,7 @@ internal static class NativeQuotaTests {
                 var percentCard=shell.Control<StackPanel>("QuotaCards").Children.Cast<Border>().Single(c=>(string)c.Tag=="Codex");
                 Check(Bars(percentCard).Any(),"percentage cards keep their progress bar");
                 var keyBox=shell.Control<PasswordBox>("DeepSeekKey");var keyStatus=shell.Control<TextBlock>("DeepSeekKeyStatus");
-                Check(keyStatus.Text=="API key required"||keyStatus.Text=="Encrypted key saved","key editor reports whether a key is stored");
+                Check(keyStatus.Text=="API Key Required"||keyStatus.Text=="Encrypted Key Saved","key editor reports whether a key is stored with Title Case");
                 bool stored=ProtectedQuotaCredentials.Exists("DeepSeek");
                 keyBox.Password="bad key";shell.Control<Button>("DeepSeekKeySave").RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
                 Check(keyStatus.Text=="Enter a valid API key. The previous key was not changed."&&keyBox.Password=="","rejected key is reported and cleared from the box");
@@ -99,7 +99,7 @@ internal static class NativeQuotaTests {
                 var claudeReading=fake.Readings.Single(r=>r.Provider=="Claude");claudeReading.Status="CLI snapshot";claudeReading.Source="CLI snapshot";
                 shell.UpdatePanel();
                 var claudeCard=shell.Control<StackPanel>("QuotaCards").Children.Cast<Border>().Single(c=>(string)c.Tag=="Claude");
-                Check(Labels(claudeCard).Any(s=>s.Contains("CLI snapshot"))&&Labels(claudeCard).Any(s=>s.Contains("74%")),"snapshot displays values with explicit source");
+                Check(Labels(claudeCard).Any(s=>s.Contains("CLI Snapshot"))&&Labels(claudeCard).Any(s=>s.Contains("74%")),"snapshot displays values with explicit Title Case source");
                 claudeReading.Observed=DateTimeOffset.UtcNow.AddMinutes(-11);shell.UpdatePanel();
                 claudeCard=shell.Control<StackPanel>("QuotaCards").Children.Cast<Border>().Single(c=>(string)c.Tag=="Claude");
                 Check(!Labels(claudeCard).Any(s=>s.Contains("74%")),"snapshot goes stale without waiting for another worker");
@@ -124,7 +124,8 @@ internal static class NativeQuotaTests {
                 var geminiMetrics=metrics.Cast<DesktopMetric>().Where(m=>m.Key.StartsWith("quotaAntigravity",StringComparison.Ordinal)).ToArray();
                 Check(geminiMetrics.Length==2&&geminiMetrics.All(m=>m.Title.StartsWith("Gemini · ",StringComparison.Ordinal)&&!m.Title.Contains("CLI")&&m.ToolTip!=null&&m.ToolTip.Contains("Antigravity CLI")),"Gemini keeps concise titles and discloses CLI source in tooltip");
                 var moneyMetrics=metrics.Cast<DesktopMetric>().Where(m=>m.Key.StartsWith("quotaDeepSeek",StringComparison.Ordinal)).ToArray();
-                Check(moneyMetrics.Length==1&&moneyMetrics[0].Value=="CNY 110.00"&&moneyMetrics[0].Title.Contains("Available balance"),"Desktop shows the money balance as an amount");
+                Check(moneyMetrics.Length==1&&moneyMetrics[0].Value=="CNY 110.00"&&moneyMetrics[0].Title=="DeepSeek","Desktop money row has a concise single-line provider title");
+                Check(moneyMetrics.Length==1&&moneyMetrics[0].ToolTip!=null&&moneyMetrics[0].ToolTip.Contains("Available Balance"),"Desktop tooltip retains the full balance label");
                 antigravityReading.Source=null;shell.UpdatePanel();
                 metrics=(System.Collections.IEnumerable)typeof(Shell).GetMethod("DesktopMetrics",BindingFlags.NonPublic|BindingFlags.Instance).Invoke(shell,null);
                 Check(metrics.Cast<DesktopMetric>().Where(m=>m.Key.StartsWith("quotaAntigravity",StringComparison.Ordinal)).All(m=>m.ToolTip==null),"Returning to Desktop source clears the previous CLI tooltip");

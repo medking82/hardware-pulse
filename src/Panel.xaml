@@ -369,6 +369,11 @@
             <CheckBox x:Name="QuotaAntigravity" Content="Antigravity" Margin="0,6" />
             <CheckBox x:Name="QuotaClaude" Content="Claude" Margin="0,6" />
             <CheckBox x:Name="QuotaDeepSeek" Content="DeepSeek" Margin="0,6" />
+            <TextBlock Text="DeepSeek Currency" Margin="0,8,0,6" />
+            <ComboBox x:Name="DeepSeekCurrency" AutomationProperties.Name="DeepSeek Currency">
+              <ComboBoxItem Tag="CNY" Content="CNY (RMB)" /><ComboBoxItem Tag="USD" Content="USD" /><ComboBoxItem Tag="All" Content="All Currencies" />
+            </ComboBox>
+            <TextBlock Text="Applies to App and Desktop. Filters balances; does not convert currencies." TextWrapping="Wrap" FontSize="11" Opacity="0.8" Margin="0,6,0,0" />
             <StackPanel x:Name="DeepSeekKeyTools" Margin="0,4,0,0">
               <TextBlock Text="DeepSeek API key" Margin="0,6,0,6" />
               <PasswordBox x:Name="DeepSeekKey" AutomationProperties.Name="DeepSeek API key" MinHeight="36" Padding="8,6" Foreground="#F0F5FA" Background="#202831" BorderBrush="#718596" />
