@@ -44,6 +44,22 @@ static class ReadingSessionTests {
                 new Sensor {id="/cpu/0/temp/0",hardwareId="/cpu/0",hardwareType="Cpu",hardware="Demo Processor",name="CPU Package",type="Temperature",value=temperature}
             }};
     }
+    static void CheckRecentSnapshot(string path,DateTimeOffset now){
+        var type=typeof(SensorProfile).GetNestedType("Reader",BindingFlags.Public);
+        Check(type!=null,"A persistent reader must distinguish a busy file from a dead collector");
+        var reader=Activator.CreateInstance(type,new object[]{path});var method=type.GetMethod("Read");
+        Func<DateTimeOffset,Reading> read=time=>(Reading)method.Invoke(reader,new object[]{time});
+        Json.WriteAtomic(path,Snapshot(now,4,1,62));Check(read(now).state=="LIVE","Reader primes only from a valid sample");
+        using(var locked=new FileStream(path,FileMode.Open,FileAccess.Read,FileShare.None)){
+            var recent=read(now.AddSeconds(2));
+            Check(recent.state=="LIVE"&&recent.values["cpu"]==62&&recent.time==now&&!string.IsNullOrEmpty(recent.error),"A busy file may retain a recent real sample, with its original time and an explicit warning");
+            var expired=read(now.AddSeconds(16));Check(expired.state!="LIVE"&&expired.values.Count==0,"Sharing fallback must not extend the fifteen-second freshness boundary");
+        }
+        var later=now.AddSeconds(20);Json.WriteAtomic(path,Snapshot(later,5,1,65));Check(read(later).values["cpu"]==65,"Reader recovers a new collector identity");
+        File.WriteAllText(path,"{broken");Check(read(later).state=="OFFLINE","Malformed data must not use the sharing fallback");
+        Json.WriteAtomic(path,Snapshot(later,5,2,66));using(var locked=new FileStream(path,FileMode.Open,FileAccess.Read,FileShare.None))Check(read(later).state=="OFFLINE","Malformed data invalidates the fallback before a later sharing failure");
+        Json.WriteAtomic(path,Snapshot(later,5,3,67));Check(read(later).state=="LIVE","Reader can recover after invalidation");File.Delete(path);Check(read(later).state=="OFFLINE","A removed file must not keep an old snapshot live");
+    }
     static int Main(string[] args) {
         try {
             string path=Path.Combine(args[0],"snapshot.json");Directory.CreateDirectory(args[0]);
@@ -71,6 +87,7 @@ static class ReadingSessionTests {
             Json.WriteAtomic(path,Snapshot(now,2,3,95));freshSession.Poll(now);
             Check(session.Peaks["cpu"]==85&&freshSession.Peaks["cpu"]==95,"Session histories must be independent");
             CheckReadConflicts(path,now);
+            CheckRecentSnapshot(path,now);
             Console.WriteLine("PASS headless reading session: offline/live/stale recovery, bounded sharing retries, expiry during retry, duplicate identity, peaks, capability replacement and independent histories");return 0;
         }catch(Exception e){Console.Error.WriteLine(e);return 1;}
     }

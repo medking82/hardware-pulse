@@ -62,6 +62,25 @@ namespace HardwarePulse {
 #endif
         }
         public static Reading Read(string path,DateTimeOffset now) {return ReadWithRetry(path,now,readSnapshot);}
+        // One serial consumer owns one path and its last validated raw sample. Only a
+        // sharing/lock conflict can reuse it, and Parse enforces the original timestamp.
+        public sealed class Reader {
+            readonly string path;
+            RawSnapshot lastGood;
+            public Reader(string path){this.path=Path.GetFullPath(path);}
+            public Reading Read(DateTimeOffset now){
+                long started=Stopwatch.GetTimestamp();RawSnapshot observed=null;
+                var result=ReadWithRetry(path,now,p=>{observed=readSnapshot(p);return observed;});
+                if(result.state=="LIVE"){lastGood=observed;return result;}
+                if((result.readErrorCode==32||result.readErrorCode==33)&&lastGood!=null){
+                    var recent=Parse(lastGood,now.AddSeconds((Stopwatch.GetTimestamp()-started)/(double)Stopwatch.Frequency));
+                    recent.error="Snapshot busy";recent.readErrorCode=result.readErrorCode;
+                    if(recent.state!="LIVE")lastGood=null;
+                    return recent;
+                }
+                lastGood=null;return result;
+            }
+        }
         internal static Reading ReadWithRetry(string path,DateTimeOffset now,Func<string,RawSnapshot> read) {
             try{
                 long started=Stopwatch.GetTimestamp();
@@ -79,7 +98,7 @@ namespace HardwarePulse {
                     return Parse(raw,now);
                 }
             }
-            catch(Exception e){return new Reading {error=e.Message};}
+            catch(Exception e){return new Reading {error=e.Message,readErrorCode=e.HResult&65535};}
         }
         public static Reading Parse(RawSnapshot raw,DateTimeOffset now) {
             if(raw==null||(raw.schema!=1&&raw.schema!=2))throw new FormatException("Unsupported snapshot schema");

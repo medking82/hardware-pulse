@@ -5,6 +5,7 @@ namespace HardwarePulse {
     public sealed class Usage { public double used, total, percent; public string label; }
     public sealed class Reading {
         public string state="OFFLINE", identity, error;
+        public int readErrorCode;
         public DateTimeOffset time;
         public Dictionary<string,double> values=new Dictionary<string,double>();
         public Dictionary<string,bool> available;

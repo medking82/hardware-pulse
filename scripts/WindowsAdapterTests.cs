@@ -24,6 +24,13 @@ class WindowsAdapterTests {
             Console.WriteLine("Gemini Models\tFive Hour Limit Remaining\t100%\t2099-09-30T12:00:00+08:00");
             return string.Equals(Environment.GetEnvironmentVariable("AGY_CLI_DISABLE_AUTO_UPDATE"),"true",StringComparison.Ordinal)?0:17;
         }
+        if(Array.IndexOf(args,"/usage")>=0){
+            if(args.Length!=7||args[0]!="--safe-mode"||args[1]!="--strict-mcp-config"||args[2]!="--tools"||args[3]!=""||args[4]!="--permission-mode"||args[5]!="dontAsk")return 19;
+            if(Console.In.ReadToEnd()!="")return 20;
+            Console.WriteLine("Current session: 2% used · resets Oct 17, 1am (Asia/Kuala_Lumpur)");
+            Console.WriteLine("Current week (all models): 41% used · resets Oct 19, 1pm (Asia/Kuala_Lumpur)");
+            return Environment.GetEnvironmentVariable("DISABLE_AUTOUPDATER")=="1"?0:21;
+        }
         Check(WindowsCompatibility.RequiresDriverFreeCollector(new Version(6,1,7601)),"Win7 must not load PawnIO path");
         Check(WindowsCompatibility.RequiresDriverFreeCollector(new Version(6,3,9600)),"Win8.1 must not load PawnIO path");
         Check(!WindowsCompatibility.RequiresDriverFreeCollector(new Version(10,0,19045)),"Modern Windows lost hardware path");
@@ -44,6 +51,7 @@ class WindowsAdapterTests {
         ClaudeQuotaRequestTests.Run();
         QuotaCredentialTests.Run();
         TestAntigravityChildEnvironment();
+        TestClaudeCliQuota();
         AntigravityEndpointTests.Run();
         string architecture=System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture.ToString();
         string expected=Environment.GetEnvironmentVariable("PULSE_TEST_ARCH");
@@ -154,6 +162,36 @@ class WindowsAdapterTests {
         Console.WriteLine("PASS Wi-Fi quality: privacy-safe query, unsupported-OS fallback, denied/disconnected/malformed replies, bounds and native buffer ownership");
     }
 
+    static void TestClaudeCliQuota(){
+        var type=typeof(QuotaProviders).Assembly.GetType("HardwarePulse.ClaudeCliQuota");
+        Check(type!=null,"Claude CLI query backup adapter is missing");
+        var decode=type.GetMethod("Parse",BindingFlags.Static|BindingFlags.NonPublic);
+        var now=new DateTimeOffset(2026,10,16,20,0,0,TimeSpan.FromHours(8));
+        Func<string,QuotaReading> parse=text=>(QuotaReading)decode.Invoke(null,new object[]{text,now});
+        string session="Current session: 2% used · resets Oct 17, 1am (Asia/Kuala_Lumpur)\n";
+        string weekly="Current week (all models): 41% used · resets Oct 19, 1pm (Asia/Kuala_Lumpur)\n";
+        var good=parse(session+weekly);
+        Check(good.Status=="Live"&&good.Source=="CLI"&&good.Windows.Count==2&&good.Windows[0].Remaining==98&&good.Windows[1].Remaining==59,"Claude CLI uses the correct independent percentage windows");
+        Check(good.Windows[0].Reset==new DateTimeOffset(2026,10,17,1,0,0,TimeSpan.FromHours(8)),"CLI reset is interpreted in its reported timezone");
+        Check(good.Windows[1].Reset==new DateTimeOffset(2026,10,19,13,0,0,TimeSpan.FromHours(8)),"Weekly reset retains its date");
+        Check(parse(session.Replace("2%","100%")+weekly).Windows[0].Remaining==0,"True zero remaining is retained");
+        Check(parse("Current session:\nCurrent week (all models): 41% used\n").Status!="Live","Missing session percentage must not borrow the weekly value");
+        Check(parse(session+session+weekly).Status!="Live"&&parse(session+weekly+weekly).Status!="Live","Ambiguous duplicate windows fail closed");
+        Check(parse(session.Replace("2%","102%")+weekly).Status!="Live"&&parse(session.Replace("2%","-2%")+weekly).Status!="Live","Malformed percentages are rejected");
+        Check(parse("Current session: 2% used\nCurrent week (Opus): 41% used\n").Status!="Live","Model-specific weekly quota never replaces all-models quota");
+        Check(parse(session.Replace("Asia/Kuala_Lumpur","Unknown/Zone")+weekly).Windows[0].Reset==null,"Unknown timezone never invents a reset");
+        var multiline=parse("\u001b[32mCurrent session\u001b[0m\n2% used\nResets 1am (Asia/Kuala_Lumpur)\nCurrent week (all models)\n41% used\nResets Oct 19, 1pm (Asia/Kuala_Lumpur)\n");
+        Check(multiline.Status=="Live"&&multiline.Windows[0].Remaining==98,"ANSI and bounded multiline CLI usage are parsed");
+        var read=type.GetMethod("Read",BindingFlags.Static|BindingFlags.NonPublic);
+        string prior=Environment.GetEnvironmentVariable("DISABLE_AUTOUPDATER");
+        try{
+            Environment.SetEnvironmentVariable("DISABLE_AUTOUPDATER","parent-sentinel");
+            var child=(QuotaReading)read.Invoke(null,new object[]{Assembly.GetExecutingAssembly().Location,CancellationToken.None});
+            Check(child.Status=="Live"&&child.Source=="CLI","Real owned child receives safe quota-only arguments and closed stdin");
+            Check(Environment.GetEnvironmentVariable("DISABLE_AUTOUPDATER")=="parent-sentinel","Child environment does not change the host");
+        }finally{Environment.SetEnvironmentVariable("DISABLE_AUTOUPDATER",prior);}
+        Console.WriteLine("PASS Claude CLI query: bounded quota-only child, independent windows, strict percentages, timezone resets and no credential arguments");
+    }
     static bool IsAntigravityFakeChild(string[] args){
         return args!=null&&args.Length==6&&args[0]=="--print"&&args[1]=="/usage"&&args[2]=="--print-timeout"&&args[3]=="15s"&&args[4]=="--log-file"&&args[5]=="NUL";
     }

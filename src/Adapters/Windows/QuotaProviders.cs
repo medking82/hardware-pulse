@@ -78,6 +78,15 @@ namespace HardwarePulse {
             }catch(FileNotFoundException){throw new QuotaFailure("Login required");}
             catch(DirectoryNotFoundException){throw new QuotaFailure("Login required");}
         }
+        public static QuotaReading ReadClaudeCli(CancellationToken cancel){
+            cancel.ThrowIfCancellationRequested();
+            try{
+                string executable=ClaudeCliQuota.InstalledExecutable();
+                if(executable==null)throw new QuotaFailure("Quota unavailable",null,0,"Local discovery");
+                return ClaudeCliQuota.Read(executable,cancel);
+            }catch(QuotaFailure failure){return new QuotaReading{Provider="Claude",Source="CLI",Status=failure.Status,Observed=DateTimeOffset.UtcNow,RetryAt=failure.RetryAt,FailureKind=failure.FailureKind??"CLI failure"};}
+            catch{cancel.ThrowIfCancellationRequested();return new QuotaReading{Provider="Claude",Source="CLI",Status="Quota unavailable",Observed=DateTimeOffset.UtcNow,FailureKind="CLI failure"};}
+        }
         public static QuotaReading Read(string provider,CancellationToken cancel){
             cancel.ThrowIfCancellationRequested();
             string cacheScope=null;

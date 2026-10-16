@@ -28,7 +28,7 @@ namespace HardwarePulse {
             foreach(string line in text.ToString().Split(new[]{'\n'},StringSplitOptions.RemoveEmptyEntries)){
                 string[] fields=line.TrimEnd('\r').Split('\t');
                 if(fields.Length!=4||fields[0].Length==0||fields[0].Length>80||fields[0].Any(char.IsControl))throw new QuotaFailure("Quota unavailable",null,0,"Invalid response");
-                string window=fields[1]=="Weekly Limit Remaining"?"weekly":fields[1]=="Five Hour Limit Remaining"?"5-hour":null;
+                string window=fields[1]=="Weekly Limit Remaining"||(fields[0]=="Gemini 4 Argon"&&fields[1]=="Gemini 4 Argon Weekly Limit")?"weekly":fields[1]=="Five Hour Limit Remaining"?"5-hour":null;
                 double remaining;DateTimeOffset reset;
                 if(window==null||!fields[2].EndsWith("%",StringComparison.Ordinal)||fields[2].IndexOf('%')!=fields[2].Length-1||
                     !double.TryParse(fields[2].TrimEnd('%'),NumberStyles.AllowDecimalPoint,CultureInfo.InvariantCulture,out remaining)||
@@ -39,7 +39,7 @@ namespace HardwarePulse {
                 if(buckets.ContainsKey(window))throw new QuotaFailure("Quota unavailable",null,0,"Invalid response");
                 buckets.Add(window,new Dictionary<string,object>{{"window",window},{"remainingFraction",remaining/100},{"resetTime",reset.ToString("o")}});
             }
-            if(!groups.ContainsKey("Gemini Models")||groups.Any(g=>g.Value.Count!=2))throw new QuotaFailure("Quota unavailable",null,0,"Invalid response");
+            if(!groups.ContainsKey("Gemini Models")||groups.Any(g=>g.Key=="Gemini 4 Argon"?g.Value.Count!=1||!g.Value.ContainsKey("weekly"):g.Value.Count!=2))throw new QuotaFailure("Quota unavailable",null,0,"Invalid response");
             return new Dictionary<string,object>{{"groups",groups.Select(g=>(object)new Dictionary<string,object>{{"displayName",g.Key},{"buckets",g.Value.Values.ToArray()}}).ToArray()}};
         }
     }

@@ -144,6 +144,9 @@ static class QuotaFeatureTests {
             string root=AppDomain.CurrentDomain.BaseDirectory,state=Path.GetFullPath(args[0]);Directory.CreateDirectory(state);
             Json.WriteAtomic(Path.Combine(state,"widget-settings.json"),new {language="en",solid=true});
             var application=new Application{ShutdownMode=ShutdownMode.OnExplicitShutdown};
+            NativeLocalInferenceTests.Run(root,Path.Combine(state,"local-inference"));
+            NativeSnapshotRecoveryTests.Run(root,Path.Combine(state,"snapshot-recovery"));
+            NativeArgonTests.Run(root,Path.Combine(state,"argon"));
             using(var shell=new Shell(new PulsePaths(root,state,Path.Combine(state,"runtime")),true)){
                 shell.Window.ShowActivated=false;shell.Window.ShowInTaskbar=false;shell.Show();Pump();
                 NativeQuotaTests.RunUI(shell,Path.Combine(state,"quota-existing-tests.png"));

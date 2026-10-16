@@ -155,8 +155,10 @@ namespace HardwarePulse {
                     result.Add(new DesktopMetric(direction,language.T(direction=="netDown"?"Download":"Upload"),rate,"network"));
                 }
             }
-            if(readings.Latest.state!="LIVE")result.Add(new DesktopMetric("status",language.T(readings.Latest.state),language.T("Waiting for collector"),"live"));
+            if(readings.Latest.state!="LIVE")result.Add(new DesktopMetric("status",language.Label(readings.Latest.state),language.Label(HardwareDiagnosticLog.Reason(readings.Latest)),"live"));
+            else if(HardwareDiagnosticLog.Reason(readings.Latest)=="Snapshot busy")result.Add(new DesktopMetric("status",language.Label("Recent sample"),language.Label("Retrying snapshot"),"live"){ToolTip=readings.Latest.time.ToLocalTime().ToString("HH:mm:ss")});
             AddDesktopQuotas(result);
+            AddDesktopInference(result);
             result.RemoveAll(metric=>!DesktopMetricEnabled(metric.Key));
             if(result.Count==0)result.Add(new DesktopMetric("empty","Pulse",language.T("No cards shown. Choose cards in Settings."),"live"));
             var order=DesktopOrderKeys();return result.OrderBy(metric=>{int index=Array.IndexOf(order,metric.Icon=="fps"?"fps":DesktopOrderKey(metric.Key));return index<0?int.MaxValue:index;}).ToList();

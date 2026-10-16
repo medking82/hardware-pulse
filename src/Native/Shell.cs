@@ -23,6 +23,7 @@ namespace HardwarePulse {
         public readonly Window Window;readonly PulsePaths paths;readonly Settings settings;readonly Languages language;
         readonly StackPanel cards;readonly Dictionary<string,CardView> views=new Dictionary<string,CardView>();
         readonly ReadingSession readings;
+        readonly HardwareDiagnosticLog hardwareLog;
         readonly List<Tuple<object,PropertyInfo,string>> localized=new List<Tuple<object,PropertyInfo,string>>();
         readonly List<Tuple<object,PropertyInfo,Brush>> themed=new List<Tuple<object,PropertyInfo,Brush>>();
         readonly DispatcherTimer poll=new DispatcherTimer(),saveTimer=new DispatcherTimer();
@@ -46,9 +47,11 @@ namespace HardwarePulse {
             bool legacyUpdates=WindowsCompatibility.RequiresDriverFreeCollector(windowsVersion);
             updater=new UpdateCoordinator(new UpdateClient(legacyUpdates),typeof(Shell).Assembly.GetName().Version,legacyUpdates);
             this.paths=paths;this.isolated=isolated;Directory.CreateDirectory(paths.State);
-            readings=new ReadingSession(now=>SensorProfile.Read(paths.Snapshot,now));
+            var snapshotReader=new SensorProfile.Reader(paths.Snapshot);
+            readings=new ReadingSession(snapshotReader.Read);
+            hardwareLog=new HardwareDiagnosticLog(paths.State);
             settings=new Settings(Path.Combine(paths.State,"widget-settings.json"));language=new Languages(Path.Combine(paths.Root,"Languages.txt"));language.Preference=settings.Text("language","auto");
-            claudeSnapshotSource=settings.Flag("claudeSnapshotSource",false);quotas=new QuotaSession(ReadQuota);
+            claudeCliSource=settings.Flag("claudeCliSource",false);claudeSnapshotSource=!claudeCliSource&&settings.Flag("claudeSnapshotSource",false);quotas=new QuotaSession(ReadQuota);
             if(!isolated){
                 var quotaStore=new QuotaScheduleStore(paths.State);
                 quotas.RestoreSchedules(quotaStore.Load());quotas.ScheduleChanged+=quotaStore.Save;
@@ -62,7 +65,7 @@ namespace HardwarePulse {
             Window.FontSize=settings.Number("fontSize",settings.Flag("large")?14:12,10,16);Window.Topmost=settings.Flag("pin");locked=settings.Flag("positionLocked");
             Control<CheckBox>("Pin").IsChecked=Window.Topmost;Control<CheckBox>("Solid").IsChecked=settings.Flag("solid");Control<Slider>("OpacitySlider").Value=settings.Number("opacity",85,0,100);Control<Slider>("FontSizeSlider").Value=Window.FontSize;
             Control<ContentControl>("BrandIcon").Content=Icon("live",22,"#A5E7D5");Window.Icon=BitmapFrame.Create(new Uri(Path.Combine(paths.Root,"assets","pulse.ico")));
-            BuildCards();WireSettings();WireReadingColors();WireNetwork();WireQuota();BuildTray();WireDesktop();WireOverlay();WireUpdater();Click("ExportDiagnostics",ExportDiagnostics);ThemeCatalog();Localize();
+            BuildCards();WireSettings();WireReadingColors();WireNetwork();WireQuota();BuildTray();WireDesktop();WireOverlay();WireUpdater();WireLocalInference();Click("ExportDiagnostics",ExportDiagnostics);ThemeCatalog();Localize();
             Window.SourceInitialized+=delegate{WindowSnap.Attach(Window);ApplyLock();ApplyMaterial();};
             Window.Loaded+=delegate{Initialize();};
             Window.SizeChanged+=delegate{ApplyDensity();QueueSave();};Window.LocationChanged+=delegate{QueueSave();};
@@ -78,18 +81,20 @@ namespace HardwarePulse {
         void StartCollector(){try{if(File.Exists(paths.Stop)){try{File.Delete(paths.Stop);}catch{ignoredStop=File.GetLastWriteTimeUtc(paths.Stop).Ticks;throw;}}if(SensorProfile.Read(paths.Snapshot,DateTimeOffset.Now).state!="LIVE")using(var store=new SchedulerStore())new Startup(store,paths.Exe,WindowsIdentity.GetCurrent().User.Value).StartCollector();}catch{collectorFailed=true;}}
         public void UpdatePanel(){
             if(!isolated&&File.Exists(paths.Stop)&&File.GetLastWriteTimeUtc(paths.Stop).Ticks!=ignoredStop){Exit();return;}
-            readings.Poll(DateTimeOffset.Now);if(!isolated)TickQuotas(DateTimeOffset.UtcNow);RenderQuotaRefreshFeedback(DateTimeOffset.UtcNow);UpdateDesktop();
+            readings.Poll(DateTimeOffset.Now);if(!isolated){TickQuotas(DateTimeOffset.UtcNow);localInference.Tick(DateTimeOffset.UtcNow);}RenderQuotaRefreshFeedback(DateTimeOffset.UtcNow);UpdateDesktop();
+            if(!isolated)hardwareLog.Record(readings.Latest,DateTimeOffset.UtcNow);
             // Keep collection, peaks, stale-state detection and STOP handling active
             // while Settings or the tray/minimized window has no visible cards to render.
             if(Window.IsVisible&&Window.WindowState!=WindowState.Minimized&&!settingsVisible)RenderPanel();
-            if(loaded)Json.WriteAtomic(Path.Combine(paths.State,"view-status.json"),new {updated=DateTimeOffset.Now.ToString("o"),state=readings.Latest.state,mode=maximum?"max":"live",sensors=readings.Latest.values.Count});
+            if(loaded)Json.WriteAtomic(Path.Combine(paths.State,"view-status.json"),new {updated=DateTimeOffset.Now.ToString("o"),state=readings.Latest.state,reason=HardwareDiagnosticLog.Reason(readings.Latest),snapshotTime=readings.Latest.time==default(DateTimeOffset)?null:readings.Latest.time.ToString("o"),mode=maximum?"max":"live",sensors=readings.Latest.values.Count});
         }
         void RenderPanel(){
-            Text("Status",readings.Latest.state=="LIVE"?"● "+language.T("Live")+" · "+readings.Latest.time.ToLocalTime().ToString("HH:mm:ss")+" · "+readings.Latest.values.Count+" "+language.T("sensors"):"● "+language.T(readings.Latest.state)+" · "+language.T("Waiting for collector"));
+            bool recent=readings.Latest.state=="LIVE"&&HardwareDiagnosticLog.Reason(readings.Latest)=="Snapshot busy";
+            Text("Status",readings.Latest.state=="LIVE"?"● "+language.Label(recent?"Recent sample":"Live")+" · "+readings.Latest.time.ToLocalTime().ToString("HH:mm:ss")+" · "+(recent?language.Label("Retrying snapshot"):readings.Latest.values.Count+" "+language.T("sensors")):"● "+language.Label(readings.Latest.state)+" · "+language.Label(HardwareDiagnosticLog.Reason(readings.Latest)));
             if(collectorFailed&&readings.Latest.state!="LIVE")Text("Status",language.T("Collector start failed; reinstall or check permissions"));
             if(maximum)Control<TextBlock>("Status").Text+=" · "+language.T("Session peaks");
-            Control<TextBlock>("Status").Foreground=Brush(light?(readings.Latest.state=="LIVE"?"#12644D":"#804000"):(readings.Latest.state=="LIVE"?"#A5E7D5":"#E7C5A4"));
-            foreach(var view in views.Values)UpdateCard(view);RenderQuota();
+            Control<TextBlock>("Status").Foreground=Brush(light?(readings.Latest.state=="LIVE"&&!recent?"#12644D":"#804000"):(readings.Latest.state=="LIVE"&&!recent?"#A5E7D5":"#E7C5A4"));
+            foreach(var view in views.Values)UpdateCard(view);RenderQuota();RenderLocalInference();
             UpdateMonitorControls();ApplyDensity(false);
         }
         void QueueSave(){if(!loaded||disposed)return;saveTimer.Stop();saveTimer.Start();}
@@ -100,6 +105,7 @@ namespace HardwarePulse {
         }
         Viewbox Icon(string name,double size,string color="#C2D8E5"){
             var doc=new XmlDocument();doc.XmlResolver=null;doc.Load(Path.Combine(paths.Root,"assets",name+".svg"));var node=doc.SelectSingleNode("/*[local-name()='svg']/*[local-name()='path']");
+            if(name=="strata")return StrataIcon(doc,size,color);
             bool filled=node.Attributes["fill"]!=null&&node.Attributes["fill"].Value=="currentColor";
             var path=new System.Windows.Shapes.Path {Data=Geometry.Parse(node.Attributes["d"].Value),Fill=filled?Brush(color):null,Stroke=filled?null:Brush(color),StrokeThickness=1.7,StrokeStartLineCap=PenLineCap.Round,StrokeEndLineCap=PenLineCap.Round,StrokeLineJoin=PenLineJoin.Round};var canvas=new Canvas {Width=24,Height=24};canvas.Children.Add(path);return new Viewbox {Width=size,Height=size,Child=canvas,IsHitTestVisible=false};
         }
@@ -108,6 +114,6 @@ namespace HardwarePulse {
         public void ShowHome(){ShowSettings(false);Show();}
         public void Show(){Window.Show();Window.WindowState=WindowState.Normal;Window.Activate();}
         public void Exit(){exit=true;Window.Close();}
-        public void Dispose(){if(disposed)return;disposed=true;if(desktopHotkey!=null)desktopHotkey.Dispose();quotas.Dispose();poll.Stop();saveTimer.Stop();StopOverlay();overlay.Close();if(desktop!=null){desktop.Close();desktop=null;}updateTimer.Stop();updater.Dispose();tray.Visible=false;tray.Dispose();if(!isolated){try{if(File.Exists(paths.Snapshot))File.WriteAllText(paths.Stop,"Pulse Exit");}catch(Exception e){File.WriteAllText(Path.Combine(paths.State,"shutdown-error.txt"),e.Message);}}}
+        public void Dispose(){if(disposed)return;disposed=true;if(desktopHotkey!=null)desktopHotkey.Dispose();quotas.Dispose();localInference.Dispose();poll.Stop();saveTimer.Stop();StopOverlay();overlay.Close();if(desktop!=null){desktop.Close();desktop=null;}updateTimer.Stop();updater.Dispose();tray.Visible=false;tray.Dispose();if(!isolated){try{if(File.Exists(paths.Snapshot))File.WriteAllText(paths.Stop,"Pulse Exit");}catch(Exception e){File.WriteAllText(Path.Combine(paths.State,"shutdown-error.txt"),e.Message);}}}
     }
 }

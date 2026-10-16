@@ -15,6 +15,8 @@ try {
     $row=$panel.Children[0].Child;$name=$row.Children[1];$value=$row.Children[2]
     $natural=New-Object System.Windows.Controls.TextBlock
     $natural.Text=$name.Text;$natural.FontSize=$name.FontSize;$natural.FontFamily=$name.FontFamily
+    # Compare the same glyph metrics as the rendered Desktop, not Ideal vs Display.
+    [Windows.Media.TextOptions]::SetTextFormattingMode($natural,[Windows.Media.TextOptions]::GetTextFormattingMode($name))
     $natural.Measure([Windows.Size]::new([double]::PositiveInfinity,[double]::PositiveInfinity))
     Assert ($name.ActualWidth -ge $natural.DesiredSize.Width-1) 'Wide Desktop truncates a name despite spare row width'
     foreach($spec in @(@(280,1),@(430,1),@(960,2),@(1400,3))){

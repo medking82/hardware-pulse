@@ -93,7 +93,7 @@ namespace HardwarePulse {
         static void ScheduleRemote(QuotaSchedule schedule,QuotaReading reading,DateTimeOffset now,bool accepted){
             bool live=accepted&&reading.Status=="Live";
             schedule.Status=live?"Live":reading.Status=="Live"?"Quota unavailable":reading.Status;schedule.Observed=reading.Observed;
-            if(live){schedule.RecoveryFailures=0;schedule.RateLimitFailures=0;schedule.NextAttempt=now.AddMinutes(5);schedule.NotBefore=now.AddSeconds(30);return;}
+            if(live){schedule.RecoveryFailures=0;schedule.RateLimitFailures=0;schedule.NextAttempt=now.AddMinutes(5);schedule.NotBefore=schedule.Provider=="Claude"?schedule.NextAttempt:now.AddSeconds(30);return;}
             schedule.RecoveryFailures=Math.Min(4,schedule.RecoveryFailures+1);
             if(reading.Status=="Refresh rate limited")schedule.RateLimitFailures=Math.Min(4,schedule.RateLimitFailures+1);
             // Only success clears throttling debt; a 401/timeout after 429 must not restore fast polling.
@@ -114,6 +114,12 @@ namespace HardwarePulse {
             if(slot.Remote.NextAttempt<=floor&&slot.Remote.NotBefore<=floor)return false;
             slot.Remote.NextAttempt=floor;slot.Remote.NotBefore=floor;EmitSchedule();return true;
         }
+        public bool CanRequestRefresh(string provider,DateTimeOffset now){
+            if(disposed)return false;var slot=slots[provider];if(!slot.Enabled||slot.Pending!=null)return false;
+            if(slot.Local)return true;
+            if(provider=="Claude"&&slot.Remote.Status=="Login required"&&slot.Remote.Observed!=default(DateTimeOffset)&&slot.Remote.Observed<=now&&now>=slot.Remote.Observed.AddMinutes(5))return true;
+            return now>=slot.Remote.NotBefore&&(slot.Remote.RecoveryFailures==0&&slot.Remote.RateLimitFailures==0||now>=slot.Next);
+        }
         public void RequestRefresh(string provider,DateTimeOffset now){
             if(disposed)return;var slot=slots[provider];if(!slot.Enabled)return;
             if(slot.Pending!=null)return; // One running request is already fulfilling this action.
@@ -126,7 +132,7 @@ namespace HardwarePulse {
         void Emit(QuotaAttempt attempt){var handler=AttemptCompleted;if(handler==null)return;foreach(Action<QuotaAttempt> subscriber in handler.GetInvocationList()){try{subscriber(attempt);}catch{}}}
         void EmitSchedule(){var handler=ScheduleChanged;if(handler==null)return;foreach(Action<QuotaSchedule[]> subscriber in handler.GetInvocationList()){try{subscriber(CaptureSchedules());}catch{}}}
         static QuotaSchedule CopySchedule(QuotaSchedule source){return new QuotaSchedule{Provider=source.Provider,Status=source.Status,Observed=source.Observed,NextAttempt=source.NextAttempt,NotBefore=source.NotBefore,RecoveryFailures=source.RecoveryFailures,RateLimitFailures=source.RateLimitFailures};}
-        static QuotaReading Copy(QuotaReading source){if(source==null)return null;var copy=new QuotaReading{Provider=source.Provider,Status=source.Status,Source=source.Source,FailureKind=source.FailureKind,CacheScope=source.CacheScope,HttpStatus=source.HttpStatus,Observed=source.Observed,RetryAt=source.RetryAt};foreach(var w in source.Windows)copy.Windows.Add(new QuotaWindow{Label=w.Label,Remaining=w.Remaining,Reset=w.Reset});foreach(var w in source.AllWindows)copy.AllWindows.Add(new QuotaWindow{Label=w.Label,Remaining=w.Remaining,Reset=w.Reset});foreach(var b in source.Balances)copy.Balances.Add(new QuotaBalance{Label=b.Label,Currency=b.Currency,Amount=b.Amount});foreach(var b in source.AllBalances)copy.AllBalances.Add(new QuotaBalance{Label=b.Label,Currency=b.Currency,Amount=b.Amount});return copy;}
+        static QuotaReading Copy(QuotaReading source){if(source==null)return null;var copy=new QuotaReading{Provider=source.Provider,Status=source.Status,Source=source.Source,FailureKind=source.FailureKind,CacheScope=source.CacheScope,HttpStatus=source.HttpStatus,Observed=source.Observed,RetryAt=source.RetryAt};foreach(var w in source.Windows)copy.Windows.Add(new QuotaWindow{Id=w.Id,Label=w.Label,Remaining=w.Remaining,Reset=w.Reset});foreach(var w in source.AllWindows)copy.AllWindows.Add(new QuotaWindow{Id=w.Id,Label=w.Label,Remaining=w.Remaining,Reset=w.Reset});foreach(var b in source.Balances)copy.Balances.Add(new QuotaBalance{Label=b.Label,Currency=b.Currency,Amount=b.Amount});foreach(var b in source.AllBalances)copy.AllBalances.Add(new QuotaBalance{Label=b.Label,Currency=b.Currency,Amount=b.Amount});return copy;}
         QuotaReading ExecuteRead(string provider,CancellationToken token,CancellationTokenSource source){try{var result=read(provider,token);if(result==null||result.Status!="Refresh rate limited")token.ThrowIfCancellationRequested();return result;}finally{try{source.CancelAfter(Timeout.Infinite);}catch(ObjectDisposedException){}}}
     }
 }

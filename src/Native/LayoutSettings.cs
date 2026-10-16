@@ -17,6 +17,7 @@ namespace HardwarePulse {
             var desktopLayout=Control<Expander>("DesktopSection");children.Remove(desktopLayout);children.Insert(children.IndexOf(Control<Expander>("DesktopAppearanceSection")),desktopLayout);
             var panel=new ResponsivePanel{Name="SettingsSections",MinimumColumnWidth=350,RowGap=14,IndependentColumns=true};foreach(var child in children){
                 var section=child as Expander;if(section!=null){string title=section.Header as string;section.Tag=title.StartsWith("Desktop")?"Desktop":title=="App Appearance"||title=="Window"?"App Appearance":title=="Game Overlay"?"FPS":title=="AI Quota"?"AI Quota":title=="App Cards"||title=="Hardware Names"?"App Cards":"General";}
+                if(section!=null&&(string)section.Header=="Local Inference")section.Tag="AI Quota";
                 panel.Children.Add(child);
             }
             page.Content=panel;Window.RegisterName("SettingsSections",panel);
@@ -41,7 +42,7 @@ namespace HardwarePulse {
             key=DesktopOrderKey(key);
             if(key=="fps"){object fps;return FpsSupported&&settings.Map("desktopVisible").TryGetValue(key,out fps)&&fps is bool&&(bool)fps;}
             if(key=="quotaCodex")return DesktopMetricEnabled("quotaCodex0");
-            if(key=="quotaAntigravity")return DesktopMetricEnabled("quotaAntigravity0")||DesktopMetricEnabled("quotaAntigravity1");
+            if(key=="quotaAntigravity")return DesktopMetricEnabled("quotaAntigravity0")||DesktopMetricEnabled("quotaAntigravity1")||DesktopMetricEnabled("quotaAntigravityArgonWeekly");
             if(key=="quotaClaude")return DesktopMetricEnabled("quotaClaude0")||DesktopMetricEnabled("quotaClaude1");
             if(key=="netSignal")key="wifiSignal";
             object value;var visible=settings.Map("desktopVisible");
@@ -54,6 +55,7 @@ namespace HardwarePulse {
             return key=="quotaCodex0"?"Codex · "+language.T("Weekly"):
                 key=="quotaAntigravity0"?"Gemini · "+language.Label("5-hour"):
                 key=="quotaAntigravity1"?"Gemini · "+language.T("Weekly"):
+                key=="quotaAntigravityArgonWeekly"?"Argon · "+language.T("Weekly"):
                 key=="quotaClaude0"?"Claude · "+language.Label("5-hour"):"Claude · "+language.T("Weekly");
         }
         string DesktopIconColor(string icon,string textColor){
@@ -65,6 +67,7 @@ namespace HardwarePulse {
             if(light)return "#17202B";
             if(settings.Flag("unifiedReadingColors"))return ReadingColor();
             foreach(var provider in QuotaCatalog.All)if(provider.Icon==icon)return provider.Accent;
+            foreach(var provider in LocalInferenceCatalog.All)if(provider.Icon==icon)return provider.Accent;
             switch(icon){case "cpu":return "#A5E7D5";case "gpu":return "#A7CBFF";
                 case "memory":return "#E7C5A4";case "nvme":return "#B9B7ED";
                 case "airflow":return "#A8D4D0";case "network":case "ethernet":case "wifi":case "signal":return "#A9D8E8";default:return textColor;}

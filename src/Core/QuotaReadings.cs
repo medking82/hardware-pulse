@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace HardwarePulse {
     public sealed class QuotaWindow {
-        public string Label;
+        public string Label,Id;
         public double? Remaining;
         public DateTimeOffset? Reset;
     }

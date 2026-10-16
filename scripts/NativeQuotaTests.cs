@@ -96,6 +96,7 @@ internal static class NativeQuotaTests {
                 Check(settingsText.Length>0&&!settingsText.Contains("bad key")&&!settingsText.Contains("fixture-key"),"settings never store key material");
                 var source=shell.Control<ComboBox>("ClaudeQuotaSource");
                 Check(source.SelectedIndex==0&&shell.Control<StackPanel>("ClaudeSnapshotTools").Visibility==Visibility.Collapsed,"existing login remains default and snapshot setup stays optional");
+                Check(source.Items.Count==3,"Claude has an explicit CLI query backup choice");
                 var claudeReading=fake.Readings.Single(r=>r.Provider=="Claude");claudeReading.Status="CLI snapshot";claudeReading.Source="CLI snapshot";
                 shell.UpdatePanel();
                 var claudeCard=shell.Control<StackPanel>("QuotaCards").Children.Cast<Border>().Single(c=>(string)c.Tag=="Claude");
@@ -132,6 +133,15 @@ internal static class NativeQuotaTests {
                 var hardware=shell.Control<StackPanel>("Cards");var previous=hardware.Visibility;double height=shell.Window.Height;shell.Window.Height=920;hardware.Visibility=Visibility.Collapsed;shell.Window.UpdateLayout();
                 var bitmap=new System.Windows.Media.Imaging.RenderTargetBitmap((int)shell.Window.ActualWidth,(int)shell.Window.ActualHeight,96,96,System.Windows.Media.PixelFormats.Pbgra32);bitmap.Render(shell.Window);var png=new System.Windows.Media.Imaging.PngBitmapEncoder();png.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmap));using(var file=System.IO.File.Create(screenshot))png.Save(file);
                 hardware.Visibility=previous;shell.Window.Height=height;
+                var saved=fake.CaptureSchedules();var deadline=DateTimeOffset.UtcNow.AddHours(1);
+                fake.RestoreSchedules(new[]{new QuotaSchedule{Provider="Claude",Status="Refresh rate limited",Observed=DateTimeOffset.UtcNow,NextAttempt=deadline,NotBefore=deadline,RateLimitFailures=1,RecoveryFailures=1}});
+                source.SelectedIndex=2;
+                Check((bool)typeof(Shell).GetField("claudeCliSource",BindingFlags.NonPublic|BindingFlags.Instance).GetValue(shell)&&!(bool)typeof(Shell).GetField("claudeSnapshotSource",BindingFlags.NonPublic|BindingFlags.Instance).GetValue(shell),"CLI query and passive snapshot are distinct sources");
+                Check(shell.Control<StackPanel>("ClaudeSnapshotTools").Visibility==Visibility.Collapsed&&shell.Control<TextBlock>("ClaudeQueryHelp").Visibility==Visibility.Visible,"Query choice exposes its login and cooldown boundary, not snapshot setup");
+                fake.Tick(DateTimeOffset.UtcNow);fake.RequestRefresh("Claude",DateTimeOffset.UtcNow);
+                Check(fake.GetState("Claude").NextAttempt==deadline&&!fake.GetState("Claude").Refreshing&&fake.Readings.Single(r=>r.Provider=="Claude").Windows.Count==0,"CLI source change clears observations without erasing the server deadline or starting IO");
+                shell.Save();Check(new Settings(settingsPath).Flag("claudeCliSource"),"Explicit CLI source choice persists");
+                source.SelectedIndex=0;Check(fake.GetState("Claude").NextAttempt==deadline,"Returning to HTTP preserves the same server deadline");fake.RestoreSchedules(saved);
                 foreach(string provider in QuotaSession.Providers){var toggle=shell.Control<CheckBox>("Quota"+provider);toggle.IsChecked=false;toggle.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));}shell.UpdatePanel();Check(shell.Control<StackPanel>("QuotaCards").Children.Count==0,"disable removes quota view");
             }finally{field.SetValue(shell,original);}
         }

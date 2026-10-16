@@ -30,6 +30,9 @@ internal static class CoreQuotaDecoderTests {
     }
 #endif
     public static void Run(){
+        ArgonIndependentWindow();
+        LocalGenerationSpeed();
+        LocalInferenceLifecycle();
         StatusLineSnapshots();
         var codex=Decode("Codex","{\"rate_limit\":{\"primary_window\":{\"used_percent\":0,\"limit_window_seconds\":18000,\"reset_at\":1800000000},\"secondary_window\":{\"used_percent\":36,\"limit_window_seconds\":604800}},\"additional_rate_limits\":[{\"metered_feature\":\"spark\",\"rate_limit\":{\"primary_window\":{\"used_percent\":100,\"limit_window_seconds\":18000}}}]}");
         Check(codex.Status=="Live"&&codex.Windows.Count==1,"Codex main weekly only");Check(codex.Windows[0].Label=="Weekly"&&codex.Windows[0].Remaining==64,"used to remaining weekly conversion");
@@ -57,6 +60,58 @@ internal static class CoreQuotaDecoderTests {
         Check(QuotaDecoder.ResetText(null,now)==""&&QuotaDecoder.ResetText(now.AddSeconds(1),now)=="Reset 1m","missing reset and minimum minute");
         Check(QuotaDecoder.ResetText(now.AddHours(2).AddMinutes(3),now)=="Reset 2h 3m"&&QuotaDecoder.ResetText(now.AddDays(2).AddHours(3),now)=="Reset 2d 3h","reset formatting");
         Console.WriteLine("PASS Core quota: provider fixtures, compact/full windows, missing/zero, disabled, aliases, deduplication and reset semantics");
+    }
+    static void ArgonIndependentWindow(){
+        string gemini="{\"displayName\":\"Gemini Models\",\"buckets\":[{\"window\":\"weekly\",\"remainingFraction\":0.54},{\"window\":\"5h\",\"remainingFraction\":0.73}]}";
+        string argon="{\"displayName\":\"Gemini 4 Argon\",\"buckets\":[{\"bucketId\":\"gemini-argon-wtu-weekly\",\"window\":\"weekly\",\"remainingFraction\":0,\"resetTime\":\"2026-10-23T12:00:00Z\"}]}";
+        foreach(string groups in new[]{gemini+","+argon,argon+","+gemini}){
+            var reading=Decode("Antigravity","{\"groups\":["+groups+"]}");
+            Check(reading.Status=="Live"&&reading.Windows.Count==3,"Argon weekly must survive compact decoding independently of Gemini");
+            Check(reading.Windows.Select(w=>w.Label).SequenceEqual(new[]{"5-hour","Weekly","Argon · Weekly"}),"Compact window order must not depend on group order");
+            Check(reading.Windows[2].Remaining==0&&reading.Windows[2].Reset==DateTimeOffset.Parse("2026-10-23T12:00:00Z"),"Argon zero and independent reset must remain intact");
+            Check(reading.AllWindows.Count==3&&!reading.AllWindows.Any(w=>w.Label.Contains("Argon")&&w.Label.Contains("5-hour")),"Do not invent an Argon five-hour window");
+        }
+        var invalid=Decode("Antigravity","{\"groups\":["+gemini+","+argon.Replace("\"remainingFraction\":0","\"remainingFraction\":2")+"]}");
+        Check(invalid.Status=="Live"&&invalid.Windows.Count==3&&!invalid.Windows[2].Remaining.HasValue,"Invalid Argon must not erase valid Gemini windows or become zero");
+    }
+    static void LocalGenerationSpeed(){
+        var type=typeof(Reading).Assembly.GetType("HardwarePulse.LocalInferenceMetrics");Check(type!=null,"Local inference speed requires a source-independent Core decoder");
+        var decode=type.GetMethod("Decode");var now=new DateTimeOffset(2026,10,16,10,0,0,TimeSpan.Zero);
+        var live=new Dictionary<string,object>{{"state","generating"},{"tok_s",59.5},{"prefill_tok_s_mean",9000d}};
+        var body=new Dictionary<string,object>{{"time",now.ToString("o")},{"live",live}};
+        body["requests"]=new object[]{new Dictionary<string,object>{{"decode_tok_s",41d}}};
+        Func<object,object> read=value=>decode.Invoke(null,new object[]{"Strata",value,now});
+        Func<object,string,object> field=(value,name)=>value.GetType().GetField(name).GetValue(value);
+        var generated=read(body);Check((string)field(generated,"Status")=="Generating"&&(double?)field(generated,"TokensPerSecond")==59.5,"Use current decode speed, not prefill or previous request speed");
+        live["state"]="idle";var idle=read(body);Check((string)field(idle,"Status")=="Idle"&&field(idle,"TokensPerSecond")==null&&(double?)field(idle,"LastTokensPerSecond")==41,"Idle must not claim the previous request is live");
+        live["state"]="reading";Check(field(read(body),"TokensPerSecond")==null,"Prompt processing must not become generation speed");
+        live["state"]="generating";
+        foreach(object invalid in new object[]{-1d,double.NaN,double.PositiveInfinity,"59.5",null}){live["tok_s"]=invalid;Check(field(read(body),"TokensPerSecond")==null,"Invalid speed must not become a value");}
+        live["tok_s"]=0d;Check((double?)field(read(body),"TokensPerSecond")==0,"A real generating zero is valid");
+        body["time"]=now.AddSeconds(-6).ToString("o");Check((string)field(read(body),"Status")=="Unavailable","Stale server metrics must not appear live or idle");
+        body["time"]=now.AddSeconds(3).ToString("o");Check((string)field(read(body),"Status")=="Unavailable","Future server time must not produce a fresh reading");
+        Check((string)field(decode.Invoke(null,new object[]{"Unknown",body,now}),"Status")=="Unavailable","Unknown backends must not silently use Strata semantics");
+        body["time"]=now.ToString("o");live["state"]="unloaded";live["tok_s"]=59.5;
+        Check((string)field(read(body),"Status")=="Model unloaded"&&field(read(body),"TokensPerSecond")==null,"Unloaded is not idle or zero and must not retain a live speed");
+    }
+    static void LocalInferenceLifecycle(){
+        var type=typeof(Reading).Assembly.GetType("HardwarePulse.LocalInferenceSession");Check(type!=null,"Local inference polling requires cancellation and source-version isolation");
+        var now=DateTimeOffset.UtcNow;int calls=0;var release=new System.Threading.ManualResetEvent(false);
+        Func<string,string,System.Threading.CancellationToken,LocalInferenceReading> reader=(provider,endpoint,cancel)=>{int call=System.Threading.Interlocked.Increment(ref calls);if(call==1)release.WaitOne();return new LocalInferenceReading{Provider=provider,Status="Generating",Observed=now,SourceTime=now,TokensPerSecond=call==1?59.5:22};};
+        using(var session=(IDisposable)Activator.CreateInstance(type,new object[]{reader})){
+            Action<bool> enable=value=>type.GetMethod("Configure").Invoke(session,new object[]{value,"Strata","http://127.0.0.1:8080"});
+            Action tick=()=>type.GetMethod("Tick").Invoke(session,new object[]{now});
+            Func<LocalInferenceReading> current=()=>(LocalInferenceReading)type.GetMethod("Current").Invoke(session,new object[]{now});
+            enable(false);tick();Check(calls==0,"Disabled inference must not read any endpoint");enable(true);tick();
+            for(int i=0;i<200&&calls==0;i++)System.Threading.Thread.Sleep(2);
+            Check(calls==1,"One inference request starts");enable(false);enable(true);tick();Check(calls==1,"Re-enable must not overlap a retiring request");
+            Check(current().TokensPerSecond==null,"Switching invalidates current metrics immediately");release.Set();
+            for(int i=0;i<300;i++){tick();if(current().TokensPerSecond==22)break;System.Threading.Thread.Sleep(2);}
+            Check(calls==2&&current().TokensPerSecond==22,"A cancelled old response must never replace the new reading");
+            var expired=(LocalInferenceReading)type.GetMethod("Current").Invoke(session,new object[]{now.AddSeconds(6)});Check(expired.Status=="Unavailable"&&expired.TokensPerSecond==null,"The host expires metrics even when polling stalls");
+            enable(false);Check(current().TokensPerSecond==null,"Disabling clears all numeric output");
+        }
+        release.Dispose();
     }
     static Dictionary<string,object> StatusBody(object used,object reset){return new Dictionary<string,object>{{"rate_limits",new Dictionary<string,object>{{"five_hour",new Dictionary<string,object>{{"used_percentage",used},{"resets_at",reset}}}}},{"transcript_path","must-not-survive"}};}
     static void StatusLineSnapshots(){

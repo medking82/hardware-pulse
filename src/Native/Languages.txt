@@ -1,4 +1,22 @@
 ﻿Live|实时|即時
+Local Inference|本地推理|本機推論
+Local Model|本地模型|本機模型
+Local Model Speed|本地模型速度|本機模型速度
+Local Inference Source|本地推理来源|本機推論來源
+Local Endpoint|本地端点|本機端點
+Apply Endpoint|应用端点|套用端點
+Endpoint Saved|端点已保存|端點已儲存
+Source|来源|來源
+Generating|生成中|生成中
+Reading prompt|读取提示词|讀取提示詞
+Idle|空闲|閒置
+Model unloaded|模型未加载|模型未載入
+Loading model|模型加载中|模型載入中
+Unavailable|不可用|無法使用
+Last Request|上次请求|上次請求
+Use a loopback HTTP endpoint without credentials.|请使用不含凭据的回环 HTTP 端点。|請使用不含憑證的迴路 HTTP 端點。
+Reads local generation metrics only. Never starts a model or sends a prompt.|仅读取本地生成指标，不启动模型或发送提示词。|僅讀取本機生成指標，不啟動模型或傳送提示詞。
+Backend-reported generation speed; excludes prompt processing.|后端报告的生成速度，不含提示词处理。|後端回報的生成速度，不含提示詞處理。
 Link Speed|连接速率|連線速率
 No compatible Windows 7 update is available.|暂无兼容 Windows 7 的更新。|暫無相容 Windows 7 的更新。
 Unavailable on this Windows version|此 Windows 版本不支持|此 Windows 版本不支援
@@ -28,6 +46,17 @@ left|剩余|剩餘
 min ago|分钟前|分鐘前
 5-hour|5 小时|5 小時
 Weekly|每周|每週
+Independent quota|独立额度|獨立額度
+Recent sample|最近读数|最近讀數
+Retrying snapshot|正在重读快照|正在重讀快照
+Snapshot busy|快照被占用|快照被佔用
+Snapshot missing|未找到快照|未找到快照
+Snapshot access denied|无法访问快照|無法存取快照
+Snapshot stale|采集快照已过期|擷取快照已過期
+Snapshot unreadable|无法读取快照|無法讀取快照
+Refresh available after the minimum interval or retry deadline.|达到最短刷新间隔或重试时间后可刷新。|達到最短重新整理間隔或重試時間後可重新整理。
+Gemini Models|Gemini 模型|Gemini 模型
+Claude and GPT models|Claude 与 GPT 模型|Claude 與 GPT 模型
 Shared GPU memory|GPU 共享内存|GPU 共用記憶體
 Auto (System)|自动（系统）|自動（系統）
 Details|明细|明細
@@ -108,7 +137,7 @@ Leave a name blank to use device information. Hover over a field to see its auto
 SPD numbers identify sensor addresses, not physical slots. Installed slots are reported separately; assign a slot name only after confirming its sensor.|SPD 编号代表传感器地址，并非实体插槽。已安装插槽单独显示；确认对应关系后再命名。|SPD 編號代表感測器位址，並非實體插槽。已安裝插槽單獨顯示；確認對應關係後再命名。
 Changes save automatically.|更改自动保存。|變更自動儲存。
 About Pulse|关于 Pulse|關於 Pulse
-Version 0.6.57 · Marck Wong|版本 0.6.57 · Marck Wong|版本 0.6.57 · Marck Wong
+Version 0.6.58 · Marck Wong|版本 0.6.58 · Marck Wong|版本 0.6.58 · Marck Wong
 Sensors by LibreHardwareMonitor. Shared driver by PawnIO.|传感器：LibreHardwareMonitor。共享驱动：PawnIO。|感測器：LibreHardwareMonitor。共用驅動程式：PawnIO。
 Language|语言 / Language|語言 / Language
 Minimize|最小化|最小化
@@ -310,6 +339,9 @@ Could not save diagnostics. Choose another location and try again.|无法保存�
 Claude quota source|Claude quota 来源|Claude quota 來源
 Existing login|现有登录|現有登入
 CLI snapshot|CLI snapshot|CLI snapshot
+CLI query|CLI 查询|CLI 查詢
+Source: Claude Code /usage|来源：Claude Code /usage|來源：Claude Code /usage
+Runs installed Claude Code /usage using its login. No prompts or browser cookies. API and CLI share refresh limits.|使用已安装 Claude Code 的登录调用 /usage，不发送提示词、不读取浏览器 Cookie。API 与 CLI 共用刷新限额。|使用已安裝 Claude Code 的登入呼叫 /usage，不傳送提示詞、不讀取瀏覽器 Cookie。API 與 CLI 共用重新整理限額。
 Source: Antigravity CLI|来源：Antigravity CLI|來源：Antigravity CLI
 Experimental. Requires a configured Claude Code status line. Snapshots expire after 10 minutes and do not refresh while CLI is closed.|Experimental。需要先配置 Claude Code status line。Snapshot 在 10 分钟后过期，CLI 关闭后不会刷新。|Experimental。需要先設定 Claude Code status line。Snapshot 在 10 分鐘後過期，CLI 關閉後不會重新整理。
 Copy status-line command|复制 status-line command|複製 status-line command

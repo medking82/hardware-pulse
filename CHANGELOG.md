@@ -4,7 +4,15 @@
 
 Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
-## Unreleased
+## 0.6.58 — 2026-10-16
+
+- Add opt-in native local generation-speed readings through a backend catalog and version-isolated polling session. The initial Strata adapter reads only loopback `/metrics`, reuses its three-layer SVG and distinguishes generating, prefill, idle, unloaded and stale states. Other serving backends require their own telemetry adapters; this is not a benchmark or automatic model loader.
+- Show Argon's independent weekly pool in compact App and Desktop views, with stable display preferences, concise captions and its own reset time; accept the weekly-only CLI group.
+- Add an explicit Claude CLI Query backup in native Settings, using the installed Claude Code `/usage` command with customizations/tools disabled. The default remains Existing Login. Switching clears old observations but preserves the shared five-minute request budget and server cooldown; it is not automatic failover after a 429, a browser-cookie reader, or a credential writer. Unknown reset timezones remain blank.
+- Reuse Claude's five-minute request budget for manual refreshes and disable card refresh during the minimum interval or server cooldown. Keep server Retry-After deadlines; this does not promise that other clients or the service cannot cause a 429.
+- On snapshot sharing conflicts only, retain a still-fresh, validated sample with its original timestamp and a visible Recent Sample / Retrying Snapshot warning. Keep the existing fifteen-second expiry and reject missing, denied or malformed data. Record bounded hardware-state transition metadata for future diagnosis; unexplained long collector stalls are not claimed solved.
+- Include the pinned storage dependency minimum-access fix: query-only performance handles and read-only SMART/enumeration handles, preserving sensor identifiers, NVMe temperatures and physical-drive mappings.
+- Correct the Desktop width fixture to compare the actual Display text-formatting metrics rather than measuring the reference in Ideal mode.
 
 ## 0.6.57 — 2026-10-16
 

@@ -36,6 +36,8 @@ internal static class NativeQuotaRecoveryTests {
                 Check(codexCalls==0,"Claude card button refreshed another provider");
                 release.Set();Complete(fake,"Claude",now);Render(shell);
                 Check(shell.Control<TextBlock>("QuotaRefreshStatus").Text=="Claude: Quota Refresh Complete","completed refresh missing explicit feedback");
+                var completedCard=shell.Control<StackPanel>("QuotaCards").Children.Cast<Border>().Single(c=>(string)c.Tag=="Claude");
+                Check(!((Grid)((StackPanel)completedCard.Child).Children[0]).Children.OfType<Button>().Single().IsEnabled,"Claude card must disable refresh during its five-minute request interval");
                 shell.Control<Button>("QuotaRefresh").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Render(shell);
                 Check(shell.Control<TextBlock>("QuotaRefreshStatus").Text.Contains("Refresh Deferred Until"),"minimum request interval was silently skipped");
                 Capture(shell,Path.Combine(Path.GetDirectoryName(screenshot),"quota-refresh-feedback.png"));
@@ -71,12 +73,12 @@ internal static class NativeQuotaRecoveryTests {
             field.SetValue(shell,fake);
             try{
                 fake.Enable("Claude",true);fake.Tick(now);Complete(fake,"Claude",now);Render(shell);
-                typeof(Shell).GetMethod("RefreshQuota",Hidden).Invoke(shell,new object[]{"Claude"});fake.Tick(now.AddSeconds(30));Check(entered.Wait(5000),"timeout feedback fixture not started");
-                fake.Tick(now.AddSeconds(60));Render(shell);
+                typeof(Shell).GetMethod("RefreshQuota",Hidden).Invoke(shell,new object[]{"Claude"});fake.Tick(now.AddMinutes(5));Check(entered.Wait(5000),"timeout feedback fixture not started");
+                fake.Tick(now.AddMinutes(5).AddSeconds(30));Render(shell);
                 Check(Card(shell,"Claude").Any(s=>s.StartsWith("Refresh Timed Out · Waiting For Request To Stop")),"timed-out card still claims Live while waiting for worker");
                 Check(shell.Control<TextBlock>("QuotaRefreshStatus").Text.Contains("Refresh Timed Out"),"Settings hides the pending timeout reason");
             }finally{
-                release.Set();Complete(fake,"Claude",now.AddSeconds(60));
+                release.Set();Complete(fake,"Claude",now.AddMinutes(5).AddSeconds(30));
                 ((Dictionary<string,QuotaReading>)typeof(Shell).GetField("quotaRefreshBefore",Hidden).GetValue(shell)).Clear();shell.Control<TextBlock>("QuotaRefreshStatus").Visibility=Visibility.Collapsed;field.SetValue(shell,original);Render(shell);
             }
         }
@@ -90,7 +92,7 @@ internal static class NativeQuotaRecoveryTests {
             try{
                 fake.Enable("Claude",true);fake.Tick(now);Complete(fake,"Claude",now);
                 next=new QuotaReading{Provider="Claude",Status="Refresh rate limited",CacheScope="synthetic-source",HttpStatus=429,FailureKind="HTTP response",Observed=now,RetryAt=now.AddMinutes(2)};
-                fake.Refresh();fake.Tick(now.AddSeconds(30));Complete(fake,"Claude",now.AddSeconds(30));Render(shell);
+                fake.Refresh();fake.Tick(now.AddMinutes(5));Complete(fake,"Claude",now.AddMinutes(5));Render(shell);
                 var card=Card(shell,"Claude");
                 Check(card.Any(s=>s.Contains("Retry In"))&&card.Any(s=>s.Contains("Cached 2 Min Ago")),"retry and cache age must be distinct from latest error age");
                 Check(card.Any(s=>s.Contains("73%"))&&card.Any(s=>s.Contains("91%"))&&!card.Any(s=>s.StartsWith("Live")),"same-source cached values must never appear Live");
@@ -106,7 +108,7 @@ internal static class NativeQuotaRecoveryTests {
                 fake.GetState("Claude").LastGood.Observed=now.AddMinutes(-2);Render(shell);card=Card(shell,"Claude");
                 Check(card.Any(s=>s.Contains("73%"))&&card.Any(s=>s.Contains("91%")),"scope fixture cache missing before rejection");
                 next=new QuotaReading{Provider="Claude",Status="Refresh rate limited",Observed=now,CacheScope="different-source",HttpStatus=429};
-                fake.Tick(now.AddMinutes(16));Complete(fake,"Claude",now.AddMinutes(16));Render(shell);
+                fake.Tick(now.AddMinutes(20));Complete(fake,"Claude",now.AddMinutes(20));Render(shell);
                 card=Card(shell,"Claude");Check(!card.Any(s=>s.Contains("73%")||s.Contains("91%")),"source change cannot reuse previous account values");
                 fake.Enable("Claude",false);
                 next=new QuotaReading{Provider="Antigravity",Status="Quota unavailable",Source="Desktop",HttpStatus=503,FailureKind="HTTP response",Observed=now};

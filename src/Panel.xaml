@@ -248,7 +248,15 @@
           </ControlTemplate.Triggers>
         </ControlTemplate>
       </ScrollViewer.Template>
-      <StackPanel><StackPanel x:Name="Cards" /><StackPanel x:Name="QuotaCards" /></StackPanel>
+      <StackPanel><StackPanel x:Name="Cards" /><StackPanel x:Name="QuotaCards" />
+        <Border x:Name="LocalInferenceCard" Visibility="Collapsed" CornerRadius="14" Padding="16" Margin="0,12,0,0" BorderThickness="1">
+          <StackPanel>
+            <StackPanel Orientation="Horizontal"><ContentControl x:Name="LocalInferenceIcon" Margin="0,0,8,0"/><TextBlock x:Name="LocalInferenceTitle" VerticalAlignment="Center" FontWeight="SemiBold"/></StackPanel>
+            <TextBlock x:Name="LocalInferenceValue" FontSize="24" FontWeight="SemiBold" Margin="0,10,0,6" TextWrapping="Wrap"/>
+            <TextBlock x:Name="LocalInferenceDetail" FontSize="11" TextWrapping="Wrap" Opacity="0.8"/>
+          </StackPanel>
+        </Border>
+      </StackPanel>
     </ScrollViewer>
     <TextBlock x:Name="CardsEmpty" Grid.Row="1" Text="No cards shown. Choose cards in Settings." Visibility="Collapsed" Margin="20" HorizontalAlignment="Center" VerticalAlignment="Center" />
     <Border x:Name="SettingsToolbar" Grid.Row="1" Visibility="Collapsed" VerticalAlignment="Top" Padding="18,8" Height="56">
@@ -270,7 +278,7 @@
             </ComboBox>
             <CheckBox x:Name="StartWithWindows" Content="Start with Windows" Margin="0,0,0,10" />
             <TextBlock x:Name="StartupStatus" FontSize="11" Margin="0,0,0,10" />
-            <TextBlock Text="Version 0.6.57 · Marck Wong" FontSize="11" Foreground="#ADC1D2" Margin="0,0,0,8" />
+            <TextBlock Text="Version 0.6.58 · Marck Wong" FontSize="11" Foreground="#ADC1D2" Margin="0,0,0,8" />
             <Button x:Name="GitHub" Content="GitHub" HorizontalAlignment="Left" ToolTip="github.com/medking82/hardware-pulse" />
             <CheckBox x:Name="AutoUpdates" Content="Check for Updates Automatically" Margin="0,12,0,8" />
             <CheckBox x:Name="AutoDownload" Content="Download Updates Automatically" Margin="0,0,0,8" />
@@ -385,7 +393,8 @@
               <TextBlock Text="The key is encrypted for the current Windows user and sent only to api.deepseek.com. Saving a key does not enable monitoring." TextWrapping="Wrap" FontSize="11" Opacity="0.8" Margin="0,6,0,0" />
             </StackPanel>
             <TextBlock Text="Claude quota source" Margin="0,12,0,6" />
-            <ComboBox x:Name="ClaudeQuotaSource" AutomationProperties.Name="Claude quota source"><ComboBoxItem Content="Existing login"/><ComboBoxItem Content="CLI snapshot"/></ComboBox>
+            <ComboBox x:Name="ClaudeQuotaSource" AutomationProperties.Name="Claude quota source"><ComboBoxItem Content="Existing login"/><ComboBoxItem Content="CLI snapshot"/><ComboBoxItem Content="CLI query"/></ComboBox>
+            <TextBlock x:Name="ClaudeQueryHelp" Text="Runs installed Claude Code /usage using its login. No prompts or browser cookies. API and CLI share refresh limits." TextWrapping="Wrap" Margin="0,8,0,0" Opacity="0.8" Visibility="Collapsed" />
             <StackPanel x:Name="ClaudeSnapshotTools" Margin="0,8,0,0">
               <TextBlock Text="Experimental. Requires a configured Claude Code status line. Snapshots expire after 10 minutes and do not refresh while CLI is closed." TextWrapping="Wrap" Opacity="0.8" />
               <Button x:Name="ClaudeSnapshotCommand" Content="Copy status-line command" Margin="0,8,0,0" />
@@ -398,6 +407,18 @@
             <Button x:Name="QuotaRefresh" Content="Refresh Quota" Margin="0,12,0,8" />
             <TextBlock x:Name="QuotaRefreshStatus" Visibility="Collapsed" TextWrapping="Wrap" Margin="0,0,0,8" AutomationProperties.LiveSetting="Polite" />
             <TextBlock Text="Login in Codex or Claude Code first. Antigravity can also use an installed, signed-in CLI. Pulse never changes your login." TextWrapping="Wrap" Opacity="0.8" />
+          </StackPanel>
+        </Expander>
+        <Expander Header="Local Inference" Foreground="#F0F5FA" Margin="0,16,0,0">
+          <StackPanel>
+            <CheckBox x:Name="LocalInferenceEnabled" Content="Local Model Speed" Margin="0,6,0,10" />
+            <TextBlock Text="Source" Margin="0,0,0,6"/>
+            <ComboBox x:Name="LocalInferenceProvider" AutomationProperties.Name="Local Inference Source" Margin="0,0,0,10"/>
+            <TextBlock Text="Local Endpoint" Margin="0,0,0,6"/>
+            <TextBox x:Name="LocalInferenceEndpoint" AutomationProperties.Name="Local Endpoint" MinHeight="34" Padding="8,6"/>
+            <Button x:Name="LocalInferenceApply" Content="Apply Endpoint" Margin="0,8,0,8"/>
+            <TextBlock x:Name="LocalInferenceSetupStatus" TextWrapping="Wrap" Margin="0,0,0,8"/>
+            <TextBlock Text="Reads local generation metrics only. Never starts a model or sends a prompt." FontSize="11" TextWrapping="Wrap"/>
           </StackPanel>
         </Expander>
         <Expander Header="Game Overlay" Foreground="#F0F5FA" Margin="0,16,0,0">

@@ -13,6 +13,7 @@ internal static class CoreQuotaSessionTests {
     }
     public static void Run(){
         CredentialChanges();
+        ClaudeManualRefreshFloor();
         ExplicitClaudeAuthenticationRecovery();
         ConservativeRequestBudget();
         RestartAndAlternatingFailures();
@@ -279,6 +280,18 @@ internal static class CoreQuotaSessionTests {
         }
         Console.WriteLine("PASS explicit Claude auth recovery: persisted five-minute floor, one pending request, 429 debt, non-auth cooldowns and success reset");
     }
+    static void ClaudeManualRefreshFloor(){
+        var now=new DateTimeOffset(2026,10,16,0,0,0,TimeSpan.Zero);int calls=0;
+        using(var session=new QuotaSession((provider,cancel)=>{Interlocked.Increment(ref calls);return new QuotaReading{Provider=provider,Status="Live",Observed=now};})){
+            session.Enable("Claude",true);Pump(session,now,()=>calls==1&&!session.GetState("Claude").Refreshing);
+            for(int i=1;i<10;i++){session.RequestRefresh("Claude",now.AddSeconds(i*30));session.Tick(now.AddSeconds(i*30));}
+            Check(calls==1&&!session.GetState("Claude").Refreshing,"Repeated manual Claude refreshes must reuse the five-minute request budget");
+            var saved=session.CaptureSchedules();using(var restored=new QuotaSession((provider,cancel)=>{throw new Exception("Restart floor bypass");})){
+                restored.RestoreSchedules(saved);restored.Enable("Claude",true);restored.RequestRefresh("Claude",now.AddMinutes(4));restored.Tick(now.AddMinutes(4));Check(!restored.GetState("Claude").Refreshing,"Claude minimum request interval must survive restart");
+            }
+            Pump(session,now.AddMinutes(5),()=>calls==2&&!session.GetState("Claude").Refreshing);
+        }
+    }
     static void ConservativeRequestBudget(){
         var now=new DateTimeOffset(2026,9,27,0,0,0,TimeSpan.Zero);int calls=0;
         using(var session=new QuotaSession((provider,cancel)=>{Interlocked.Increment(ref calls);return new QuotaReading{Provider=provider,Status="Quota unavailable",Observed=now};})){
@@ -362,7 +375,7 @@ internal static class CoreQuotaSessionTests {
         int authCalls=0;using(var auth=new QuotaSession((provider,cancel)=>new QuotaReading{Provider=provider,Status=Interlocked.Increment(ref authCalls)==1?"Live":"Login required",Source="HTTP",CacheScope="owner-auth",Observed=now})){
             auth.Enable("Claude",true);Pump(auth,now,()=>auth.Readings[0].Status=="Live");
             Check(auth.GetState("Claude").LastGood!=null,"authentication fixture did not establish a last-good cache");
-            auth.Refresh();Pump(auth,now.AddSeconds(30),()=>auth.Readings[0].Status=="Login required");
+            auth.Refresh();Pump(auth,now.AddMinutes(5),()=>auth.Readings[0].Status=="Login required");
             Check(auth.GetState("Claude").LastGood==null,"authentication failure retained cached quota");
         }
         Console.WriteLine("PASS Claude bounded last-good cache: scope, age, auth clearing and mutation isolation");
@@ -397,7 +410,7 @@ internal static class CoreQuotaSessionTests {
             Check(attempts==prior&&!session.GetState("Claude").Refreshing,"manual/toggle bypassed sustained backoff");
             clock=clock.AddMinutes(30);Pump(session,clock,()=>session.Readings[0].Status=="Live");
             Check(attempts==prior+1,"recovery did not run once at deadline");
-            outcome=failures[0];session.Refresh();clock=clock.AddSeconds(30);prior=attempts;
+            outcome=failures[0];session.Refresh();clock=clock.AddMinutes(5);prior=attempts;
             Pump(session,clock,()=>session.Readings[0].Status==outcome);
             Check(session.GetState("Claude").NextAttempt==clock.AddMinutes(5),"successful recovery did not reset backoff");
         }

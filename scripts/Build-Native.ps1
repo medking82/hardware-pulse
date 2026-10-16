@@ -8,6 +8,8 @@ if($app -ne [IO.Path]::GetFullPath("$root/build/app")){
 }
 Copy-Item "$root/src/HardwarePulse.exe.config","$root/src/Native/Languages.txt" $app -Force
 Copy-Item "$root/src/Panel.xaml" $app -Force
+# Native development builds must not inherit stale SVGs from build/app.
+Copy-Item "$root/assets/*.svg" (Join-Path $app 'assets') -Force
 $framework=Join-Path $env:WINDIR 'Microsoft.NET/Framework64/v4.0.30319'
 & "$PSScriptRoot/Build-WindowsAdapters.ps1" -OutputDirectory $app
 $arguments=@('/nologo','/target:winexe','/platform:x64',"/out:$app\HardwarePulse.exe",'/reference:System.Web.Extensions.dll','/reference:System.Management.dll','/reference:System.Windows.Forms.dll','/reference:System.Drawing.dll','/reference:Microsoft.CSharp.dll','/reference:System.Xaml.dll',"/reference:$framework\WPF\PresentationFramework.dll","/reference:$framework\WPF\PresentationCore.dll","/reference:$framework\WPF\WindowsBase.dll","/reference:$app\lib\LibreHardwareMonitorLib.dll","/win32icon:$app\assets\pulse.ico")

@@ -10,14 +10,15 @@ public sealed class WindowsSnapshotReadings {
     const int Limit=8*1024*1024;
     static readonly JsonSerializerOptions Options=new(){IncludeFields=true,MaxDepth=64};
     readonly string path;
-    public WindowsSnapshotReadings(string path){this.path=Path.GetFullPath(path);}
+    readonly SensorProfile.Reader reader;
+    public WindowsSnapshotReadings(string path){this.path=Path.GetFullPath(path);reader=new SensorProfile.Reader(this.path);}
     public static WindowsSnapshotReadings Default() {
         if(!OperatingSystem.IsWindows())throw new PlatformNotSupportedException();
         using var identity=WindowsIdentity.GetCurrent();
         string sid=identity.User?.Value??throw new InvalidOperationException("Current user unavailable");
         return new(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),"HardwarePulse",sid,"runtime","snapshot.json"));
     }
-    public Reading Read(DateTimeOffset now)=>SensorProfile.Read(path,now);
+    public Reading Read(DateTimeOffset now)=>reader.Read(now);
     internal static RawSnapshot ReadRaw(string path) {
         using var stream=new FileStream(path,FileMode.Open,FileAccess.Read,FileShare.ReadWrite|FileShare.Delete);
         long length=stream.Length;

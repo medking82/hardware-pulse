@@ -1,4 +1,14 @@
-# Claude quota recovery investigation
+# Claude quota recovery
+
+## Native 0.6.58 CLI Query Backup
+
+In Settings, enable Claude quota monitoring and choose **Claude Quota Source → CLI Query**. Existing Login remains the default; CLI Snapshot remains a separate passive status-line option. CLI Query runs the installed native Claude Code executable's `/usage` with safe mode, no MCP servers, no tools and closed stdin. It does not submit a model prompt, inspect browser cookies, copy tokens or implement token renewal; Claude Code owns its login. Missing or incompatible CLI versions report unavailable rather than silently changing sources.
+
+The Windows direct-command approach was cross-checked against Token Monitor `2db5808e82482ff0f9c165928480ab7a28380fd0`, `src/shared/limitCollector.js` (`runClaudeDirectUsageCli`). This implementation uses the existing bounded child-process runner, caps the report at 64 KiB, rejects duplicate/missing/invalid session and all-model weekly windows, and does not borrow model-specific weekly percentages. Recognized reset dates use the reported timezone; unknown/ambiguous timezones or DST times stay blank.
+
+API and CLI Query share the same persisted remote scheduler, including its five-minute successful-request floor and server Retry-After deadline. Source switches cancel/invalidate old results and caches, not cooldown debt. There is no automatic switch after a 429 and no account observation merged across sources. The CLI source is disclosed in card/desktop tooltips. This native Windows selector does not claim equivalent integration in the shared cross-platform host.
+
+## Earlier Status-Line Investigation
 
 Status-line integration: decoder, Windows receiver and explicit source selection
 implemented. Configuration automation and real CLI acceptance remain pending.
