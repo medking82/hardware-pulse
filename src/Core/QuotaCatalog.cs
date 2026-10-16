@@ -17,7 +17,7 @@ namespace HardwarePulse {
             new QuotaProvider{Name="Antigravity",Icon="antigravity",Accent="#A7CBFF"},
             new QuotaProvider{Name="Claude",Icon="claude",Accent="#E7B497"},
             // Distinct from Antigravity's blue so both cards stay readable side by side.
-            new QuotaProvider{Name="DeepSeek",Icon="deepseek",Accent="#94A3F0",Money=true,ApiKey=true}
+            new QuotaProvider{Name="DeepSeek",Icon="deepseek",Accent="#6E8FFF",Money=true,ApiKey=true}
         };
         public static string[] Names(){var names=new List<string>();foreach(QuotaProvider provider in All)names.Add(provider.Name);return names.ToArray();}
         public static QuotaProvider Find(string provider){foreach(QuotaProvider candidate in All)if(string.Equals(candidate.Name,provider,StringComparison.Ordinal))return candidate;return null;}

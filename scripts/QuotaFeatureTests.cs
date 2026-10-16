@@ -25,15 +25,47 @@ static class QuotaFeatureTests {
     static void Capture(Shell shell,string path){Pump();shell.Window.UpdateLayout();var bitmap=new RenderTargetBitmap((int)shell.Window.ActualWidth,(int)shell.Window.ActualHeight,96,96,PixelFormats.Pbgra32);bitmap.Render(shell.Window);var png=new PngBitmapEncoder();png.Frames.Add(BitmapFrame.Create(bitmap));using(var stream=File.Create(path))png.Save(stream);}
     static DesktopMetric[] MoneyRows(Shell shell){return ((IEnumerable<DesktopMetric>)typeof(Shell).GetMethod("DesktopMetrics",Hidden).Invoke(shell,null)).Where(m=>m.Key.StartsWith("quotaDeepSeek",StringComparison.Ordinal)).ToArray();}
     static void Currency(ComboBox choice,string code){choice.SelectedItem=choice.Items.Cast<ComboBoxItem>().Single(item=>(string)item.Tag==code);Pump();}
+    static void ProviderIcons(Shell shell,Settings settings,string state){
+        settings.Data["desktopAppIconColors"]=true;settings.Data["unifiedReadingColors"]=false;
+        var palette=typeof(Shell).GetMethod("DesktopPaletteColor",Hidden);var icon=typeof(Shell).GetMethod("Icon",Hidden);
+        foreach(bool light in new[]{false,true}){
+            settings.Data["background"]=light?"#F4F6F8":"#202831";Invoke(shell,"ApplyMaterial");
+            var grid=new Grid{Background=new SolidColorBrush((Color)ColorConverter.ConvertFromString(light?"#F4F6F8":"#202831"))};
+            foreach(var provider in QuotaCatalog.All)grid.ColumnDefinitions.Add(new ColumnDefinition());
+            int column=0;
+            foreach(var provider in QuotaCatalog.All){
+                string color=(string)palette.Invoke(shell,new object[]{provider.Icon,"#CDD6DF"});
+                Check(color==(light?"#17202B":QuotaCatalog.Accent(provider.Name)),provider.Name+" desktop palette follows the catalog/theme");
+                var tile=new StackPanel{Margin=new Thickness(12)};Grid.SetColumn(tile,column++);grid.Children.Add(tile);
+                tile.Children.Add(new TextBlock{Text=provider.Name,Foreground=light?Brushes.Black:Brushes.White,FontSize=14});
+                foreach(double opacity in new[]{1d,.4d}){
+                    var row=new StackPanel{Orientation=Orientation.Horizontal,Margin=new Thickness(0,16,0,0),Opacity=opacity};tile.Children.Add(row);
+                    foreach(double size in new[]{16d,24d,32d}){
+                        var mark=(FrameworkElement)icon.Invoke(shell,new object[]{provider.Icon,size,color});mark.Margin=new Thickness(0,0,12,0);row.Children.Add(mark);
+                    }
+                }
+            }
+            var window=new Window{Content=grid,Width=640,Height=180,WindowStyle=WindowStyle.None,ResizeMode=ResizeMode.NoResize,ShowInTaskbar=false,ShowActivated=false};
+            try{window.Show();Settle();window.UpdateLayout();var bitmap=new RenderTargetBitmap(640,180,96,96,PixelFormats.Pbgra32);bitmap.Render(window);var png=new PngBitmapEncoder();png.Frames.Add(BitmapFrame.Create(bitmap));using(var stream=File.Create(Path.Combine(state,"provider-icons-"+(light?"light":"dark")+".png")))png.Save(stream);}
+            finally{window.Close();}
+        }
+        settings.Data["background"]="#202831";Invoke(shell,"ApplyMaterial");
+        settings.Data["desktopAppIconColors"]=false;Check((string)palette.Invoke(shell,new object[]{"deepseek","#CDD6DF"})=="#CDD6DF","icon palette opt-out preserves the text color");
+        settings.Data["desktopAppIconColors"]=true;settings.Data["unifiedReadingColors"]=true;
+        Check((string)palette.Invoke(shell,new object[]{"deepseek","#CDD6DF"})==(string)palette.Invoke(shell,new object[]{"claude","#CDD6DF"}),"unified icon colors remain consistent");
+        settings.Data["unifiedReadingColors"]=false;settings.Data["background"]="#202831";Invoke(shell,"ApplyMaterial");
+    }
     static void DesktopCapture(Shell shell,string path,bool light){
         using(var close=new DesktopFixture(shell)){
             var window=close.Window;window.Width=280;window.ShowActivated=false;window.Show();
             foreach(var size in new[]{new[]{280d,16d},new[]{320d,20d},new[]{466d,32d}}){
-                window.Width=size[0];window.Render(MoneyRows(shell),size[1],8,light?"#17202B":"#F0F5FA",true);Pump();window.UpdateLayout();
+                window.Width=size[0];string tint=light?"#17202B":"#F0F5FA";window.Render(MoneyRows(shell),size[1],8,tint,true,1,name=>close.Palette(name,tint));Pump();window.UpdateLayout();
                 var names=Tree(window).OfType<TextBlock>().Where(t=>t.Text=="DeepSeek"&&t.IsVisible).ToArray();
                 Check(names.Length==MoneyRows(shell).Length&&names.All(t=>t.ActualHeight<size[1]*1.8),"desktop provider fits on one line at "+size[0]+"px / "+size[1]+"px font");
             }
-            window.Width=280;window.Render(MoneyRows(shell),16,8,light?"#17202B":"#F0F5FA",true);window.SetTextOpacity(100,false,true,100);Settle();window.UpdateLayout();
+            string textColor=light?"#17202B":"#F0F5FA";window.Width=280;window.Render(MoneyRows(shell),16,8,textColor,true,1,name=>close.Palette(name,textColor));window.SetTextOpacity(100,false,true,100);Settle();window.UpdateLayout();
+            var paths=Tree(window).OfType<System.Windows.Shapes.Path>().ToArray();
+            Check(paths.Length==MoneyRows(shell).Length&&paths.All(p=>p.Fill is SolidColorBrush&&((SolidColorBrush)p.Fill).Color.ToString()==(light?"#FF17202B":"#FF6E8FFF")),"actual desktop icon brushes use the provider palette, not a text-color fallback");
             foreach(var text in Tree(window).OfType<TextBlock>().Where(t=>t.IsVisible&&(t.Text=="DeepSeek"||t.Text.StartsWith("CNY ")||t.Text.StartsWith("USD ")))){
                 var point=text.TransformToAncestor(window).Transform(new Point());Check(point.X>=0&&point.Y>=0&&point.X+text.ActualWidth<=window.ActualWidth+1&&point.Y+text.ActualHeight<=window.ActualHeight+1,"settled desktop label/value stays within the window");
             }
@@ -43,7 +75,9 @@ static class QuotaFeatureTests {
     }
     sealed class DesktopFixture:IDisposable {
         public readonly DesktopView Window;
-        public DesktopFixture(Shell shell){Window=new DesktopView((name,size,color)=>(FrameworkElement)typeof(Shell).GetMethod("Icon",Hidden).Invoke(shell,new object[]{name,size,color}),true);}
+        readonly Shell shell;
+        public DesktopFixture(Shell shell){this.shell=shell;Window=new DesktopView((name,size,color)=>(FrameworkElement)typeof(Shell).GetMethod("Icon",Hidden).Invoke(shell,new object[]{name,size,color}),true);}
+        public string Palette(string name,string textColor){return (string)typeof(Shell).GetMethod("DesktopIconColor",Hidden).Invoke(shell,new object[]{name,textColor});}
         public void Dispose(){Window.Close();}
     }
     static void CurrencyChecks(Shell shell,QuotaSession fake,Settings settings,string root,string state){
@@ -84,6 +118,7 @@ static class QuotaFeatureTests {
                 Check(((ComboBoxItem)shell.Control<ComboBox>("QuotaDisplay").Items[1]).Content as string=="All Available Quotas","English quota choice uses Title Case");
                 var field=typeof(Shell).GetField("quotas",Hidden);var original=(QuotaSession)field.GetValue(shell);
                 var settings=(Settings)typeof(Shell).GetField("settings",Hidden).GetValue(shell);
+                ProviderIcons(shell,settings,state);
                 var labels=new Languages(Path.Combine(root,"Languages.txt")){Preference="en"};
                 Check(labels.Label("DeepSeek API key")=="DeepSeek API Key"&&labels.Label("5-hour")=="5-Hour","Title Case preserves brands and acronyms");
                 Check(labels.Label("KB/s")=="KB/s"&&labels.Label("api.deepseek.com")=="api.deepseek.com"&&labels.Label("My custom device")=="My custom device","labels never rewrite units, endpoints or unknown device names");
@@ -138,9 +173,10 @@ static class QuotaFeatureTests {
             }
             application.Shutdown();
             foreach(string failure in failures.Distinct())Console.WriteLine("FAIL "+failure);
+            Console.WriteLine("Evidence: "+state);
             if(failures.Count>0)return 1;
             Console.WriteLine("PASS English/Chinese WPF: dark/light, 280px settings, concise desktop rows at 16/20/32px, Title Case, persisted CNY/USD/All filter, zero/missing/stale balances and money invalidation");
-            Console.WriteLine("Evidence: "+state);return 0;
+            return 0;
         }catch(Exception e){Console.WriteLine(e);return 1;}
     }
 }
