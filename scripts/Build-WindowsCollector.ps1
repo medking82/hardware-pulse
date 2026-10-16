@@ -10,7 +10,7 @@ if(Test-Path -LiteralPath $payload){
 $worker=Join-Path $payload 'worker'
 $null=New-Item -ItemType Directory -Path "$worker/lib","$payload/tools","$payload/licenses" -Force
 $deps=Get-Content "$root/dependencies.lock.json" -Raw | ConvertFrom-Json
-foreach($name in @('LibreHardwareMonitor','PresentMon','LibreHardwareMonitor Source','PawnIO Source')){
+foreach($name in @('LibreHardwareMonitor','PresentMon','LibreHardwareMonitor Source','PawnIO Source','BlackSharp Source')){
     $dep=@($deps | Where-Object name -eq $name)
     if($dep.Count -ne 1){throw "Missing unique dependency: $name"}
     $file=Join-Path "$root/vendor" $dep[0].file
@@ -24,11 +24,12 @@ foreach($name in @('LibreHardwareMonitor','PresentMon','LibreHardwareMonitor Sou
 $lhm=Join-Path $payload 'lhm-extract'
 Expand-Archive "$root/vendor/LibreHardwareMonitor-0.9.6.zip" $lhm
 Copy-Item "$lhm/*.dll" "$worker/lib"
+& "$PSScriptRoot/Patch-StorageAccess.ps1" -LibraryDirectory "$worker/lib"
 Remove-Item -LiteralPath $lhm -Recurse -Force
 Copy-Item "$root/vendor/PresentMon-2.5.1-x64.exe" "$payload/tools/PresentMon.exe"
 Copy-Item "$root/src/HardwarePulse.exe.config" "$worker/HardwarePulse.Collector.exe.config"
 Copy-Item "$root/licenses/*" "$payload/licenses" -Recurse
-Copy-Item "$root/vendor/LibreHardwareMonitor-source-0.9.6.zip","$root/vendor/PawnIO-source-2.2.0.zip" "$payload/licenses"
+Copy-Item "$root/vendor/LibreHardwareMonitor-source-0.9.6.zip","$root/vendor/PawnIO-source-2.2.0.zip","$root/vendor/BlackSharp-source-1.0.7.zip" "$payload/licenses"
 Copy-Item "$root/LICENSE","$root/dependencies.lock.json" $payload
 & "$PSScriptRoot/Build-WindowsAdapters.ps1" -OutputDirectory $worker
 $compiler=Join-Path $env:WINDIR 'Microsoft.NET/Framework64/v4.0.30319/csc.exe'

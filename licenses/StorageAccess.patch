@@ -1,0 +1,23 @@
+--- a/LibreHardwareMonitorLib/Hardware/Storage/StorageDevice.cs
++++ b/LibreHardwareMonitorLib/Hardware/Storage/StorageDevice.cs
+@@ -267,7 +267,7 @@
+         DISK_PERFORMANCE diskPerformance = new();
+ 
+         using var handle = PInvoke.CreateFile(_storage.PhysicalPath,
+-                                              (uint)FileAccess.ReadWrite,
++                                              0,
+                                               FILE_SHARE_MODE.FILE_SHARE_READ | FILE_SHARE_MODE.FILE_SHARE_WRITE,
+                                               null,
+                                               FILE_CREATION_DISPOSITION.OPEN_EXISTING,
+
+--- a/BlackSharp.Core/Interop/Windows/Utilities/SafeFileHandler.cs
++++ b/BlackSharp.Core/Interop/Windows/Utilities/SafeFileHandler.cs
+@@ -25,7 +25,7 @@
+         /// <returns>Returns opened handle.</returns>
+         public static IntPtr OpenHandle(string physicalPath)
+         {
+-            return Kernel32.CreateFile(physicalPath, Kernel32.GENERIC_READ | Kernel32.GENERIC_WRITE, Kernel32.FILE_SHARE_READ | Kernel32.FILE_SHARE_WRITE, IntPtr.Zero, Kernel32.OPEN_EXISTING, 0, IntPtr.Zero);
++            return Kernel32.CreateFile(physicalPath, Kernel32.GENERIC_READ, Kernel32.FILE_SHARE_READ | Kernel32.FILE_SHARE_WRITE, IntPtr.Zero, Kernel32.OPEN_EXISTING, 0, IntPtr.Zero);
+         }
+ 
+         /// <summary>

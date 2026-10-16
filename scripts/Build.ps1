@@ -25,6 +25,7 @@ Copy-Item "$root/dependencies.lock.json" $app -Force
 Copy-Item "$root/vendor/*-source-*.zip" "$app/licenses" -Force
 Expand-Archive "$root/vendor/LibreHardwareMonitor-0.9.6.zip" "$root/vendor/lhm" -Force
 Copy-Item "$root/vendor/lhm/*.dll" "$app/lib" -Force
+& "$PSScriptRoot/Patch-StorageAccess.ps1" -LibraryDirectory "$app/lib"
 $null=New-Item -ItemType Directory -Path "$app/tools" -Force
 Copy-Item "$root/vendor/PresentMon-2.5.1-x64.exe" "$app/tools/PresentMon.exe" -Force
 $ps5="$env:WINDIR/System32/WindowsPowerShell/v1.0/powershell.exe"

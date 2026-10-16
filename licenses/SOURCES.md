@@ -4,7 +4,14 @@
   MIT; original license and third-party notices included. Official x64 binary is hash-pinned.
 
 - LibreHardwareMonitor v0.9.6: https://github.com/LibreHardwareMonitor/LibreHardwareMonitor/tree/v0.9.6
-  MPL-2.0. The exact unmodified source archive is included in the installer.
+  MPL-2.0. The exact upstream source archive is included in the installer.
+  Its storage performance handle has a local minimum-access patch; see
+  STORAGE-ACCESS-PATCH.md and StorageAccess.patch for corresponding changes.
+- BlackSharp.Core 1.0.7 (MPL-2.0), commit c70b735c6cec123ee8a046ac4a0bc6c606f52cf0:
+  https://github.com/Blacktempel/BlackSharp
+  The exact source archive and local read-only handle patch are included.
+- Mono.Cecil 0.11.6: https://github.com/jbevain/cecil (MIT).
+  Hash-pinned build tool only; not shipped or loaded by the application.
 - PawnIO 2.2.0: https://github.com/namazso/PawnIO/tree/2.2.0
   GPL-2.0. Official installer: https://github.com/namazso/PawnIO.Setup/releases/tag/2.2.0
   Source tag commit: 5cdf470831fdfff3f7f1d06363ca6b230f3bf35a. The source archive is included;

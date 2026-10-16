@@ -16,6 +16,7 @@ $null=[xml](Get-Content "$root/src/Panel.xaml" -Raw)
 & "$PSScriptRoot/Run-Hidden.ps1" "$env:WINDIR/System32/WindowsPowerShell/v1.0/powershell.exe" @('-NoProfile','-File',"$root/src/Test-Sensors.ps1") $root
 & "$PSScriptRoot/Run-Hidden.ps1" "$env:WINDIR/System32/WindowsPowerShell/v1.0/powershell.exe" @('-NoProfile','-STA','-File',"$PSScriptRoot/Test-Snap.ps1") $root
 & "$PSScriptRoot/Build.ps1"
+& "$PSScriptRoot/Test-StorageAccess.ps1" -AppPath "$root/build/app"
 & "$PSScriptRoot/Run-Hidden.ps1" "$env:WINDIR/System32/WindowsPowerShell/v1.0/powershell.exe" @('-NoProfile','-File',"$PSScriptRoot/Test-Package.ps1") $root
 & "$PSScriptRoot/Build-Native.ps1"
 & "$PSScriptRoot/Test-CollectorHistory.ps1"

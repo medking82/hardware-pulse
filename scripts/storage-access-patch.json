@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "cecil_sha256": "c41bdb9ffd3c5f6e17d2382c1012d73703e035e3f1100245fdd4e08c8dc6eb5b",
+  "libraries": [
+    {
+      "file": "LibreHardwareMonitorLib.dll",
+      "input_sha256": "6ebc194316536ba61af5be24508ad9fcbb2ecc685e716c12e787c79530f66bf0",
+      "output_sha256": "76e44e4c31f805c10504bacd41208167ada85587937728cf03afec7662548f75"
+    },
+    {
+      "file": "BlackSharp.Core.dll",
+      "input_sha256": "cafb93afcc8d8a367e21f619673d05c06887d8964867fed1371f02ded1cd3e23",
+      "output_sha256": "2f886a7b5cca5b0c1f73ac3dbf9e26f9714d7971b35820ec12889879896b4b4e"
+    }
+  ]
+}

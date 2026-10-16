@@ -14,6 +14,20 @@
     "version": "0.9.6"
   },
   {
+    "file": "BlackSharp-source-1.0.7.zip",
+    "url": "https://codeload.github.com/Blacktempel/BlackSharp/zip/c70b735c6cec123ee8a046ac4a0bc6c606f52cf0",
+    "name": "BlackSharp Source",
+    "sha256": "ab50d38c8cfec1cc041d924730bc417b6d9c81b5b0ff542572a03ad9163cdc1e",
+    "version": "1.0.7"
+  },
+  {
+    "file": "Mono.Cecil-0.11.6.nupkg",
+    "url": "https://api.nuget.org/v3-flatcontainer/mono.cecil/0.11.6/mono.cecil.0.11.6.nupkg",
+    "name": "Mono.Cecil Build Tool",
+    "sha256": "d2a23832aaa948ba9a01acc42b5726e34c5f995958f1b30d45c0e7c70b3a72d5",
+    "version": "0.11.6"
+  },
+  {
     "file": "PawnIO-2.2.0.exe",
     "url": "https://github.com/namazso/PawnIO.Setup/releases/download/2.2.0/PawnIO_setup.exe",
     "name": "PawnIO",
