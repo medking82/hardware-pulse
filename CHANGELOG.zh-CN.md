@@ -6,6 +6,14 @@
 
 ## 未发布
 
+## 0.6.57 — 2026-10-16
+
+- DeepSeek 主卡片标题缩短为“余额”，桌面行只显示 DeepSeek。新增可保存的 CNY（RMB）、USD 或全部币种选择，同时应用于两处显示，不换汇，也不用另一币种替代零余额。
+- 原生界面的英文标题、标签和额度状态统一采用每词首字母大写，保留品牌、单位和源数据。检查英语、简体中文与明暗主题下的设置和窄布局。
+- 简化鲸鱼 SVG 的细碎线条，使小尺寸风格与现有图标一致；桌面从提供方目录读取品牌色，不再回退为灰色。
+- 补齐桌面设置中的 DeepSeek 显隐开关与排序手柄。所有币种和状态行共用稳定偏好分组；桌面隐藏不影响提供方查询或主卡片。
+- 将原生稳定线整合回 main，同时保留主线现有跨平台运行时。共享版仅支持百分比的视图会明确拒绝尚不支持的钱包来源，不会回落读取另一账户。
+
 ## 0.7.0 — 2026-09-20
 
 Windows x64 正式版改用 shared Desktop host。Windows ARM64、Linux 和 macOS 不属于本次正式发布范围。
@@ -55,6 +63,184 @@ Windows x64 正式版改用 shared Desktop host。Windows ARM64、Linux 和 macO
 - 跨平台桌面版内嵌固定版本的 Noto Sans CJK 简体和繁体字体，解决未安装中文字体的系统上界面缺字的问题。构建时校验文件大小和 SHA-256，安装包附带 OFL 许可；原生启动检查会将界面文案缺字判为失败。无需安装系统字体，也不会在运行时下载字体。
 
 - 共享桌面应用支持自动跟随系统、英语、简体中文和繁体中文，覆盖监控、设置、传感器状态、Codex 额度与托盘操作。语言即时切换，不重启采样或重新读取登录信息，并保存到独立的预览版设置中。自动模式会区分中文书写体系和地区。
+
+## 0.6.56 — 2026-10-16
+
+- 新增可选的 DeepSeek API 钱包余额，以币种和金额显示，不使用百分比进度条。精简模式显示可用余额，完整模式另列赠送和充值余额。
+- 手动输入的 API 密钥使用 Windows 当前用户级 DPAPI 加密保存；保存不会开启监控。替换或删除密钥时立即清除旧账户读数，并拒绝旧请求回写，同时保留限流冷却。
+- 使用 QuotaCatalog 统一注册提供方元数据，四个提供方均可保存重试调度。保留已有 Claude 登录和 CLI 快照读取逻辑。
+- B850M MORTAR 已验证的 SYS1/SYS3 风扇通道不会因单次空读数消失，也不会伪造转速。
+- 修复英文窄窗密钥按钮裁切、明暗主题输入框样式及中英文状态即时切换，补充 WPF 专项和凭据生命周期回归测试。
+- 专项检查及独立审查已完成；完整仓库验证仍有基线同样失败的桌面注册、采集排除和布局检查。本次未验证真实 DeepSeek Key 请求或已安装应用升级。
+
+## 0.6.55 — 2026-10-09
+
+- 支持的 Windows 系统改用实时连接质量读取 Wi-Fi 信号，无需 Location permission；旧版 Windows 保留原有 connected-interface fallback，不增加扫描或 sampling task。
+- Connected Wi-Fi 缺少有效 signal reading 时保留 Wi-Fi Signal row，显示 `—`；恢复后显示实际百分比，断开后清除 signal row，不沿用旧数值。
+- 移除重复的 Wi-Fi Signal setting，兼容旧 order/visibility preferences；明确保存的当前 preference 优先。
+- Checks 覆盖 native query selection、fallback、denied/malformed replies、百分比范围和 buffer release，以及 Desktop reading 缺失、恢复、断开和 settings compatibility。
+
+## 0.6.54 — 2026-10-05
+
+- Windows snapshot 遇到短暂 sharing/lock conflict 时，先 retry 再报告 hardware readings 不可用。最多尝试三次，额外等待不超过 40 ms；不增加 polling，也不把旧数值标为 LIVE。
+- 持续 read failure、invalid snapshot 和原有 15 秒 freshness limit 仍有效。Retry 耗时计入 freshness，避免过期 snapshot 在恢复后被误判为 LIVE。
+- Regression checks 覆盖短暂 conflict、retry exhaustion、其他错误、retry 期间过期及实际独占锁定的 fixture file。保留 Collector、FPS、appearance 和 settings behavior。
+
+## 0.6.53 — 2026-10-03
+
+- 将 Live 与 Session Max 组成视觉分组；monitor toolbar 在窄窗口换行时，Desktop 与 FPS 保持同组。保留已有 controls、settings 和 actions。
+- Settings 的 selected category 使用更清楚的 surface，并修复 border 未实际显示的问题。Disabled buttons 显示变淡，重新启用后恢复。
+- 提高 secondary hardware labels 与 status text 的可读性，保留 font-size preferences、card order 和同排高度。Hardware-name editors 关联对应的 accessible labels。
+- 验证 10/12/16 DIP 下的 toolbar bounds、English 与简体／繁体中文 layout、selected/disabled rendering，以及原有 Desktop/FPS/Settings interactions。
+
+## 0.6.52 — 2026-10-03
+
+- 退役 Resources 与 RAM/GPU process cleanup，移除 process grouping、关闭建议及 normal-close actions，并删除对应 process observation/close adapter、UI、state 和专用 tests。
+- 主窗口恢复只读 monitor，不再显示 Monitor/Resources navigation。保留 hardware RAM/VRAM readings、Settings/Back、Desktop、FPS、quota 与已有 appearance settings。
+- 验证 release payload 不再包含退役的 process-cleanup APIs。保留历史 release notes，当前 documentation 明确记录退役状态。
+
+## 0.6.51 — 2026-10-03
+
+- Resources 按 executable identity 合并重复 processes，显示 RAM/GPU 合计，按 group usage 排序；展开可查看只读 process/PID 明细。不同 executable path 及无法读取 path 的 observations 保持独立。
+- 部分 GPU 读数缺失时用 `*` 标记小计，无法读取时仍显示 `—`。共享资源可能重复计算，合计不代表承诺可释放的空间。
+- Grouped normal-close requests 先确认符合条件的 process name 和 PID。GPU helper 与 tray-only process 不会成为关闭目标；建议沿用原有 per-process policy。不增加 forced termination 或 background scan。
+
+## 0.6.50 — 2026-10-03
+
+- 修复 Resources selected row 的浅色高亮与浅色文字冲突。明暗 theme 使用成对的 selection background/foreground，focus 移走或 App 背景透明度为零时仍保持可读；high contrast 跟随 system colors。
+- 无法正常关闭的 process 不再显示为已勾选，点击时提示通过对应 App 或 system tray 退出。不可用的 resource action 明确变淡，符合条件的 selection 启用原有 confirmation flow。
+- Checks 复现并覆盖“已勾选但按钮不可用”、selection contrast、可关闭与不可关闭 row 混合选择、排序、三种语言、窄窗口及关闭取消 guards。使用 synthetic callbacks，不关闭用户 App；Windows close eligibility 和 dispatch policy 保持一致。
+
+## 0.6.49 — 2026-10-03
+
+- 进程占用列表移到主窗口顶部 Resources tab，与 Monitor 切换。移除内存与 GPU 卡片中的管理按钮及独立外观设置，统一通过 Settings → App Appearance 调整；Back 返回 Resources。
+- 一、二、三列下的硬件与额度卡片按行对齐高度，保留 card order 和单列自然高度；内容变化后重新计算 row height。
+- 占用列表的 header 跟随 App theme，数值右对齐。点击列标题排序不增加 snapshot，重复点击当前 tab 保留排序。离开 Resources 停止未发送的 close requests，进行中的读取仍复用同一 task。
+- Checks 覆盖 tab navigation、排序、勾选、关闭取消、外观、三种语言与窄窗口，以及 card resize/reorder 和 Desktop regression。正常关闭的 adapter policy 保持一致。
+
+## 0.6.48 — 2026-10-03
+
+- 占用列表支持点击应用、内存和显存列标题排序，再次点击切换升降序；无法读取的显存始终排在末尾。排序复用已有读数。
+- 占用窗口默认跟随应用的颜色、毛玻璃和背景不透明度。关闭“跟随 App 外观”后，可独立调整 0–100% 背景不透明度；无障碍和不支持毛玻璃的环境仍使用不透明背景。
+- 最多列出三个高占用且支持正常关闭的候选，排除采样时的前台进程和已知 Windows 桌面外壳、输入及会话组件。“关闭建议候选…”先显示确认名单，另支持手动勾选后批量关闭。逐个请求前检查进程身份，仅请求正常关闭，保留保存提示和拒绝关闭行为。
+- 检查覆盖候选阈值与排除规则、数值排序、取消确认、重复点击、旧进程身份、窗口关闭、外观及三种语言的窄窗口布局。界面检查不关闭用户应用。
+
+## 0.6.47 — 2026-10-03
+
+- 内存与 GPU 卡片新增按需读取的当前用户进程占用列表，显示驻留内存、可选的显存估值及本地内存余量建议。排序和读取期间重新打开复用已有操作，不增加后台进程轮询。
+- 用户选择应用并确认正常关闭后，会重新检查进程身份、用户、会话和主窗口状态。保存提示和拒绝关闭始终有效；不会强制终止、清空工作集、驱逐显存或调用远程 AI。
+- 独立窗口测试覆盖接受与拒绝关闭，界面检查覆盖英文、简体和繁体中文、窄窗口及明暗主题。显存估值可能无法读取或不准确，不承诺释放空间或提升 FPS。
+
+## 0.6.46 — 2026-10-02
+
+- 设置页中的额度刷新会显示进度、完成结果，或下一次允许请求的具体时间。每张额度卡片新增独立刷新按钮，并显示刷新中及暂缓请求的状态。
+- Claude 上次认证失败后，手动刷新可在至少间隔五分钟的前提下重新检查，不必继续等待已延长至三十分钟的认证退避。已知登录来源的修改信息发生变化时，也会安排这项受频率限制的恢复检查，不读取 token 内容。
+- 保留 HTTP 429、Retry-After、网络及权限错误的等待规则、持久化限流历史和进行中请求的保护。连续点击不会排队产生额外请求。Pulse 仍不会替用户登录、修改凭据或续期 token。
+
+## 0.6.45 — 2026-10-02
+
+- 帧率采集不再等待未使用的 GPU、显示完成或输入事件，减少 HDR 及翻转呈现路径启动时新读数延迟出现的依赖。当前、平均及最低帧率的统计含义保持一致。
+- 已在开启 HDR 的 Windows 显示器上验证应用提交帧的采集路径，并增加实际采集启动参数及精简 CSV 格式的回归测试。原问题是间歇性的，本次验证不代表所有游戏、驱动或独占全屏浮层均已兼容。
+
+## 0.6.44 — 2026-09-27
+
+- Remote quota failure 的 retry 间隔依次为 5、10、20、30 分钟。HTTP 429 的 minimum backoff 为 15、30、60 分钟，并遵守更长的 Retry-After。后续 401 或 timeout 不再清除 rate-limit history，只有成功 reading 才会 reset。
+- Windows 在 restart、provider toggle 和 source switch 后保留 quota cooldown。Manual Refresh 遵守 failure cooldown，成功 reading 后至少间隔 30 秒。Local Claude CLI snapshot 仍独立以 30 秒间隔读取文件；仅保存 scheduling metadata，不保存 quota values 或 credentials。
+- Antigravity quota child 禁用已安装 CLI 的 automatic updater，阻止 quota polling 启动未隐藏的 version-check child。本次包含已在本机安装的 0.6.43 repair，0.6.43 未单独发布。原始间歇闪窗未捕获，不能确认所有反馈的闪窗都来自同一原因。
+- Core、native WPF、shared Desktop 和 child-process regression checks 已通过，quota tests 使用 synthetic reader。反馈设备上的 Codex/Claude transport timeout 仍未解决；本次减少重复 request，不代表 quota availability 已恢复。
+
+## 0.6.42 — 2026-09-22
+
+- Antigravity CLI quota 的 parent deadline 调整为 25 秒，CLI 自身的 print timeout 仍为 15 秒，为 startup／输出结束留出余量。保留 30 秒 session bound、hidden execution 和 owned-child cleanup；Codex deadline 仍为 15 秒。
+- 现有 diagnostics／tooltip 区分 CLI timeout、异常 exit 和 invalid response。Desktop-first source policy、login ownership、quota cadence 和 WPF UI 保持不变。
+- 一次本地 CLI diagnostic 在 11.4 秒后返回完整 quota report；此前 installed App 的 CLI failure 约耗时 16 秒，随后自动通过 Desktop 恢复。本次修正 timeout budget 边界，不代表已确认 authentication 或 provider outage 的根因。
+
+## 0.6.41 — 2026-09-22
+
+- 连续 quota rate limit 的 retry 间隔依次延长为 2、5、10、15 分钟，并遵守 server 给出的更晚 deadline。App 显示下次 retry，Desktop 保留简洁 status 与 tooltip detail。
+- Claude 在 rate limit 期间可显示十分钟以内、同一 login source revision 的成功 reading，并明确标为 `Cached`。Source 变化、authentication failure、过期及各 window 的 reset deadline 会使数值失效；未知值显示 `—`。
+- Antigravity failure 保留安全的 source、HTTP、transport/discovery detail。本地 diagnostics 最多保留两个 32 KiB 文件，仅记录 whitelist 内的 attempt metadata。Timeout 后等待原 worker 退出才释放 request ownership，拒绝 late result 覆盖当前 quota。
+- 保留 native WPF glass UI、Local Contrast 和 Windows 10/11 x64 packaging。不承诺 provider 永久可用，也不会 renew credentials；继续使用现有 Marck Wong self-signed certificate。
+
+## 0.6.40 — 2026-09-21
+
+- Local Contrast 现在采样实际渲染的 glyph bounds，安全处理 fractional-DPI 两端映射，并根据真实 `#141414`／`#F5F5F5` contrast 进行 mid-gray recovery，不再使用过宽的旧 luminance band。FPS 保留区域中的空白不再决定文字颜色。
+- 透明 gaming layout 会根据保存的 text opacity 和捕获到的 RGB background 选择文字颜色。text opacity 为零时跳过 capture；现有 WPF glass UI、refresh cadence、settings 和 card geometry 保持不变。本次不包含 UI redesign。
+- 在受控的 0% background opacity／40% text opacity Desktop benchmark 中，whole-machine CPU 增加约 0.05–0.17 个百分点；RAM 没有显示一致增加。这是 precision trade-off，不是游戏 FPS benchmark。Windows 10/11 x64 scope 及现有自签名 Marck Wong certificate 状态保持不变。
+
+## 0.6.39 — 2026-09-21
+
+- Local Contrast analysis 不再重复保留 bitmap copy。两组受控 30 秒测量中，Gen0 collection count 从 83／84 降至 3／4；managed allocation、RAM 和 CPU 没有显示一致下降。详见 [performance evidence](docs/PERFORMANCE.md#native-memory-retention-work-after-0638)。
+- Windows 采集器不再保留未使用的一天 LibreHardwareMonitor sensor history。Current readings 和 Session Max 保持可用；installed app 的长期 RAM 影响仍需 soak observation。
+- 保留 0.6.38 的 Claude recovery schedule、WPF glass UI、Windows 10/11 x64 scope 及自签名 Marck Wong certificate 状态；不宣称 macOS stable release。
+
+## 0.6.38 — 2026-09-21
+
+- Claude 出现 `Login required` 后，首次 automatic retry 从五分钟缩短为 30 秒。连续 authentication 与 transient transport failure 共用 30／60／120／240／300 秒 bounded backoff；成功后恢复五分钟 cadence。
+- 保留 403／429 handling、server Retry-After deadline、single-flight request、cancellation、local snapshot polling 和其他 provider 的 authentication cadence。
+- 此项加快发现 credential owner 已恢复的状态，不负责 expired token renewal。持续失败达到 backoff 上限后，仍可能等待五分钟加 request／UI processing 时间。保留 WPF appearance 和 settings。
+
+## 0.6.37 — 2026-09-21
+
+- Windows App 在 geometry 或 sensor capability 变化时才重新计算 card density，减少每次 polling 的重复 layout。保留现有 glass material、字体、responsive cards 和 settings。
+- 500 ms Desktop FPS tick 只更新自身 row，并复用未变化的 text runs。普通 hardware refresh 仍为两秒，Local Contrast 仍为 100 ms。
+- Sensor matching 减少临时 match arrays，保留唯一候选选择和每次 snapshot 的重新识别。
+- 受控 component measurement 中，App refresh allocation 减少约 55%，开启 Local Contrast 的 Desktop FPS allocation 减少 24–25%；这些结果不代表完整 App CPU 或 steady-state RAM 必然下降。详见 [measurement scope 与结果](docs/PERFORMANCE.md#wpf-refresh-work-reduction-after-0636)。
+
+## 0.6.36 — 2026-09-21
+
+- Windows Desktop 的 quota 标题恢复为简洁的 `Gemini`。CLI source 放到名称／数值及 Monitor status 的 tooltip，显示 `来源：Antigravity CLI`；切回 Desktop source 时清除旧提示。
+- Quota child fixture 新增 visible console 检查。本机 bounded window-event／process trace 中，Desktop 和已安装 CLI 均成功读取，未观察到可见的 owned window；尚未复现反馈中的间歇闪窗，不能据此保证所有 descendant／login state 都不会闪窗。
+- 保留 WPF glass UI、settings、quota source selection 和成功读取后的五分钟 refresh cadence；没有新增安装或打包 CLI。
+
+## 0.6.35 — 2026-09-21
+
+- 连续 remote quota failure 改用封顶 automatic retry backoff（30、60、120、240、300 秒）。保留手动 Refresh，成功恢复后重置 backoff，server rate limit 和 local snapshot polling 规则保持不变。
+
+- Antigravity Desktop quota probe 保留 HTTP 429 backoff 和 HTTP 403 access-denied 状态，不再将其转成普通 transport failure；credential／source 和 UI 保持不变。
+
+## 0.6.34 — 2026-09-21
+
+- Claude quota read 收到 HTTP 401 后，如果 credential owner 已替换 access token，会重读并重试一次。Token 未变化、403、429 和 transport failure 不会触发 retry；此项不提供 credential renewal，也不能免除过期后的必要 login。
+- Windows 在同一次 request／retry 中固定原 credential file 或 Credential Manager target。所选 source 消失时明确失败，不切换其他 source；显式 environment token 保持优先。
+- 新增 English 和简体中文 Claude status-line setup／rollback guide。该可选 source 仍为 experimental，真实 CLI delivery acceptance 尚待完成。
+- 保留 WPF glass UI、Desktop mode、settings 和轻量 Framework package。完整 validation、.NET 10 Core checks 和 credential-source pinning 的 independent review 已通过；synthetic recovery tests 不代表长期 live token renewal 已验证。
+
+## 0.6.33 — 2026-09-21
+
+- Quota HTTP 429 遵守 Retry-After。手动 Refresh 保留有效 deadline；header 缺失、无效或较短时，也保留两分钟最低 backoff。
+- Windows quota login read 允许兼容的 credential writer 和 atomic replacement，读取上限为 1 MiB。Pulse 不写入或 renew credentials。
+- 新增可选 experimental Claude Code status-line source，提供明确的 session binding、stale/reset expiry，以及 Git Bash／PowerShell setup command。默认仍使用 existing login；需要手动 setup，真实 CLI-produced delivery 尚未验证，Claude Code 关闭后不能刷新。
+- 完整 Windows validation 和相关 modern build／tests 通过。一次 live read 成功取得 Codex、Antigravity CLI 和 Claude quota；不代表长期 token-expiry recovery 已完成。
+
+## 0.6.32 — 2026-09-20
+
+- Windows quota CLI 的 pipe 在 writer 保持打开但无输出时也能响应 cancellation。Cleanup 会取消并等待 stderr reader 结束，保留 UTF-8 decoding、output limit 和既有 refresh/backoff 行为。
+- 新增两个 CLI parser、idle stderr、fragmented UTF-8 和 EOF 的 in-process pipe regression checks。未新增 Claude token renewal，也不代表已确认此前 antivirus detection 的原因。
+
+## 0.6.31 — 2026-09-20
+
+- 唤醒后若收到休眠前已完成、现已过期的 quota observation，会立即重新读取，不再额外等待五分钟。
+- Quota request 尚未结束时点击 Refresh，现在会合并为一次后续读取，避免重新登录后的 refresh 被忽略；继续保证 request 串行，rate limit 保留 backoff。
+
+## 0.6.30 — 2026-09-20
+
+- Windows WPF 在 Settings 打开时跳过不可见的 Monitor card 更新；collector、quota 和 Desktop 继续刷新，返回 Monitor 时立即显示最新读数。
+
+## 0.6.29 — 2026-09-20
+
+- 未识别到本地 Antigravity app session 时，可通过已安装并登录的 Antigravity CLI 读取 quota。Monitor 和 Desktop 标明 CLI 来源；不下载或捆绑 CLI。
+- Update check 显示经过脱敏的 failure code，保留原有 installer identity 和 SHA-256 verification。
+- Quota card 标题采用与 hardware card 相同的 Text Size 缩放规则，保留 glass、opacity、layout 和已保存的 preferences。
+- 本次安装版 network failure 由用户恢复 Bitdefender firewall 默认规则后解决；本 release 不修改防护规则，也不将外部配置问题宣称为 code fix。Claude 登录续期仍由官方 client 负责。
+
+## 0.6.28 — 2026-09-20
+
+- 保留原有 Windows WPF App、Desktop 和 Settings。新 profile 使用更深的 glass background，提高浅色文字可读性；已保存的 appearance preferences 保持不变。
+- 区分 quota access denied 与 login expired。Codex 可通过已安装的官方 Codex CLI，以有 timeout 和 output limit 的 quota-only request 恢复被拒绝的 authentication；不捆绑或下载 CLI。
+- 保留 hardware、FPS、Desktop geometry 和 update identity。macOS 保持独立 RC；不复用已撤回的 Windows 0.7.0。
+- Bitdefender 曾 quarantine development/test artifacts。修改后的 tests 和完整 repository validation 已通过，用户确认当时 Antivirus 与 Advanced Threat Defense 均开启。厂商 false-positive 确认仍待处理，不宣称兼容所有 antivirus。
+
 
 ## 0.6.27 — 2026-09-16
 

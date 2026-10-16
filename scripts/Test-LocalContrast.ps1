@@ -17,6 +17,21 @@ try {
  $pixels=New-Object byte[] ($mask.PixelWidth*$mask.PixelHeight*4);$mask.CopyPixels($pixels,$mask.PixelWidth*4,0)
  $left=([int]($mask.PixelHeight/2)*$mask.PixelWidth+[int]($mask.PixelWidth/4))*4;$right=([int]($mask.PixelHeight/2)*$mask.PixelWidth+[int]($mask.PixelWidth*3/4))*4
  Assert ($pixels[$left] -eq 245 -and $pixels[$right] -eq 20) 'Did not sample dark/light background through excluded overlay'
+ $referenceMinorityDark=0.0;$referenceMinorityLight=0.0
+ $referenceDark=$capture.RegionColor([Windows.Int32Rect]::new(0,0,[int]($mask.PixelWidth/2),$mask.PixelHeight),245,[ref]$referenceMinorityDark)
+ $referenceLight=$capture.RegionColor([Windows.Int32Rect]::new([int]($mask.PixelWidth/2),0,[int]($mask.PixelWidth/2),$mask.PixelHeight),20,[ref]$referenceMinorityLight)
+ $analysisSize=$capture.CaptureAnalysis($capture.Bounds(),[Windows.Media.Colors]::White,6)
+ Assert ($analysisSize.Width -eq $mask.PixelWidth -and $analysisSize.Height -eq $mask.PixelHeight) 'Analysis-only capture returned a different sampling grid'
+ $freshPixels=New-Object byte[] ($mask.PixelWidth*$mask.PixelHeight*4);$mask.CopyPixels($freshPixels,$mask.PixelWidth*4,0)
+ $freshLeft=([int]($mask.PixelHeight/2)*$mask.PixelWidth+[int]($mask.PixelWidth/4))*4;$freshRight=([int]($mask.PixelHeight/2)*$mask.PixelWidth+[int]($mask.PixelWidth*3/4))*4
+ Assert ($freshPixels[$freshLeft] -eq 245 -and $freshPixels[$freshRight] -eq 20) 'Analysis-only capture changed the frozen BitmapSource'
+ $analysisSize=$capture.CaptureAnalysis($capture.Bounds(),[Windows.Media.Colors]::Transparent,6)
+ Assert ($analysisSize.Width -eq $mask.PixelWidth -and $analysisSize.Height -eq $mask.PixelHeight) 'Transparent analysis restore returned a different sampling grid'
+ $analysisMinorityDark=0.0;$analysisMinorityLight=0.0
+ $analysisDark=$capture.RegionColor([Windows.Int32Rect]::new(0,0,[int]($analysisSize.Width/2),$analysisSize.Height),245,[ref]$analysisMinorityDark)
+ $analysisLight=$capture.RegionColor([Windows.Int32Rect]::new([int]($analysisSize.Width/2),0,[int]($analysisSize.Width/2),$analysisSize.Height),20,[ref]$analysisMinorityLight)
+ Assert ($analysisDark -eq $referenceDark -and $analysisLight -eq $referenceLight -and [Math]::Abs($analysisMinorityDark-$referenceMinorityDark) -lt .000001 -and [Math]::Abs($analysisMinorityLight-$referenceMinorityLight) -lt .000001) 'Analysis-only contrast differed from the BitmapSource reference'
+ $invalid=[Windows.Rect]::new(0,0,0,1);Assert ($capture.CaptureAnalysis($invalid,[Windows.Media.Colors]::Transparent,6).IsEmpty) 'Invalid analysis bounds were not rejected'
  Assert ([HardwarePulse.LocalContrast]::Select(.19,20) -eq 20 -and [HardwarePulse.LocalContrast]::Select(.19,245) -eq 245) 'Hysteresis loses prior color'
  Assert ([HardwarePulse.LocalContrast]::Select(.8,245) -eq 20 -and [HardwarePulse.LocalContrast]::Select(.02,20) -eq 245) 'Strong contrast change delayed'
  $noise=New-Object single[] 1024;$scratch=New-Object single[] 1024
@@ -29,6 +44,8 @@ try {
  Assert ([ContrastTestComposition]::DwmFlush() -eq 0) 'Desktop composition did not synchronize after resize'
  $large=$capture.Capture([Windows.Media.Colors]::Transparent)
  Assert ($large.PixelWidth*$large.PixelHeight -le 160000 -and $large.PixelWidth -lt $capture.Bounds().Width) 'Large capture did not use a bounded grid'
+ $largeAnalysis=$capture.CaptureAnalysis($capture.Bounds(),[Windows.Media.Colors]::Transparent,6)
+ Assert ($largeAnalysis.Width -eq $large.PixelWidth -and $largeAnalysis.Height -eq $large.PixelHeight -and $largeAnalysis.Width*$largeAnalysis.Height -le 160000) 'Large analysis-only capture did not use the bounded grid'
  $minority=0.0;$region=[Windows.Int32Rect]::new(10,10,[int]($large.PixelWidth/4),[int]($large.PixelHeight/2))
  $shade=$capture.RegionColor($region,20,[ref]$minority)
  if($shade -ne 245 -or $minority -ne 0){
@@ -36,11 +53,14 @@ try {
   $stream=[IO.File]::Create((Join-Path $PWD 'vendor/contrast-failed-mask.png'));try{$encoder.Save($stream)}finally{$stream.Dispose()}
   throw "Reduced grid lost dark-background contrast: shade=$shade minority=$minority region=$region bounds=$($capture.Bounds())"
  }
- $capture.Dispose();Assert ($capture.Enable()) 'Capture could not resume after disposal';Settle
- Assert ($null -ne $capture.Capture([Windows.Media.Colors]::Transparent)) 'Capture buffers did not recover'
+ $capture.Dispose();Assert ($capture.CaptureAnalysis($capture.Bounds(),[Windows.Media.Colors]::Transparent,6).IsEmpty) 'Disposed analysis-only capture did not return an empty size';Assert ($capture.Enable()) 'Capture could not resume after disposal';Settle
+ $resumed=$capture.Capture([Windows.Media.Colors]::Transparent);Assert ($null -ne $resumed) 'Capture buffers did not recover'
+ $resumedAnalysis=$capture.CaptureAnalysis($capture.Bounds(),[Windows.Media.Colors]::Transparent,6);Assert ($resumedAnalysis.Width -eq $resumed.PixelWidth -and $resumedAnalysis.Height -eq $resumed.PixelHeight) 'Analysis-only capture did not recover after disposal'
  foreach($window in @($behind,$front)){$window.Width=300;$window.Height=150};Settle
  $small=$capture.Capture([Windows.Media.Colors]::Transparent)
  Assert ($small.PixelWidth -eq $mask.PixelWidth -and $small.PixelHeight -eq $mask.PixelHeight) 'Capture buffers did not resize back'
+ $smallAnalysis=$capture.CaptureAnalysis($capture.Bounds(),[Windows.Media.Colors]::Transparent,6)
+ Assert ($smallAnalysis.Width -eq $small.PixelWidth -and $smallAnalysis.Height -eq $small.PixelHeight -and $smallAnalysis.Width -eq $mask.PixelWidth -and $smallAnalysis.Height -eq $mask.PixelHeight) 'Analysis-only capture did not resize back'
  $capture.Dispose();Settle
  $probe=[HardwarePulse.LocalContrast]::new($behind)
  try{Assert ($probe.Enable()) 'Probe exclusion unavailable';Settle;$visible=$probe.Capture([Windows.Media.Colors]::Transparent);$visible.CopyPixels($pixels,$visible.PixelWidth*4,0);Assert ($pixels[$left] -eq $pixels[$right]) 'Disabling local contrast did not restore overlay capture'}finally{$probe.Dispose()}

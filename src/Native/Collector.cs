@@ -22,7 +22,12 @@ namespace HardwarePulse {
         static readonly WindowsNetwork network=new WindowsNetwork(id=>new Identifier("nic",id).ToString());
         static void ReadSensors(IHardware hardware,List<Sensor> target) {
             hardware.Update();
-            foreach(ISensor sensor in hardware.Sensors)target.Add(new Sensor {id=sensor.Identifier.ToString(),name=sensor.Name,hardware=hardware.Name,hardwareId=hardware.Identifier.ToString(),hardwareType=hardware.HardwareType.ToString(),type=sensor.SensorType.ToString(),value=sensor.Value.HasValue?(double?)sensor.Value.Value:null});
+            foreach(ISensor sensor in hardware.Sensors){
+                // Pulse consumes current readings and owns its session peaks. Do not
+                // retain LHM's unused day-long history, including newly activated sensors.
+                if(sensor.ValuesTimeWindow!=TimeSpan.Zero)sensor.ValuesTimeWindow=TimeSpan.Zero;
+                target.Add(new Sensor {id=sensor.Identifier.ToString(),name=sensor.Name,hardware=hardware.Name,hardwareId=hardware.Identifier.ToString(),hardwareType=hardware.HardwareType.ToString(),type=sensor.SensorType.ToString(),value=sensor.Value.HasValue?(double?)sensor.Value.Value:null});
+            }
             foreach(IHardware child in hardware.SubHardware)ReadSensors(child,target);
         }
         public static int Run(PulsePaths paths,int samples=0,string mutexName="Local\\HardwarePulseCollector",bool driverFree=false) {

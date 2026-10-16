@@ -1,7 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading;
 
 namespace HardwarePulse {
     public static class SensorProfile {
@@ -37,7 +40,12 @@ namespace HardwarePulse {
             return matcher.IsMatch(text??"");
         }
         static Sensor Find(IEnumerable<Sensor> items,string type,params string[] patterns) {
-            foreach(string p in patterns){var matches=items.Where(s=>s.type==type&&Match(s.name,p)).ToArray();if(matches.Length==1)return matches[0];}return null;
+            foreach(string p in patterns){
+                Sensor candidate=null;int count=0;
+                foreach(var sensor in items)if(sensor.type==type&&Match(sensor.name,p)){candidate=sensor;count++;}
+                if(count==1)return candidate;
+            }
+            return null;
         }
         public static Usage MakeUsage(double? used,double? total) {
             if(!used.HasValue||!total.HasValue)return null;
@@ -45,12 +53,32 @@ namespace HardwarePulse {
             if(double.IsNaN(u)||double.IsNaN(t)||double.IsInfinity(u)||double.IsInfinity(t)||u<0||t<=0||u>t)return null;
             return new Usage {used=u,total=t,percent=100*u/t};
         }
-        public static Reading Read(string path,DateTimeOffset now) {
+        static readonly Func<string,RawSnapshot> readSnapshot=ReadRaw;
+        static RawSnapshot ReadRaw(string path) {
 #if NET
-            try{return Parse(WindowsSnapshotReadings.ReadRaw(path),now);}
+            return WindowsSnapshotReadings.ReadRaw(path);
 #else
-            try{return Parse(Json.Serializer().Deserialize<RawSnapshot>(Json.Read(path)),now);}
+            return Json.Serializer().Deserialize<RawSnapshot>(Json.Read(path));
 #endif
+        }
+        public static Reading Read(string path,DateTimeOffset now) {return ReadWithRetry(path,now,readSnapshot);}
+        internal static Reading ReadWithRetry(string path,DateTimeOffset now,Func<string,RawSnapshot> read) {
+            try{
+                long started=Stopwatch.GetTimestamp();
+                for(int attempt=0;;attempt++){
+                    RawSnapshot raw;
+                    try{raw=read(path);}
+                    catch(IOException e){
+                        // A competing handle can briefly deny even shared reads. Bound the
+                        // retry on the WPF UI thread; all other errors remain unavailable.
+                        if(attempt==2||(e.HResult!=unchecked((int)0x80070020)&&e.HResult!=unchecked((int)0x80070021)))throw;
+                        Thread.Sleep(20);continue;
+                    }
+                    // Retry time must not turn a now-expired snapshot into a LIVE reading.
+                    if(attempt>0)now=now.AddSeconds((Stopwatch.GetTimestamp()-started)/(double)Stopwatch.Frequency);
+                    return Parse(raw,now);
+                }
+            }
             catch(Exception e){return new Reading {error=e.Message};}
         }
         public static Reading Parse(RawSnapshot raw,DateTimeOffset now) {
@@ -88,10 +116,15 @@ namespace HardwarePulse {
                 chosen["vcore"]=Find(board,"Voltage","^Vcore$","^CPU VCore$");
                 chosen["cpuFan"]=Find(board,"Fan","^CPU Fan$","^CPU$");
                 chosen["system"]=Find(board,"Temperature","^System$","^Motherboard$");
-                var fans=board.Where(s=>s.type=="Fan"&&(chosen["cpuFan"]==null||s.id!=chosen["cpuFan"].id)&&s.value.HasValue).OrderBy(s=>s.id,StringComparer.OrdinalIgnoreCase).ToArray();
+                var channels=board.Where(s=>s.type=="Fan"&&(chosen["cpuFan"]==null||s.id!=chosen["cpuFan"].id)).OrderBy(s=>s.id,StringComparer.OrdinalIgnoreCase).ToArray();
                 if(Match(raw.boardName,"B850M MORTAR")){
-                    chosen["bottom"]=fans.FirstOrDefault(s=>s.id=="/lpc/nct6687dr/0/fan/10");chosen["top"]=fans.FirstOrDefault(s=>s.id=="/lpc/nct6687dr/0/fan/12");
-                }else{chosen["bottom"]=fans.ElementAtOrDefault(0);chosen["top"]=fans.ElementAtOrDefault(1);}
+                    // Verified SYS1/SYS3 inputs keep their slots when one sample reports no value,
+                    // so a transient blank never removes the channel from the readings.
+                    chosen["bottom"]=channels.FirstOrDefault(s=>s.id=="/lpc/nct6687dr/0/fan/10");chosen["top"]=channels.FirstOrDefault(s=>s.id=="/lpc/nct6687dr/0/fan/12");
+                }else{
+                    var fans=channels.Where(s=>s.value.HasValue).ToArray();
+                    chosen["bottom"]=fans.ElementAtOrDefault(0);chosen["top"]=fans.ElementAtOrDefault(1);
+                }
                 result.names["Airflow"]=string.IsNullOrEmpty(raw.boardName)?"Motherboard":raw.boardName;
                 string memory=string.IsNullOrEmpty(raw.memoryName)?"Memory":raw.memoryName;
                 var modules=raw.memoryModules??new MemoryModule[0];
@@ -143,9 +176,9 @@ namespace HardwarePulse {
                 if(result.available!=null)result.available[key]=true;
                 if(!link.connected)result.values[key]=0;
                 else if(link.bitsPerSecond>0)result.values[key]=link.bitsPerSecond.Value;
-                if(kind=="Wi-Fi"&&link.connected&&link.signalPercent>=0&&link.signalPercent<=100){
-                    result.values["wifiSignal"]=link.signalPercent.Value;
+                if(kind=="Wi-Fi"&&link.connected){
                     if(result.available!=null)result.available["wifiSignal"]=true;
+                    if(link.signalPercent>=0&&link.signalPercent<=100)result.values["wifiSignal"]=link.signalPercent.Value;
                 }
             }
             result.state="LIVE";result.identity=raw.pid+":"+raw.sequence;return result;

@@ -97,13 +97,15 @@
       </Setter>
       <Setter Property="Foreground" Value="#F3F7FC" />
       <Setter Property="Background" Value="#223B536B" />
+      <Setter Property="BorderBrush" Value="#496F829A" />
+      <Setter Property="BorderThickness" Value="1" />
       <Setter Property="Padding" Value="10,5" />
       <Setter Property="Margin" Value="0,0,6,0" />
       <Setter Property="MinHeight" Value="28" />
       <Setter Property="Template">
         <Setter.Value>
           <ControlTemplate TargetType="Button">
-            <Border x:Name="Plate" Background="{TemplateBinding Background}" BorderBrush="#496F829A" BorderThickness="1" CornerRadius="15" Padding="{TemplateBinding Padding}">
+            <Border x:Name="Plate" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="15" Padding="{TemplateBinding Padding}">
               <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
             </Border>
             <ControlTemplate.Triggers>
@@ -115,6 +117,10 @@
               </Trigger>
               <Trigger Property="IsPressed" Value="True">
                 <Setter TargetName="Plate" Property="Background" Value="#8078A5B9" />
+              </Trigger>
+              <Trigger Property="IsEnabled" Value="False">
+                <Setter TargetName="Plate" Property="Opacity" Value="0.5" />
+                <Setter TargetName="Plate" Property="Background" Value="{Binding Background, RelativeSource={RelativeSource TemplatedParent}}" />
               </Trigger>
             </ControlTemplate.Triggers>
           </ControlTemplate>
@@ -210,17 +216,23 @@
           <Button x:Name="Close" Content="×" ToolTip="Close widget" Padding="10,3" Margin="0" />
         </StackPanel>
       </Grid>
-      <WrapPanel x:Name="MonitorControls" Orientation="Horizontal" Margin="0,10,0,8">
-        <Button x:Name="Live" Content="Live" />
-        <Button x:Name="Max" Content="Session Max" />
-        <Button x:Name="Details" Content="Details" ToolTip="Show full hardware details" Padding="7,5" Margin="0" />
-        <Button x:Name="DesktopQuick" Content="Desktop" ToolTip="Show Desktop View" Padding="7,5" Margin="6,0,0,0" />
-        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,0,0">
-          <ContentControl x:Name="FpsQuickIcon" Width="16" Height="16" Margin="0,0,5,0" VerticalAlignment="Center" IsHitTestVisible="False" />
-          <CheckBox x:Name="FpsQuick" Content="FPS" ToolTip="Enable Game Overlay" VerticalAlignment="Center" />
+      <WrapPanel x:Name="MonitorControls" Orientation="Horizontal" Margin="0,0,0,8">
+        <Border x:Name="ReadingModes" BorderBrush="#496F829A" BorderThickness="1" Background="#183B536B" CornerRadius="16" Padding="2" Margin="0,4,8,4">
+          <StackPanel Orientation="Horizontal">
+            <Button x:Name="Live" Content="Live" BorderThickness="0" Padding="8,4" Margin="0" MinHeight="30" />
+            <Button x:Name="Max" Content="Session Max" BorderThickness="0" Padding="8,4" Margin="0" MinHeight="30" />
+          </StackPanel>
+        </Border>
+        <Button x:Name="Details" Content="Details" ToolTip="Show full hardware details" Padding="7,5" Margin="0,4,8,4" MinHeight="34" VerticalAlignment="Center" />
+        <StackPanel x:Name="ViewControls" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,4,0,4">
+          <Button x:Name="DesktopQuick" Content="Desktop" ToolTip="Show Desktop View" Padding="7,5" Margin="0,0,10,0" MinHeight="34" />
+          <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+            <ContentControl x:Name="FpsQuickIcon" Width="16" Height="16" Margin="0,0,5,0" VerticalAlignment="Center" IsHitTestVisible="False" />
+            <CheckBox x:Name="FpsQuick" Content="FPS" ToolTip="Enable Game Overlay" VerticalAlignment="Center" Margin="0" />
+          </StackPanel>
         </StackPanel>
       </WrapPanel>
-      <TextBlock x:Name="Status" Text="Connecting to sensors…" Foreground="#ACDFD2" FontSize="10" />
+      <TextBlock x:Name="Status" Text="Connecting to sensors…" Foreground="#ACDFD2" FontSize="11" />
     </StackPanel>
     <ScrollViewer x:Name="CardScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="12,0,12,0" FocusVisualStyle="{x:Null}">
       <ScrollViewer.Template>
@@ -258,7 +270,7 @@
             </ComboBox>
             <CheckBox x:Name="StartWithWindows" Content="Start with Windows" Margin="0,0,0,10" />
             <TextBlock x:Name="StartupStatus" FontSize="11" Margin="0,0,0,10" />
-            <TextBlock Text="Version 0.6.27 · Marck Wong" FontSize="11" Foreground="#ADC1D2" Margin="0,0,0,8" />
+            <TextBlock Text="Version 0.6.57 · Marck Wong" FontSize="11" Foreground="#ADC1D2" Margin="0,0,0,8" />
             <Button x:Name="GitHub" Content="GitHub" HorizontalAlignment="Left" ToolTip="github.com/medking82/hardware-pulse" />
             <CheckBox x:Name="AutoUpdates" Content="Check for Updates Automatically" Margin="0,12,0,8" />
             <CheckBox x:Name="AutoDownload" Content="Download Updates Automatically" Margin="0,0,0,8" />
@@ -352,15 +364,40 @@
         </Expander>
         <Expander Header="AI Quota" Foreground="#F0F5FA" Margin="0,16,0,0">
           <StackPanel>
-            <TextBlock Text="Read remaining quota from existing local logins. Refreshes every 5 minutes." TextWrapping="Wrap" Margin="0,0,0,10" />
+            <TextBlock Text="Read remaining quota from existing local logins; DeepSeek uses the API key you enter below. Refreshes every 5 minutes." TextWrapping="Wrap" Margin="0,0,0,10" />
             <CheckBox x:Name="QuotaCodex" Content="Codex" Margin="0,6" />
             <CheckBox x:Name="QuotaAntigravity" Content="Antigravity" Margin="0,6" />
             <CheckBox x:Name="QuotaClaude" Content="Claude" Margin="0,6" />
+            <CheckBox x:Name="QuotaDeepSeek" Content="DeepSeek" Margin="0,6" />
+            <TextBlock Text="DeepSeek Currency" Margin="0,8,0,6" />
+            <ComboBox x:Name="DeepSeekCurrency" AutomationProperties.Name="DeepSeek Currency">
+              <ComboBoxItem Tag="CNY" Content="CNY (RMB)" /><ComboBoxItem Tag="USD" Content="USD" /><ComboBoxItem Tag="All" Content="All Currencies" />
+            </ComboBox>
+            <TextBlock Text="Applies to App and Desktop. Filters balances; does not convert currencies." TextWrapping="Wrap" FontSize="11" Opacity="0.8" Margin="0,6,0,0" />
+            <StackPanel x:Name="DeepSeekKeyTools" Margin="0,4,0,0">
+              <TextBlock Text="DeepSeek API key" Margin="0,6,0,6" />
+              <PasswordBox x:Name="DeepSeekKey" AutomationProperties.Name="DeepSeek API key" MinHeight="36" Padding="8,6" Foreground="#F0F5FA" Background="#202831" BorderBrush="#718596" />
+              <WrapPanel Margin="0,6,0,0">
+                <Button x:Name="DeepSeekKeySave" Content="Save encrypted" Margin="0,0,8,6" />
+                <Button x:Name="DeepSeekKeyRemove" Content="Remove key" Margin="0,0,0,6" />
+              </WrapPanel>
+              <TextBlock x:Name="DeepSeekKeyStatus" TextWrapping="Wrap" Margin="0,6,0,0" Opacity="0.8" AutomationProperties.LiveSetting="Polite" />
+              <TextBlock Text="The key is encrypted for the current Windows user and sent only to api.deepseek.com. Saving a key does not enable monitoring." TextWrapping="Wrap" FontSize="11" Opacity="0.8" Margin="0,6,0,0" />
+            </StackPanel>
+            <TextBlock Text="Claude quota source" Margin="0,12,0,6" />
+            <ComboBox x:Name="ClaudeQuotaSource" AutomationProperties.Name="Claude quota source"><ComboBoxItem Content="Existing login"/><ComboBoxItem Content="CLI snapshot"/></ComboBox>
+            <StackPanel x:Name="ClaudeSnapshotTools" Margin="0,8,0,0">
+              <TextBlock Text="Experimental. Requires a configured Claude Code status line. Snapshots expire after 10 minutes and do not refresh while CLI is closed." TextWrapping="Wrap" Opacity="0.8" />
+              <Button x:Name="ClaudeSnapshotCommand" Content="Copy status-line command" Margin="0,8,0,0" />
+              <Button x:Name="ClaudeSnapshotRebind" Content="Bind next CLI session" Margin="0,8,0,0" />
+              <TextBlock x:Name="ClaudeSnapshotSetupStatus" Text="The first CLI session is retained until you bind another. Existing login remains available in the source selector." TextWrapping="Wrap" Margin="0,8,0,0" Opacity="0.8" />
+            </StackPanel>
             <TextBlock Text="App quota display" Margin="0,12,0,6" />
             <ComboBox x:Name="QuotaDisplay" AutomationProperties.Name="App quota display"><ComboBoxItem Content="Essential quotas"/><ComboBoxItem Content="All available quotas"/></ComboBox>
-            <TextBlock Text="Desktop keeps its essential quotas. Drag the handles to reorder the three provider cards." FontSize="12" Opacity="0.8" Margin="0,8,0,0" />
+            <TextBlock Text="Desktop keeps its essential quotas. Drag the handles to reorder the four provider cards." FontSize="12" Opacity="0.8" Margin="0,8,0,0" />
             <Button x:Name="QuotaRefresh" Content="Refresh Quota" Margin="0,12,0,8" />
-            <TextBlock Text="Login in Codex or Claude Code first. Keep Antigravity open. Pulse never changes your login." TextWrapping="Wrap" Opacity="0.8" />
+            <TextBlock x:Name="QuotaRefreshStatus" Visibility="Collapsed" TextWrapping="Wrap" Margin="0,0,0,8" AutomationProperties.LiveSetting="Polite" />
+            <TextBlock Text="Login in Codex or Claude Code first. Antigravity can also use an installed, signed-in CLI. Pulse never changes your login." TextWrapping="Wrap" Opacity="0.8" />
           </StackPanel>
         </Expander>
         <Expander Header="Game Overlay" Foreground="#F0F5FA" Margin="0,16,0,0">

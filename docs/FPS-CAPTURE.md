@@ -53,6 +53,28 @@ The first live probe exposed PresentMon's lowercase `msBetweenPresents` header;
 column matching is now ordinal case-insensitive. The real header has a deterministic
 regression. Independent review completed; its translation finding was corrected.
 
+## Application-present capture and HDR
+
+Starting with 0.6.45, FPS capture requests `--no_track_gpu --no_track_display
+--no_track_input` with the existing `--v1_metrics` output. Pulse calculates FPS
+from application `msBetweenPresents`; it does not consume GPU/display completion
+or input-latency metrics. PresentMon 2.5.1 ignores `--no_track_display` when GPU
+tracking remains enabled, so the options must be applied together. Target identity,
+elevated collector isolation, stale-value rejection and rolling statistics are unchanged.
+
+On 2026-10-02, a read-only probe on a Windows HDR-enabled, 12-bit display compared
+two 12-second captures of the same DXGI game using the pinned PresentMon binary.
+The first full-tracking capture produced 397 frames covering only its final 3.34
+seconds, while present-only capture produced 1,441 frames covering 12.00 seconds
+at approximately 120 FPS. In reverse order, both captures produced about 12 seconds
+of frames. This demonstrates an intermittent startup delivery gap and validates
+the present-only path, not an HDR failure in every run or every driver.
+
+A synthetic child regression exercises actual launch arguments and stdout parsing
+when display/GPU completion is unavailable; a sanitized fixture also covers the
+real compact v1 schema. Exclusive-fullscreen overlay visibility and generated-frame
+counts remain outside this capture change. Raw machine traces stay out of Git.
+
 ## Overlay appearance
 
 Settings provides a background color picker and a 0–100% background opacity slider.

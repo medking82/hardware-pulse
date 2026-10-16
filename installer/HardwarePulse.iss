@@ -18,7 +18,7 @@ AppName=Hardware Pulse
 #ifdef SharedDesktop
 AppVersion={#SharedVersion}
 #else
-AppVersion=0.6.27
+AppVersion=0.6.57
 #endif
 AppPublisher=Marck Wong
 AppPublisherURL=https://github.com/medking82
@@ -43,12 +43,18 @@ OutputBaseFilename=HardwarePulse-Win7-x64-Setup
 #ifdef SharedDesktop
 OutputBaseFilename=HardwarePulse-Shared-{#SharedVersion}-Setup
 #else
-OutputBaseFilename=HardwarePulse-0.6.27-Setup
+OutputBaseFilename=HardwarePulse-0.6.57-Setup
 #endif
 #endif
 SetupIconFile=..\assets\pulse.ico
 UninstallDisplayIcon={app}\HardwarePulse.exe
+#ifdef SharedDesktop
+; Match repeated data across the two full CJK fonts and bundled runtime.
+; This affects installer compression/decompression only, not application memory.
+Compression=lzma2/ultra64
+#else
 Compression=lzma2
+#endif
 SolidCompression=yes
 WizardStyle=modern
 CloseApplications=yes
@@ -121,6 +127,12 @@ Filename: "{#StartupExecutable}"; Parameters: "--remove-startup"; Flags: runhidd
 
 [Code]
 #include "InstallOutcome.iss"
+#include "StopSignal.iss"
+
+procedure DeinitializeSetup();
+begin
+  if not IsPulseInstallReady() then RestoreSetupStop();
+end;
 
 function LocalText(English, Simplified, Traditional: String): String;
 begin
@@ -196,8 +208,7 @@ begin
       RaiseException(LocalText('Invalid setup account identifier.','安装账户标识无效。','安裝帳戶識別碼無效。'));
     Runtime := ExpandConstant('{commonappdata}\HardwarePulse\') + Sid + '\runtime';
     if DirExists(Runtime) then begin
-      if not SaveStringToFile(Runtime + '\STOP', 'Installer preparing upgrade', False) then
-        RaiseException(LocalText('Cannot request Hardware Pulse shutdown.','无法请求 Hardware Pulse 退出。','無法要求 Hardware Pulse 結束。'));
+      WriteSetupStop(Runtime + '\STOP', 'Hardware Pulse setup ' + IntToStr(GetCurrentProcessId()) + ' ' + GetDateTimeString('yyyymmddhhnnss', '-', ':'));
       Log('Requested cooperative Hardware Pulse shutdown.');
     end;
     for Attempt := 1 to 40 do begin
@@ -240,7 +251,7 @@ function PrepareToInstall(var NeedsRestart: Boolean): String;
 var Code: Integer;
 begin
   Result := PrepareExistingCollector();
-  if Result <> '' then Exit;
+  if Result <> '' then begin RestoreSetupStop(); Exit; end;
   try
 #ifndef Win7Compatibility
     if not PawnIOPresent() then begin
@@ -255,6 +266,7 @@ begin
   except
     Result := LocalText('Hardware Pulse prerequisite setup failed: ','Hardware Pulse 依赖组件设置失败：','Hardware Pulse 相依元件設定失敗：') + GetExceptionMessage + LocalText(' No application files were replaced.',' 尚未替换应用文件。',' 尚未取代應用程式檔案。');
   end;
+  if Result <> '' then RestoreSetupStop();
 end;
 
 procedure CurStepChanged(CurStep: TSetupStep);

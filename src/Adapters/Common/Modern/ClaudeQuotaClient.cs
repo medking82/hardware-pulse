@@ -29,7 +29,9 @@ namespace HardwarePulse {
                 cancel.ThrowIfCancellationRequested();
                 return QuotaDecoder.Decode("Claude",body,DateTimeOffset.UtcNow);
             }catch(OperationCanceledException){throw;}
-            catch(QuotaFailure failure){return Unavailable(failure.Status);}
+            catch(QuotaFailure failure){
+                var reading=Unavailable(failure.Status);reading.RetryAt=failure.RetryAt;reading.HttpStatus=failure.HttpStatus;reading.FailureKind=failure.FailureKind;return reading;
+            }
             catch {cancel.ThrowIfCancellationRequested();return Unavailable("Quota unavailable");}
         }
         static QuotaReading Unavailable(string status)=>new QuotaReading{Provider="Claude",Status=status,Observed=DateTimeOffset.UtcNow};
@@ -41,7 +43,10 @@ namespace HardwarePulse {
             request.Headers.UserAgent.ParseAdd("HardwarePulse/"+typeof(ClaudeQuotaClient).Assembly.GetName().Version.ToString(3));
             using var response=await client.SendAsync(request,HttpCompletionOption.ResponseHeadersRead,cancel).ConfigureAwait(false);
             int status=(int)response.StatusCode;
-            if(status<200||status>=300)throw new QuotaFailure(status==401||status==403?"Login required":status==429?"Refresh rate limited":"Quota unavailable");
+            if(status<200||status>=300){
+                string retryAfter=response.Headers.TryGetValues("Retry-After",out var values)?string.Join(",",values):null;
+                throw new QuotaFailure(status==401||status==403?"Login required":status==429?"Refresh rate limited":"Quota unavailable",status==429?QuotaFailure.ParseRetryAfter(retryAfter,DateTimeOffset.UtcNow):null,status,"HTTP response");
+            }
             if(response.Content.Headers.ContentLength>1048576)throw new QuotaFailure("Quota unavailable");
             using var stream=await response.Content.ReadAsStreamAsync(cancel).ConfigureAwait(false);
             return await QuotaJson.ReadGraph(stream,cancel).ConfigureAwait(false);

@@ -48,13 +48,19 @@ namespace HardwarePulse {
             this.paths=paths;this.isolated=isolated;Directory.CreateDirectory(paths.State);
             readings=new ReadingSession(now=>SensorProfile.Read(paths.Snapshot,now));
             settings=new Settings(Path.Combine(paths.State,"widget-settings.json"));language=new Languages(Path.Combine(paths.Root,"Languages.txt"));language.Preference=settings.Text("language","auto");
+            claudeSnapshotSource=settings.Flag("claudeSnapshotSource",false);quotas=new QuotaSession(ReadQuota);
+            if(!isolated){
+                var quotaStore=new QuotaScheduleStore(paths.State);
+                quotas.RestoreSchedules(quotaStore.Load());quotas.ScheduleChanged+=quotaStore.Save;
+                quotas.AttemptCompleted+=new QuotaDiagnosticLog(paths.State).Record;
+            }
             using(var stream=File.OpenRead(Path.Combine(paths.Root,"Panel.xaml")))Window=(Window)XamlReader.Load(stream);
             Catalog(Window);BuildSettingsLayout();ReplaceCardPanel("Cards");ReplaceCardPanel("QuotaCards");cards=Control<StackPanel>("Cards");
             var area=SystemParameters.WorkArea;
             Window.Width=settings.Number("width",280,240,Math.Max(240,area.Width));Window.Height=settings.Number("height",Math.Max(340,Math.Min(650,Math.Floor(area.Height*.9))),340,Math.Max(340,area.Height));
             if(settings.Data.ContainsKey("left")){Window.WindowStartupLocation=WindowStartupLocation.Manual;Window.Left=settings.Number("left",area.Left,area.Left,Math.Max(area.Left,area.Right-Window.Width));Window.Top=settings.Number("top",area.Top,area.Top,Math.Max(area.Top,area.Bottom-Window.Height));}
             Window.FontSize=settings.Number("fontSize",settings.Flag("large")?14:12,10,16);Window.Topmost=settings.Flag("pin");locked=settings.Flag("positionLocked");
-            Control<CheckBox>("Pin").IsChecked=Window.Topmost;Control<CheckBox>("Solid").IsChecked=settings.Flag("solid");Control<Slider>("OpacitySlider").Value=settings.Number("opacity",30,0,100);Control<Slider>("FontSizeSlider").Value=Window.FontSize;
+            Control<CheckBox>("Pin").IsChecked=Window.Topmost;Control<CheckBox>("Solid").IsChecked=settings.Flag("solid");Control<Slider>("OpacitySlider").Value=settings.Number("opacity",85,0,100);Control<Slider>("FontSizeSlider").Value=Window.FontSize;
             Control<ContentControl>("BrandIcon").Content=Icon("live",22,"#A5E7D5");Window.Icon=BitmapFrame.Create(new Uri(Path.Combine(paths.Root,"assets","pulse.ico")));
             BuildCards();WireSettings();WireReadingColors();WireNetwork();WireQuota();BuildTray();WireDesktop();WireOverlay();WireUpdater();Click("ExportDiagnostics",ExportDiagnostics);ThemeCatalog();Localize();
             Window.SourceInitialized+=delegate{WindowSnap.Attach(Window);ApplyLock();ApplyMaterial();};
@@ -62,7 +68,7 @@ namespace HardwarePulse {
             Window.SizeChanged+=delegate{ApplyDensity();QueueSave();};Window.LocationChanged+=delegate{QueueSave();};
             Window.Closing+=delegate(object sender,System.ComponentModel.CancelEventArgs e){Save();if(!exit){e.Cancel=true;Window.Hide();}};
             Window.Closed+=delegate{Dispose();};
-            Window.IsVisibleChanged+=delegate{if(loaded&&Window.IsVisible)UpdatePanel();};
+            Window.IsVisibleChanged+=delegate{if(Window.IsVisible&&loaded)UpdatePanel();};
             Window.StateChanged+=delegate{if(loaded&&Window.WindowState!=WindowState.Minimized)UpdatePanel();};
             saveTimer.Interval=TimeSpan.FromMilliseconds(750);saveTimer.Tick+=delegate{saveTimer.Stop();Save();};
             poll.Interval=TimeSpan.FromSeconds(2);poll.Tick+=delegate{UpdatePanel();};poll.Start();
@@ -72,10 +78,10 @@ namespace HardwarePulse {
         void StartCollector(){try{if(File.Exists(paths.Stop)){try{File.Delete(paths.Stop);}catch{ignoredStop=File.GetLastWriteTimeUtc(paths.Stop).Ticks;throw;}}if(SensorProfile.Read(paths.Snapshot,DateTimeOffset.Now).state!="LIVE")using(var store=new SchedulerStore())new Startup(store,paths.Exe,WindowsIdentity.GetCurrent().User.Value).StartCollector();}catch{collectorFailed=true;}}
         public void UpdatePanel(){
             if(!isolated&&File.Exists(paths.Stop)&&File.GetLastWriteTimeUtc(paths.Stop).Ticks!=ignoredStop){Exit();return;}
-            readings.Poll(DateTimeOffset.Now);if(!isolated)quotas.Tick(DateTimeOffset.UtcNow);UpdateDesktop();
+            readings.Poll(DateTimeOffset.Now);if(!isolated)TickQuotas(DateTimeOffset.UtcNow);RenderQuotaRefreshFeedback(DateTimeOffset.UtcNow);UpdateDesktop();
             // Keep collection, peaks, stale-state detection and STOP handling active
-            // while the tray/minimized window has no visible cards to render.
-            if(Window.IsVisible&&Window.WindowState!=WindowState.Minimized)RenderPanel();
+            // while Settings or the tray/minimized window has no visible cards to render.
+            if(Window.IsVisible&&Window.WindowState!=WindowState.Minimized&&!settingsVisible)RenderPanel();
             if(loaded)Json.WriteAtomic(Path.Combine(paths.State,"view-status.json"),new {updated=DateTimeOffset.Now.ToString("o"),state=readings.Latest.state,mode=maximum?"max":"live",sensors=readings.Latest.values.Count});
         }
         void RenderPanel(){
@@ -84,7 +90,7 @@ namespace HardwarePulse {
             if(maximum)Control<TextBlock>("Status").Text+=" · "+language.T("Session peaks");
             Control<TextBlock>("Status").Foreground=Brush(light?(readings.Latest.state=="LIVE"?"#12644D":"#804000"):(readings.Latest.state=="LIVE"?"#A5E7D5":"#E7C5A4"));
             foreach(var view in views.Values)UpdateCard(view);RenderQuota();
-            Control<Button>("Live").Background=Brush(maximum?"#00000000":"#607898A8");Control<Button>("Max").Background=Brush(maximum?"#607898A8":"#00000000");ApplyDensity();
+            UpdateMonitorControls();ApplyDensity(false);
         }
         void QueueSave(){if(!loaded||disposed)return;saveTimer.Stop();saveTimer.Start();}
         public void Save(){if(!loaded)return;var bounds=Window.RestoreBounds;
@@ -97,7 +103,7 @@ namespace HardwarePulse {
             bool filled=node.Attributes["fill"]!=null&&node.Attributes["fill"].Value=="currentColor";
             var path=new System.Windows.Shapes.Path {Data=Geometry.Parse(node.Attributes["d"].Value),Fill=filled?Brush(color):null,Stroke=filled?null:Brush(color),StrokeThickness=1.7,StrokeStartLineCap=PenLineCap.Round,StrokeEndLineCap=PenLineCap.Round,StrokeLineJoin=PenLineJoin.Round};var canvas=new Canvas {Width=24,Height=24};canvas.Children.Add(path);return new Viewbox {Width=size,Height=size,Child=canvas,IsHitTestVisible=false};
         }
-        void Localize(){UpdateDesktopLabels();foreach(var entry in localized)entry.Item2.SetValue(entry.Item1,language.T(entry.Item3),null);trayShow.Text=language.T("Show Pulse");traySettings.Text=language.T("Settings");trayPin.Text=language.T("Always on Top");trayLock.Text=language.T("Lock Position and Size");trayExit.Text=language.T("Exit");foreach(var view in views.Values)UpdateCard(view);if(loaded)RenderPanel();RenderUpdate();var games=Control<ComboBox>("GamePicker");if(games.Items.Count>0)((ComboBoxItem)games.Items[0]).Content=language.T("Auto (foreground app)");SyncFpsSwitches();ApplyDensity();}
+        void Localize(){LocalizeDeepSeekKeyStatus();UpdateDesktopLabels();foreach(var entry in localized)entry.Item2.SetValue(entry.Item1,language.Label(entry.Item3),null);trayShow.Text=language.Label("Show Pulse");traySettings.Text=language.Label("Settings");trayPin.Text=language.Label("Always on Top");trayLock.Text=language.Label("Lock Position and Size");trayExit.Text=language.Label("Exit");foreach(var view in views.Values)UpdateCard(view);if(loaded)RenderPanel();RenderUpdate();var games=Control<ComboBox>("GamePicker");if(games.Items.Count>0)((ComboBoxItem)games.Items[0]).Content=language.Label("Auto (foreground app)");SyncFpsSwitches();ApplyDensity();}
         void BuildTray(){tray=new Forms.NotifyIcon {Icon=new System.Drawing.Icon(Path.Combine(paths.Root,"assets","pulse.ico")),Text="Hardware Pulse",Visible=!isolated};var menu=new Forms.ContextMenuStrip();trayShow=(Forms.ToolStripMenuItem)menu.Items.Add("Show Pulse",null,delegate{ShowHome();});traySettings=(Forms.ToolStripMenuItem)menu.Items.Add("Settings",null,delegate{Show();ShowSettings(true);});menu.Items.Add(new Forms.ToolStripSeparator());trayPin=(Forms.ToolStripMenuItem)menu.Items.Add("Always on Top",null,delegate{Window.Topmost=!Window.Topmost;Control<CheckBox>("Pin").IsChecked=Window.Topmost;Save();});trayLock=(Forms.ToolStripMenuItem)menu.Items.Add("Lock Position and Size",null,delegate{locked=!locked;ApplyLock();Save();});menu.Items.Add(new Forms.ToolStripSeparator());BuildDesktopTray(menu);menu.Items.Add(new Forms.ToolStripSeparator());trayExit=(Forms.ToolStripMenuItem)menu.Items.Add("Exit",null,delegate{Exit();});menu.Opening+=delegate{trayPin.Checked=Window.Topmost;trayLock.Checked=locked;};tray.DoubleClick+=delegate{ShowHome();};tray.ContextMenuStrip=menu;}
         public void ShowHome(){ShowSettings(false);Show();}
         public void Show(){Window.Show();Window.WindowState=WindowState.Normal;Window.Activate();}

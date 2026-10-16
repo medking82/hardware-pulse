@@ -34,6 +34,28 @@ internal static class NativeTests {
         Console.WriteLine("PASS diagnostic report: device/fan evidence, missing/invalid snapshots and private metadata exclusion");
     }
     static void Pump(){var frame=new DispatcherFrame();Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle,new Action(()=>frame.Continue=false));Dispatcher.PushFrame(frame);}
+    static void WifiPreferenceChecks(Shell shell){
+        var settings=Field<Settings>(shell,"settings");object originalOrder,originalVisible;
+        bool hadOrder=settings.Data.TryGetValue("desktopOrder",out originalOrder),hadVisible=settings.Data.TryGetValue("desktopVisible",out originalVisible);
+        var orderMethod=typeof(Shell).GetMethod("DesktopOrderKeys",BindingFlags.Instance|BindingFlags.NonPublic);
+        var enabledMethod=typeof(Shell).GetMethod("DesktopMetricEnabled",BindingFlags.Instance|BindingFlags.NonPublic);
+        try{
+            var legacyOrder=new[]{"netSignal","CPU","GPU"};settings.Data["desktopOrder"]=legacyOrder;
+            var order=(string[])orderMethod.Invoke(shell,null);
+            Assert(order[0]=="wifiSignal"&&order.Count(key=>key=="wifiSignal")==1&&!order.Contains("netSignal"),"Legacy signal order must map to one canonical option");
+            Assert(object.ReferenceEquals(settings.Data["desktopOrder"],legacyOrder),"Reading legacy signal order must not rewrite saved settings");
+            settings.Data["desktopOrder"]=new[]{"netSignal","CPU","GPU","wifiSignal"};order=(string[])orderMethod.Invoke(shell,null);
+            Assert(Array.IndexOf(order,"CPU")<Array.IndexOf(order,"GPU")&&Array.IndexOf(order,"GPU")<Array.IndexOf(order,"wifiSignal"),"Explicit Wi-Fi Signal position must take precedence over its legacy alias");
+            var visible=new Dictionary<string,object>{{"netSignal",false}};settings.Data["desktopVisible"]=visible;
+            Assert(!(bool)enabledMethod.Invoke(shell,new object[]{"wifiSignal"}),"Legacy signal visibility preference was lost");
+            visible["wifiSignal"]=true;Assert((bool)enabledMethod.Invoke(shell,new object[]{"wifiSignal"}),"Explicit signal visibility must take precedence over its legacy alias");
+            visible["wifiSignal"]=false;visible["netSignal"]=true;Assert(!(bool)enabledMethod.Invoke(shell,new object[]{"netSignal"}),"Legacy metric output bypassed canonical visibility");
+        }finally{
+            if(hadOrder)settings.Data["desktopOrder"]=originalOrder;else settings.Data.Remove("desktopOrder");
+            if(hadVisible)settings.Data["desktopVisible"]=originalVisible;else settings.Data.Remove("desktopVisible");
+        }
+        Console.WriteLine("PASS Wi-Fi Signal preferences: one option, legacy order/visibility and explicit canonical precedence");
+    }
     static RawSnapshot Snapshot(){return new RawSnapshot {schema=2,pid=1,sequence=1,time=DateTimeOffset.Now.ToString("o"),boardName="Demo board",memoryName="32 GB DDR4-3200 configured",ramUsage=new RamUsage {usedGb=12,totalGb=32},sensors=new[]{
         new Sensor {id="/cpu/temperature/0",hardwareId="/cpu",hardwareType="Cpu",hardware="Demo CPU",name="CPU Package",type="Temperature",value=59},
         new Sensor {id="/cpu/load/0",hardwareId="/cpu",hardwareType="Cpu",hardware="Demo CPU",name="CPU Total",type="Load",value=15},
@@ -50,15 +72,81 @@ internal static class NativeTests {
     static void Toggle(Shell shell,string name,bool value){var control=shell.Control<CheckBox>(name);control.IsChecked=value;control.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Pump();}
     static T Field<T>(Shell shell,string name){return (T)typeof(Shell).GetField(name,BindingFlags.Instance|BindingFlags.NonPublic).GetValue(shell);}
     static void Settle(){var until=DateTime.UtcNow.AddMilliseconds(250);while(DateTime.UtcNow<until){Pump();System.Threading.Thread.Sleep(10);}}
+    static Border LayoutFixtureCard(double height){return new Border{Child=new Border{Height=height}};}
+    static void ArrangeFixture(ResponsivePanel panel,double width){
+        // Disconnected fixtures do not receive the window's normal layout invalidation pass.
+        foreach(var element in Tree(panel).OfType<FrameworkElement>())element.InvalidateMeasure();
+        panel.Measure(new Size(width,double.PositiveInfinity));panel.Arrange(new Rect(new Point(),panel.DesiredSize));
+    }
+    static void AssertEqualRows(ResponsivePanel panel,string context){
+        Assert(panel.EqualRowHeight,context+" did not opt in to equal row heights");
+        var visible=panel.Children.Cast<FrameworkElement>().Where(c=>c.Visibility==Visibility.Visible).ToArray();
+        Assert(visible.Length>0,context+" equal-height check has no visible entries");
+        for(int start=0;start<visible.Length;start+=panel.Columns){
+            var row=visible.Skip(start).Take(panel.Columns).ToArray();double height=row[0].ActualHeight;
+            Assert(height>0&&row.All(c=>Math.Abs(c.ActualHeight-height)<1),context+" row has unequal actual heights");
+        }
+    }
+    static void ResponsivePanelChecks(){
+        var panel=new ResponsivePanel{RequestedColumns=2};
+        var small=LayoutFixtureCard(20);var tall=LayoutFixtureCard(60);var hidden=LayoutFixtureCard(1000);hidden.Visibility=Visibility.Collapsed;
+        var medium=LayoutFixtureCard(40);var last=LayoutFixtureCard(30);
+        foreach(var child in new[]{small,tall,hidden,medium,last})panel.Children.Add(child);
+        ArrangeFixture(panel,660);
+        Assert(!panel.EqualRowHeight&&small.ActualHeight==20&&tall.ActualHeight==60,"Default panel must preserve natural child heights");
+        double measured=panel.DesiredSize.Height;
+        panel.EqualRowHeight=true;ArrangeFixture(panel,660);AssertEqualRows(panel,"Opt-in fixture");
+        Assert(small.ActualHeight==60&&medium.ActualHeight==40&&Math.Abs(panel.DesiredSize.Height-measured)<.1,"Stretch must use each row maximum without changing measurement");
+        Assert(System.Windows.Controls.Primitives.LayoutInformation.GetLayoutSlot(medium).Y==70,"Collapsed child must not consume a row or inflate its maximum");
+        ((Border)tall.Child).Height=10;ArrangeFixture(panel,660);AssertEqualRows(panel,"Shrunk fixture");
+        Assert(small.ActualHeight==20&&tall.ActualHeight==20&&panel.DesiredSize.Height==70,"Content shrink must remove the old row maximum: small="+small.ActualHeight+" tall="+tall.ActualHeight+" panel="+panel.DesiredSize.Height+" content="+((Border)tall.Child).DesiredSize.Height+" outer="+tall.DesiredSize.Height);
+        panel.Children.Remove(medium);panel.Children.Insert(0,medium);ArrangeFixture(panel,660);AssertEqualRows(panel,"Reordered fixture");
+        Assert(medium.ActualHeight==40&&small.ActualHeight==40&&tall.ActualHeight==30&&last.ActualHeight==30,"Reorder must recompute maxima from the new visible row membership");
+        panel.IndependentColumns=true;panel.EqualRowHeight=false;ArrangeFixture(panel,660);
+        var slots=panel.Children.Cast<FrameworkElement>().Where(c=>c.Visibility==Visibility.Visible).Select(System.Windows.Controls.Primitives.LayoutInformation.GetLayoutSlot).ToArray();
+        measured=panel.DesiredSize.Height;panel.EqualRowHeight=true;ArrangeFixture(panel,660);
+        Assert(panel.Children.Cast<FrameworkElement>().Where(c=>c.Visibility==Visibility.Visible).Select(System.Windows.Controls.Primitives.LayoutInformation.GetLayoutSlot).SequenceEqual(slots)&&panel.DesiredSize.Height==measured,"Independent columns must ignore row stretching");
+        Assert(medium.ActualHeight==40&&small.ActualHeight==20&&tall.ActualHeight==10&&last.ActualHeight==30,"Independent columns changed natural heights");
+        panel.IndependentColumns=false;panel.RequestedColumns=1;ArrangeFixture(panel,310);AssertEqualRows(panel,"Single-column fixture");
+        Assert(medium.ActualHeight==40&&small.ActualHeight==20&&tall.ActualHeight==10&&last.ActualHeight==30,"Single-column stretching must preserve natural heights");
+        Console.WriteLine("PASS responsive row heights: opt-in/default, hidden entries, shrinking content, reorder, independent and single-column compatibility");
+    }
     static void LayoutChecks(Shell shell,string state){
         var panel=shell.Control<ResponsivePanel>("Cards");double width=shell.Window.Width,height=shell.Window.Height;
+        shell.Window.Width=310;shell.Window.Height=340;Pump();shell.UpdatePanel();Settle();
+        var densityCard=panel.Children.Cast<Border>().First(c=>c.Visibility==Visibility.Visible);
+        int paddingChanges=0;
+        var paddingProperty=System.ComponentModel.DependencyPropertyDescriptor.FromProperty(Border.PaddingProperty,typeof(Border));
+        EventHandler paddingChanged=delegate{paddingChanges++;};paddingProperty.AddValueChanged(densityCard,paddingChanged);
+        try{
+            for(int i=0;i<3;i++){shell.UpdatePanel();Pump();}
+            Assert(paddingChanges==0,"Unchanged polling reran card density layout");
+        }finally{paddingProperty.RemoveValueChanged(densityCard,paddingChanged);}
+        var memoryCard=panel.Children.Cast<Border>().Single(c=>(string)c.Tag=="Memory");
+        string snapshotPath=Field<PulsePaths>(shell,"paths").Snapshot;
+        var transition=Snapshot();transition.sequence=700;transition.ramUsage=null;transition.sensors=transition.sensors.Concat(new[]{new Sensor {id="/memory/dimm/0/temperature/0",hardwareId="/memory/dimm/0",hardwareType="Memory",hardware="Demo Memory",name="DIMM #1",type="Temperature",value=42}}).ToArray();
+        Json.WriteAtomic(snapshotPath,transition);shell.UpdatePanel();Pump();Settle();
+        Assert(Tree(memoryCard).OfType<TextBlock>().Any(t=>t.IsVisible&&t.Text=="42.0 °C"),"Memory pair did not appear after capability transition");
+        Assert(Tree(memoryCard).OfType<TextBlock>().Any(t=>!t.IsVisible&&t.Text.StartsWith("RAM ",StringComparison.Ordinal)),"Memory usage row did not hide after usage transition");
+        Json.WriteAtomic(snapshotPath,Snapshot());shell.UpdatePanel();Pump();Settle();
+        Assert(!Tree(memoryCard).OfType<TextBlock>().Any(t=>t.IsVisible&&t.Text=="42.0 °C"),"Memory pair remained visible after capability removal");
+        Assert(Tree(memoryCard).OfType<TextBlock>().Any(t=>t.IsVisible&&t.Text.StartsWith("RAM ",StringComparison.Ordinal)),"Memory usage row did not recover after usage transition");
         foreach(int columns in new[]{1,2,3}){
             shell.Window.Width=columns==1?310:columns==2?660:1000;shell.Window.Height=820;Pump();shell.UpdatePanel();Settle();
             Assert(panel.Columns==columns,"Responsive columns do not follow window width: expected="+columns+" actual="+panel.Columns+" window="+shell.Window.ActualWidth+" panel="+panel.ActualWidth+" minimum="+panel.MinimumColumnWidth);
             var visible=panel.Children.Cast<Border>().Where(c=>c.Visibility==Visibility.Visible).ToArray();
             Assert(visible.All(c=>c.ActualWidth<=panel.CellWidth+.1),"Card exceeds its column");
             if(columns>1)Assert(Math.Abs(visible[0].TranslatePoint(new Point(),panel).Y-visible[1].TranslatePoint(new Point(),panel).Y)<1,"Cards are not side by side");
+            AssertEqualRows(panel,"Cards at "+columns+" columns");
             Capture(shell,Path.Combine(state,"layout-"+columns+"-columns.png"));
+            // Check the actual quota panel with bounded synthetic content, without enabling provider reads.
+            var quotaPanel=shell.Control<ResponsivePanel>("QuotaCards");var quotaChildren=quotaPanel.Children.Cast<UIElement>().ToArray();
+            try{
+                quotaPanel.Children.Clear();foreach(double contentHeight in new[]{25d,65d,40d,35d})quotaPanel.Children.Add(LayoutFixtureCard(contentHeight));
+                shell.Window.UpdateLayout();Pump();
+                Assert(quotaPanel.Columns==columns,"QuotaCards responsive columns differ from hardware cards");
+                AssertEqualRows(quotaPanel,"QuotaCards at "+columns+" columns");
+            }finally{quotaPanel.Children.Clear();foreach(var child in quotaChildren)quotaPanel.Children.Add(child);shell.Window.UpdateLayout();}
         }
         Toggle(shell,"FpsQuick",true);Assert(shell.Control<CheckBox>("OverlayEnabled").IsChecked==true&&shell.Control<CheckBox>("OverlayFps").IsChecked==true,"Home FPS did not enable existing controller");
         var trayFps=Field<System.Windows.Forms.ToolStripMenuItem>(shell,"trayFps");Assert(trayFps.Checked&&trayFps.Image!=null,"Tray FPS state or SVG image missing");trayFps.PerformClick();Pump();Assert(shell.Control<CheckBox>("FpsQuick").IsChecked==false&&shell.Control<CheckBox>("OverlayEnabled").IsChecked==false,"Tray FPS did not synchronize");
@@ -117,6 +205,7 @@ internal static class NativeTests {
         var encoder=new PngBitmapEncoder();encoder.Frames.Add(BitmapFrame.Create(composite));using(var file=File.Create(path))encoder.Save(file);
     }
     static void SharedFeatures(){
+        ResponsivePanelChecks();
         NativeFpsTests.Run();NativeQuotaTests.Run();
         using(var metrics=new FrameCapture()){
             metrics.Reset(42);for(int i=0;i<99;i++)metrics.Add("main",10,10);metrics.Add("main",100,10);var result=metrics.ReadAt(10);
@@ -149,6 +238,17 @@ internal static class NativeTests {
             Json.WriteAtomic(Path.Combine(state,"background-ready.json"),new{leftPixels=origin.X,topPixels=origin.Y,widthPixels=end.X-origin.X,heightPixels=end.Y-origin.Y});
             motion.Start();app.Run();return 0;
         }finally{motion.Stop();window.Close();}
+    }
+    static void AssertToolbar(Shell shell){
+        var toolbar=shell.Control<FrameworkElement>("MonitorControls");var bounds=new System.Collections.Generic.List<Rect>();
+        foreach(string name in new[]{"Live","Max","Details","DesktopQuick","FpsQuick"}){
+            var control=shell.Control<FrameworkElement>(name);var point=control.TranslatePoint(new Point(),toolbar);var rect=new Rect(point,new Size(control.ActualWidth,control.ActualHeight));
+            Assert(control.IsVisible&&rect.Width>5&&rect.Height>5,"Toolbar control has no visible area: "+name);
+            Assert(rect.Left>=-1&&rect.Top>=-1&&rect.Right<=toolbar.ActualWidth+1&&rect.Bottom<=toolbar.ActualHeight+1,"Toolbar control clips: "+name+" width="+shell.Window.Width+" font="+shell.Window.FontSize);
+            Assert(!bounds.Any(previous=>{var intersection=Rect.Intersect(previous,rect);return !intersection.IsEmpty&&intersection.Width>.1&&intersection.Height>.1;}),"Toolbar controls overlap: "+name);bounds.Add(rect);
+        }
+        Assert(Math.Abs((bounds[0].Top+bounds[0].Bottom)-(bounds[1].Top+bounds[1].Bottom))<2,"Live and Session Max separated");
+        Assert(Math.Abs((bounds[3].Top+bounds[3].Bottom)-(bounds[4].Top+bounds[4].Bottom))<4,"FPS separated from Desktop action group");
     }
     [STAThread] static int Main(string[] args){
         if(args.Length==4&&args[0]=="--benchmark-backdrop")return BenchmarkBackdrop(args[1],int.Parse(args[2]),int.Parse(args[3]));
@@ -204,13 +304,13 @@ internal static class NativeTests {
                 using(var shell=new Shell(paths,true)){
                     shell.Window.ShowInTaskbar=false;shell.Window.ShowActivated=false;shell.Window.Width=310;shell.Window.Height=690;shell.Show();Pump();
                     Field<DispatcherTimer>(shell,"poll").Stop();
-                    foreach(bool hidden in new[]{false,true}){
-                        if(hidden)shell.Window.Hide();
+                    foreach(string scene in new[]{"monitor","settings","tray"}){
+                        bool hidden=scene=="tray";shell.ShowSettings(scene=="settings");if(hidden)shell.Window.Hide();
                         for(int i=0;i<20;i++){shell.UpdatePanel();Pump();}
                         long allocated=AppDomain.CurrentDomain.MonitoringTotalAllocatedMemorySize;var process=Process.GetCurrentProcess();var cpu=process.TotalProcessorTime;var elapsed=Stopwatch.StartNew();
                         for(int i=0;i<300;i++){var snapshot=Snapshot();snapshot.sequence=i+2;snapshot.sensors[0].value=50+i%40;Json.WriteAtomic(paths.Snapshot,snapshot);shell.UpdatePanel();Pump();}
                         elapsed.Stop();process.Refresh();
-                        Console.WriteLine(Json.Serializer().Serialize(new {hidden=hidden,updates=300,allocatedBytes=AppDomain.CurrentDomain.MonitoringTotalAllocatedMemorySize-allocated,cpuMs=(process.TotalProcessorTime-cpu).TotalMilliseconds,elapsedMs=elapsed.Elapsed.TotalMilliseconds,workingSet=process.WorkingSet64,privateBytes=process.PrivateMemorySize64}));
+                        Console.WriteLine(Json.Serializer().Serialize(new {scene=scene,hidden=hidden,updates=300,allocatedBytes=AppDomain.CurrentDomain.MonitoringTotalAllocatedMemorySize-allocated,cpuMs=(process.TotalProcessorTime-cpu).TotalMilliseconds,elapsedMs=elapsed.Elapsed.TotalMilliseconds,workingSet=process.WorkingSet64,privateBytes=process.PrivateMemorySize64}));
                     }
                     shell.Show();Pump();Assert(shell.Control<TextBlock>("Status").Text.Contains("Live"),"Restore must display fresh readings");shell.Exit();
                 }app.Shutdown();return 0;
@@ -308,6 +408,22 @@ internal static class NativeTests {
             Json.WriteAtomic(paths.Snapshot,Snapshot());
             using(var shell=new Shell(paths,true)){
                 shell.Window.ShowInTaskbar=false;shell.Window.ShowActivated=false;shell.Show();Pump();shell.UpdatePanel();Pump();
+                foreach(string retired in new[]{"ResourcesTab","ResourcesPage","MainTabs"})Assert(shell.Window.FindName(retired)==null,"Retired cleanup UI remains: "+retired);
+                Assert(shell.Control<FrameworkElement>("MonitorControls").IsVisible&&shell.Control<ScrollViewer>("CardScroll").IsVisible,"Read-only monitor must remain the home view");
+                shell.ShowSettings(true);Pump();Assert(!shell.Control<ScrollViewer>("CardScroll").IsVisible&&shell.Control<ScrollViewer>("SettingsPage").IsVisible,"Settings must replace monitor content");
+                var categoryTabs=Field<System.Collections.Generic.List<Button>>(shell,"settingsTabs");
+                foreach(string category in new[]{"Desktop","General"}){
+                    var selectedTab=categoryTabs.Single(b=>(string)b.Tag==category);selectedTab.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Pump();
+                    foreach(var tab in categoryTabs){tab.ApplyTemplate();var plate=(Border)tab.Template.FindName("Plate",tab);Assert(plate.BorderThickness==tab.BorderThickness,"Settings selected border is ignored by the rendered template: "+tab.Tag);}
+                }
+                var exportButton=shell.Control<Button>("ExportDiagnostics");exportButton.ApplyTemplate();var exportPlate=(Border)exportButton.Template.FindName("Plate",exportButton);
+                exportButton.IsEnabled=false;Pump();Assert(exportPlate.Opacity<1,"Disabled button has no rendered feedback");
+                exportButton.IsEnabled=true;Pump();Assert(exportPlate.Opacity==1,"Enabled button did not restore its rendered state");
+                Click(shell,"Back");Pump();Assert(shell.Control<ScrollViewer>("CardScroll").IsVisible&&shell.Control<FrameworkElement>("MonitorControls").IsVisible&&!shell.Control<ScrollViewer>("SettingsPage").IsVisible,"Back must restore monitor without retired navigation");
+                Assert(shell.Control<Slider>("OpacitySlider").Value==85,"Missing opacity preference must use the readable glass default");
+                var defaultBackground=((SolidColorBrush)shell.Window.Background).Color;
+                Assert(defaultBackground.R==0x20&&defaultBackground.G==0x28&&defaultBackground.B==0x31&&shell.Window.Opacity==1,"Readable default must deepen the surface without fading content");
+                Capture(shell,Path.Combine(state,"readable-default.png"));
                 Assert(shell.Control<TextBlock>("Status").Text.Contains("7 "),"Native mapped sensor count");
                 NativeQuotaTests.RunUI(shell,Path.Combine(state,"quota-preview.png"));
                 shell.Window.Hide();var hiddenSnapshot=Snapshot();hiddenSnapshot.sequence=900;hiddenSnapshot.sensors[0].value=87;Json.WriteAtomic(paths.Snapshot,hiddenSnapshot);shell.UpdatePanel();
@@ -338,6 +454,10 @@ internal static class NativeTests {
                 Assert(netReading.names["netConnection"]=="Wi-Fi"&&netReading.values["netSignal"]==72,"Wi-Fi signal must belong to the selected adapter");
                 var desktopMetrics=(List<DesktopMetric>)typeof(Shell).GetMethod("DesktopMetrics",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(shell,null);
                 Assert(desktopMetrics.Any(m=>m.Key=="wifiLink"&&m.Title=="Wi-Fi Link Speed"&&m.Value=="2.5 Gbit/s")&&desktopMetrics.Any(m=>m.Key=="wifiSignal"&&m.Value=="72%"),"Desktop connection or signal missing");
+                networkSnapshot.networkLinks[0].physical=false;networkSnapshot.sequence++;Json.WriteAtomic(paths.Snapshot,networkSnapshot);shell.UpdatePanel();
+                desktopMetrics=(List<DesktopMetric>)typeof(Shell).GetMethod("DesktopMetrics",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(shell,null);
+                Assert(desktopMetrics.Count(m=>m.Key=="wifiSignal")==1&&desktopMetrics.Single(m=>m.Key=="wifiSignal").Value=="72%"&&!desktopMetrics.Any(m=>m.Key=="netSignal"),"Legacy active-adapter signal must use the canonical visibility and order key");
+                networkSnapshot.networkLinks[0].physical=true;
                 networkSnapshot.networkLinks[0].signalPercent=101;networkSnapshot.sequence++;Json.WriteAtomic(paths.Snapshot,networkSnapshot);shell.UpdatePanel();Assert(!Field<ReadingSession>(shell,"readings").Latest.values.ContainsKey("netSignal"),"Invalid signal must not become a reading");
                 networkSnapshot.networkLinks[0].connectionType="Ethernet";networkSnapshot.networkLinks[0].signalPercent=72;networkSnapshot.sequence++;Json.WriteAtomic(paths.Snapshot,networkSnapshot);shell.UpdatePanel();Assert(!Field<ReadingSession>(shell,"readings").Latest.values.ContainsKey("netSignal"),"Ethernet must not retain Wi-Fi signal");
                 networkSnapshot.sequence++;networkSnapshot.networkLinks[0].connected=false;Json.WriteAtomic(paths.Snapshot,networkSnapshot);shell.UpdatePanel();Pump();Assert(Tree(networkCard).OfType<TextBlock>().Any(t=>t.Text=="Disconnected"),"Disconnected link must not retain negotiated speed");
@@ -352,8 +472,18 @@ internal static class NativeTests {
                     var metrics=(List<DesktopMetric>)typeof(Shell).GetMethod("DesktopMetrics",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(shell,null);
                     Assert(metrics.Any(m=>m.Key=="wifiLink"&&m.Value==NetworkRate.Link(speed))&&metrics.Any(m=>m.Key=="lanLink"&&m.Value=="2.5 Gbit/s"),"Desktop dual link rates missing");
                 }
+                networkSnapshot.networkLinks[1].signalPercent=null;networkSnapshot.sequence++;Json.WriteAtomic(paths.Snapshot,networkSnapshot);shell.UpdatePanel();Pump();
+                var missingSignal=Field<ReadingSession>(shell,"readings").Latest;
+                Assert(missingSignal.state=="LIVE"&&!missingSignal.values.ContainsKey("wifiSignal")&&missingSignal.available.ContainsKey("wifiSignal")&&missingSignal.available["wifiSignal"],"Connected Wi-Fi must retain its signal capability without caching a missing reading");
+                desktopMetrics=(List<DesktopMetric>)typeof(Shell).GetMethod("DesktopMetrics",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(shell,null);
+                Assert(desktopMetrics.Count(m=>m.Key=="wifiSignal")==1&&desktopMetrics.Single(m=>m.Key=="wifiSignal").Value=="—"&&desktopMetrics.Any(m=>m.Key=="wifiLink"&&m.Value=="1.2 Gbit/s"),"Missing Wi-Fi signal must keep one unavailable row and the valid link speed");
+                networkSnapshot.networkLinks[1].signalPercent=0;networkSnapshot.sequence++;Json.WriteAtomic(paths.Snapshot,networkSnapshot);shell.UpdatePanel();
+                desktopMetrics=(List<DesktopMetric>)typeof(Shell).GetMethod("DesktopMetrics",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(shell,null);
+                Assert(desktopMetrics.Single(m=>m.Key=="wifiSignal").Value=="0%","Wi-Fi signal recovery must retain a real zero reading");
                 networkSnapshot.networkLinks[1].connected=false;networkSnapshot.sequence++;Json.WriteAtomic(paths.Snapshot,networkSnapshot);shell.UpdatePanel();
                 Assert(Field<ReadingSession>(shell,"readings").Latest.values["wifiLink"]==0&&!Field<ReadingSession>(shell,"readings").Latest.values.ContainsKey("wifiSignal"),"Disconnected Wi-Fi must clear rate/signal");
+                desktopMetrics=(List<DesktopMetric>)typeof(Shell).GetMethod("DesktopMetrics",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(shell,null);
+                Assert(!desktopMetrics.Any(m=>m.Key=="wifiSignal"),"Disconnected Wi-Fi must clear its signal row");
                 networkSnapshot.networkLinks[1].connected=true;networkSnapshot.networkLinks[1].bitsPerSecond=null;networkSnapshot.sequence++;Json.WriteAtomic(paths.Snapshot,networkSnapshot);shell.UpdatePanel();
                 Assert(!Field<ReadingSession>(shell,"readings").Latest.values.ContainsKey("wifiLink"),"Unknown Wi-Fi speed must not retain old rate");
                 networkSnapshot.sequence++;networkSnapshot.networkLinks=null;Json.WriteAtomic(paths.Snapshot,networkSnapshot);shell.UpdatePanel();Pump();Assert(!Tree(networkCard).OfType<TextBlock>().Any(t=>t.Text=="2.5 Gbit/s"),"Legacy snapshot cannot retain link speed");
@@ -394,12 +524,30 @@ internal static class NativeTests {
                 Assert((string)overlayFormat.Invoke(null,new object[]{numeric,"absent","%"})=="—","Overlay missing value changed");
                 foreach(double size in new[]{10d,12d,16d})foreach(double width in new[]{240d,310d}){
                     shell.Control<Slider>("FontSizeSlider").Value=size;shell.Window.Width=width;shell.Window.Height=690;Pump();shell.UpdatePanel();Pump();
+                    AssertToolbar(shell);
                     foreach(var card in cards.Children.Cast<Border>()){
                         var header=((StackPanel)card.Child).Children[0] as Grid;if(header.Children.Count<2)continue;var title=(FrameworkElement)header.Children[0];var value=(FrameworkElement)header.Children[1];if(value.Visibility!=Visibility.Visible)continue;Assert(value.ActualWidth>5 && value.ActualHeight>5,"Hero has no layout area: "+card.Tag);var a=title.TranslatePoint(new Point(),header);var b=value.TranslatePoint(new Point(),header);
                         Assert(b.Y>=a.Y+title.ActualHeight-1||b.X>=a.X+title.ActualWidth-1,"Header overlap");Assert(b.X+value.ActualWidth<=header.ActualWidth+1,"Header clipping");
                     }
                 }
+                shell.Control<Slider>("FontSizeSlider").Value=12;
+                foreach(string locale in new[]{"en","zh-CN","zh-TW"})foreach(double width in new[]{310d,660d}){
+                    var localePicker=shell.Control<ComboBox>("LanguagePicker");foreach(ComboBoxItem choice in localePicker.Items)if((string)choice.Tag==locale)localePicker.SelectedItem=choice;
+                    shell.Window.Width=width;Pump();shell.UpdatePanel();Settle();AssertToolbar(shell);
+                    Capture(shell,Path.Combine(state,"toolbar-"+locale+"-"+width+".png"));
+                }
+                foreach(ComboBoxItem choice in shell.Control<ComboBox>("LanguagePicker").Items)if((string)choice.Tag=="en")shell.Control<ComboBox>("LanguagePicker").SelectedItem=choice;
                 shell.Control<Slider>("FontSizeSlider").Value=12;shell.Window.Width=310;Pump();Click(shell,"Details");Capture(shell,Path.Combine(state,"native-details.png"));Click(shell,"Details");Capture(shell,Path.Combine(state,"native-compact.png"));
+                shell.ShowSettings(false);shell.UpdatePanel();
+                var monitorText=Tree(shell.Control<StackPanel>("Cards")).OfType<TextBlock>().Select(t=>t.Text).ToArray();
+                shell.ShowSettings(true);
+                var settingsSnapshot=Snapshot();settingsSnapshot.sequence=987;settingsSnapshot.sensors[0].value=87;
+                Json.WriteAtomic(paths.Snapshot,settingsSnapshot);shell.UpdatePanel();Pump();
+                Assert(Tree(shell.Control<StackPanel>("Cards")).OfType<TextBlock>().Select(t=>t.Text).SequenceEqual(monitorText),"Settings rebuilt invisible monitor readings");
+                Assert(Field<ReadingSession>(shell,"readings").Latest.values["cpu"]==87,"Settings paused hardware polling");
+                shell.ShowSettings(false);Pump();
+                Assert(Tree(shell.Control<StackPanel>("Cards")).OfType<TextBlock>().Any(t=>t.Text=="87.0 °C"),"Returning from Settings did not render latest readings immediately");
+                Json.WriteAtomic(paths.Snapshot,Snapshot());shell.UpdatePanel();
                 LayoutChecks(shell,state);
                 // Desktop mode owns separate layout preferences and reuses this ReadingSession.
                 double originalFont=shell.Window.FontSize,originalLeft=shell.Window.Left;
@@ -408,9 +556,18 @@ internal static class NativeTests {
                 Assert(desktop!=null&&!desktop.Locked&&desktop.IsVisible&&!shell.Window.IsVisible,"Desktop did not open an editable preview");
                 Assert(Tree(desktop).OfType<Button>().Count(b=>b.IsVisible)==2,"Desktop editor actions missing");shell.Show();shell.ShowSettings(true);shell.Control<Expander>("DesktopSection").IsExpanded=true;
                 var desktopOrder=shell.Control<StackPanel>("DesktopOrderList");
+                Assert(desktopOrder.Children.Cast<Border>().Count(b=>(string)b.Tag=="wifiSignal")==1&&!desktopOrder.Children.Cast<Border>().Any(b=>(string)b.Tag=="netSignal"),"Settings must expose one Wi-Fi Signal option");
+                WifiPreferenceChecks(shell);
                 double editorHeight=shell.Window.Height; shell.Window.Height=900;
                 shell.Control<Expander>("DesktopSection").BringIntoView();Pump();Capture(shell,Path.Combine(state,"desktop-editor.png"));shell.Window.Height=editorHeight;Pump();
                 Assert((string)((Border)desktopOrder.Children[0]).Tag=="CPU","Desktop inherited fan-first monitor ordering");
+                var wifiDesktopSnapshot=Snapshot();wifiDesktopSnapshot.networkLinks=new[]{new NetworkLink{hardwareId="/nic/wifi",connectionType="Wi-Fi",physical=true,connected=true,bitsPerSecond=1201000000,signalPercent=null}};
+                Json.WriteAtomic(paths.Snapshot,wifiDesktopSnapshot);shell.UpdatePanel();Pump();
+                var wifiPanel=Tree(desktop).OfType<ResponsivePanel>().Single();var wifiText=Tree(wifiPanel).OfType<TextBlock>().Select(t=>t.Text).ToArray();
+                Assert(wifiText.Count(text=>text=="Wi-Fi Signal")==1&&wifiText.Contains("—")&&wifiText.Contains("1.2 Gbit/s"),"Rendered Desktop must retain one unavailable signal row and valid link speed");
+                var wifiBitmap=new RenderTargetBitmap((int)desktop.ActualWidth,(int)desktop.ActualHeight,96,96,PixelFormats.Pbgra32);wifiBitmap.Render(desktop);
+                var wifiEncoder=new PngBitmapEncoder();wifiEncoder.Frames.Add(BitmapFrame.Create(wifiBitmap));using(var file=File.Create(Path.Combine(state,"desktop-wifi-unavailable.png")))wifiEncoder.Save(file);
+                Json.WriteAtomic(paths.Snapshot,Snapshot());shell.UpdatePanel();Pump();
                 var monitorOrder=shell.Control<StackPanel>("Cards").Children.Cast<Border>().Select(b=>(string)b.Tag).ToArray();
                 var vramRow=desktopOrder.Children.Cast<Border>().Single(b=>(string)b.Tag=="vram");
                 var reorderDesktop=new CardDrag.Gesture(desktopOrder,vramRow,delegate{typeof(Shell).GetMethod("SaveDesktopOrder",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(shell,null);},false);

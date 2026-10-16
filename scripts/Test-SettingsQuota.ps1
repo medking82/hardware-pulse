@@ -11,6 +11,7 @@ public static class SettingsQuotaFixture {
  [System.Runtime.InteropServices.DllImport("user32.dll",EntryPoint="GetWindowLongPtrW")] public static extern IntPtr Style(IntPtr hwnd,int index);
  public static int Hit(IntPtr hwnd,int x,int y){return SendMessage(hwnd,0x84,IntPtr.Zero,new IntPtr((y<<16)|(x&65535))).ToInt32();}
  public static QuotaReading Read(string provider,CancellationToken cancel){
+  if(provider=="DeepSeek")return QuotaDecoder.Decode(provider,QuotaData.Parse("{\"balance_infos\":[{\"currency\":\"CNY\",\"total_balance\":\"110.00\",\"granted_balance\":\"10.00\",\"topped_up_balance\":\"100.00\"}]}"),DateTimeOffset.UtcNow);
   string json=provider=="Codex"?"{\"rateLimitsByLimitId\":{\"codex\":{\"primary\":{\"windowDurationMins\":300,\"usedPercent\":10},\"secondary\":{\"windowDurationMins\":10080,\"usedPercent\":40}},\"A very long extra model quota name\":{\"primary\":{\"windowDurationMins\":300,\"usedPercent\":0},\"secondary\":{\"windowDurationMins\":10080,\"usedPercent\":3}}}}":provider=="Antigravity"?"{\"groups\":[{\"displayName\":\"Gemini Models\",\"buckets\":[{\"window\":\"session\",\"remainingFraction\":0.9},{\"window\":\"weekly\",\"remainingFraction\":0.8}]},{\"displayName\":\"Claude and GPT Models\",\"buckets\":[{\"window\":\"session\",\"remainingFraction\":0.7},{\"window\":\"weekly\",\"remainingFraction\":0.6}]}]}":"{\"five_hour\":{\"utilization\":12},\"seven_day\":{\"utilization\":20},\"seven_day_sonnet\":{\"utilization\":30}}";
   return QuotaDecoder.Decode(provider,QuotaData.Parse(json),DateTimeOffset.UtcNow);
  }
@@ -35,7 +36,9 @@ try {
  $codex=@($session.Readings|Where-Object Provider -eq 'Codex')[0];$ag=@($session.Readings|Where-Object Provider -eq 'Antigravity')[0]
  Assert ($codex.Windows.Count -eq 1 -and $codex.AllWindows.Count -eq 4) 'Codex complete limits lost or compact changed'
  Assert ($ag.Windows.Count -eq 2 -and $ag.AllWindows.Count -eq 4) 'Antigravity complete pools lost or compact changed'
- $shell.UpdatePanel();Pump;$panel=$shell.Window.FindName('QuotaCards');Assert ($panel.Children.Count -eq 3) 'Missing quota cards'
+ $shell.UpdatePanel();Pump;$panel=$shell.Window.FindName('QuotaCards');Assert ($panel.Children.Count -eq [HardwarePulse.QuotaSession]::Providers.Length) 'Missing quota cards'
+ $money=@($session.Readings|Where-Object Provider -eq 'DeepSeek')[0]
+ Assert ($money.Status -eq 'Live' -and $money.Balances.Count -eq 1 -and $money.Balances[0].Amount -eq '110.00' -and $money.Windows.Count -eq 0) 'DeepSeek money fixture lost its balance or became percentage quota'
  $shell.Window.FindName('QuotaDisplay').SelectedIndex=1;$shell.UpdatePanel();Settle
  Assert ($panel.Children[0].Child.Children.Count -gt 6) 'Full quota mode did not render extra limits'
  $card=$panel.Children[0];$grip=$card.Child.Children[0].Children[0]
@@ -53,6 +56,15 @@ try {
  foreach($item in $shell.Window.FindName('LanguagePicker').Items){if($item.Tag -eq 'zh-CN'){$shell.Window.FindName('LanguagePicker').SelectedItem=$item}};Capture 'settings-zh.png'
  Assert ($shell.Window.FindName('HardwareReadingColors').Foreground.Color.R -gt 100) 'Dark settings radio foreground remains black'
  $settings.Data['background']='#FFFFFF';InvokeShell ApplyMaterial;Capture 'settings-light.png';Assert ($shell.Window.FindName('HardwareReadingColors').Foreground.Color.R -lt 100) 'Light settings radio foreground remains white'
+ $shell.GetType().GetMethod('SelectSettingsCategory',$flags).Invoke($shell,@('AI Quota'));Pump
+ $shell.Window.FindName('ClaudeQuotaSource').SelectedIndex=1;$shell.Window.Width=340;$shell.Window.Height=900;Settle
+ Assert ($shell.Window.FindName('ClaudeSnapshotTools').IsVisible) 'Snapshot setup is unreachable'
+ Assert ($shell.Window.FindName('SettingsPage').ScrollableWidth -le 1) 'Snapshot setup causes horizontal overflow'
+ Capture 'claude-source-narrow.png'
+ $shell.Window.FindName('SettingsPage').ScrollToEnd();Settle;Capture 'claude-source-narrow-bottom.png'
+ $shell.Save();$snapshotSaved=[HardwarePulse.Settings]::new((Join-Path $state 'widget-settings.json'));Assert ($snapshotSaved.Flag('claudeSnapshotSource')) 'Claude source selection did not persist'
+ $shell.Window.FindName('ClaudeQuotaSource').SelectedIndex=0
+ Assert (-not $shell.Window.FindName('ClaudeSnapshotTools').IsVisible) 'Existing login leaves snapshot setup visible'
  $shell.GetType().GetMethod('SelectSettingsCategory',$flags).Invoke($shell,@('Desktop'));Pump
  foreach($name in @('DesktopSection','DesktopAppearanceSection')){Assert ($shell.Window.FindName($name).IsVisible) 'Desktop controls split across categories'}
  Assert (-not $shell.Window.FindName('AppearanceSection').IsVisible) 'App appearance leaked into Desktop category'

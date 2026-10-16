@@ -10,6 +10,7 @@ namespace HardwarePulse.Desktop;
 // UI-thread owner; QuotaSession owns scheduling/cancellation and the adapter owns IO.
 public sealed class CodexQuotaPanel : UserControl,IDisposable {
     readonly QuotaSession session;
+    readonly Func<DateTimeOffset> clock;
     readonly DispatcherTimer timer=new(){Interval=TimeSpan.FromSeconds(1)};
     readonly CheckBox enabled=new(){Name="EnableCodexQuota",Content="Show Codex quota"};
     readonly Button refresh=new(){Name="RefreshCodexQuota",Content="Refresh",IsEnabled=false};
@@ -26,9 +27,10 @@ public sealed class CodexQuotaPanel : UserControl,IDisposable {
     public QuotaReading? CurrentReading=>shown;
     public string Provider=>provider;
     public bool QuotaEnabled {get=>enabled.IsChecked==true;set=>enabled.IsChecked=value;}
-    public CodexQuotaPanel(bool demo,Func<CancellationToken,QuotaReading> read,bool inlineSettings=true,UiLanguage? language=null,string provider="Codex") {
-        if(!QuotaSession.Providers.Contains(provider))throw new ArgumentException("Unsupported quota provider",nameof(provider));
+    public CodexQuotaPanel(bool demo,Func<CancellationToken,QuotaReading> read,bool inlineSettings=true,UiLanguage? language=null,string provider="Codex",Func<DateTimeOffset>? clock=null) {
+        if(!DesktopQuotaReaders.Providers.Contains(provider))throw new ArgumentException("Unsupported quota provider",nameof(provider));
         ArgumentNullException.ThrowIfNull(read);
+        this.clock=clock??(()=>DateTimeOffset.UtcNow);
         this.provider=provider;enabled.Name="Enable"+provider+"Quota";refresh.Name="Refresh"+provider+"Quota";
         this.demo=demo;
         this.language=language??new UiLanguage();
@@ -60,7 +62,7 @@ public sealed class CodexQuotaPanel : UserControl,IDisposable {
     }
     void Tick() {
         if(disposed||enabled.IsChecked!=true)return;
-        session.Tick(DateTimeOffset.UtcNow);
+        session.Tick(clock());
         var reading=session.Readings.Single();
         if(ReferenceEquals(reading,shown))return;
         Render(reading);

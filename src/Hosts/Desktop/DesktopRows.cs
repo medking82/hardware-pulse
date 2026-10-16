@@ -17,7 +17,7 @@ public static class DesktopRows {
             if(snapshot.WindowsHardwareSupported&&snapshot.WindowsHardwareStatus.Length>0)rows.Add(new("hardware/status",language.T("Windows hardware"),language.T(snapshot.WindowsHardwareStatus)));
             foreach(var item in peaks?snapshot.PeakWindowsHardware:snapshot.WindowsHardware)rows.Add(new("hardware/"+item.Id,item.DisplayLabel(language),language.T(item.Value)));
         }
-        foreach(string provider in QuotaSession.Providers) {
+        foreach(string provider in DesktopQuotaReaders.Providers) {
             if(!quotas.TryGetValue(provider,out var reading))continue;
             rows.Add(new("quota/"+provider+"/status",provider+" · "+language.T(reading.Status),""));
             var counts=new Dictionary<string,int>();

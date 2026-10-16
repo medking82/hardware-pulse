@@ -57,6 +57,14 @@ static class ClaudeQuotaTests {
             reading=client.Read(CancellationToken.None);
             Check(reading.Status==(status==401||status==403?"Login required":status==429?"Refresh rate limited":"Quota unavailable")&&reading.AllWindows.Count==0,"Sanitized status with no stale quota");
         }
+        handler.Reply=(_,_)=>{
+            var response=Response(429,"private response body");
+            response.Headers.RetryAfter=new System.Net.Http.Headers.RetryConditionHeaderValue(TimeSpan.FromHours(1));
+            return Task.FromResult(response);
+        };
+        calls=handler.Calls;reading=client.Read(CancellationToken.None);
+        Check(reading.Status=="Refresh rate limited"&&reading.HttpStatus==429&&reading.RetryAt>DateTimeOffset.UtcNow.AddMinutes(59)&&reading.RetryAt<DateTimeOffset.UtcNow.AddMinutes(61),"Claude Retry-After reaches scheduler metadata");
+        Check(handler.Calls==calls+1,"Claude throttling does not retry authentication");
         foreach(string body in new[]{"not json","[]",new string('x',1048577)}) {
             handler.Reply=(_,_)=>Task.FromResult(Response(200,body));
             Check(client.Read(CancellationToken.None).Status=="Quota unavailable","Malformed/oversize response rejected");

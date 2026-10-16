@@ -6,6 +6,14 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 
 ## Unreleased
 
+## 0.6.57 — 2026-10-16
+
+- Shorten the DeepSeek card caption to Balance and its desktop title to DeepSeek. Add a persisted CNY (RMB), USD or All display choice shared by both views, without conversion or zero-balance substitution.
+- Apply English Title Case to native UI captions and quota states while preserving brands, units and source data. Keep English and Simplified Chinese settings readable in light/dark and narrow layouts.
+- Give the whale SVG the same compact line-art treatment as the existing icons and use the provider catalog's color on Desktop instead of a gray fallback.
+- Add the missing DeepSeek Desktop visibility and order controls. Currency and status rows share one stable preference group; hiding Desktop rows does not disable the provider or App card.
+- Reconcile the native stable line with main without replacing the existing cross-platform host. Shared percentage-only views explicitly reject unsupported wallet providers instead of falling back to a different account reader.
+
 ## 0.7.0 — 2026-09-20
 
 Windows x64 stable release using the shared Desktop host. Windows ARM64, Linux and macOS remain outside this stable release.
@@ -55,6 +63,184 @@ Published for Windows x64, macOS Intel/Apple Silicon and Linux x64/ARM64. Window
 - Shared Desktop embeds pinned Noto Sans CJK SC/TC fonts for Chinese UI on systems without CJK fonts. Build preparation verifies size and SHA-256, packages include the OFL notice, and native smoke fails on missing catalog glyphs. No system font installation or runtime download is needed.
 
 - Shared Desktop supports Auto (System), English and Simplified/Traditional Chinese UI, including Monitor, Settings, sensor status, Codex quota and tray actions. Language switches immediately without restarting sampling or refreshing credentials and is saved in the isolated preview profile. Auto respects Chinese script and region preferences.
+
+## 0.6.56 — 2026-10-16
+
+- Add opt-in DeepSeek API wallet balances as currency amounts, not percentage bars. Essential view shows available balance; full view also shows granted and topped-up balances.
+- Save a manually entered API key with Windows current-user DPAPI encryption. Saving does not enable monitoring. Key replacement/removal clears old account readings and rejects late results without erasing rate-limit cooldowns.
+- Register provider metadata in QuotaCatalog and preserve scheduling for all four providers across restarts. Existing Claude login and CLI snapshot paths remain unchanged.
+- Keep the B850M MORTAR's verified SYS1/SYS3 fan channels when a sample has no value, without inventing RPM readings.
+- Fix narrow English key-editor buttons, light/dark input styling and immediate English/Simplified Chinese status updates. Add focused WPF and credential lifecycle regressions.
+- Focused checks and independent review completed. Full repository validation retains baseline failures in desktop registration, capture exclusion and layout; real DeepSeek API key requests and installed upgrades were not tested for this release.
+
+## 0.6.55 — 2026-10-09
+
+- Read Wi-Fi Signal through Windows realtime connection quality without requiring Location permission on supported systems. Keep the connected-interface fallback for older Windows versions; no scanning or new sampling task is added.
+- Keep the Wi-Fi Signal row visible as `—` when a connected link has no valid signal reading. Restore the actual percentage when available and clear the signal row on disconnect, without caching old values.
+- Remove the duplicate Wi-Fi Signal setting. Preserve legacy order/visibility preferences, with explicit current preferences taking precedence.
+- Verify native query selection, fallback, denied/malformed replies, percentage bounds and buffer release, plus missing/recovered/disconnected Desktop readings and settings compatibility.
+
+## 0.6.54 — 2026-10-05
+
+- Retry brief Windows snapshot sharing/lock conflicts before reporting hardware readings unavailable. Reads make at most three attempts with up to 40 ms of added delay; no extra polling or cached live values are introduced.
+- Keep persistent read failures, invalid snapshots and the 15-second freshness limit authoritative. Time spent retrying counts toward freshness, so an expired snapshot cannot recover as live.
+- Regression checks cover transient sharing/lock conflicts, retry exhaustion, unrelated errors, expiry during retry and an actual exclusively locked fixture file. Collector, FPS, appearance and settings behavior remain unchanged.
+
+## 0.6.53 — 2026-10-03
+
+- Group Live and Session Max visually, and keep Desktop/FPS together when the monitor toolbar wraps in narrow windows. Preserve existing controls, settings and actions.
+- Make selected Settings categories clear with a contrasting surface and correctly rendered border. Disabled buttons now visibly dim and recover when re-enabled.
+- Increase secondary hardware labels and status text for readability, retaining font-size preferences, card order and aligned row heights. Associate hardware-name editors with their accessible labels.
+- Verify toolbar bounds at 10/12/16 DIP, English and Simplified/Traditional Chinese layouts, selection and disabled-state rendering, and existing Desktop/FPS/Settings interactions.
+
+## 0.6.52 — 2026-10-03
+
+- Retire Resources and the RAM/GPU process cleanup feature, including process grouping, close suggestions and normal-close actions. Remove the process observation/close adapter and its feature-only UI, state and tests.
+- Restore the main read-only monitor without Monitor/Resources navigation. Keep hardware RAM/VRAM readings, Settings/Back, Desktop, FPS, quota and existing appearance settings.
+- Verify the release payload no longer exposes the retired process-cleanup APIs. Historical release notes remain available; current documentation records the retirement.
+
+## 0.6.51 — 2026-10-03
+
+- Group duplicate processes in Resources by executable identity. Show RAM/GPU sums, sort by group usage, and expand a row for read-only process/PID details. Different executable paths and missing-path observations stay separate.
+- Mark partial GPU sums with `*` and retain `—` for unavailable readings. Shared resources may be counted more than once; displayed totals are not promised reclaimable memory.
+- Confirm the exact eligible process names and PIDs before grouped normal-close requests. GPU helpers and tray-only processes remain unavailable; suggestions keep their original per-process policy. No forced termination or background scan is added.
+
+## 0.6.50 — 2026-10-03
+
+- Fix unreadable selected rows in Resources by pairing an opaque selection surface with contrasting text in both light and dark themes. Selection remains readable after focus moves and at zero App background opacity; high contrast uses system colors.
+- Prevent processes without a normal-close target from appearing checked. Clicking such a row explains that its app must be exited through the app or system tray. Disabled resource actions are visibly dimmed; eligible selection enables the existing confirmation flow.
+- Reproduce the checked-but-disabled mismatch and verify selection contrast, mixed eligible/unavailable selection, sorting, three languages, narrow layouts and existing close cancellation guards with synthetic callbacks. Windows close eligibility and dispatch policy are unchanged.
+
+## 0.6.49 — 2026-10-03
+
+- Move process usage into a main-window Resources tab beside Monitor. Remove the RAM/GPU card buttons and separate resource appearance controls; both pages share Settings → App Appearance. Back from Settings returns to Resources.
+- Align hardware and quota card heights within each row across one, two and three columns, preserving card order and natural single-column sizing. Content changes recalculate row heights.
+- Theme resource table headers and align numeric cells to the right. Column headers provide sorting without another snapshot; the active tab retains its current sort. Leaving Resources stops undispatched close requests and pending reads remain shared.
+- Verify tab navigation, sorting, selection, close cancellation, appearance, three languages and narrow layouts, plus card resize/reorder and Desktop regression checks. Normal-close adapter policy remains unchanged.
+
+## 0.6.48 — 2026-10-03
+
+- Resource usage adds clickable App/RAM/GPU sort headers and reversible ordering. Unavailable GPU readings stay last. Sorting reuses the existing snapshot.
+- The resource window follows App colors, glass and background opacity by default; an independent 0–100% background opacity control is available when Follow App appearance is off. Existing opaque accessibility and unsupported-glass fallbacks remain.
+- Review up to three high-usage normal-close candidates, excluding the snapshot foreground process and recognized Windows shell/input/session components. Close suggestions opens a named confirmation; manual checkbox batch closing is also available. Requests remain sequential, identity-checked and normal-close only, preserving app save prompts and refusal.
+- Deterministic checks cover candidate thresholds/exclusions, numeric sorting, batch cancellation/duplicate clicks/stale identities, window teardown, appearance and three-language narrow layouts. No user apps are closed by the UI checks.
+
+## 0.6.47 — 2026-10-03
+
+- Memory and GPU cards open an on-demand current-user process usage window, with resident RAM, optional GPU estimates and local RAM headroom guidance. Sorting and reopening reuse pending data without background polling.
+- Select an app and confirm a normal close request. Process identity, user/session and main-window state are rechecked; save prompts and refusal remain authoritative. No force termination, working-set purge, VRAM eviction or remote AI is used.
+- Verify isolated close/refusal fixtures and English/Simplified/Traditional Chinese views, narrow layouts and light/dark themes. GPU estimates can be unavailable or inaccurate; no reclaimed-space or FPS benefit is promised.
+
+## 0.6.46 — 2026-10-02
+
+- Quota refresh now reports progress, completion or the exact next allowed request time in Settings. Each quota card has a single-provider refresh button, with visible progress and deferred-refresh feedback.
+- Explicit Claude refresh can recheck a previously rejected login after a five-minute minimum interval instead of waiting through an escalated 30-minute authentication backoff. Known login-source metadata changes also schedule this bounded recovery without reading token contents.
+- HTTP 429/Retry-After, transport/access failures, persistent rate-limit history and in-flight reservations retain their protections. Repeated clicks do not queue extra requests. Pulse still never signs in, writes credentials or renews tokens.
+
+## 0.6.45 — 2026-10-02
+
+- Collect application FPS without waiting for unused GPU/display completion or input events. This removes an unnecessary dependency that can delay fresh FPS readings during HDR/flip capture startup. Current, average and minimum statistics keep their existing meaning.
+- Verify the present-only path on an HDR-enabled Windows display and cover actual capture launch/compact CSV parsing in regression tests. The original failure was intermittent; this does not promise compatibility with every game, driver or exclusive-fullscreen overlay.
+
+## 0.6.44 — 2026-09-27
+
+- Remote quota failures retry after 5, 10, 20 and then 30 minutes. HTTP 429 adds a 15, 30 and then 60-minute minimum, extended by a longer Retry-After. A following 401 or timeout no longer clears rate-limit history; only success resets it.
+- Windows preserves quota cooldowns across restart, provider toggles and source switches. Manual Refresh respects failed-request cooldowns and a 30-second interval after successful reads. Local Claude CLI snapshots retain independent 30-second file polling. Only scheduling metadata is persisted, without quota values or credentials.
+- Antigravity quota children disable the installed CLI's automatic updater, preventing its unhidden version-check child from being launched by quota polling. This includes the locally installed 0.6.43 repair; 0.6.43 was not published separately. The original intermittent terminal flash was not captured, so this does not establish that every reported flash had the same cause.
+- Core, native WPF, shared Desktop and child-process regression checks passed with synthetic quota readers. Codex/Claude transport timeouts remain unresolved on the reported workstation; this release reduces repeated requests and does not claim that quota availability is restored.
+
+## 0.6.42 — 2026-09-22
+
+- Antigravity CLI quota reads now have a 25-second parent deadline around the unchanged 15-second CLI print timeout. This leaves startup/output margin while retaining the 30-second session bound, hidden execution and owned-child cleanup. Codex keeps its 15-second deadline.
+- Distinguishes CLI timeout, unsuccessful exit and invalid response in the existing safe diagnostics/tooltips. The Desktop-first source policy, login ownership, quota cadence and WPF UI remain unchanged.
+- A local CLI diagnostic returned a complete quota report in 11.4 seconds; the earlier installed-app CLI failure took about 16 seconds and then recovered automatically through Desktop. The wider deadline addresses the demonstrated timeout-budget boundary, not a confirmed authentication or provider outage.
+
+## 0.6.41 — 2026-09-22
+
+- Repeated quota rate limits back off for 2, 5, 10 and then 15 minutes, respecting a longer server retry deadline. App shows the next retry; Desktop keeps concise status and tooltip details.
+- Claude can show explicitly `Cached` values from a successful observation less than ten minutes old during a rate limit, only while the known login source revision matches. Source changes, authentication failures, expiry and individual reset deadlines invalidate values; unknown values display `—`.
+- Antigravity failures preserve safe source, HTTP and transport/discovery details. Local diagnostics retain at most two 32 KiB files containing only whitelisted attempt metadata. A timed-out worker keeps request ownership until it exits; late results cannot replace current quota.
+- Preserves native WPF glass UI, Local Contrast and Windows 10/11 x64 packaging. This does not guarantee provider availability or renew credentials. The existing self-signed Marck Wong certificate remains in use.
+
+## 0.6.40 — 2026-09-21
+
+- Local Contrast now samples rendered glyph bounds, maps both fractional-DPI endpoints safely, and recovers mid-gray choices using the actual `#141414` / `#F5F5F5` contrast instead of the previous broad luminance band. Reserved FPS cell whitespace no longer determines the text shade.
+- Transparent gaming layouts account for saved text opacity and the captured RGB background before choosing the shade. Zero text opacity skips capture; existing WPF glass UI, refresh cadence, settings and card geometry remain unchanged. No UI redesign is included.
+- In a controlled 0% background / 40% text opacity Desktop benchmark, whole-machine CPU increased by roughly 0.05–0.17 percentage points. RAM showed no consistent increase; this is a precision trade-off and not a game FPS benchmark. Windows 10/11 x64 scope and the existing self-signed Marck Wong certificate status are unchanged.
+
+## 0.6.39 — 2026-09-21
+
+- Local Contrast avoids a duplicate bitmap copy during analysis. In two controlled 30-second runs, Gen 0 collection counts fell from 83/84 to 3/4; managed allocation, RAM and CPU did not show a consistent reduction. See [performance evidence](docs/PERFORMANCE.md#native-memory-retention-work-after-0638).
+- The Windows collector no longer retains unused one-day LibreHardwareMonitor sensor history. Current readings and Session Max remain available; long-term installed-app RAM impact still requires soak observation.
+- Preserves the 0.6.38 Claude recovery schedule, WPF glass UI, Windows 10/11 x64 scope and self-signed Marck Wong certificate status. No macOS stable release is claimed.
+
+## 0.6.38 — 2026-09-21
+
+- Claude `Login required` now retries after 30 seconds instead of initially waiting five minutes. Continued authentication and transient transport failures share bounded 30/60/120/240/300-second backoff; success restores the five-minute cadence.
+- Preserves 403/429 handling, server Retry-After deadlines, single-flight requests, cancellation, local snapshot polling and other providers' authentication cadence.
+- Faster detection of a credential owner's recovery does not renew expired tokens. Persistent failures can still wait up to five minutes plus request/UI processing time at the backoff cap. WPF appearance and settings are preserved.
+
+## 0.6.37 — 2026-09-21
+
+- Windows App recomputes card density when geometry or sensor capabilities change instead of repeating the layout work on every poll. Existing glass materials, fonts, responsive cards and settings are preserved.
+- The 500 ms Desktop FPS tick updates its row only and reuses unchanged text runs. Ordinary hardware refresh remains two seconds; Local Contrast remains 100 ms.
+- Sensor matching avoids temporary match arrays while preserving unique-candidate selection and fresh per-snapshot discovery.
+- Bounded component measurements show about 55% less App refresh allocation and 24–25% less Desktop FPS allocation with Local Contrast enabled. These do not establish lower whole-app CPU or steady-state RAM. See [measurement scope and results](docs/PERFORMANCE.md#wpf-refresh-work-reduction-after-0636).
+
+## 0.6.36 — 2026-09-21
+
+- Windows Desktop keeps the concise `Gemini` quota title. CLI-backed readings disclose `Source: Antigravity CLI` in the name/value tooltip and Monitor status tooltip; switching back to Desktop readings clears the CLI tooltip.
+- Quota child fixtures reject a visible console window. A bounded local window-event/process trace observed successful Desktop and installed-CLI reads with no visible owned window; the reported intermittent flash was not reproduced. This is not a claim that every descendant or login state is flash-free.
+- Preserves the WPF glass UI, settings, quota source selection and five-minute successful refresh cadence. No new CLI is installed or bundled.
+
+## 0.6.35 — 2026-09-21
+
+- Sustained remote quota failures now use capped automatic retry backoff (30, 60, 120, 240, 300 seconds). Manual Refresh remains available, successful recovery resets backoff, and server rate limits and local snapshot polling retain their rules.
+
+- Antigravity Desktop quota probes now preserve HTTP 429 backoff and HTTP 403 access-denied status instead of converting them into ordinary transport failures. No credential/source or UI change.
+
+## 0.6.34 — 2026-09-21
+
+- Claude quota reads recover once from HTTP 401 when the credential owner has already replaced the access token. Unchanged tokens, 403, 429 and transport failures do not trigger retries. This does not renew credentials or eliminate required login after expiry.
+- Windows pins the selected credential file or Credential Manager target throughout that request/retry pair. A missing selected source fails without switching to another source; explicit environment tokens retain precedence.
+- Added English and Simplified Chinese guides for optional Claude status-line setup and rollback. This source remains experimental; real CLI delivery acceptance is pending.
+- Keeps the WPF glass UI, Desktop mode, settings and lightweight Framework package. Full validation, .NET 10 Core checks and an independent review of credential-source pinning passed. Synthetic recovery tests do not establish long-term live token renewal.
+
+## 0.6.33 — 2026-09-21
+
+- Quota HTTP 429 responses honor Retry-After. Manual Refresh preserves the effective deadline, including the two-minute minimum when the header is missing, invalid or shorter.
+- Windows quota login reads allow compatible credential writers and atomic replacement, with a one-MiB read bound. Pulse does not write or renew credentials.
+- Adds an optional experimental Claude Code status-line source with explicit session binding, stale/reset expiry and separate Git Bash/PowerShell setup commands. Existing login remains the default; setup is manual and real CLI-produced delivery remains unverified. It cannot refresh while Claude Code is closed.
+- Full Windows validation and relevant modern builds/tests passed. A one-time live read returned Codex, Antigravity CLI and Claude quota; this does not prove long-term token-expiry recovery.
+
+## 0.6.32 — 2026-09-20
+
+- Windows quota CLI pipe reads now respond to cancellation even while a writer remains open without output. Cleanup cancels and joins the stderr reader; UTF-8 decoding, output limits and the existing refresh/backoff behavior are preserved.
+- Adds in-process pipe regression checks for both CLI parsers, idle stderr, fragmented UTF-8 and EOF. This does not add Claude token renewal or establish the cause of earlier antivirus detections.
+
+## 0.6.31 — 2026-09-20
+
+- Wake recovery immediately refreshes an expired successful quota observation completed before sleep, instead of adding another five-minute wait.
+- Quota Refresh requests made during an active read now coalesce into one follow-up read, so a refresh after re-login is not silently lost. Requests remain serialized; rate-limited responses retain their backoff.
+
+## 0.6.30 — 2026-09-20
+
+- Windows WPF skips invisible Monitor card updates while Settings is open. Collector, quota and Desktop updates continue; returning to Monitor renders the latest readings immediately.
+
+## 0.6.29 — 2026-09-20
+
+- Antigravity can read quota through an already installed, logged-in Antigravity CLI when no local app session is identified. Monitor and Desktop mark this source as CLI; no CLI is downloaded or bundled.
+- Update checks expose sanitized failure codes instead of hiding all failure details. Existing installer identity and SHA-256 verification remain unchanged.
+- Quota card headings follow the same text-size scaling as hardware card headings. Existing glass, opacity, layout and saved preferences remain unchanged.
+- A reported installed-app network failure was resolved by the user restoring Bitdefender firewall rules to defaults; this release does not change security rules or claim to fix that external configuration. Claude login renewal still belongs to the official client.
+
+## 0.6.28 — 2026-09-20
+
+- Preserve the original Windows WPF App, Desktop and Settings. New profiles use a darker glass background for light-text readability; saved appearance preferences remain unchanged.
+- Distinguish forbidden quota access from an expired login. Codex can recover rejected authentication through an already-installed official Codex CLI using a bounded quota-only request; no CLI is bundled or downloaded.
+- Preserve hardware, FPS, Desktop geometry and update identity. macOS remains a separate RC; the withdrawn Windows 0.7.0 is not reused.
+- Bitdefender previously quarantined development/test artifacts. Revised tests and full repository validation passed with Antivirus and Advanced Threat Defense enabled, as confirmed by the user. Vendor false-positive confirmation remains pending; universal antivirus compatibility is not claimed.
+
 
 ## 0.6.27 — 2026-09-16
 

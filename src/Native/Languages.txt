@@ -6,11 +6,17 @@ FPS capture is unavailable on this Windows version.|此 Windows 版本不支持 
 Local Contrast requires Windows 10 version 2004 or later.|局部对比度需要 Windows 10 2004 或更高版本。|局部對比度需要 Windows 10 2004 或更新版本。
 Disconnected|未连接|未連線
 AI Quota|AI 额度|AI 額度
-Read remaining quota from existing local logins. Refreshes every 5 minutes.|使用本机已有登录读取剩余额度，每 5 分钟刷新。|使用本機已有登入讀取剩餘額度，每 5 分鐘更新。
-Login in Codex or Claude Code first. Keep Antigravity open. Pulse never changes your login.|请先登录 Codex 或 Claude Code，并保持 Antigravity 运行。Pulse 不修改登录信息。|請先登入 Codex 或 Claude Code，並保持 Antigravity 執行。Pulse 不修改登入資訊。
+Read remaining quota from existing local logins; DeepSeek uses the API key you enter below. Refreshes every 5 minutes.|使用本机已有登录读取剩余额度；DeepSeek 使用下方输入的 API 密钥，每 5 分钟刷新。|使用本機已有登入讀取剩餘額度；DeepSeek 使用下方輸入的 API 金鑰，每 5 分鐘更新。
+Login in Codex or Claude Code first. Antigravity can also use an installed, signed-in CLI. Pulse never changes your login.|请先登录 Codex 或 Claude Code。Antigravity 也可使用已安装并登录的 CLI。Pulse 不修改登录信息。|請先登入 Codex 或 Claude Code。Antigravity 也可使用已安裝並登入的 CLI。Pulse 不修改登入資訊。
 Refresh Quota|刷新额度|更新額度
+Quota refresh complete|额度刷新成功|額度更新成功
+Enable quota in Settings first|请先在设置中启用额度显示|請先在設定中啟用額度顯示
+Off|已关闭|已關閉
+Refresh deferred until {0}|暂未请求，将于 {0} 重试|暫未請求，將於 {0} 重試
+Last quota login check failed|上次额度查询认证失败|上次額度查詢驗證失敗
 Refresh pending|等待刷新|等待更新
 Login required|需要登录或重新登录|需要登入或重新登入
+Quota access denied|额度访问被拒绝|額度存取被拒絕
 Login unavailable|无法读取登录信息|無法讀取登入資訊
 Quota unavailable|额度暂时不可用|額度暫時無法使用
 Quota stale|额度数据已过期|額度資料已過期
@@ -102,7 +108,7 @@ Leave a name blank to use device information. Hover over a field to see its auto
 SPD numbers identify sensor addresses, not physical slots. Installed slots are reported separately; assign a slot name only after confirming its sensor.|SPD 编号代表传感器地址，并非实体插槽。已安装插槽单独显示；确认对应关系后再命名。|SPD 編號代表感測器位址，並非實體插槽。已安裝插槽單獨顯示；確認對應關係後再命名。
 Changes save automatically.|更改自动保存。|變更自動儲存。
 About Pulse|关于 Pulse|關於 Pulse
-Version 0.6.27 · Marck Wong|版本 0.6.27 · Marck Wong|版本 0.6.27 · Marck Wong
+Version 0.6.57 · Marck Wong|版本 0.6.57 · Marck Wong|版本 0.6.57 · Marck Wong
 Sensors by LibreHardwareMonitor. Shared driver by PawnIO.|传感器：LibreHardwareMonitor。共享驱动：PawnIO。|感測器：LibreHardwareMonitor。共用驅動程式：PawnIO。
 Language|语言 / Language|語言 / Language
 Minimize|最小化|最小化
@@ -236,7 +242,29 @@ Font Size|文字大小|文字大小
 App quota display|App 额度显示|App 額度顯示
 Essential quotas|精简额度|精簡額度
 All available quotas|完整额度|完整額度
-Desktop keeps its essential quotas. Drag the handles to reorder the three provider cards.|桌面保留精简额度。拖动把手可调整三个服务卡片的顺序。|桌面保留精簡額度。拖曳把手可調整三個服務卡片的順序。
+Desktop keeps its essential quotas. Drag the handles to reorder the four provider cards.|桌面保留精简额度。拖动把手可调整四个服务卡片的顺序。|桌面保留精簡額度。拖曳把手可調整四個服務卡片的順序。
+DeepSeek API key|DeepSeek API 密钥|DeepSeek API 金鑰
+Save encrypted|加密保存|加密儲存
+Remove key|移除密钥|移除金鑰
+API key required|需要 API 密钥|需要 API 金鑰
+API key rejected|API 密钥被拒绝|API 金鑰被拒絕
+Credential unavailable|无法读取本机密钥|無法讀取本機金鑰
+Encrypted key saved|密钥已加密保存|金鑰已加密儲存
+Enter a valid API key. The previous key was not changed.|请输入有效的 API 密钥，原密钥未更改。|請輸入有效的 API 金鑰，原金鑰未變更。
+Encrypted key saved. Refresh quota to check the account.|密钥已加密保存，刷新额度即可查询账户。|金鑰已加密儲存，更新額度即可查詢帳戶。
+Could not store the key for this Windows user.|无法为当前 Windows 用户保存密钥。|無法為目前 Windows 使用者儲存金鑰。
+Could not remove the key. The stored key was not changed.|无法移除密钥，已保存的密钥未更改。|無法移除金鑰，已儲存的金鑰未變更。
+The key is encrypted for the current Windows user and sent only to api.deepseek.com. Saving a key does not enable monitoring.|密钥以当前 Windows 用户身份加密，仅发送至 api.deepseek.com。保存密钥不会开启监控。|金鑰以目前 Windows 使用者身分加密，僅傳送至 api.deepseek.com。儲存金鑰不會開啟監控。
+Available balance|可用余额|可用餘額
+Balance|余额|餘額
+DeepSeek Currency|DeepSeek 显示币种|DeepSeek 顯示幣種
+CNY (RMB)|人民币（CNY）|人民幣（CNY）
+All Currencies|全部币种|全部幣種
+Applies to App and Desktop. Filters balances; does not convert currencies.|同时作用于 App 和桌面，仅筛选余额，不进行换汇。|同時套用至 App 和桌面，僅篩選餘額，不進行換匯。
+No {0} Balance|无 {0} 余额|無 {0} 餘額
+No Balance|无余额|無餘額
+Granted|赠送|贈送
+Topped up|充值|儲值
 Drag the center to move. Drag any edge or corner to resize.|拖动中间移动，拖动任意边缘或角落调整大小。|拖曳中間移動，拖曳任意邊緣或角落調整大小。
 Done|完成|完成
 Return to App|返回 App|返回 App
@@ -279,3 +307,40 @@ Save device model and sensor readings for support. No account credentials, netwo
 Exporting diagnostics…|正在导出诊断…|正在匯出診斷…
 Diagnostics saved. You can share this file for support.|诊断已保存，可将文件发送给技术支持。|診斷已儲存，可將檔案傳送給技術支援。
 Could not save diagnostics. Choose another location and try again.|无法保存诊断，请选择其他位置后重试。|無法儲存診斷，請選擇其他位置後重試。
+Claude quota source|Claude quota 来源|Claude quota 來源
+Existing login|现有登录|現有登入
+CLI snapshot|CLI snapshot|CLI snapshot
+Source: Antigravity CLI|来源：Antigravity CLI|來源：Antigravity CLI
+Experimental. Requires a configured Claude Code status line. Snapshots expire after 10 minutes and do not refresh while CLI is closed.|Experimental。需要先配置 Claude Code status line。Snapshot 在 10 分钟后过期，CLI 关闭后不会刷新。|Experimental。需要先設定 Claude Code status line。Snapshot 在 10 分鐘後過期，CLI 關閉後不會重新整理。
+Copy status-line command|复制 status-line command|複製 status-line command
+Bind next CLI session|绑定下一个 CLI session|綁定下一個 CLI session
+The first CLI session is retained until you bind another. Existing login remains available in the source selector.|保留首次绑定的 CLI session，直到你重新绑定。可随时选择“现有登录”。|保留首次綁定的 CLI session，直到你重新綁定。可隨時選擇「現有登入」。
+Waiting for the next CLI session. Other sessions will be rejected.|等待下一个 CLI session；绑定后将拒绝其他 session。|等待下一個 CLI session；綁定後將拒絕其他 session。
+Snapshot busy; try again.|Snapshot 正在写入，请重试。|Snapshot 正在寫入，請重試。
+Command copied. Set it as Claude Code statusLine.command; preserve any existing command.|Command 已复制。将它配置为 Claude Code statusLine.command；请先保留原有 command。|Command 已複製。將它設定為 Claude Code statusLine.command；請先保留原有 command。
+Clipboard busy; try again.|Clipboard 忙碌，请重试。|Clipboard 忙碌，請重試。
+Git Bash installed|已安装 Git Bash|已安裝 Git Bash
+PowerShell (without Git Bash)|PowerShell（未安装 Git Bash）|PowerShell（未安裝 Git Bash）
+Cached|Cached|Cached
+Retry in {0} min|{0} 分钟后重试|{0} 分鐘後重試
+Refreshing quota…|正在刷新 quota…|正在重新整理 quota…
+Refresh timed out|Quota refresh 超时|Quota refresh 逾時
+Waiting for request to stop|等待请求结束|等待請求結束
+Last successful update|上次成功更新|上次成功更新
+Last attempt|上次尝试|上次嘗試
+Next retry|下次重试|下次重試
+HTTP response|HTTP response|HTTP response
+Transport timeout|连接超时|連線逾時
+Transport failure|连接失败|連線失敗
+Invalid response|Response 无有效 quota|Response 無有效 quota
+Response too large|Response 超过大小限制|Response 超過大小限制
+CLI failure|CLI quota 查询失败|CLI quota 查詢失敗
+Local discovery|未发现可用的本地 quota source|未發現可用的本機 quota source
+Local port unavailable|本地 quota endpoint 不可用|本機 quota endpoint 不可用
+Request timeout|Quota request 超时|Quota request 逾時
+CLI timeout|CLI quota 查询超时|CLI quota 查詢逾時
+CLI exit failure|CLI quota process 异常退出|CLI quota process 異常結束
+App|应用|應用程式
+Sort by|排序方式|排序方式
+Refresh|刷新|重新整理
+Monitor|监控|監控

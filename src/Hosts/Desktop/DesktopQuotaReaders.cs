@@ -2,8 +2,10 @@ namespace HardwarePulse.Desktop;
 
 // Composition belongs to the host. Panels and floating presentation receive readings only.
 static class DesktopQuotaReaders {
+    internal static readonly IReadOnlyList<string> Providers=Array.AsReadOnly(new[]{"Codex","Antigravity","Claude"});
     public static QuotaReading Read(bool demo,string provider,CancellationToken cancel) {
         cancel.ThrowIfCancellationRequested();
+        if(!Providers.Contains(provider))throw new ArgumentException("Unsupported quota provider",nameof(provider));
         if(demo) {
             var rows=new List<QuotaWindow>{new(){Label="5-hour",Remaining=72.5,Reset=DateTimeOffset.UtcNow.AddHours(2)},new(){Label="Weekly",Remaining=54,Reset=DateTimeOffset.UtcNow.AddDays(4)}};
             return new(){Provider=provider,Status="Live",Observed=DateTimeOffset.UtcNow,Windows=rows,AllWindows=rows};

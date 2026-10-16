@@ -14,6 +14,13 @@ using Forms=System.Windows.Forms;
 namespace HardwarePulse {
     public sealed partial class Shell {
         void Click(string name,Action action){Control<Button>(name).Click+=delegate{action();};}
+        void SetSelected(Button button,bool selected){
+            button.Background=SystemParameters.HighContrast?(selected?SystemColors.HighlightBrush:Brushes.Transparent):Brush(selected?(light?"#D8E5EC":"#4A6574"):"#00000000");
+            button.Foreground=SystemParameters.HighContrast?(selected?SystemColors.HighlightTextBrush:SystemColors.WindowTextBrush):Brush(light?"#17202B":"#F0F5FA");
+            button.FontWeight=selected?FontWeights.SemiBold:FontWeights.Normal;
+            System.Windows.Automation.AutomationProperties.SetHelpText(button,selected?language.T("Selected"):"");
+        }
+        void UpdateMonitorControls(){SetSelected(Control<Button>("Live"),!maximum);SetSelected(Control<Button>("Max"),maximum);SetSelected(Control<Button>("Details"),settings.Flag("details"));}
         void WireSettings(){
             Control<Button>("Settings").Content=Icon("settings",20);Control<Button>("Back").Content=Icon("back",16);Control<Button>("Minimize").Content=Icon("minimize",14);Control<Button>("Close").Content=Icon("close",14);
             Click("Settings",()=>ShowSettings(true));Click("Back",()=>ShowSettings(false));Click("Minimize",()=>Window.WindowState=WindowState.Minimized);Click("Close",()=>Window.Close());
@@ -27,7 +34,7 @@ namespace HardwarePulse {
             Click("BackgroundColor",delegate{using(var dialog=new Forms.ColorDialog {FullOpen=true,Color=System.Drawing.ColorTranslator.FromHtml(BackgroundHex())})if(dialog.ShowDialog()==Forms.DialogResult.OK){settings.Data["background"]="#"+dialog.Color.R.ToString("X2")+dialog.Color.G.ToString("X2")+dialog.Color.B.ToString("X2");ApplyMaterial();QueueSave();}});
             Click("GitHub",()=>Process.Start(new ProcessStartInfo("https://github.com/medking82/hardware-pulse") {UseShellExecute=true}));
             foreach(var pair in new[]{new[]{"CPU","CPU Name"},new[]{"GPU","GPU Name"},new[]{"Memory","Memory Name"},new[]{"NVMe","NVMe Name"},new[]{"Airflow","Case / Motherboard"},new[]{"ramA","Module 1"},new[]{"ramB","Module 2"},new[]{"diskC","Drive 1"},new[]{"diskD","Drive 2"},new[]{"cpuFan","CPU Fan Name"},new[]{"bottom","System Fan 1"},new[]{"top","System Fan 2"}}){
-                string key=pair[0];var label=Label(pair[1],11);Catalog(label);Control<StackPanel>("NameFields").Children.Add(label);object saved;var editor=new TextBox {MaxLength=160,Padding=new Thickness(6),Margin=new Thickness(0,0,0,12),Text=settings.Map("names").TryGetValue(key,out saved)?Convert.ToString(saved):""};editor.TextChanged+=delegate{settings.Map("names")[key]=editor.Text.Trim();foreach(var view in views.Values)UpdateCard(view);ApplyDensity();QueueSave();};Control<StackPanel>("NameFields").Children.Add(editor);
+                string key=pair[0];var label=Label(pair[1],11);Catalog(label);Control<StackPanel>("NameFields").Children.Add(label);object saved;var editor=new TextBox {MaxLength=160,Padding=new Thickness(6),Margin=new Thickness(0,0,0,12),Text=settings.Map("names").TryGetValue(key,out saved)?Convert.ToString(saved):""};System.Windows.Automation.AutomationProperties.SetLabeledBy(editor,label);editor.TextChanged+=delegate{settings.Map("names")[key]=editor.Text.Trim();foreach(var view in views.Values)UpdateCard(view);ApplyDensity();QueueSave();};Control<StackPanel>("NameFields").Children.Add(editor);
             }
             if(!isolated)RefreshStartup();Control<CheckBox>("StartWithWindows").Click+=async delegate{
                 bool wanted=Checked("StartWithWindows");Control<CheckBox>("StartWithWindows").IsEnabled=false;
@@ -36,9 +43,9 @@ namespace HardwarePulse {
             };
         }
         void RefreshStartup(){try{using(var store=new SchedulerStore())Control<CheckBox>("StartWithWindows").IsChecked=new Startup(store,paths.Exe,WindowsIdentity.GetCurrent().User.Value).IsEnabled();Text("StartupStatus","");}catch{Control<CheckBox>("StartWithWindows").IsChecked=false;Text("StartupStatus",language.T("Startup tasks are unavailable; reinstall to repair"));}}
-        public void ShowSettings(bool show){settingsVisible=show;Control<ScrollViewer>("SettingsPage").Visibility=show?Visibility.Visible:Visibility.Collapsed;Control<Border>("SettingsToolbar").Visibility=show?Visibility.Visible:Visibility.Collapsed;foreach(string name in new[]{"CardScroll","MonitorControls","MonitorFooter","Status"})Control<FrameworkElement>(name).Visibility=show?Visibility.Collapsed:Visibility.Visible;Control<Button>(show?"Back":"Settings").Focus();ApplyDensity();ApplyMaterial();}
+        public void ShowSettings(bool show){settingsVisible=show;Control<ScrollViewer>("SettingsPage").Visibility=show?Visibility.Visible:Visibility.Collapsed;Control<Border>("SettingsToolbar").Visibility=show?Visibility.Visible:Visibility.Collapsed;Control<FrameworkElement>("MonitorFooter").Visibility=show?Visibility.Collapsed:Visibility.Visible;foreach(string name in new[]{"MonitorControls","CardScroll","Status"})Control<FrameworkElement>(name).Visibility=show?Visibility.Collapsed:Visibility.Visible;if(show)Control<TextBlock>("CardsEmpty").Visibility=Visibility.Collapsed;Control<Button>(show?"Back":"Settings").Focus();if(!show&&loaded)RenderPanel();else ApplyDensity();ApplyMaterial();}
         void ApplyLock(){Window.SetValue(WindowSnap.PositionLockedProperty,locked);Window.ResizeMode=locked?ResizeMode.NoResize:ResizeMode.CanResizeWithGrip;Control<FrameworkElement>("DragHandle").Cursor=locked?Cursors.Arrow:Cursors.SizeAll;Control<CheckBox>("LockPosition").IsChecked=locked;foreach(var view in views.Values){view.Grip.IsEnabled=!locked;view.Grip.Opacity=locked?0:1;}ApplyMaterial();}
-        string BackgroundHex(){string color=settings.Text("background","#35383B");return System.Text.RegularExpressions.Regex.IsMatch(color,"^#[0-9a-fA-F]{6}$")?color:"#35383B";}
+        string BackgroundHex(){string color=settings.Text("background","#202831");return System.Text.RegularExpressions.Regex.IsMatch(color,"^#[0-9a-fA-F]{6}$")?color:"#202831";}
         void ApplyMaterial(){
             IntPtr hwnd=new WindowInteropHelper(Window).Handle;if(hwnd==IntPtr.Zero)return;
             var material=new MaterialPolicy(Control<Slider>("OpacitySlider").Value,locked,settingsVisible,Checked("Solid"),SystemParameters.HighContrast);
@@ -48,10 +55,15 @@ namespace HardwarePulse {
             double opacity=material.EffectiveOpacity(supported);
             Window.Background=new SolidColorBrush(Color.FromArgb((byte)Math.Round(255*opacity),color.R,color.G,color.B));Control<Slider>("OpacitySlider").IsEnabled=material.CanAdjustOpacity(supported);Text("OpacityValue",Math.Round(opacity*100)+"%");
             foreach(var entry in themed)entry.Item2.SetValue(entry.Item1,SystemParameters.HighContrast?SystemColors.WindowTextBrush:light?Brush("#17202B"):entry.Item3,null);
+            var key=Control<PasswordBox>("DeepSeekKey");
+            key.Background=SystemParameters.HighContrast?SystemColors.WindowBrush:Brush(light?"#F4F6F8":"#202831");
+            key.Foreground=SystemParameters.HighContrast?SystemColors.WindowTextBrush:Brush(light?"#17202B":"#F0F5FA");
+            key.BorderBrush=SystemParameters.HighContrast?SystemColors.WindowTextBrush:Brush("#718596");
             string chrome=SystemParameters.HighContrast?SystemColors.WindowTextColor.ToString():light?"#17202B":"#C2D8E5";
             Control<Button>("Settings").Content=Icon("settings",20,chrome);Control<Button>("Back").Content=Icon("back",16,chrome);Control<Button>("Minimize").Content=Icon("minimize",14,chrome);Control<Button>("Close").Content=Icon("close",14,chrome);
             Control<ContentControl>("BrandIcon").Content=Icon("live",22,SystemParameters.HighContrast?chrome:light?"#17634F":"#A5E7D5");
             ApplyReadingColors();
+            UpdateMonitorControls();
             var viewport=Control<Grid>("Viewport");if(viewport.Background!=null){var background=viewport.Background.Clone();background.Opacity=opacity;viewport.Background=background;}
             foreach(var view in views.Values){var background=Brush(light?"#DDEEF1F4":"#3031485B").Clone();background.Opacity=opacity;view.Border.Background=background;}
             ApplySettingsPresentation();

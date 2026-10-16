@@ -1,6 +1,7 @@
 ﻿param([switch]$Installer,[string]$SigningCertificateThumbprint,[switch]$Win7Compatibility)
 $ErrorActionPreference='Stop'
 if($Win7Compatibility -and -not $Installer){throw 'Win7Compatibility requires Installer; the runtime selects capabilities from the OS.'}
+& "$PSScriptRoot/Set-Version.ps1" -Check
 $root=Split-Path $PSScriptRoot
 $app=Join-Path $root 'build/app'
 if(Test-Path $app){
@@ -43,7 +44,7 @@ if($Installer){
     $compilerArguments=@("$root/installer/HardwarePulse.iss")
     if($Win7Compatibility){$compilerArguments=@('/DWin7Compatibility')+$compilerArguments}
     & "$PSScriptRoot/Run-Hidden.ps1" $iscc $compilerArguments $root
-    $installerPath=if($Win7Compatibility){"$root/dist/HardwarePulse-Win7-x64-Setup.exe"}else{"$root/dist/HardwarePulse-0.6.27-Setup.exe"}
+    $installerPath=if($Win7Compatibility){"$root/dist/HardwarePulse-Win7-x64-Setup.exe"}else{"$root/dist/HardwarePulse-0.6.57-Setup.exe"}
     if($SigningCertificateThumbprint){& "$PSScriptRoot/Sign.ps1" -Path $installerPath -Thumbprint $SigningCertificateThumbprint}
     if(-not $Win7Compatibility){Copy-Item $installerPath "$root/dist/HardwarePulse-Setup.exe" -Force}
     Get-FileHash $installerPath -Algorithm SHA256 | Select-Object Hash,Path

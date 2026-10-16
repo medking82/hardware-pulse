@@ -210,7 +210,7 @@ public sealed class FloatingMonitorWindow : Window {
         RenderReadings();
     }
     public void PresentQuota(QuotaReading? reading,string provider="Codex") {
-        if(!QuotaSession.Providers.Contains(provider))throw new ArgumentException("Unsupported quota provider",nameof(provider));
+        if(!DesktopQuotaReaders.Providers.Contains(provider))throw new ArgumentException("Unsupported quota provider",nameof(provider));
         if(reading==null)quotaReadings.Remove(provider);else quotaReadings[provider]=reading;
         RenderReadings();
     }

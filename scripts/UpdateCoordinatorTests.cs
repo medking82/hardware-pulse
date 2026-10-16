@@ -68,6 +68,17 @@ static class UpdateCoordinatorTests {
                 }
             }
             Console.WriteLine("PASS OS update channels: exact selection, missing/duplicate/cross-channel URL and absent digest rejected");
+            var failedCheck=new TaskCompletionSource<string>();
+            failedCheck.SetException(new System.Net.WebException("private-response-must-not-appear",System.Net.WebExceptionStatus.ConnectFailure));
+            var failedClient=new Client {CheckResult=failedCheck.Task};
+            using(var c=new UpdateCoordinator(failedClient,version)){
+                c.CheckAsync(now,false).GetAwaiter().GetResult();
+                var detail=typeof(UpdateCoordinator).GetProperty("FailureCode");
+                Check(detail!=null&&Convert.ToString(detail.GetValue(c,null))=="network:ConnectFailure","Update failure must expose a sanitized diagnostic code");
+                failedClient.CheckResult=Task.FromResult(Release("v0.5.2"));
+                c.CheckAsync(now,false).GetAwaiter().GetResult();
+                Check(detail.GetValue(c,null)==null,"Successful retry retained old failure code");
+            }
             var client=new Client();var pending=new TaskCompletionSource<string>();client.CheckResult=pending.Task;
             using(var coordinator=new UpdateCoordinator(client,version)){
                 Check(coordinator.ShouldCheck(now),"Initial auto check");

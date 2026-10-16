@@ -8,9 +8,11 @@
 
 [更新记录](CHANGELOG.zh-CN.md) · [操作示意图](docs/QUICKSTART.zh-CN.md)
 
-**[下载最新 Windows x64 稳定版](https://github.com/medking82/hardware-pulse/releases/latest/download/HardwarePulse-Setup.exe)** · [最新 release notes](https://github.com/medking82/hardware-pulse/releases/latest)
+**[下载 Windows 稳定版 0.6.57](https://github.com/medking82/hardware-pulse/releases/download/v0.6.57/HardwarePulse-Setup.exe)**
 
-Windows x64 稳定版 [0.6.53](https://github.com/medking82/hardware-pulse/releases/tag/v0.6.53) 使用 native WPF runtime，包含硬件监控、FPS、Desktop mode 及可独立开启的 AI quota。Windows ARM64、Linux 和 macOS 不属于本次稳定发布范围。
+macOS 可测试 [0.7.0-macos-rc.1 — Apple Silicon／Intel](https://github.com/medking82/hardware-pulse/releases/tag/v0.7.0-macos-rc.1)。此 RC 尚未完成 Developer ID signing 与 notarization，真实 Mac 的 Gatekeeper、温度和风扇 acceptance 仍未完成，不是 macOS stable release。
+
+另保留面向 Windows、Linux、macOS 的 x64／ARM64 [早期实验性跨平台预发布版 0.7.0-preview.1](https://github.com/medking82/hardware-pulse/releases/tag/v0.7.0-preview.1)，功能尚未与 Windows 稳定版对等，不替代现有安装程序。
 
 ### 更新与桌面位置
 
@@ -18,13 +20,16 @@ Windows x64 稳定版 [0.6.53](https://github.com/medking82/hardware-pulse/relea
 - **锁定位置与大小** 禁用移动、调整大小和卡片排序。锁定监控页面的背景不透明度降为原设置的四分之一并关闭模糊；设置保持可读。从托盘或设置解锁后恢复；纯色／高对比度设置优先。这还不是桌面层嵌入。
 - 应用程序默认 **自动（跟随系统）**，安装程序也根据 Windows UI 语言预选英语、简体或繁体中文。
 
-当前已发布版本为 **0.6.53**，优化 Windows monitor toolbar 和 Settings states，并保留现有 actions 与 saved preferences。使用上方下载链接获取最新 installer。
+当前版本为 **0.6.57**：DeepSeek 使用精简余额标题，支持保存 CNY（RMB）／USD／全部币种选择，统一图标风格，并补齐桌面显隐与排序。保留已有的密钥加密存储、Wi-Fi 信号读取和快照共享冲突有限重试。Pulse 保持只读硬件监控边界；[Resources 与进程清理功能已退役](docs/MEMORY-CLEANUP.zh-CN.md)。
+
+刷新时，点击额度卡片的 **↻** 按钮；也可进入 **设置 → AI Quota → 刷新额度**，刷新所有已启用的来源。暂缓请求会显示下一次允许请求的时间；连续点击不能绕过限流。
 
 适用于 **Windows 10 22H2 / Windows 11 x64** 的轻量桌面硬件组件，集中显示 CPU、GPU、内存、NVMe 和风扇读数，以及实时 RAM/VRAM 用量。
 
 采用 WPF 毛玻璃背景、原创 SVG 图标和 Segoe UI 字体排版，支持调整背景不透明度、随窗口宽度缩放，以及保存卡片顺序。运行时不需要 HWiNFO、浏览器、Codex 或云服务；需要 Windows 自带的 .NET Framework 4.8；安装后的应用程序不再依赖 PowerShell 运行环境。
 
 ### 使用方式
+
 
 - **设置 → 语言** 可即时切换英语、简体中文和繁體中文，自动保存选择；默认自动（跟随系统），保留手动选择。设备型号、自定义名称和单位保持原样。
 
@@ -36,6 +41,24 @@ Windows x64 稳定版 [0.6.53](https://github.com/medking82/hardware-pulse/relea
 - 毛玻璃在非活动状态时保持透明；不支持的桌面合成使用纯色回退背景。
 - DIMM 和两块 NVMe 采用等宽列。RAM/VRAM 用量在本次峰值中仍实时更新；GB 使用二进制单位，分母为操作系统/驱动报告的可用容量，可能小于实际安装的容量。
 - **GPU 风扇转速** 显示的是 RPM 遥测通道，不代表实体风扇的数量。
+
+### AI Quota
+
+在设置 → AI 额度分别启用 Codex、Antigravity、Claude 和 DeepSeek；默认均关闭。
+前三者显示剩余百分比与重置时间，DeepSeek 显示钱包金额，正常每五分钟刷新。
+无需运行 Token Monitor。Codex／Claude Code 需先登录，过期登录仍由对应应用更新。
+
+DeepSeek：在开放平台创建 API Key，粘贴到遮罩输入框，点击**加密保存**，再开启
+**DeepSeek** 开关；保存本身不会发起监控。可选择只显示 CNY（RMB）、只显示 USD 或全部币种，主卡片与桌面同步生效，只筛选、不换汇。选择**完整额度**可查看赠送和充值分项。设置 → 桌面中可开关 DeepSeek 并拖动排序；桌面隐藏不会停止查询或隐藏主卡片。
+**移除密钥**只删除本机副本，不会在 DeepSeek 平台吊销密钥。API Key 也可能允许付费
+模型调用，请勿分享。密钥文件使用当前 Windows 用户级 DPAPI 加密，只保护落盘数据，
+不能防护已被控制的用户账户。首次余额版本已确认真实 Key 请求成功并显示余额；后续界面修复使用合成数据验证，安装、重启及真实账户错误场景另行验收。
+
+Antigravity 优先读取正在运行的 Desktop session。没有可用 Desktop session 时，
+Pulse 可通过已经安装并登录的 Antigravity CLI 读取 `/usage`，无需打开或保持
+terminal window。此来源标注为 `CLI`，其 account 可能与 Desktop 不同。已识别的
+Desktop session 出现 authentication、access 或 network failure 时，不会自动
+切换到 CLI account。两个来源都不可用时，需要打开 Antigravity。
 
 ### 硬件发现与范围
 
@@ -49,13 +72,13 @@ DIMM 品牌、型号和已安装的槽位来自 SMBIOS。**SPD #1/#3 是传感�
 
 ### 原位升级
 
-可直接安装最新已发布版本覆盖现有版本，无需全新安装。安装程序会停止旧采集器、替换应用程序及其两个启动任务，并清理明确列出的旧脚本/源代码文件。偏好设置和桌面位置与大小保留在 LocalAppData；Windows PowerShell 和共享 PawnIO 保持安装。升级中断或失败时可能需要重新运行安装程序；文件清理不提供事务性回滚。
+可直接安装 0.6.57 覆盖现有版本，无需全新安装。安装程序会停止旧采集器、替换应用程序及其两个启动任务，并清理明确列出的旧脚本/源代码文件。偏好设置和桌面位置与大小保留在 LocalAppData；Windows PowerShell 和共享 PawnIO 保持安装。升级中断或失败时可能需要重新运行安装程序；文件清理不提供事务性回滚。
 
 ### 安装程序与自动启动
 
 安装程序会预先检查 .NET Framework 4.8。PawnIO 库或驱动注册缺失时，会自动运行内置的官方安装程序，并在完成后再次检查；失败时不会继续注册自动启动。Windows 自带的组件若缺失或损坏，需要先修复 Windows；安装程序不会自动修改 Windows 功能或安全设置。这些检查验证安装状态，不保证驱动能在所有安全策略下加载。
 
-发行版中的 `HardwarePulse-Setup.exe` 包含应用程序、固定版本的 LibreHardwareMonitor 库、许可声明/源代码归档，以及官方 PawnIO 2.2.0 前置依赖安装包，无需在运行时下载依赖项。目标 Windows 版本自带 .NET Framework 4.8 和 Windows PowerShell 5.1；安装程序会检查 .NET 要求。
+发行版中的 `HardwarePulse-Setup.exe`（版本 0.6.57）包含应用程序、固定版本的 LibreHardwareMonitor 库、许可声明/源代码归档，以及官方 PawnIO 2.2.0 前置依赖安装包，无需在运行时下载依赖项。目标 Windows 版本自带 .NET Framework 4.8 和 Windows PowerShell 5.1；安装程序会检查 .NET 要求。
 
 请使用当前 Windows 管理员账户安装，并确认 UAC。代码安装到 Program Files；安装程序会注册当前用户的交互式采集器任务，以及普通权限的组件任务。组件在登录后延迟 10 秒启动。卸载会保留共享 PawnIO 和用户设置。此版本不支持使用另一个管理员账户，为标准用户代为安装。
 
@@ -67,7 +90,17 @@ DIMM 品牌、型号和已安装的槽位来自 SMBIOS。**SPD #1/#3 是传感�
 
 安装过程不会添加根证书／受信任发布者证书或安全排除项。不可导出的私钥留在作者本机的 Windows 证书存储区，不随软件分发。发行版附带校验值和可供检查的公钥证书；当前自签名构建没有时间戳。参见 [Microsoft 签名选项](https://learn.microsoft.com/windows/apps/package-and-deploy/code-signing-options)。
 
+### Native release version
+
+先运行 `scripts/Set-Version.ps1 -Check` 检查九个 native release 文件。更新 version 前，用
+`scripts/Set-Version.ps1 -ExpectedVersion <current> -Version <next> -WhatIf` 预览，
+确认后去掉 `-WhatIf` 执行。Script 保留每个文件原有的 UTF-8 BOM 和换行，并在写入前拒绝 version drift。
+Changelog 和 release description 另行更新；shared Desktop prerelease version 与历史记录不在 script 的修改范围内。
+`Build.ps1` 在替换 build output 前检查 version；`Validate.ps1` 同时验证 helper。
+
 ### 构建、编码与许可证
+
+[界面验收约定](docs/UI-STYLE.zh-CN.md)记录语言、币种与桌面要求。共享 Desktop 运行时保留已有百分比来源，尚未提供原生版的 DeepSeek 密钥编辑器和钱包界面。
 
 在 Windows 11 上使用 PowerShell 7 进行构建；PowerShell 7 仅为构建工具，不是运行环境要求。
 

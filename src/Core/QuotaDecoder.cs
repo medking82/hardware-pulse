@@ -25,12 +25,18 @@ namespace HardwarePulse {
         }}
         public static QuotaReading Decode(string provider,object body,DateTimeOffset now){
             var compact=DecodeWindows(provider,body,now,false);
-            compact.AllWindows=DecodeWindows(provider,body,now,true).Windows;
+            var full=DecodeWindows(provider,body,now,true);
+            compact.AllWindows=full.Windows;
+            compact.AllBalances=full.AllBalances;
             return compact;
         }
         static QuotaReading DecodeWindows(string provider,object body,DateTimeOffset now,bool full){
             var r=new QuotaReading{Provider=provider,Observed=now};
-            if(provider=="Codex"){
+            if(QuotaCatalog.IsMoney(provider)){
+                var money=DeepSeekBalance.Decode(body,now);
+                r.Status=money.Status;r.Balances=full?money.AllBalances:money.Balances;r.AllBalances=money.AllBalances;
+                return r;
+            }else if(provider=="Codex"){
                 var byId=Get(body,"rateLimitsByLimitId","rate_limits_by_limit_id") as Dictionary<string,object>;
                 object main=null;if(byId!=null)byId.TryGetValue("codex",out main);
                 CodexPool(r,"",main??Get(body,"rate_limit","rateLimit","rateLimits","rate_limits"));

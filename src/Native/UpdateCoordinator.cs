@@ -44,6 +44,7 @@ namespace HardwarePulse {
         public bool Checking {get;private set;}
         public bool Downloading {get;private set;}
         public string StatusKey {get;private set;}
+        public string FailureCode {get;private set;}
         public string VersionText {get;private set;}
         public DateTime NextCheck {get;private set;}
         public bool Ready {get{return !disposed&&client.Ready;}}
@@ -58,7 +59,7 @@ namespace HardwarePulse {
         public async Task CheckAsync(DateTime now,bool autoDownload){
             if(disposed||Busy)return;
             if(Ready){StatusKey="Update ready to install";return;}
-            Checking=true;NextCheck=now.AddHours(6);StatusKey="Checking for updates…";VersionText=null;asset=null;
+            FailureCode=null;Checking=true;NextCheck=now.AddHours(6);StatusKey="Checking for updates…";VersionText=null;asset=null;
             try {
                 string json=await client.CheckAsync();if(disposed)return;
 #if NET
@@ -73,11 +74,23 @@ namespace HardwarePulse {
                     if(assets.Length!=1||!UpdateCheck.ValidAsset(assets[0].browser_download_url,release.tag_name,assets[0].digest,assets[0].size,legacyWindows))throw new InvalidDataException("Invalid installer metadata");
                     asset=assets[0];tag=release.tag_name;StatusKey="Update available";VersionText=remote.ToString();
                 }else StatusKey="You are up to date";
-            }catch{if(!disposed)StatusKey="Update check failed; try again";}
+            }catch(Exception error){if(!disposed){FailureCode=SafeFailureCode(error);StatusKey="Update check failed; try again";}}
             finally{Checking=false;}
             if(!disposed&&autoDownload&&asset!=null)await DownloadAsync();
         }
 
+        // Expose only categories, never exception text, response bodies, URLs or credentials.
+        static string SafeFailureCode(Exception error){
+            var web=error as System.Net.WebException;
+            if(web!=null){
+                var response=web.Response as System.Net.HttpWebResponse;
+                return response!=null?"http:"+((int)response.StatusCode).ToString(System.Globalization.CultureInfo.InvariantCulture):"network:"+web.Status;
+            }
+            if(error is InvalidDataException || error is FormatException)return "release:InvalidMetadata";
+            if(error is System.Security.Authentication.AuthenticationException)return "network:TLS";
+            if(error is System.IO.FileNotFoundException || error is System.IO.FileLoadException || error is BadImageFormatException)return "runtime:AssemblyLoad";
+            return "update:UnexpectedError";
+        }
         public async Task DownloadAsync(){
             if(!CanDownload)return;
             Downloading=true;StatusKey="Downloading update";VersionText=null;

@@ -14,27 +14,45 @@
 
 [Dependency maintenance and Linux/macOS roadmap](docs/DEPENDENCIES.md)
 
-**Windows x64 stable:** [Hardware Pulse 0.6.53](https://github.com/medking82/hardware-pulse/releases/tag/v0.6.53) uses the native WPF runtime with hardware monitoring, FPS, Desktop mode and independent AI quota controls.
+**macOS Release Candidate:** [0.7.0-macos-rc.1 — Apple Silicon / Intel](https://github.com/medking82/hardware-pulse/releases/tag/v0.7.0-macos-rc.1). This prerelease is unsigned and unnotarized; real-Mac Gatekeeper and temperature/fan acceptance remain incomplete. It is not a macOS stable release.
 
-**[Download latest Windows x64 installer](https://github.com/medking82/hardware-pulse/releases/latest/download/HardwarePulse-Setup.exe)** · [Latest release notes](https://github.com/medking82/hardware-pulse/releases/latest)
+**Earlier experimental shared Desktop:** [0.7.0-preview.1 — Windows / Linux / macOS, x64 / ARM64](https://github.com/medking82/hardware-pulse/releases/tag/v0.7.0-preview.1). Self-contained downloads with live CPU/RAM/network and opt-in Codex quota. This preview does not replace the stable Windows App; [feature gaps, signing status and launch guide](docs/DESKTOP-PREVIEW.md).
 
-**0.5.0** migrates the installed UI, collector and startup helpers to C#/.NET without a PowerShell runtime dependency. [Measured comparison](docs/PERFORMANCE-0.5.0.md). The installer remains self-signed; the SignPath Foundation application was rejected. See the [signing status](SIGNING.md).
+**[Download 0.6.57 EXE](https://github.com/medking82/hardware-pulse/releases/download/v0.6.57/HardwarePulse-Setup.exe)** · [0.6.57 release notes](https://github.com/medking82/hardware-pulse/releases/tag/v0.6.57)
+
+**0.5.0** migrates the installed UI, collector and startup helpers to C#/.NET without a PowerShell runtime dependency. [Measured comparison](docs/PERFORMANCE-0.5.0.md). The installer remains self-signed; The SignPath Foundation application was declined; no publicly trusted certificate is claimed.
 
 See [Desktop Mode](docs/DESKTOP-MODE.md) for wallpaper integration, appearance controls and validation limits.
 
 Use **Ctrl+Alt+F10** to show/hide Desktop without opening App. Customize or disable it in Settings → Desktop; enable Always on top for games.
 
-Latest published release: **0.6.53** improves the Windows monitor toolbar and Settings states while preserving existing actions and saved preferences.
+Latest: **0.6.57** includes compact DeepSeek balance labels, a saved CNY (RMB) / USD / All display choice, consistent provider artwork, and Desktop visibility/order controls. Existing encrypted-key storage, Wi-Fi Signal and bounded snapshot sharing/lock recovery remain in place. Pulse remains a read-only hardware monitor; [Resources and process cleanup are retired](docs/MEMORY-CLEANUP.md).
 
 Appearance → Colors selects Hardware Colors or a custom Unified Color for Monitor icons and temperatures. Cards → Network Speed Unit selects Auto, KB/s, MB/s or Mbit/s (decimal units; 1 MB/s = 8 Mbit/s). Network shows the busiest adapter by combined download/upload rate, with its name visible, and is not the sum of all adapters. Desktop reading order includes Download and Upload.
 
-Settings in 0.6.27: Settings → AI Quota enables independent Codex,
-Antigravity and Claude quota readings in Monitor and Desktop Mode. Only remaining
-percentages and reset times are read, every five minutes. Token Monitor is not
-required. Sign in through Codex/Claude Code first; keep Antigravity running.
-Each provider is off by default. Expired login must be renewed in its owning app.
+Settings in 0.6.57: Settings → AI Quota enables independent Codex,
+Antigravity, Claude and DeepSeek readings in Monitor and Desktop Mode. Codex,
+Antigravity and Claude show percentages/reset times; DeepSeek shows wallet money.
+Each provider is off by default and normally refreshes every five minutes. Token
+Monitor is not required. Existing logins remain owned by Codex/Claude Code.
 
-Version 0.6.27 also displays negotiated Network Link Speed for the selected
+For DeepSeek, paste an API key from the DeepSeek platform into the masked field,
+choose **Save Encrypted**, then enable **DeepSeek**. Saving alone does not start
+requests. Select CNY (RMB), USD or All for both App and Desktop; amounts are filtered, never converted. **All Available Quotas** adds granted/topped-up balance rows. Settings → Desktop includes a DeepSeek visibility switch and reorder handle; hiding it does not stop queries or hide the App card. Removing
+the local key does not revoke it at DeepSeek. API keys may also permit paid model
+calls: do not share them. The encrypted file is bound to the current Windows user;
+DPAPI protects storage, not a compromised user account. A real-key request and visible balance were confirmed on the original balance release. The newer UI is checked with synthetic fixtures; installation, restart and real-account error cases are separate acceptance steps.
+
+To refresh, use the **↻** button on a quota card, or **Settings → AI Quota → Refresh Quota** for all enabled providers. Deferred requests show their next allowed time; repeated clicks do not bypass rate limits.
+
+Antigravity uses its running Desktop session first. When no usable Desktop session
+is found, Pulse can read `/usage` through an already installed and signed-in
+Antigravity CLI, without opening or keeping a terminal window. The reading is
+labeled `CLI`, whose account may differ from Desktop. A detected Desktop session's
+authentication, access or network failure does not silently switch to the CLI.
+Without either source, open Antigravity to make quota available.
+
+Version 0.6.57 also displays negotiated Network Link Speed for the selected
 adapter, in Mbit/s or Gbit/s. This is the adapter connection rate, not a measured
 internet speed or the current Download/Upload throughput. Missing speed is shown
 as unknown, and disconnected adapters are labeled.
@@ -55,7 +73,7 @@ Author:**[Marck Wong](https://github.com/medking82)**
 - **Lock Position and Size** disables window movement, resizing and card reordering. Locked Monitor uses one-quarter of your saved background opacity and disables blur; Settings remains readable. Unlock in Settings or the tray to restore the previous appearance. Solid/high-contrast preferences take precedence. This does not embed Pulse into the desktop layer.
 - App language defaults to **Auto (System)**, with English fallback; installer supports English, Simplified and Traditional Chinese, preselected from Windows UI language.
 
-The published version is **0.6.53** with multilingual UI and animated card reordering. Use the download link above for the latest installer.
+The published version is **0.6.57** with multilingual UI and animated card reordering. Use the download link above for the latest installer.
 
 A compact hardware widget by **[Marck Wong](https://github.com/medking82)** for **Windows 10 22H2 / Windows 11 x64**.
 
@@ -67,6 +85,7 @@ width-adaptive layout and persistent card order. No HWiNFO, browser, Codex or cl
 required to run it. Windows .NET Framework 4.8 is required. The installed C#/WPF runtime does not load PowerShell or run scripts.
 
 ### Use
+
 
 - **Settings → Language** switches instantly between English, Simplified Chinese and Traditional Chinese and saves your selection. Auto (System) is the default; explicit choices are preserved. Device models, custom names and units stay unchanged.
 
@@ -88,13 +107,13 @@ Sensors are read-only; this app does not tune fan curves or Curve Optimizer.
 
 ### In-place upgrade
 
-Install the latest released version over the existing version; a clean install is not required. Setup stops the old collector, replaces the app and its two owned startup tasks, and removes an explicit list of obsolete app scripts/source files. Preferences and desktop geometry remain in LocalAppData. Windows PowerShell and shared PawnIO remain installed. An interrupted or failed upgrade may require rerunning setup; file cleanup is not a transactional rollback.
+Install 0.6.57 over the existing version; a clean install is not required. Setup stops the old collector, replaces the app and its two owned startup tasks, and removes an explicit list of obsolete app scripts/source files. Preferences and desktop geometry remain in LocalAppData. Windows PowerShell and shared PawnIO remain installed. An interrupted or failed upgrade may require rerunning setup; file cleanup is not a transactional rollback.
 
 ### Installer
 
 Setup checks .NET Framework 4.8 before installation. If the PawnIO library or driver registration is missing, it runs the bundled official installer and checks again before registering startup. Missing or damaged Windows components require Windows repair; setup does not change Windows features or security settings. These checks establish installation presence, not successful driver loading under every security policy.
 
-The release asset `HardwarePulse-Setup.exe` bundles the application, pinned LibreHardwareMonitor libraries,
+The release asset `HardwarePulse-Setup.exe` (version 0.6.57) bundles the application, pinned LibreHardwareMonitor libraries,
 license notices/source archives and official PawnIO 2.2.0 prerequisite installer. No runtime downloads. The target Windows versions include .NET Framework 4.8; setup checks that requirement.
 The installer requires UAC elevation and is intended for installation by the current administrator
 account. It installs protected code in Program Files and registers the current-user interactive
@@ -107,7 +126,18 @@ geometry, opacity, pin state, Solid Background, Larger Text and card order. Geom
 The release app and installer use a **self-signed Authenticode certificate, CN=Marck Wong**. This is not a public-CA-verified publisher identity: Windows/SmartScreen can still block or warn, and antivirus detection is independent of signing. No Root/TrustedPublisher certificate or security exclusion is installed. The non-exportable private key stays in the author's Windows certificate store and is never distributed. Releases include checksums and the public certificate for inspection. The current self-signed build is not timestamped.
 See [Microsoft signing options](https://learn.microsoft.com/windows/apps/package-and-deploy/code-signing-options).
 
+### Native release version
+
+Use `scripts/Set-Version.ps1 -Check` to verify the nine native release files. Before a
+version bump, preview with `scripts/Set-Version.ps1 -ExpectedVersion <current> -Version <next> -WhatIf`,
+then repeat without `-WhatIf`. The script preserves each file's UTF-8 BOM and newlines and
+rejects version drift before writing. Update changelogs and release descriptions separately;
+shared Desktop prerelease versions and historical notes are outside this script's ownership.
+`Build.ps1` checks versions before replacing build output; `Validate.ps1` also exercises the helper.
+
 ### Build
+
+The [UI acceptance contract](docs/UI-STYLE.md) records language, currency and Desktop requirements. The shared Desktop host retains its existing percentage providers; it does not yet include the native DeepSeek editor or wallet UI.
 
 Use PowerShell 7 on Windows 11 (build tool only):
 

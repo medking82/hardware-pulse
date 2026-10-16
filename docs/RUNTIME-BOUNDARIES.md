@@ -21,13 +21,19 @@ The native runtime has these existing boundaries:
 | UpdateCoordinator | Version selection, check schedule, operation state, retries and disposed-result handling | Headless UpdateCoordinatorTests |
 | Pulse.Core / MaterialPolicy | Derive effective opacity and backdrop flags from saved preferences and current display state | Shared Core tests, headless material tests and WPF lock/settings roundtrip |
 | Pulse.Core / ContrastAnalysis | Bounded luminance analysis, temporal hysteresis and local region color/edge confidence | Headless CoreTests; no WPF, Win32 or capture dependencies |
-| LocalContrast | Windows capture exclusion, reusable GDI buffers and WPF mask creation | Actual capture, resize, dispose/resume and Screenshot mode integration |
+| LocalContrast | Windows capture exclusion, reusable GDI buffers and optional diagnostic WPF masks | Actual capture, resize, dispose/resume and Screenshot mode integration |
 
 ReadingSession is synchronous and is called on the UI thread. It owns no timer,
 window, scheduler or driver. Its state is per Shell instance, and the UI treats
 Latest as read-only. Cards and overlay consume the same session. Closing to tray
 continues polling; shutdown/STOP handling and the two-second timer remain owned
 by Shell. These lifecycle semantics were preserved during extraction.
+
+The native Collector disables LHM's unused `ISensor.Values` history with
+`ValuesTimeWindow = TimeSpan.Zero` as sensors are discovered after each hardware
+update, including sub-hardware and newly activated sensors. Current readings,
+LHM's independent Min/Max tracking, and Pulse's `ReadingSession.Peaks` remain
+unchanged. This is an in-memory retention policy, not a hardware control write.
 
 `scripts/Test-ReadingSession.ps1` references the actual Pulse.Core and
 Pulse.Adapters.Windows DLLs for its headless integration fixture, including the
@@ -63,7 +69,20 @@ opacity. Settings file layout and unknown-field preservation remain in Settings.
 analysis buffers and the previous-frame state. It neither captures the screen nor
 owns a timer, settings, credentials, files or threads. One instance is serialized
 by its caller. Region queries use the latest analyzed frame and allocate no pixel
-arrays. DesktopView maps its text bounds into the bounded analysis grid.
+arrays. Native DesktopView maps rendered glyph bounds into the bounded analysis
+grid, excluding TextBlock leading and reserved alignment space. It rounds both
+rectangle endpoints outward and clips queries to the grid after DPI/downsampling.
+Per-pixel light/dark hysteresis is derived from the actual #141414/#F5F5F5 ink pair;
+an established pixel shade persists only within a 10% contrast-ratio advantage band.
+Initial pixels without a prior shade choose at the equal-contrast crossover.
+Native capture passes text opacity into Core. For translucent ink, cached channel
+tables include RGB alpha compositing before the existing contrast decision; the
+host preserves the user's surface/text opacity and skips capture for invisible
+text. Existing diagnostic callers retain the opaque-ink overload.
+The native Desktop calls `LocalContrast.CaptureAnalysis` for grid dimensions and
+queries `RegionColor` after the worker completes. It does not create a bitmap per
+frame. `Capture` retains the independent frozen mask for diagnostic consumers;
+both paths share the same serialized capture and analysis implementation.
 
 `scripts/Build-Core.ps1` builds an AnyCPU `Pulse.Core.dll` with the existing Windows
 Framework compiler. Build-Native references that DLL and the release payload
@@ -103,6 +122,13 @@ continues to own schema 1/2 compatibility, parsing, value validation, freshness
 checks and its snapshot identity. Core treats identity as an opaque string: the
 same identity may update Latest but must not advance peaks. The host passes time
 and serializes calls; the session does not sample independently.
+
+Windows snapshot reads retry only sharing and lock violations (HRESULT
+0x80070020/0x80070021), with three total attempts and two 20 ms delays. Persistent
+conflicts and all other failures retain the OFFLINE contract. The adapter includes
+monotonic retry elapsed time in its freshness check, and never substitutes cached
+numeric values. This policy covers the Framework and modern Windows readers;
+generic JSON/settings I/O and the collector protocol are unchanged.
 
 On unavailable readings, the session retains the preceding availability, display
 names, GPU fan count, usage capabilities and peaks. A new LIVE reading replaces
@@ -262,11 +288,22 @@ serialized by Collector's existing sampling loop; no timer or process is added.
 
 Unavailable speed/signal stays null, and no second connection is assumed. The WLAN
 query reads the connected interface only; it does not scan or change connections.
+`WifiSignal` first requests `wlan_intf_opcode_realtime_connection_quality`, which
+excludes location-sensitive information and provides the actual 0–100 link quality.
+Only unsupported-opcode errors (50/87) fall back to the legacy connected-interface
+query. Access denied, other errors and malformed data remain unavailable; returned
+native buffers and the WLAN handle are released. No polling cadence is changed.
+`SensorProfile` retains connected Wi-Fi's signal capability when the numeric query
+is unavailable. Desktop renders `—`, clears the signal row on disconnect and shares
+one visibility/order option with legacy `netSignal` settings.
 WindowsAdapterTests compile against the real adapter DLL without the app or WPF,
 then perform read-only live checks of host identifier mapping, optional links,
 speed/signal semantics and invalid Wi-Fi input. These are smoke checks on this
 Windows machine, not simulated disconnect/reconnect or hardware coverage for every
 NIC. Existing differential fixtures still verify the downstream sensor mapping.
+Deterministic native-query fixtures additionally check API selection, unavailable
+replies, percentage bounds, legacy fallback and native buffer ownership. WPF fixtures
+check missing/recovered/disconnected signals and canonical settings compatibility.
 Test-WindowsAdapters is included in Validate. Source rollback requires no settings
 migration; no CPU/RAM improvement is claimed for this extraction.
 

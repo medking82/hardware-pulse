@@ -73,4 +73,15 @@ $rejected=$false
 try{& "$PSScriptRoot/Run-Hidden.ps1" (Join-Path $output 'collector-identity.exe') @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',"/LOG=$identityLog") $root}
 catch{if($_.Exception.Message -notmatch 'failed with exit code 1:'){throw};$rejected=$true}
 if(-not $rejected -or -not(Test-Path $identityLog) -or -not([IO.File]::ReadAllText($identityLog).Contains('PASS collector identity:'))){throw 'Collector identity validation did not finish before rejecting setup'}
+& "$PSScriptRoot/Run-Hidden.ps1" $compiler @("/O$output","$root/installer/tests/StopSignal.iss") $root | Out-File (Join-Path $output 'stop-build.log') -Encoding utf8
+$stopLog=Join-Path $output 'stop-run.log'
+$keeper=Join-Path $output 'stop-keeper';$linked=Join-Path $output 'stop-link'
+$null=New-Item -ItemType Directory -Path $keeper
+$null=New-Item -ItemType Junction -Path $linked -Target $keeper
+$rejected=$false
+try{& "$PSScriptRoot/Run-Hidden.ps1" (Join-Path $output 'stop-signal.exe') @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',"/LINKPATH=$linked","/LOG=$stopLog") $root}
+catch{if($_.Exception.Message -notmatch 'failed with exit code 1:'){throw};$rejected=$true}
+finally{Remove-Item -LiteralPath $linked -Force}
+if(-not $rejected -or -not(Test-Path $stopLog) -or -not([IO.File]::ReadAllText($stopLog).Contains('PASS STOP recovery:'))){throw 'STOP recovery validation did not complete'}
+if(Test-Path -LiteralPath (Join-Path $keeper 'STOP')){throw 'Linked keeper was modified'}
 "PASS compiled installer variants: OS gates, prerequisite isolation, PresentMon exclusion, stable AppId and startup/upgrade contracts. Evidence: $output"

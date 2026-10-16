@@ -7,6 +7,11 @@ static class CodexQuotaTests {
     static void Check(bool ok,string message){if(!ok)throw new Exception(message);}
     static object Login(object token,object account){return new Dictionary<string,object>{{"tokens",new Dictionary<string,object>{{"access_token",token},{"account_id",account}}}};}
     public static void Run(){
+        var clock=new DateTimeOffset(2026,9,20,0,0,0,TimeSpan.Zero);
+        Check(QuotaFailure.ParseRetryAfter("600",clock)==clock.AddMinutes(10),"Retry-After seconds");
+        Check(QuotaFailure.ParseRetryAfter(clock.AddMinutes(10).ToString("r"),clock)==clock.AddMinutes(10),"Retry-After HTTP date");
+        foreach(string invalid in new[]{"","-1","1.5","NaN","999999999999999999999999","2026-09-20","Monkeys"})Check(!QuotaFailure.ParseRetryAfter(invalid,clock).HasValue,"Invalid Retry-After is ignored");
+        Check(CodexQuota.Read(()=>Login("synthetic",null),(t,a,c)=>{throw new QuotaFailure("Refresh rate limited",clock.AddMinutes(10));},CancellationToken.None).RetryAt==clock.AddMinutes(10),"Transport retry deadline reaches quota reading");
         int logins=0,requests=0;object account="synthetic-account";
         Func<object> login=()=>{logins++;return Login("synthetic-token",account);};
         Func<string,string,CancellationToken,object> request=(token,id,cancel)=>{

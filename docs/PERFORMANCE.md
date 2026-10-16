@@ -498,3 +498,299 @@ the interval), and working set still grew within each run. Endpoint differences
 do not establish lower steady-state RAM or absence of a leak. Longer runs and
 real desktop/GPU environments remain unmeasured. Hardware renderer policy and
 the shipped Windows WPF runtime are unchanged.
+
+## Windows WPF 0.6.35 ten-minute UI observation
+
+Measured on 2026-09-21 (UTC+8), release source `a42a809`, with 16 logical
+processors. Run `scripts/Measure-NativeUi.ps1 -AppDirectory build/native/app
+-Seconds 600 -Scene monitor` through the Windows hidden runner after building
+the native app and test harness. The isolated state uses synthetic hardware
+snapshots updated every two seconds; hardware collection, FPS and quota reads
+are disabled. The window is 310 x 690 DIP (465 x 1035 pixels), over the host
+desktop, with Local Contrast disabled. No user settings are changed.
+
+After ten seconds of warm-up, 300 samples covered 605.43 seconds. CPU is
+normalized over all logical processors; memory is process memory, not managed
+heap size. No forced GC or working-set trimming was used.
+
+| Measurement | Observation |
+| --- | ---: |
+| Average CPU, percent of whole machine | 0.1092% |
+| Mean working set | 123.88 MiB |
+| Working set range | 123.21–124.25 MiB |
+| Mean private memory | 94.12 MiB |
+| Private memory range | 93.68–94.77 MiB |
+| First / last 30 samples, mean working set | 123.45 / 124.22 MiB |
+| First / last 30 samples, mean private memory | 94.10 / 94.18 MiB |
+
+The harness completed successfully and its owned process exited. This single
+short observation does not demonstrate long-term absence of leaks, an
+improvement over 0.6.27, total installed-app cost, real collector cost, quota
+process cost, desktop-layer integration, or gaming impact. It is a baseline for
+future matched measurements, not a performance guarantee.
+
+Evidence identity (SHA-256):
+
+- Application: `4A7884F6150925FD31B3C08DEB0AE8972E66F7338394E3AC35FE5BB8B059F057`
+- Core: `D3F1733880E98C71352E747B071E75760B6BF4481388E75902484E50D687939F`
+- Windows adapter: `6E406D6591F9B2C8135B997CA34C792C29B911FF95F755D74FD61E7A2F56247F`
+- Harness: `E02DE3A4AF4DA329F1766E236B25700D9B47F2F8D9A0E9BECAE41FCAB8F1A491`
+
+Raw local results and samples are retained in
+`vendor/ui-measure-fb29c783e54b41159aaa61dc6f888a75`; these machine-local artifacts
+are not distributed in the installer or committed to Git.
+
+## WPF refresh work reduction after 0.6.36
+
+Baseline source: `64040491acbd1e5e467adf6b4b0f1fad8b4aeb58` (0.6.36).
+Measured on 2026-09-21, Windows x64, 16 logical processors. The candidate retains
+the WPF cards, glass material, fonts and saved preferences. App density is
+recomputed on geometry/capability changes instead of every poll. The 500 ms FPS
+tick updates only its existing Desktop row; identical FPS text retains its runs.
+The two-second hardware/ordinary Desktop refresh and 100 ms Local Contrast timer
+are unchanged. SensorProfile keeps per-snapshot discovery but avoids temporary
+match arrays; it adds no persistent topology cache or new dependency.
+
+Two fresh-process baseline/candidate pairs ran sequentially, with the order
+reversed in the second pair. No forced collection or working-set trimming was
+used. These are bounded component measurements, not installed-app savings or
+long-term leak evidence.
+
+### App refresh workload
+
+The existing `NativeTests.exe <isolated-state> perf` workload warms up 20 polls,
+then processes 300 synthetic changing snapshots with dispatcher pumping. The
+window is 310 x 690 DIP. Collection, FPS, quota requests and Local Contrast are
+excluded. This concentrated workload does not represent the normal polling rate.
+
+| Measurement across two runs | Baseline | Candidate |
+| --- | ---: | ---: |
+| CPU time / 300 refreshes | 2,922–3,000 ms | 1,688–1,906 ms |
+| Reported managed allocation / 300 refreshes | 274.52–274.55 MB | 122.94–123.02 MB |
+| Endpoint working set | 124.79–125.06 MiB | 127.75–128.04 MiB |
+| Endpoint private bytes | 97.52–101.63 MiB | 131.52–132.58 MiB |
+
+Paired CPU time fell 35–44% and allocation about 55%. The burst endpoint memory
+was higher, so this test does **not** show lower resident or committed RAM.
+Allocation totals and process memory are distinct quantities.
+
+### App at the normal refresh interval
+
+To check the burst memory result against normal use, `Measure-NativeUi.ps1`
+ran the monitor scene for 60 seconds per fresh process after ten seconds of
+warm-up, candidate first, then baseline. Synthetic snapshots update every two
+seconds at 310 x 690 DIP; each run collected 30 samples. Collector, FPS, quota
+requests and the Desktop layer are excluded; Local Contrast is disabled in
+this App-only scene. The Desktop Local Contrast measurements are below.
+
+| Measurement | Baseline | Candidate |
+| --- | ---: | ---: |
+| Average CPU, percent of whole machine | 0.0951% | 0.0145% |
+| Mean working set | 122.51 MiB | 122.62 MiB |
+| Mean private bytes | 94.32 MiB | 93.76 MiB |
+
+This single pair showed lower UI CPU at the normal interval and similar process
+memory. The elevated burst endpoint private bytes did not recur in this short
+normal-interval observation. Neither result establishes long-term RAM behavior
+or savings for the complete installed application.
+
+### Desktop FPS with Local Contrast enabled
+
+The same local `FpsUiBench.cs` harness runs in fresh processes against each app.
+It uses a fixed black/white gradient, a locked 400 x 850 DIP Desktop, 16 DIP text,
+6 DIP spacing, Local Contrast enabled, synthetic FPS every 500 ms and synthetic
+hardware snapshots every two seconds. It calls each runtime's FPS update path,
+warms up ten seconds and samples for about 30 seconds. Real ETW, collector and
+quota work are excluded. Both paths processed 79 total FPS ticks per run.
+
+| Measurement | Baseline pair 1 / 2 | Candidate pair 1 / 2 |
+| --- | ---: | ---: |
+| Average CPU, percent of whole machine | 0.723 / 0.574% | 0.612 / 0.584% |
+| Reported managed allocation | 31.18 / 30.97 MB | 23.30 / 23.67 MB |
+| Mean working set | 138.47 / 137.22 MiB | 136.78 / 135.56 MiB |
+| Mean private bytes | 135.82 / 136.36 MiB | 134.19 / 134.61 MiB |
+
+Allocation fell 24–25%. CPU improved in one pair and slightly increased in the
+other; these short observations do not establish a repeatable CPU reduction for
+the complete Local Contrast scene. The roughly 1.6–1.8 MiB memory differences
+are also insufficient to promise a steady-state RAM reduction.
+
+### Snapshot matching
+
+A local headless harness parses the same 300-sensor host snapshot 3,000 times
+after 50 warm-up parses; it prints only aggregate measurements. Schema and
+matching semantics remain covered by native/legacy differential fixtures,
+including duplicate candidates, null capabilities and changed hardware identity.
+Allocation fell from 343.46 MB to 330.67 MB (3.7%); CPU ranges overlap at
+406–422 ms, so no parser CPU improvement is claimed.
+
+### Evidence and checks
+
+`Validate.ps1 -ModernCore` passed, including WPF interaction, real Local Contrast
+capture, Desktop layout, sensor parity, quota lifecycle and package checks.
+New checks cover unchanged-poll density churn and FPS unchanged text, value
+changes, stale/recovery, font changes and hidden rows.
+
+Release preparation for 0.6.37 also makes pair/usage visibility invalidation
+explicit and adds a Memory capability/usage transition fixture. The measurements
+above identify the pre-release optimization binaries; they are not new
+measurements of the signed 0.6.37 installer.
+
+Local raw evidence is retained under `vendor/perf-monitor-*`, `perf-steady-*`,
+`perf-fps-*`, `perf-sensor-*` and `perf-runtime-hashes.json`. The local
+reproduction sources are `vendor/FpsUiBench.cs`, `SensorPerf.cs` and
+`Run-PerfIteration.ps1`; they and host measurements are not installer payloads.
+
+Measured SHA-256 identities:
+
+- Baseline app: `98D9D2574CBADC62ABE490CD5B1125EDD0ACE4676C01FFC1C514899D72262F32`
+- Candidate app: `F1851A24E45EBF6F43542821ED8BE8953AD0039A57D77BDBD0A3E4E0A594B8D1`
+- Baseline Windows adapter: `4B8E4BB38E8C2D66DA6242FCB635AA5DF283184B3A5F6968983C881DAEE6E05D`
+- Candidate Windows adapter: `81662DA0F3F6FBBE8589E66F92AC2EF5696B08AF60151D2005F959013FD94F5D`
+
+## Native memory retention work after 0.6.38
+
+Baseline source: `452f6f3523047d2b59a0c869e111f58a8f77a155` (0.6.38).
+Measured on 2026-09-21, Windows x64, 16 logical processors. This development
+candidate retains the existing WPF appearance and all refresh intervals.
+
+### Local Contrast without a per-frame diagnostic bitmap
+
+Desktop already queried the reusable `ContrastAnalysis` integral grid for its
+text and icon colors. The returned `BitmapSource` supplied only grid dimensions.
+It now calls `CaptureAnalysis` for those dimensions, avoiding creation and copying
+of a mask on every frame. Diagnostic `Capture` callers retain the frozen bitmap
+contract. Capture exclusion, bounded sampling, hysteresis, edges and Screenshot
+mode are unchanged.
+
+Two fresh-process pairs used the same isolated Desktop harness, with execution
+order reversed in pair 2. The scene is a fixed black/white gradient, 400 x 850 DIP
+Desktop, 16 DIP text, 6 DIP spacing, 100 ms Local Contrast, synthetic FPS every
+500 ms and synthetic hardware snapshots every two seconds. Each process warmed
+up for ten seconds before about 30 seconds of sampling (60 memory samples,
+79 total FPS ticks). The live collector, ETW and quota requests are excluded.
+There was no forced GC or working-set trimming.
+
+| Measurement | Baseline pair 1 / 2 | Candidate pair 1 / 2 |
+| --- | ---: | ---: |
+| CPU, percent of whole machine | 0.597 / 0.542% | 0.516 / 0.546% |
+| Mean working set | 135.77 / 136.19 MiB | 133.85 / 136.50 MiB |
+| Mean private bytes | 136.50 / 134.85 MiB | 133.68 / 136.36 MiB |
+| Reported managed allocation | 24.89 / 23.78 MB | 21.25 / 24.93 MB |
+| Gen 0 collections | 83 / 84 | 3 / 4 |
+| Gen 1 collections | 9 / 9 | 1 / 2 |
+| Gen 2 collections | 0 / 0 | 0 / 1 |
+
+The Gen 0 collection count fell in both runs. CPU, allocation totals and process
+memory did not improve consistently across the two pairs. This establishes
+removal of unnecessary bitmap work and fewer Gen 0 collections in this workload,
+**not** a repeatable whole-app RAM or CPU reduction. In particular, allocation,
+private committed bytes and resident working set must not be equated.
+
+These measurements cover the Local Contrast change before the collector change
+below. Local raw evidence and reproduction sources are
+`vendor/contrast-memory-{1,2}-{baseline,candidate}.json`,
+`vendor/contrast-memory-hashes.json`, `vendor/ContrastMemoryBench.cs` and
+`vendor/Run-ContrastMemory.ps1`. They are not installer payloads.
+
+- Baseline app SHA-256: `45F7BCC11FBA7779B02C2F0C067838E37A73BB39FF7FED91403C561A68629BAA`
+- Candidate app SHA-256: `8B03918FF79CFBB493D0AAB2AEB8F2C5F198F9BEAACEF199C4EC006380DC8717`
+- Baseline Core SHA-256: `A624D0929F5F3F5D9CF6B5230E7EF73710734A845756FC96CE653D7C37885230`
+- Candidate Core SHA-256: `BFE45F400F2FE5DD94CF4422DBABB594D0C9046FB6A060FD1A924E5D4058B63C`
+- Harness SHA-256: `2533A3D723643EC65921391B4043233D73B2B2BDBF5AFE32CCEFA49230E82D3B`
+
+### Unused collector sensor history
+
+LibreHardwareMonitor 0.9.6 `Hardware/Sensor.cs` defaults `ValuesTimeWindow` to one
+day and aggregates four readings per history point, with compression for repeated
+values. Pulse's native Collector publishes current `Value` only; its consumers
+do not read that history. Pulse's session maxima belong to `ReadingSession`.
+
+Collector now sets `ISensor.ValuesTimeWindow` to zero when it encounters each
+sensor after `hardware.Update()`, including sub-hardware and sensors newly
+activated by that update. The public LHM setter clears existing history and stops
+future appends; current `Value` and independent LHM Min/Max tracking remain active.
+This avoids unused history accumulating during long runs without adding a topology
+cache, changing sampling cadence or writing hardware controls.
+
+This is a retention change, not a measured reduction in the installed collector's
+steady-state RAM. A long-duration installed-app comparison is still needed to
+quantify the benefit on real sensors. The Local Contrast table above does not
+include this collector path.
+
+### Validation
+
+`Test-LocalContrast.ps1` verifies analysis-only dark/light region and minority
+parity, independent diagnostic mask pixels after a backing change, invalid bounds,
+large/small resize, disposal/resume, icon palettes, edges and Screenshot mode.
+`Test-CollectorHistory.ps1` fails on the 0.6.38 baseline and passes on the candidate;
+it checks sensors and sub-hardware appearing during Update, current/null values,
+metadata, and the real bundled LHM Sensor's history clearing while Value/Min/Max
+continue updating. It does not open hardware or load a driver.
+
+The complete `Validate.ps1 -ModernCore` run passed, including native sensor parity,
+session peaks, WPF/settings/layout, quota/FPS lifecycle, startup and package/updater
+checks. The first attempt stopped because PATH selected a runtime-only `dotnet`;
+the completed run used the existing local .NET SDK via process-local PATH.
+Local logs are `vendor/memory-retention-validation-initial.log` and
+`vendor/memory-retention-validation.log`.
+
+## Local Contrast precision after 0.6.39
+
+The reported Desktop used a transparent background. Two deterministic defects
+were reproduced against `713bb496` (0.6.39): a right-aligned short FPS reading
+sampled its entire reserved cell, and light text could remain on mid-gray because
+the previous 0.16–0.22 luminance hysteresis band was too wide. The native host now
+queries rendered glyph bounds and rounds/clips both endpoints when mapping to
+the capture grid. The per-pixel band comes from the actual #141414/#F5F5F5 ink
+contrast, retaining a previous choice within a 10% ratio advantage.
+
+The user's gaming setup also lowers text opacity. Core previously treated every
+glyph as opaque, even when WPF composited it at a lower opacity. Native capture
+now receives the saved text opacity. Cached channel tables evaluate both inks
+after compositing over the captured RGB/background; an equivalent luminance
+feeds the existing smoothing, hysteresis and region query. This adds six 256-entry
+double tables (12 KiB per analyzer), without new frame-sized buffers or a higher
+capture rate. At zero text opacity the native host skips capture. Outline effects
+continue inheriting the same text opacity; no backplate or opacity boost is added.
+
+### Transparent gaming-HUD comparison
+
+Two fresh-process pairs in reversed order compared the frozen 0.6.39 native
+payload with the complete precision/opacity candidate. The isolated Desktop used
+a fixed gradient behind a 400 × 850 DIP view, 16 DIP text, 6 DIP spacing,
+**0% background opacity and 40% text opacity**, 100 ms Local Contrast,
+500 ms synthetic FPS and 2 s synthetic readings. Each run warmed up for 10 seconds
+and measured for 30 seconds. It excludes the live collector, quota requests and
+ETW; it is not a real game or an FPS-impact benchmark. No forced GC or working-set
+trimming was used.
+
+| Metric | 0.6.39 run 1 / 2 | Candidate run 1 / 2 |
+| --- | ---: | ---: |
+| CPU, whole machine (16 logical processors) | 0.530% / 0.548% | 0.699% / 0.600% |
+| Mean working set, MiB | 132.74 / 135.80 | 132.04 / 132.79 |
+| Mean private bytes, MiB | 133.46 / 136.05 | 133.63 / 135.39 |
+| Managed allocation over 30 seconds, MiB | 20.64 / 20.45 | 21.02 / 21.19 |
+| Gen 0 / Gen 1 / Gen 2 collections | 3 / 1 / 0 in both runs | 3 / 1 / 0 in both runs |
+
+The more accurate translucent-ink analysis has a small CPU cost in this scene:
+roughly 0.05–0.17 percentage points of whole-machine CPU. Managed allocation is
+also slightly higher; neither GC counts nor private bytes show a consistent
+increase. This is a precision trade-off, not another CPU/RAM optimization claim.
+Local evidence: `vendor/opacity-memory-{1,2}-{baseline,candidate}.json`,
+`vendor/contrast-opacity-hashes.json` and `vendor/ContrastOpacityBench.cs`.
+
+Regression coverage includes actual capture through the excluded Desktop window,
+reserved FPS whitespace, fractional resize/downsampling, mid-gray recovery,
+100%/40%/0% opacity transitions without overriding the transparent surface,
+and a direct sRGB composite/contrast oracle for grayscale and colored backgrounds
+at 100%, 70%, 40% and 20% opacity. Existing palette, mixed-background edges and
+Screenshot-mode coverage remains in `Test-LocalContrast.ps1`.
+
+Targeted checks and the complete `Validate.ps1 -ModernCore` run passed, including
+the Framework/.NET 10 Core suites, native capture/layout/settings, collector,
+quota/FPS lifecycle, startup and updater regressions. Logs are
+`vendor/contrast-precision-targeted.log` and
+`vendor/contrast-precision-validation.log`. The installed-app gaming experience
+still needs real-game observation; these fixtures do not claim exclusive-fullscreen
+or HDR capture/contrast coverage.

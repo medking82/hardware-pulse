@@ -8,9 +8,33 @@ using System.Windows.Controls.Primitives;
 using HardwarePulse;
 
 internal static class NativeQuotaTests {
+    static System.Collections.Generic.IEnumerable<string> Labels(DependencyObject node){var text=node as TextBlock;if(text!=null)yield return text.Text;foreach(object child in LogicalTreeHelper.GetChildren(node)){var item=child as DependencyObject;if(item!=null)foreach(string label in Labels(item))yield return label;}}
+    static System.Collections.Generic.IEnumerable<ProgressBar> Bars(DependencyObject node){var bar=node as ProgressBar;if(bar!=null)yield return bar;foreach(object child in LogicalTreeHelper.GetChildren(node)){var item=child as DependencyObject;if(item!=null)foreach(var found in Bars(item))yield return found;}}
     static void Check(bool value,string message){if(!value)throw new Exception("Quota: "+message);}
     static QuotaReading Decode(string provider,string json){return QuotaDecoder.Decode(provider,QuotaData.Parse(json),DateTimeOffset.UtcNow);}
-    public static void Run(){
+        public static void Run(){
+            var cliReport=typeof(QuotaProviders).Assembly.GetType("HardwarePulse.AntigravityCliQuota").GetMethod("ReadReport",BindingFlags.NonPublic|BindingFlags.Static);
+            string weekly="Gemini Models\tWeekly Limit Remaining\t0%\t2026-10-01T00:00:00Z\n";
+            string sessionReport="Gemini Models\tFive Hour Limit Remaining\t100%\t2026-09-30T12:00:00+08:00\n";
+            var cliBody=cliReport.Invoke(null,new object[]{new System.IO.StringReader(weekly+sessionReport),new System.IO.StringWriter(),CancellationToken.None});
+            var cliQuota=QuotaDecoder.Decode("Antigravity",cliBody,DateTimeOffset.UtcNow);
+            Check(cliQuota.Status=="Live"&&cliQuota.Windows.Count==2&&cliQuota.Windows[0].Remaining==100&&cliQuota.Windows[1].Remaining==0,"CLI quota preserves genuine zero/full windows");
+            foreach(string bad in new[]{"",weekly,weekly+weekly+sessionReport,(weekly+sessionReport).Replace("100%","101%"),(weekly+sessionReport).Replace("100%","50%%"),(weekly+sessionReport).Replace("2026-10-01T00:00:00Z","2026-10-01T00:00:00"),new string('x',65537)}){
+                try{cliReport.Invoke(null,new object[]{new System.IO.StringReader(bad),new System.IO.StringWriter(),CancellationToken.None});throw new Exception("Invalid CLI quota accepted");}
+                catch(TargetInvocationException failure){Check(failure.InnerException is QuotaFailure,"Invalid CLI quota must fail closed");}
+            }
+        var protocol=typeof(QuotaProviders).Assembly.GetType("HardwarePulse.CodexAppServerQuota").GetMethod("ReadProtocol",BindingFlags.NonPublic|BindingFlags.Static);
+        var output=new System.IO.StringWriter();
+        string rpc="{\"id\":1,\"result\":{}}\n{\"method\":\"account/updated\",\"params\":{}}\n{\"id\":2,\"result\":{\"rateLimits\":{\"secondary\":{\"usedPercent\":36,\"windowDurationMins\":10080}}}}\n";
+        var rpcBody=protocol.Invoke(null,new object[]{new System.IO.StringReader(rpc),output,CancellationToken.None});
+        var rpcQuota=QuotaDecoder.Decode("Codex",rpcBody,DateTimeOffset.UtcNow);
+        Check(rpcQuota.Status=="Live"&&rpcQuota.Windows.Single().Remaining==64,"official RPC quota decoded through existing model");
+        var sent=output.ToString().Split(new[]{'\n'},StringSplitOptions.RemoveEmptyEntries).Select(line=>QuotaDecoder.Text(QuotaDecoder.Get(QuotaData.Parse(line),"method"))).ToArray();
+        Check(sent.SequenceEqual(new[]{"initialize","initialized","account/rateLimits/read"}),"RPC must issue only handshake and quota read");
+        foreach(string invalid in new[]{"", "{\"id\":1,\"error\":{\"message\":\"private fixture\"}}\n",new string('x',1048577)}){
+            try{protocol.Invoke(null,new object[]{new System.IO.StringReader(invalid),new System.IO.StringWriter(),CancellationToken.None});throw new Exception("Invalid RPC accepted");}
+            catch(TargetInvocationException error){Check(error.InnerException is QuotaFailure&&((QuotaFailure)error.InnerException).Status=="Quota unavailable","RPC failure must be bounded and sanitized");}
+        }
         var ownership=typeof(QuotaProviders).Assembly.GetType("HardwarePulse.AntigravityQuota").GetMethod("IsOwnedProcess",BindingFlags.NonPublic|BindingFlags.Static);
         uint pid=(uint)System.Diagnostics.Process.GetCurrentProcess().Id;string sid=System.Security.Principal.WindowsIdentity.GetCurrent().User.Value;
         Check((bool)ownership.Invoke(null,new object[]{pid,sid}),"bound WMI instance can query current process owner");
@@ -28,13 +52,15 @@ internal static class NativeQuotaTests {
         Check(QuotaDecoder.ResetText(DateTimeOffset.UtcNow.AddSeconds(-1),DateTimeOffset.UtcNow)=="Reset pending","reset does not fabricate quota");
         var request=typeof(QuotaProviders).GetMethod("Request",BindingFlags.NonPublic|BindingFlags.Static);
         try{request.Invoke(null,new object[]{"https://example.invalid/usage",new System.Collections.Generic.Dictionary<string,string>(),null,CancellationToken.None,false});throw new Exception("Untrusted URL admitted");}catch(TargetInvocationException e){Check(e.InnerException.GetType().Name=="QuotaFailure","remote URL allowlist");}
+        foreach(var failure in new[]{Tuple.Create(302,"Quota unavailable"),Tuple.Create(401,"Login required"),Tuple.Create(403,"Quota access denied"),Tuple.Create(429,"Refresh rate limited"),Tuple.Create(500,"Quota unavailable")}){
         var listener=new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback,0);listener.Start();
         try{
             int port=((System.Net.IPEndPoint)listener.LocalEndpoint).Port;
-            var server=System.Threading.Tasks.Task.Run(()=>{using(var client=listener.AcceptTcpClient()){client.ReceiveTimeout=3000;using(var stream=client.GetStream()){var reader=new System.IO.StreamReader(stream);string line;do{line=reader.ReadLine();}while(!string.IsNullOrEmpty(line));var response=System.Text.Encoding.ASCII.GetBytes("HTTP/1.1 302 Found\r\nLocation: https://example.invalid/credential-leak\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");stream.Write(response,0,response.Length);}}});
-            try{request.Invoke(null,new object[]{"http://127.0.0.1:"+port,new System.Collections.Generic.Dictionary<string,string>{{"Authorization","Bearer synthetic-test-only"}},null,CancellationToken.None,true});throw new Exception("Redirect admitted");}catch(TargetInvocationException e){Check(e.InnerException.GetType().Name=="QuotaFailure","redirect rejected before credential forwarding");}
+            var server=System.Threading.Tasks.Task.Run(()=>{using(var client=listener.AcceptTcpClient()){client.ReceiveTimeout=3000;using(var stream=client.GetStream()){var reader=new System.IO.StreamReader(stream);string line;do{line=reader.ReadLine();}while(!string.IsNullOrEmpty(line));var response=System.Text.Encoding.ASCII.GetBytes("HTTP/1.1 "+failure.Item1+" Test\r\nLocation: https://example.invalid/credential-leak\r\nRetry-After: 600\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");stream.Write(response,0,response.Length);}}});
+            try{request.Invoke(null,new object[]{"http://127.0.0.1:"+port,new System.Collections.Generic.Dictionary<string,string>{{"Authorization","Bearer synthetic-test-only"}},null,CancellationToken.None,true});throw new Exception("HTTP failure admitted");}catch(TargetInvocationException e){var error=e.InnerException as QuotaFailure;Check(error!=null&&error.Status==failure.Item2,"HTTP "+failure.Item1+" must report "+failure.Item2+" without forwarding credentials");Check(failure.Item1==429?error.RetryAt>DateTimeOffset.UtcNow.AddMinutes(9)&&error.RetryAt<DateTimeOffset.UtcNow.AddMinutes(11):!error.RetryAt.HasValue,"Only 429 carries Retry-After metadata");}
             Check(server.Wait(3000),"local redirect fixture completed");
         }finally{listener.Stop();}
+        }
         int calls=0;using(var entered=new ManualResetEventSlim())using(var release=new ManualResetEventSlim())using(var session=new QuotaSession((provider,cancel)=>{Interlocked.Increment(ref calls);entered.Set();release.Wait();return new QuotaReading{Provider=provider,Status="Live"};})){
             var now=DateTimeOffset.UtcNow;session.Enable("Codex",true);session.Tick(now);Check(entered.Wait(3000),"background refresh starts");session.Tick(now.AddMinutes(6));Check(calls==1,"no overlapping requests");session.Enable("Codex",false);release.Set();Thread.Sleep(50);session.Tick(now);Check(session.Readings.Length==0,"disabled result discarded");
         }
@@ -45,17 +71,70 @@ internal static class NativeQuotaTests {
     }
     public static void RunUI(Shell shell,string screenshot){
         var field=typeof(Shell).GetField("quotas",BindingFlags.NonPublic|BindingFlags.Instance);var original=(QuotaSession)field.GetValue(shell);
-        using(var fake=new QuotaSession((provider,cancel)=>new QuotaReading{Provider=provider,Status="Live",Observed=DateTimeOffset.UtcNow,Windows=new System.Collections.Generic.List<QuotaWindow>{new QuotaWindow{Label="5-hour",Remaining=74,Reset=DateTimeOffset.UtcNow.AddMinutes(30)},new QuotaWindow{Label="Weekly",Remaining=96,Reset=DateTimeOffset.UtcNow.AddDays(6)}}})){
+        var paths=(PulsePaths)typeof(Shell).GetField("paths",BindingFlags.NonPublic|BindingFlags.Instance).GetValue(shell);
+        using(var fake=new QuotaSession((provider,cancel)=>provider=="DeepSeek"
+            ?new QuotaReading{Provider=provider,Status="Live",Observed=DateTimeOffset.UtcNow,Balances=new System.Collections.Generic.List<QuotaBalance>{new QuotaBalance{Label="Available balance",Currency="CNY",Amount="110.00"}},AllBalances=new System.Collections.Generic.List<QuotaBalance>{new QuotaBalance{Label="Available balance",Currency="CNY",Amount="110.00"},new QuotaBalance{Label="Granted",Currency="CNY",Amount="10.00"},new QuotaBalance{Label="Topped up",Currency="CNY",Amount="100.00"}}}
+            :new QuotaReading{Provider=provider,Status="Live",Observed=DateTimeOffset.UtcNow,Windows=new System.Collections.Generic.List<QuotaWindow>{new QuotaWindow{Label="5-hour",Remaining=74,Reset=DateTimeOffset.UtcNow.AddMinutes(30)},new QuotaWindow{Label="Weekly",Remaining=96,Reset=DateTimeOffset.UtcNow.AddDays(6)}}})){
             field.SetValue(shell,fake);try{
                 foreach(string provider in QuotaSession.Providers){var toggle=shell.Control<CheckBox>("Quota"+provider);Check(toggle.IsChecked!=true,"providers opt in");toggle.IsChecked=true;toggle.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));}
                 fake.Tick(DateTimeOffset.UtcNow);for(int i=0;i<100&&fake.Readings.Any(r=>r.Status!="Live");i++){Thread.Sleep(10);fake.Tick(DateTimeOffset.UtcNow);}shell.UpdatePanel();
-                Check(shell.Control<StackPanel>("QuotaCards").Children.Count==3,"three provider cards");
+                Check(shell.Control<StackPanel>("QuotaCards").Children.Count==QuotaSession.Providers.Length,"one card per provider");
+                var moneyCard=shell.Control<StackPanel>("QuotaCards").Children.Cast<Border>().Single(c=>(string)c.Tag=="DeepSeek");
+                Check(Labels(moneyCard).Any(s=>s=="CNY 110.00"),"money card shows the formatted balance amount");
+                Check(!Bars(moneyCard).Any(),"money card must not draw a percentage bar");
+                var percentCard=shell.Control<StackPanel>("QuotaCards").Children.Cast<Border>().Single(c=>(string)c.Tag=="Codex");
+                Check(Bars(percentCard).Any(),"percentage cards keep their progress bar");
+                var keyBox=shell.Control<PasswordBox>("DeepSeekKey");var keyStatus=shell.Control<TextBlock>("DeepSeekKeyStatus");
+                Check(keyStatus.Text=="API Key Required"||keyStatus.Text=="Encrypted Key Saved","key editor reports whether a key is stored with Title Case");
+                bool stored=ProtectedQuotaCredentials.Exists("DeepSeek");
+                keyBox.Password="bad key";shell.Control<Button>("DeepSeekKeySave").RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+                Check(keyStatus.Text=="Enter a valid API key. The previous key was not changed."&&keyBox.Password=="","rejected key is reported and cleared from the box");
+                Check(ProtectedQuotaCredentials.Exists("DeepSeek")==stored,"rejected key never writes a credential");
+                shell.Save();
+                string settingsPath=System.IO.Path.Combine(paths.State,"widget-settings.json");
+                string settingsText=System.IO.File.Exists(settingsPath)?System.IO.File.ReadAllText(settingsPath):"";
+                Check(settingsText.Length>0&&!settingsText.Contains("bad key")&&!settingsText.Contains("fixture-key"),"settings never store key material");
+                var source=shell.Control<ComboBox>("ClaudeQuotaSource");
+                Check(source.SelectedIndex==0&&shell.Control<StackPanel>("ClaudeSnapshotTools").Visibility==Visibility.Collapsed,"existing login remains default and snapshot setup stays optional");
+                var claudeReading=fake.Readings.Single(r=>r.Provider=="Claude");claudeReading.Status="CLI snapshot";claudeReading.Source="CLI snapshot";
+                shell.UpdatePanel();
+                var claudeCard=shell.Control<StackPanel>("QuotaCards").Children.Cast<Border>().Single(c=>(string)c.Tag=="Claude");
+                Check(Labels(claudeCard).Any(s=>s.Contains("CLI Snapshot"))&&Labels(claudeCard).Any(s=>s.Contains("74%")),"snapshot displays values with explicit Title Case source");
+                claudeReading.Observed=DateTimeOffset.UtcNow.AddMinutes(-11);shell.UpdatePanel();
+                claudeCard=shell.Control<StackPanel>("QuotaCards").Children.Cast<Border>().Single(c=>(string)c.Tag=="Claude");
+                Check(!Labels(claudeCard).Any(s=>s.Contains("74%")),"snapshot goes stale without waiting for another worker");
+                claudeReading.Observed=DateTimeOffset.UtcNow;claudeReading.Windows[0].Reset=DateTimeOffset.UtcNow.AddSeconds(-1);shell.UpdatePanel();
+                claudeCard=shell.Control<StackPanel>("QuotaCards").Children.Cast<Border>().Single(c=>(string)c.Tag=="Claude");
+                Check(!Labels(claudeCard).Any(s=>s.Contains("74%"))&&Labels(claudeCard).Any(s=>s.Contains("96%")),"reset snapshot window hides values independently");
+                source.SelectedIndex=1;
+                Check(shell.Control<StackPanel>("ClaudeSnapshotTools").Visibility==Visibility.Visible&&fake.Readings.Single(r=>r.Provider=="Claude").Status=="Refresh pending","source switch invalidates prior result immediately");
+                var commandButton=shell.Control<Button>("ClaudeSnapshotCommand");commandButton.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+                Check(commandButton.ContextMenu!=null&&commandButton.ContextMenu.Items.Count==2,"command copy must expose both documented Windows shells");commandButton.ContextMenu.IsOpen=false;
+                Check((bool)typeof(Shell).GetField("claudeSnapshotSource",BindingFlags.NonPublic|BindingFlags.Instance).GetValue(shell),"snapshot route is selected before local-only probe");
+                var received=DateTimeOffset.UtcNow;long reset=(long)(received.AddHours(1)-new DateTimeOffset(1970,1,1,0,0,0,TimeSpan.Zero)).TotalSeconds;
+                string payload="{\"session_id\":\"isolated-ui-fixture\",\"rate_limits\":{\"five_hour\":{\"used_percentage\":17,\"resets_at\":"+reset+"}}}";
+                Check(ClaudeStatusLineReceiver.Receive(paths.State,new System.IO.StringReader(payload),received)=="CLI snapshot","isolated local source fixture");
+                var local=(QuotaReading)typeof(Shell).GetMethod("ReadQuota",BindingFlags.NonPublic|BindingFlags.Instance).Invoke(shell,new object[]{"Claude",CancellationToken.None});
+                Check(local.Source=="CLI snapshot"&&local.Windows.Single().Remaining==83,"selected local source routes to receiver instead of provider HTTP");
+                shell.Control<Button>("ClaudeSnapshotRebind").RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+                Check(ClaudeStatusLineReceiver.Read(paths.State,received).Windows.Count==0,"rebind action clears prior selected snapshot");
+                source.SelectedIndex=0;fake.Tick(DateTimeOffset.UtcNow);for(int i=0;i<100&&fake.Readings.Any(r=>r.Status!="Live");i++){Thread.Sleep(10);fake.Tick(DateTimeOffset.UtcNow);}shell.UpdatePanel();
+                var antigravityReading=fake.Readings.Single(r=>r.Provider=="Antigravity");antigravityReading.Source="CLI";shell.UpdatePanel();
                 var metrics=(System.Collections.IEnumerable)typeof(Shell).GetMethod("DesktopMetrics",BindingFlags.NonPublic|BindingFlags.Instance).Invoke(shell,null);Check(metrics.Cast<object>().Count()>=6,"Desktop quota readings");
+                var geminiMetrics=metrics.Cast<DesktopMetric>().Where(m=>m.Key.StartsWith("quotaAntigravity",StringComparison.Ordinal)).ToArray();
+                Check(geminiMetrics.Length==2&&geminiMetrics.All(m=>m.Title.StartsWith("Gemini · ",StringComparison.Ordinal)&&!m.Title.Contains("CLI")&&m.ToolTip!=null&&m.ToolTip.Contains("Antigravity CLI")),"Gemini keeps concise titles and discloses CLI source in tooltip");
+                var moneyMetrics=metrics.Cast<DesktopMetric>().Where(m=>m.Key.StartsWith("quotaDeepSeek",StringComparison.Ordinal)).ToArray();
+                Check(moneyMetrics.Length==1&&moneyMetrics[0].Value=="CNY 110.00"&&moneyMetrics[0].Title=="DeepSeek","Desktop money row has a concise single-line provider title");
+                Check(moneyMetrics.Length==1&&moneyMetrics[0].ToolTip!=null&&moneyMetrics[0].ToolTip.Contains("Available Balance"),"Desktop tooltip retains the full balance label");
+                antigravityReading.Source=null;shell.UpdatePanel();
+                metrics=(System.Collections.IEnumerable)typeof(Shell).GetMethod("DesktopMetrics",BindingFlags.NonPublic|BindingFlags.Instance).Invoke(shell,null);
+                Check(metrics.Cast<DesktopMetric>().Where(m=>m.Key.StartsWith("quotaAntigravity",StringComparison.Ordinal)).All(m=>m.ToolTip==null),"Returning to Desktop source clears the previous CLI tooltip");
                 var hardware=shell.Control<StackPanel>("Cards");var previous=hardware.Visibility;double height=shell.Window.Height;shell.Window.Height=920;hardware.Visibility=Visibility.Collapsed;shell.Window.UpdateLayout();
                 var bitmap=new System.Windows.Media.Imaging.RenderTargetBitmap((int)shell.Window.ActualWidth,(int)shell.Window.ActualHeight,96,96,System.Windows.Media.PixelFormats.Pbgra32);bitmap.Render(shell.Window);var png=new System.Windows.Media.Imaging.PngBitmapEncoder();png.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmap));using(var file=System.IO.File.Create(screenshot))png.Save(file);
                 hardware.Visibility=previous;shell.Window.Height=height;
                 foreach(string provider in QuotaSession.Providers){var toggle=shell.Control<CheckBox>("Quota"+provider);toggle.IsChecked=false;toggle.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));}shell.UpdatePanel();Check(shell.Control<StackPanel>("QuotaCards").Children.Count==0,"disable removes quota view");
             }finally{field.SetValue(shell,original);}
         }
+        NativeQuotaRecoveryTests.RunUI(shell,System.IO.Path.Combine(System.IO.Path.GetDirectoryName(screenshot),"quota-recovery.png"));
     }
 }

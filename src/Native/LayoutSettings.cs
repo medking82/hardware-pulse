@@ -8,7 +8,7 @@ namespace HardwarePulse {
         readonly System.Collections.Generic.List<Button> settingsTabs=new System.Collections.Generic.List<Button>();
         void ReplaceCardPanel(string name){
             var old=Control<StackPanel>(name);var parent=(Panel)old.Parent;int index=parent.Children.IndexOf(old);
-            var replacement=new ResponsivePanel{Name=name};parent.Children.Remove(old);parent.Children.Insert(index,replacement);
+            var replacement=new ResponsivePanel{Name=name,EqualRowHeight=true};parent.Children.Remove(old);parent.Children.Insert(index,replacement);
             Window.UnregisterName(name);Window.RegisterName(name,replacement);
         }
         void BuildSettingsLayout(){
@@ -30,7 +30,7 @@ namespace HardwarePulse {
             SelectSettingsCategory(settingsCategory);
         }
         void SelectSettingsCategory(string category){settingsCategory=category;foreach(UIElement child in Control<ResponsivePanel>("SettingsSections").Children){var section=child as Expander;if(section!=null){bool selected=(string)section.Tag==category;section.Visibility=selected?Visibility.Visible:Visibility.Collapsed;if(selected)section.IsExpanded=true;}}Control<ScrollViewer>("SettingsPage").ScrollToTop();UpdateSettingsTabs();}
-        void UpdateSettingsTabs(){foreach(var button in settingsTabs){button.Content=language.T((string)button.Tag);button.Foreground=SystemParameters.HighContrast?SystemColors.ControlTextBrush:Brush(light?"#17202B":"#F0F5FA");button.FontWeight=(string)button.Tag==settingsCategory?FontWeights.Bold:FontWeights.Normal;button.BorderThickness=new Thickness((string)button.Tag==settingsCategory?2:1);System.Windows.Automation.AutomationProperties.SetHelpText(button,(string)button.Tag==settingsCategory?language.T("Selected"):"");}}
+        void UpdateSettingsTabs(){foreach(var button in settingsTabs){button.Content=language.T((string)button.Tag);bool selected=(string)button.Tag==settingsCategory;SetSelected(button,selected);button.BorderThickness=new Thickness(selected?2:1);}}
         void EnterDesktop(){
             settings.Data["desktopEnabled"]=true;settings.Data["desktopLocked"]=true;
             Control<CheckBox>("DesktopEnabled").IsChecked=true;Control<CheckBox>("DesktopLocked").IsChecked=true;
@@ -38,17 +38,23 @@ namespace HardwarePulse {
             if(!isolated&&!settings.Flag("desktopHintShown")){tray.ShowBalloonTip(7000,"Pulse",language.T("Desktop is ready. Right-click the Pulse tray icon to edit or return to the App."),System.Windows.Forms.ToolTipIcon.Info);settings.Data["desktopHintShown"]=true;QueueSave();}
         }
         bool DesktopMetricEnabled(string key){
+            key=DesktopOrderKey(key);
             if(key=="fps"){object fps;return FpsSupported&&settings.Map("desktopVisible").TryGetValue(key,out fps)&&fps is bool&&(bool)fps;}
             if(key=="quotaCodex")return DesktopMetricEnabled("quotaCodex0");
             if(key=="quotaAntigravity")return DesktopMetricEnabled("quotaAntigravity0")||DesktopMetricEnabled("quotaAntigravity1");
             if(key=="quotaClaude")return DesktopMetricEnabled("quotaClaude0")||DesktopMetricEnabled("quotaClaude1");
-            object value;return !settings.Map("desktopVisible").TryGetValue(key,out value)||!(value is bool)||(bool)value;
+            if(key=="netSignal")key="wifiSignal";
+            object value;var visible=settings.Map("desktopVisible");
+            if(visible.TryGetValue(key,out value)&&value is bool)return (bool)value;
+            if(key=="wifiSignal"&&visible.TryGetValue("netSignal",out value)&&value is bool)return (bool)value;
+            return true;
         }
         string QuotaDesktopTitle(string key){
+            foreach(var provider in QuotaCatalog.All)if(provider.Money&&key=="quota"+provider.Name)return provider.Name;
             return key=="quotaCodex0"?"Codex · "+language.T("Weekly"):
-                key=="quotaAntigravity0"?"Gemini · "+language.T("5-hour"):
+                key=="quotaAntigravity0"?"Gemini · "+language.Label("5-hour"):
                 key=="quotaAntigravity1"?"Gemini · "+language.T("Weekly"):
-                key=="quotaClaude0"?"Claude · "+language.T("5-hour"):"Claude · "+language.T("Weekly");
+                key=="quotaClaude0"?"Claude · "+language.Label("5-hour"):"Claude · "+language.T("Weekly");
         }
         string DesktopIconColor(string icon,string textColor){
             return DesktopPaletteColor(icon,textColor);
@@ -58,8 +64,9 @@ namespace HardwarePulse {
             if(icon=="fps")return "#9EDFD3";
             if(light)return "#17202B";
             if(settings.Flag("unifiedReadingColors"))return ReadingColor();
-            switch(icon){case "cpu":case "codex":return "#A5E7D5";case "gpu":case "antigravity":return "#A7CBFF";
-                case "memory":return "#E7C5A4";case "claude":return "#E7B497";case "nvme":return "#B9B7ED";
+            foreach(var provider in QuotaCatalog.All)if(provider.Icon==icon)return provider.Accent;
+            switch(icon){case "cpu":return "#A5E7D5";case "gpu":return "#A7CBFF";
+                case "memory":return "#E7C5A4";case "nvme":return "#B9B7ED";
                 case "airflow":return "#A8D4D0";case "network":case "ethernet":case "wifi":case "signal":return "#A9D8E8";default:return textColor;}
         }
     }
