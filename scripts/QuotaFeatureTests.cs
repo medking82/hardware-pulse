@@ -104,6 +104,41 @@ static class QuotaFeatureTests {
         Check(MoneyRows(shell).Single().Title=="DeepSeek"&&MoneyRows(shell).Single().Value=="CNY 110.00","desktop stays concise after changing the currency");
         Check(fake.GetState("DeepSeek").NextAttempt==scheduled&&reading.Balances.Count==2,"display-only currency changes preserve source readings and request scheduling");
     }
+    static void DesktopSettings(Shell shell,QuotaSession fake,Settings settings,string root,string state){
+        var list=shell.Control<StackPanel>("DesktopOrderList");var row=list.Children.Cast<Border>().SingleOrDefault(r=>(string)r.Tag=="quotaDeepSeek");
+        Check(row!=null,"Desktop reading settings include the DeepSeek group");if(row==null)return;
+        var grid=(Grid)row.Child;var toggle=grid.Children.OfType<CheckBox>().Single();var handle=grid.Children.OfType<Thumb>().Single();
+        Check(((TextBlock)grid.Children[1]).Text=="DeepSeek"&&toggle.IsChecked==true,"DeepSeek has a concise labeled visibility toggle and reorder handle");
+        var currency=shell.Control<ComboBox>("DeepSeekCurrency");Currency(currency,"All");int cardCount=shell.Control<StackPanel>("QuotaCards").Children.Count;
+        bool enabled=settings.Flag("quotaDeepSeek");var scheduled=fake.GetState("DeepSeek").NextAttempt;
+        settings.Data["desktopEnabled"]=true;Invoke(shell,"UpdateDesktop");
+        var desktop=(DesktopView)typeof(Shell).GetField("desktop",Hidden).GetValue(shell);
+        Check(MoneyRows(shell).Length==2&&Tree(desktop).OfType<TextBlock>().Count(t=>t.Text=="DeepSeek"&&t.IsVisible)==2,"All currencies are shown by the DeepSeek desktop group");
+        toggle.IsChecked=false;toggle.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));Settle();
+        Check(MoneyRows(shell).Length==0&&!Tree(desktop).OfType<TextBlock>().Any(t=>t.Text=="DeepSeek"&&t.IsVisible),"DeepSeek desktop toggle hides both real desktop rows");
+        Check(shell.Control<StackPanel>("QuotaCards").Children.Count==cardCount&&fake.Readings.Length==1&&settings.Flag("quotaDeepSeek")==enabled,"desktop visibility never disables monitoring or App cards");
+        fake.Readings[0].Observed=DateTimeOffset.UtcNow.AddMinutes(-11);Invoke(shell,"UpdateDesktop");Check(MoneyRows(shell).Length==0,"stale status cannot resurrect a hidden DeepSeek group");fake.Readings[0].Observed=DateTimeOffset.UtcNow;
+        shell.ShowSettings(true);Invoke(shell,"SelectSettingsCategory","Desktop");
+        for(int move=0;move<list.Children.Count&&list.Children.IndexOf(row)>0;move++){var key=new System.Windows.Input.KeyEventArgs(System.Windows.Input.Keyboard.PrimaryDevice,PresentationSource.FromVisual(shell.Window),0,System.Windows.Input.Key.Up){RoutedEvent=System.Windows.Input.Keyboard.PreviewKeyDownEvent};handle.RaiseEvent(key);}
+        Check((string)list.Children[0].GetValue(FrameworkElement.TagProperty)=="quotaDeepSeek","DeepSeek uses the real keyboard/drag reorder save path");
+        shell.Save();
+        using(var restored=new Shell(new PulsePaths(root,state,Path.Combine(state,"runtime-desktop-restored")),true)){
+            var restoredList=restored.Control<StackPanel>("DesktopOrderList");var first=(Border)restoredList.Children[0];
+            Check((string)first.Tag=="quotaDeepSeek"&&((Grid)first.Child).Children.OfType<CheckBox>().Single().IsChecked==false,"DeepSeek order and hidden preference survive a new window");restored.Exit();
+        }
+        toggle.IsChecked=true;toggle.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+        foreach(string code in new[]{"USD","CNY","All"}){
+            Currency(currency,code);Check(MoneyRows(shell).Length==(code=="All"?2:1)&&((IEnumerable<DesktopMetric>)typeof(Shell).GetMethod("DesktopMetrics",Hidden).Invoke(shell,null)).First().Key.StartsWith("quotaDeepSeek",StringComparison.Ordinal),"currency changes preserve the group's selected position: "+code);
+        }
+        Check(fake.GetState("DeepSeek").NextAttempt==scheduled,"desktop preference changes preserve request scheduling");
+        Invoke(shell,"SetDesktopEnabled",false);Currency(currency,"CNY");
+        foreach(string locale in new[]{"en","zh-CN"})foreach(bool light in new[]{false,true}){
+            Language(shell,locale);settings.Data["background"]=light?"#F4F6F8":"#202831";Invoke(shell,"ApplyMaterial");shell.Window.Width=360;shell.Window.Height=740;
+            shell.ShowSettings(true);Invoke(shell,"SelectSettingsCategory","Desktop");row.BringIntoView();Settle();Capture(shell,Path.Combine(state,"desktop-settings-"+locale+(light?"-light":"-dark")+".png"));
+            Check((string)toggle.ToolTip==(locale=="en"?"Show On Desktop":"在桌面显示"),"DeepSeek visibility tooltip follows the UI language");
+        }
+        Language(shell,"en");shell.ShowSettings(false);
+    }
     [STAThread] static int Main(string[] args){
         try{
             string root=AppDomain.CurrentDomain.BaseDirectory,state=Path.GetFullPath(args[0]);Directory.CreateDirectory(state);
@@ -128,6 +163,7 @@ static class QuotaFeatureTests {
                     try{
                         fake.Enable("DeepSeek",true);fake.Tick(DateTimeOffset.UtcNow);for(int i=0;i<200&&fake.GetState("DeepSeek").Refreshing;i++){Thread.Sleep(5);fake.Tick(DateTimeOffset.UtcNow);}
                         Invoke(shell,"RenderQuota");CurrencyChecks(shell,fake,settings,root,state);
+                        DesktopSettings(shell,fake,settings,root,state);
                         foreach(string locale in new[]{"en","zh-CN"})foreach(bool light in new[]{false,true}){
                             Language(shell,locale);settings.Data["background"]=light?"#F4F6F8":"#202831";Invoke(shell,"ApplyMaterial");
                             var currency=shell.Control<ComboBox>("DeepSeekCurrency");

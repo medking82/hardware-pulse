@@ -159,7 +159,7 @@ namespace HardwarePulse {
             AddDesktopQuotas(result);
             result.RemoveAll(metric=>!DesktopMetricEnabled(metric.Key));
             if(result.Count==0)result.Add(new DesktopMetric("empty","Pulse",language.T("No cards shown. Choose cards in Settings."),"live"));
-            var order=DesktopOrderKeys();return result.OrderBy(metric=>{int index=Array.IndexOf(order,metric.Icon=="fps"?"fps":metric.Key);return index<0?int.MaxValue:index;}).ToList();
+            var order=DesktopOrderKeys();return result.OrderBy(metric=>{int index=Array.IndexOf(order,metric.Icon=="fps"?"fps":DesktopOrderKey(metric.Key));return index<0?int.MaxValue:index;}).ToList();
         }
         void UpdateDesktop(){
             UpdateDesktopLabels();if(!loaded||!DesktopEnabled)return;

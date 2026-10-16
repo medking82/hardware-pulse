@@ -14,7 +14,17 @@ namespace HardwarePulse {
         string[] DesktopOrderKeys(){
             object saved;var savedOrder=settings.Data.TryGetValue("desktopOrder",out saved)&&!(saved is string)?saved as IEnumerable:null;
             bool hasSignal=savedOrder!=null&&savedOrder.Cast<object>().OfType<string>().Contains("wifiSignal");
-            return settings.Order("desktopOrder",desktopDefaultOrder.Concat(new[]{"netSignal"})).Where(key=>key!="netSignal"||!hasSignal).Select(key=>key=="netSignal"?"wifiSignal":key).Distinct().ToArray();
+            var defaults=desktopDefaultOrder.Concat(QuotaCatalog.All.Where(provider=>provider.Money).Select(provider=>"quota"+provider.Name));
+            return settings.Order("desktopOrder",defaults.Concat(new[]{"netSignal"})).Where(key=>key!="netSignal"||!hasSignal).Select(key=>key=="netSignal"?"wifiSignal":key).Distinct().ToArray();
+        }
+        // A wallet's selected currencies share one stable visibility/order preference.
+        // Percentage providers keep their existing independently configurable windows.
+        string DesktopOrderKey(string key){
+            foreach(var provider in QuotaCatalog.All)if(provider.Money){
+                string group="quota"+provider.Name;int index;
+                if(key.StartsWith(group,StringComparison.Ordinal)&&int.TryParse(key.Substring(group.Length),out index)&&index>=0)return group;
+            }
+            return key;
         }
         void SaveDesktopOrder(){
             settings.Data["desktopOrder"]=Control<StackPanel>("DesktopOrderList").Children.Cast<Border>().Select(row=>(string)row.Tag).ToArray();
@@ -46,7 +56,8 @@ namespace HardwarePulse {
                 string title=key=="fps"?"FPS · "+language.T("Current / Average / Minimum"):key=="lanLink"?language.T("LAN Link Speed"):key=="wifiLink"?language.T("Wi-Fi Link Speed"):key=="wifiSignal"?language.T("Wi-Fi Signal"):key=="netConnection"?language.T("Connection"):key.StartsWith("quota")?QuotaDesktopTitle(key):key=="netDown"?language.T("Download"):key=="netUp"?language.T("Upload"):key=="vram"?language.T("VRAM"):key=="diskC"||key=="diskD"?Device(key,key=="diskC"?"Drive 1":"Drive 2"):key=="CPU"||key=="GPU"||key=="Memory"?language.T(key):DesktopFanTitle(key);
                 var grid=(Grid)row.Child;((TextBlock)grid.Children[1]).Text=title;
                 if(key=="fps"&&!FpsSupported){((TextBlock)grid.Children[1]).Text=title+" · "+language.T("Unavailable on this Windows version");((CheckBox)grid.Children[2]).IsEnabled=false;}
-                System.Windows.Automation.AutomationProperties.SetName(grid.Children[0],title);System.Windows.Automation.AutomationProperties.SetName(grid.Children[2],language.T("Show on Desktop")+" · "+title);
+                ((CheckBox)grid.Children[2]).ToolTip=language.Label("Show on Desktop");
+                System.Windows.Automation.AutomationProperties.SetName(grid.Children[0],title);System.Windows.Automation.AutomationProperties.SetName(grid.Children[2],language.Label("Show on Desktop")+" · "+title);
             }
         }
     }

@@ -38,6 +38,7 @@ namespace HardwarePulse {
             if(!isolated&&!settings.Flag("desktopHintShown")){tray.ShowBalloonTip(7000,"Pulse",language.T("Desktop is ready. Right-click the Pulse tray icon to edit or return to the App."),System.Windows.Forms.ToolTipIcon.Info);settings.Data["desktopHintShown"]=true;QueueSave();}
         }
         bool DesktopMetricEnabled(string key){
+            key=DesktopOrderKey(key);
             if(key=="fps"){object fps;return FpsSupported&&settings.Map("desktopVisible").TryGetValue(key,out fps)&&fps is bool&&(bool)fps;}
             if(key=="quotaCodex")return DesktopMetricEnabled("quotaCodex0");
             if(key=="quotaAntigravity")return DesktopMetricEnabled("quotaAntigravity0")||DesktopMetricEnabled("quotaAntigravity1");
@@ -49,10 +50,11 @@ namespace HardwarePulse {
             return true;
         }
         string QuotaDesktopTitle(string key){
+            foreach(var provider in QuotaCatalog.All)if(provider.Money&&key=="quota"+provider.Name)return provider.Name;
             return key=="quotaCodex0"?"Codex · "+language.T("Weekly"):
-                key=="quotaAntigravity0"?"Gemini · "+language.T("5-hour"):
+                key=="quotaAntigravity0"?"Gemini · "+language.Label("5-hour"):
                 key=="quotaAntigravity1"?"Gemini · "+language.T("Weekly"):
-                key=="quotaClaude0"?"Claude · "+language.T("5-hour"):"Claude · "+language.T("Weekly");
+                key=="quotaClaude0"?"Claude · "+language.Label("5-hour"):"Claude · "+language.T("Weekly");
         }
         string DesktopIconColor(string icon,string textColor){
             return DesktopPaletteColor(icon,textColor);
