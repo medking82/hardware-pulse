@@ -24,7 +24,7 @@ Source: https://github.com/Javis603/token-monitor (src/shared/limitCollector.js,
 src/shared/antigravityProbe.js).
 Reference checkout commit: 1e2c03d2a55b5eef97c7732341281415c2a3d7ea.
 
-Provider SVG silhouettes (Codex/OpenAI, Claude, Antigravity) are adapted from
+Provider SVG silhouettes (Codex/OpenAI, Claude, Antigravity, DeepSeek) are adapted from
 LobeHub Icons as vendored by the same Token Monitor checkout. Antigravity uses
 the mask silhouette for themeable monochrome rendering. See LobeIcons-MIT.txt
 (copyright 2023 LobeHub), https://github.com/lobehub/lobe-icons.

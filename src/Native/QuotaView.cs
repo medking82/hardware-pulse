@@ -12,6 +12,9 @@ namespace HardwarePulse {
         readonly QuotaSession quotas;
         volatile bool claudeSnapshotSource;
         string quotaSignature;
+        string deepSeekKeyStatus;
+        void SetDeepSeekKeyStatus(string key){deepSeekKeyStatus=key;Text("DeepSeekKeyStatus",language.T(key));}
+        void LocalizeDeepSeekKeyStatus(){if(deepSeekKeyStatus!=null)Text("DeepSeekKeyStatus",language.T(deepSeekKeyStatus));}
         DateTimeOffset nextClaudeRevisionCheck;
         readonly Dictionary<string,QuotaReading> quotaRefreshBefore=new Dictionary<string,QuotaReading>();
         string[] QuotaOrder(){return settings.Order("quotaCardOrder",QuotaSession.Providers);}
@@ -45,6 +48,26 @@ namespace HardwarePulse {
             foreach(string provider in QuotaSession.Providers){string name=provider;var control=Control<CheckBox>("Quota"+name);control.IsChecked=settings.Flag("quota"+name,false);quotas.Enable(name,control.IsChecked==true,name=="Claude"&&claudeSnapshotSource);
                 control.Click+=delegate{settings.Data["quota"+name]=control.IsChecked==true;quotas.Enable(name,control.IsChecked==true,name=="Claude"&&claudeSnapshotSource);if(!isolated)quotas.Tick(DateTimeOffset.UtcNow);RenderQuota();UpdateDesktop();QueueSave();};
             }
+            // DeepSeek needs an API key instead of a local login; the editor is the only path that
+            // writes it, and it never leaves this machine except to the fixed provider endpoint.
+            var deepSeekKey=Control<PasswordBox>("DeepSeekKey");
+            SetDeepSeekKeyStatus(ProtectedQuotaCredentials.Exists("DeepSeek")?"Encrypted key saved":"API key required");
+            Click("DeepSeekKeySave",delegate{
+                var save=Control<Button>("DeepSeekKeySave");var remove=Control<Button>("DeepSeekKeyRemove");
+                save.IsEnabled=false;remove.IsEnabled=false;string value=deepSeekKey.Password;deepSeekKey.Clear();
+                if(!ProtectedQuotaCredentials.Valid(value))SetDeepSeekKeyStatus("Enter a valid API key. The previous key was not changed.");
+                else{
+                    try{ProtectedQuotaCredentials.Save("DeepSeek",value);quotas.CredentialsChanged("DeepSeek",true);quotaRefreshBefore.Remove("DeepSeek");SetDeepSeekKeyStatus("Encrypted key saved. Refresh quota to check the account.");}
+                    catch{SetDeepSeekKeyStatus("Could not store the key for this Windows user.");}
+                }
+                save.IsEnabled=true;remove.IsEnabled=true;RenderQuota();UpdateDesktop();QueueSave();
+            });
+            Click("DeepSeekKeyRemove",delegate{
+                deepSeekKey.Clear();
+                try{ProtectedQuotaCredentials.Remove("DeepSeek");quotas.CredentialsChanged("DeepSeek",false);quotaRefreshBefore.Remove("DeepSeek");SetDeepSeekKeyStatus("API key required");}
+                catch{SetDeepSeekKeyStatus("Could not remove the key. The stored key was not changed.");}
+                RenderQuota();UpdateDesktop();QueueSave();
+            });
             Click("QuotaRefresh",delegate{RefreshQuota(null);});
         }
         void RefreshQuota(string provider){
@@ -84,7 +107,10 @@ namespace HardwarePulse {
         string QuotaState(QuotaReading r){if((r.Status=="Live"||r.Status=="CLI snapshot")&&!QuotaFresh(r))return language.T("Quota stale");return language.T(r.Status);}
         bool QuotaWindowVisible(QuotaReading r,QuotaWindow w){return QuotaFresh(r)&&w.Remaining.HasValue&&(r.Source!="CLI snapshot"||w.Reset>DateTimeOffset.UtcNow)&&(r.Status!="Cached"||!w.Reset.HasValue||w.Reset>DateTimeOffset.UtcNow);}
         string QuotaValue(QuotaReading r,QuotaWindow w){return QuotaWindowVisible(r,w)?w.Remaining.Value.ToString("0.#")+"% "+language.T("left"):"—";}
+        // A money provider shows the amount or an explicit blank; it never invents a percentage.
+        string MoneyValue(QuotaReading r,QuotaBalance b){return QuotaFresh(r)&&!string.IsNullOrEmpty(b.Amount)?b.Currency+" "+b.Amount:"—";}
         QuotaReading DisplayQuota(QuotaReading original,bool full,DateTimeOffset now){
+            if(QuotaCatalog.IsMoney(original.Provider))return new QuotaReading{Provider=original.Provider,Status=original.Status,Source=original.Source,Observed=original.Observed,HttpStatus=original.HttpStatus,FailureKind=original.FailureKind,Balances=full?original.AllBalances:original.Balances,AllBalances=original.AllBalances};
             var cached=quotas.CachedReading(original.Provider,now);
             if(cached!=null&&!isolated&&!QuotaProviders.IsClaudeCacheScopeCurrent(cached.CacheScope))cached=null;
             var selected=cached??original;
@@ -122,12 +148,12 @@ namespace HardwarePulse {
             var panel=(ResponsivePanel)Control<StackPanel>("QuotaCards");if(panel.Dragging)return;
             bool full=settings.Flag("quotaFull");var order=QuotaOrder();
             var displayed=readings.ToDictionary(r=>r.Provider,r=>DisplayQuota(r,full,now));
-            string signature=language.Preference+"|"+light+"|"+locked+"|"+full+"|"+SystemParameters.HighContrast+"|"+Window.FontSize+"|"+settings.Flag("unifiedReadingColors")+ReadingColor()+"|"+string.Join(";",readings.Select(r=>r.Provider+r.Status+r.Source+r.Observed.ToString("o")+QuotaRecoveryState(r,displayed[r.Provider],now)+QuotaDetails(r,displayed[r.Provider],now)+string.Join(",",displayed[r.Provider].Windows.Select(w=>w.Label+w.Remaining+w.Reset+QuotaWindowVisible(displayed[r.Provider],w)))));
+            string signature=language.Preference+"|"+light+"|"+locked+"|"+full+"|"+SystemParameters.HighContrast+"|"+Window.FontSize+"|"+settings.Flag("unifiedReadingColors")+ReadingColor()+"|"+string.Join(";",readings.Select(r=>r.Provider+r.Status+r.Source+r.Observed.ToString("o")+QuotaRecoveryState(r,displayed[r.Provider],now)+QuotaDetails(r,displayed[r.Provider],now)+string.Join(",",displayed[r.Provider].Windows.Select(w=>w.Label+w.Remaining+w.Reset+QuotaWindowVisible(displayed[r.Provider],w)))+string.Join(",",displayed[r.Provider].Balances.Select(b=>b.Label+b.Currency+b.Amount))));
             if(signature==quotaSignature)return;quotaSignature=signature;panel.Children.Clear();
             foreach(var original in readings.OrderBy(r=>Array.IndexOf(order,r.Provider))){
                 var reading=displayed[original.Provider];
                 var body=new StackPanel();var foreground=SystemParameters.HighContrast?SystemColors.WindowTextBrush:Brush(light?"#17202B":"#F0F5FA");
-                string accent=SystemParameters.HighContrast?SystemColors.WindowTextColor.ToString():light?"#17202B":settings.Flag("unifiedReadingColors")?ReadingColor():reading.Provider=="Codex"?"#A5E7D5":reading.Provider=="Claude"?"#E7B497":"#A7CBFF";
+                string accent=SystemParameters.HighContrast?SystemColors.WindowTextColor.ToString():light?"#17202B":settings.Flag("unifiedReadingColors")?ReadingColor():QuotaCatalog.Accent(reading.Provider);
                 var title=new Grid();title.ColumnDefinitions.Add(new ColumnDefinition{Width=GridLength.Auto});title.ColumnDefinitions.Add(new ColumnDefinition{Width=GridLength.Auto});title.ColumnDefinitions.Add(new ColumnDefinition());title.ColumnDefinitions.Add(new ColumnDefinition{Width=GridLength.Auto});
                 var grip=new Thumb{Width=16,Height=24,Margin=new Thickness(0,0,6,0),Cursor=Cursors.SizeAll,Focusable=true,Foreground=foreground,IsEnabled=!locked,Template=views["CPU"].Grip.Template,ToolTip=language.T("Drag To Reorder (Esc To Cancel)")};title.Children.Add(grip);
                 System.Windows.Automation.AutomationProperties.SetName(grip,reading.Provider+" · "+language.T("Reading Order"));
@@ -137,7 +163,13 @@ namespace HardwarePulse {
                 System.Windows.Automation.AutomationProperties.SetName(refreshButton,provider+" · "+language.T("Refresh Quota"));refreshButton.Click+=delegate{RefreshQuota(provider);};Grid.SetColumn(refreshButton,3);title.Children.Add(refreshButton);body.Children.Add(title);
                 string state=QuotaRecoveryState(original,reading,now);
                 body.Children.Add(new TextBlock{Text=state,ToolTip=QuotaDetails(original,reading,now),Foreground=foreground,Opacity=.8,Margin=new Thickness(0,5,0,8),TextWrapping=TextWrapping.Wrap});
-                foreach(var window in reading.Windows){
+                if(QuotaCatalog.IsMoney(reading.Provider)){
+                    foreach(var balance in reading.Balances){
+                        var row=new Grid{Margin=new Thickness(0,6,0,3)};row.ColumnDefinitions.Add(new ColumnDefinition());row.ColumnDefinitions.Add(new ColumnDefinition{Width=GridLength.Auto});
+                        row.Children.Add(new TextBlock{Text=language.T(balance.Label),Foreground=foreground,TextWrapping=TextWrapping.Wrap,Margin=new Thickness(0,0,8,0)});
+                        var value=new TextBlock{Text=MoneyValue(reading,balance),Foreground=foreground,FontWeight=FontWeights.SemiBold};Grid.SetColumn(value,1);row.Children.Add(value);body.Children.Add(row);
+                    }
+                }else foreach(var window in reading.Windows){
                     var row=new Grid{Margin=new Thickness(0,6,0,3)};row.ColumnDefinitions.Add(new ColumnDefinition());row.ColumnDefinitions.Add(new ColumnDefinition{Width=GridLength.Auto});
                     row.Children.Add(new TextBlock{Text=language.T(window.Label),Foreground=foreground,TextWrapping=TextWrapping.Wrap,Margin=new Thickness(0,0,8,0)});
                     var value=new TextBlock{Text=QuotaValue(reading,window),Foreground=foreground,FontWeight=FontWeights.SemiBold};Grid.SetColumn(value,1);row.Children.Add(value);body.Children.Add(row);
@@ -150,6 +182,11 @@ namespace HardwarePulse {
         }
         void AddDesktopQuotas(List<DesktopMetric> metrics){var now=DateTimeOffset.UtcNow;foreach(var original in quotas.Readings){
             var reading=DisplayQuota(original,false,now);string source=QuotaDetails(original,reading,now);
+            if(QuotaCatalog.IsMoney(reading.Provider)){
+                if(reading.Balances.Count==0||!QuotaFresh(reading)){metrics.Add(new DesktopMetric("quota"+reading.Provider,reading.Provider,QuotaState(reading),reading.Provider.ToLowerInvariant()){ToolTip=source});continue;}
+                int position=0;foreach(var balance in reading.Balances)metrics.Add(new DesktopMetric("quota"+reading.Provider+(position++),reading.Provider+" · "+language.T(balance.Label),balance.Currency+" "+balance.Amount,reading.Provider.ToLowerInvariant()){ToolTip=source});
+                continue;
+            }
             if(reading.Windows.Count==0||!QuotaFresh(reading)){metrics.Add(new DesktopMetric("quota"+reading.Provider,reading.Provider,QuotaState(reading),reading.Provider.ToLowerInvariant()){ToolTip=source});continue;}
             int index=0;foreach(var window in reading.Windows)metrics.Add(new DesktopMetric("quota"+reading.Provider+(index++),(reading.Provider=="Antigravity"?"Gemini":reading.Provider+(reading.Source=="CLI snapshot"?" ("+language.T("CLI snapshot")+")":""))+" · "+language.T(window.Label),QuotaValue(reading,window)+(reading.Status=="Cached"?" · "+language.T("Cached"):""),reading.Provider.ToLowerInvariant()){ToolTip=source});
         }}

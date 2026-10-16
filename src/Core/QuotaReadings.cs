@@ -7,6 +7,11 @@ namespace HardwarePulse {
         public double? Remaining;
         public DateTimeOffset? Reset;
     }
+    // Money providers report balances instead of a remaining percentage. Amounts are already
+    // formatted by the decoder so every view renders the same string.
+    public sealed class QuotaBalance {
+        public string Label,Currency,Amount;
+    }
     public sealed class QuotaReading {
         public string Provider,Status="Quota unavailable";
         public string Source;
@@ -18,6 +23,8 @@ namespace HardwarePulse {
         public DateTimeOffset? RetryAt;
         public List<QuotaWindow> Windows=new List<QuotaWindow>();
         public List<QuotaWindow> AllWindows=new List<QuotaWindow>();
+        public List<QuotaBalance> Balances=new List<QuotaBalance>();
+        public List<QuotaBalance> AllBalances=new List<QuotaBalance>();
     }
     // Scheduling metadata only: safe to persist without quota values or login identity.
     public sealed class QuotaSchedule {

@@ -9,8 +9,8 @@ namespace HardwarePulse {
     // window state, cache scope, or account identifiers here.
     public sealed class QuotaScheduleStore {
         public const int MaximumBytes=16*1024;
-        static readonly string[] Providers={"Codex","Antigravity","Claude"};
-        static readonly string[] Statuses={"Live","Quota unavailable","Login required","Login unavailable","Quota access denied","Refresh rate limited","Open Antigravity to read quota","Refresh pending"};
+        static readonly string[] Providers=QuotaCatalog.Names();
+        static readonly string[] Statuses={"Live","Quota unavailable","Login required","Login unavailable","Quota access denied","Refresh rate limited","Open Antigravity to read quota","Refresh pending","API key required","API key rejected","Credential unavailable"};
         static readonly string[] RootKeys={"schema","schedules"};
         static readonly string[] ScheduleKeys={"provider","status","observed","nextAttempt","notBefore","recoveryFailures","rateLimitFailures"};
         readonly string path;

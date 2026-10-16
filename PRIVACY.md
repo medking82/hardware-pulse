@@ -8,7 +8,7 @@ The separate, opt-in Local adaptive text contrast captures the screen rectangle 
 
 Network readings use local adapter byte counters through LibreHardwareMonitor. Pulse does not inspect packet contents or run a speed test; adapter names and rates stay in the local snapshot.
 
-AI Quota is independently opt-in for Codex, Antigravity and Claude. Codex and Claude
+AI Quota is independently opt-in for Codex, Antigravity, Claude and DeepSeek. Codex and Claude
 read the current user's existing login (Codex auth.json, Claude Code credential file
 or Windows Credential Manager, or configured Claude OAuth environment token). Their
 access token is sent only to the corresponding fixed HTTPS quota endpoint at
@@ -20,6 +20,17 @@ Quota readings stay in UI-process memory. Refresh occurs every five minutes whil
 enabled; disabling a provider cancels pending requests and removes its readings.
 Expired credentials must be renewed in the owning application. No chat history,
 token totals, billing history or purchased credit actions are read or performed.
+
+DeepSeek uses an API key you enter in its masked Settings field. Pulse encrypts this
+key with Windows current-user DPAPI and stores it only under
+`%LocalAppData%\HardwarePulse\credentials\DeepSeek.dpapi`; it is not copied into
+settings, snapshots, diagnostics or logs. The key is sent only to the fixed HTTPS
+endpoint `https://api.deepseek.com/user/balance`, with redirects disabled. DeepSeek
+receives your IP address and User-Agent and returns wallet balances; Pulse performs
+no model inference or purchase. Saving a key does not enable monitoring. Replacing
+or removing it clears old account readings; local removal does not revoke the key
+at the provider. An API key may permit paid model calls outside Pulse. DPAPI protects
+the stored file, not a compromised Windows user account or a running process.
 
 Quota recovery diagnostics stay in the local settings directory as
 `quota-diagnostics.jsonl` and one rotated copy, each limited to 32 KiB. These files

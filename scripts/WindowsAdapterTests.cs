@@ -42,6 +42,7 @@ class WindowsAdapterTests {
         CodexQuotaTests.Run();
         QuotaLoginFileTests.Run();
         ClaudeQuotaRequestTests.Run();
+        QuotaCredentialTests.Run();
         TestAntigravityChildEnvironment();
         AntigravityEndpointTests.Run();
         string architecture=System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture.ToString();

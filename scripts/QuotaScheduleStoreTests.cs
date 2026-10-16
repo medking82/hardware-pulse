@@ -25,6 +25,17 @@ static class QuotaScheduleStoreTests {
             Check(loaded.Length==2&&loaded[0].Provider=="Antigravity"&&loaded[0].Status=="Refresh rate limited"&&loaded[0].NextAttempt==deadline&&loaded[0].NotBefore==deadline&&loaded[0].RecoveryFailures==3&&loaded[0].RateLimitFailures==4,"schedule roundtrip");
             Check(loaded[1].Provider=="Claude"&&loaded[1].NextAttempt==deadline.AddDays(1),"multiple provider roundtrip");
 
+            using(var session=new QuotaSession((provider,cancel)=>new QuotaReading{Provider=provider})){
+                store.Save(session.CaptureSchedules());
+                Check(store.Load().Length==QuotaSession.Providers.Length,"every registered provider schedule persists even when disabled");
+            }
+            foreach(string status in new[]{"API key required","API key rejected","Credential unavailable","Refresh rate limited"}){
+                var deepSeek=Schedule("DeepSeek",deadline);deepSeek.Status=status;
+                store.Save(new[]{Schedule("Claude",deadline),deepSeek});
+                loaded=store.Load();
+                Check(loaded.Length==2&&loaded[1].Status==status&&loaded[1].NotBefore==deadline&&loaded[1].RateLimitFailures==4,"DeepSeek auth states preserve server cooldown and other provider schedules");
+            }
+
             Write(root,"{");Check(Read(root).Length==0,"malformed JSON ignored");
             Write(root,"{\"schema\":2,\"schedules\":[]}");Check(Read(root).Length==0,"unknown schema ignored");
             Write(root,"{\"schema\":1,\"schedules\":[{\"provider\":\"Unknown\",\"status\":\"Live\",\"observed\":\"2026-09-27T08:26:11.0000000+08:00\",\"nextAttempt\":\"2056-09-27T08:26:11.0000000+08:00\",\"notBefore\":\"2056-09-27T08:26:11.0000000+08:00\",\"recoveryFailures\":0,\"rateLimitFailures\":0}]}");

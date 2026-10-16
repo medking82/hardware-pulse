@@ -20,6 +20,15 @@ Dates are release dates. Unreleased entries describe source changes, not an avai
 
 - Shared Desktop supports Auto (System), English and Simplified/Traditional Chinese UI, including Monitor, Settings, sensor status, Codex quota and tray actions. Language switches immediately without restarting sampling or refreshing credentials and is saved in the isolated preview profile. Auto respects Chinese script and region preferences.
 
+## 0.6.56 — 2026-10-16
+
+- Add opt-in DeepSeek API wallet balances as currency amounts, not percentage bars. Essential view shows available balance; full view also shows granted and topped-up balances.
+- Save a manually entered API key with Windows current-user DPAPI encryption. Saving does not enable monitoring. Key replacement/removal clears old account readings and rejects late results without erasing rate-limit cooldowns.
+- Register provider metadata in QuotaCatalog and preserve scheduling for all four providers across restarts. Existing Claude login and CLI snapshot paths remain unchanged.
+- Keep the B850M MORTAR's verified SYS1/SYS3 fan channels when a sample has no value, without inventing RPM readings.
+- Fix narrow English key-editor buttons, light/dark input styling and immediate English/Simplified Chinese status updates. Add focused WPF and credential lifecycle regressions.
+- Focused checks and independent review completed. Full repository validation retains baseline failures in desktop registration, capture exclusion and layout; real DeepSeek API key requests and installed upgrades were not tested for this release.
+
 ## 0.6.55 — 2026-10-09
 
 - Read Wi-Fi Signal through Windows realtime connection quality without requiring Location permission on supported systems. Keep the connected-interface fallback for older Windows versions; no scanning or new sampling task is added.

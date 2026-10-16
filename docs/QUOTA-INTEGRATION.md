@@ -62,6 +62,17 @@ its CSRF token to loopback. No Token Monitor process or PowerShell/Node runtime.
 Only fixed provider HTTPS endpoints; disable redirects. Loopback TLS exceptions
 are request scoped. No global certificate bypass. Providers are independently opt-in.
 
+## DeepSeek API balance (Windows 0.6.56)
+
+DeepSeek reports wallet money, not a percentage window, so its card shows amounts and never a
+progress bar. The API key is entered in Settings, protected with DPAPI for the current Windows
+user, stored as one file per provider under `%LocalAppData%\HardwarePulse\credentials`, and sent
+only to the fixed endpoint `https://api.deepseek.com/user/balance` with redirects disabled. The key
+never enters `widget-settings.json`, diagnostics, logs or sync. Saving a key does not start
+monitoring; the provider toggle does. `QuotaCatalog` holds provider identity, icon, accent and
+metric kind, so a later provider (Grok, Qwen, …) needs catalog metadata, a transport branch and a
+decoder instead of additional UI paths.
+
 ## Windows Antigravity CLI fallback
 
 When no usable current-user Desktop language server is found, use an existing
@@ -242,7 +253,7 @@ so updater refresh cannot re-pin a process-wide TLS 1.2-only policy. Windows
 chooses an available protocol. System-default mode also failed in the live probe.
 Rollback is removal of the opt-in feature; existing settings remain compatible.
 
-Acceptance: parser fixtures for all three providers including missing, zero,
+Acceptance: parser fixtures for every provider including missing, zero,
 malformed and additional windows; cancellation/disable/error lifecycle tests;
 isolated WPF rendering/settings/Desktop tests; full scripts/Validate.ps1. Real
 provider checks are separate from fixtures and must report unavailable logins.

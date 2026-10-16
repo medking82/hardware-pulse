@@ -6,7 +6,7 @@ FPS capture is unavailable on this Windows version.|此 Windows 版本不支持 
 Local Contrast requires Windows 10 version 2004 or later.|局部对比度需要 Windows 10 2004 或更高版本。|局部對比度需要 Windows 10 2004 或更新版本。
 Disconnected|未连接|未連線
 AI Quota|AI 额度|AI 額度
-Read remaining quota from existing local logins. Refreshes every 5 minutes.|使用本机已有登录读取剩余额度，每 5 分钟刷新。|使用本機已有登入讀取剩餘額度，每 5 分鐘更新。
+Read remaining quota from existing local logins; DeepSeek uses the API key you enter below. Refreshes every 5 minutes.|使用本机已有登录读取剩余额度；DeepSeek 使用下方输入的 API 密钥，每 5 分钟刷新。|使用本機已有登入讀取剩餘額度；DeepSeek 使用下方輸入的 API 金鑰，每 5 分鐘更新。
 Login in Codex or Claude Code first. Antigravity can also use an installed, signed-in CLI. Pulse never changes your login.|请先登录 Codex 或 Claude Code。Antigravity 也可使用已安装并登录的 CLI。Pulse 不修改登录信息。|請先登入 Codex 或 Claude Code。Antigravity 也可使用已安裝並登入的 CLI。Pulse 不修改登入資訊。
 Refresh Quota|刷新额度|更新額度
 Quota refresh complete|额度刷新成功|額度更新成功
@@ -108,7 +108,7 @@ Leave a name blank to use device information. Hover over a field to see its auto
 SPD numbers identify sensor addresses, not physical slots. Installed slots are reported separately; assign a slot name only after confirming its sensor.|SPD 编号代表传感器地址，并非实体插槽。已安装插槽单独显示；确认对应关系后再命名。|SPD 編號代表感測器位址，並非實體插槽。已安裝插槽單獨顯示；確認對應關係後再命名。
 Changes save automatically.|更改自动保存。|變更自動儲存。
 About Pulse|关于 Pulse|關於 Pulse
-Version 0.6.55 · Marck Wong|版本 0.6.55 · Marck Wong|版本 0.6.55 · Marck Wong
+Version 0.6.56 · Marck Wong|版本 0.6.56 · Marck Wong|版本 0.6.56 · Marck Wong
 Sensors by LibreHardwareMonitor. Shared driver by PawnIO.|传感器：LibreHardwareMonitor。共享驱动：PawnIO。|感測器：LibreHardwareMonitor。共用驅動程式：PawnIO。
 Language|语言 / Language|語言 / Language
 Minimize|最小化|最小化
@@ -242,7 +242,22 @@ Font Size|文字大小|文字大小
 App quota display|App 额度显示|App 額度顯示
 Essential quotas|精简额度|精簡額度
 All available quotas|完整额度|完整額度
-Desktop keeps its essential quotas. Drag the handles to reorder the three provider cards.|桌面保留精简额度。拖动把手可调整三个服务卡片的顺序。|桌面保留精簡額度。拖曳把手可調整三個服務卡片的順序。
+Desktop keeps its essential quotas. Drag the handles to reorder the four provider cards.|桌面保留精简额度。拖动把手可调整四个服务卡片的顺序。|桌面保留精簡額度。拖曳把手可調整四個服務卡片的順序。
+DeepSeek API key|DeepSeek API 密钥|DeepSeek API 金鑰
+Save encrypted|加密保存|加密儲存
+Remove key|移除密钥|移除金鑰
+API key required|需要 API 密钥|需要 API 金鑰
+API key rejected|API 密钥被拒绝|API 金鑰被拒絕
+Credential unavailable|无法读取本机密钥|無法讀取本機金鑰
+Encrypted key saved|密钥已加密保存|金鑰已加密儲存
+Enter a valid API key. The previous key was not changed.|请输入有效的 API 密钥，原密钥未更改。|請輸入有效的 API 金鑰，原金鑰未變更。
+Encrypted key saved. Refresh quota to check the account.|密钥已加密保存，刷新额度即可查询账户。|金鑰已加密儲存，更新額度即可查詢帳戶。
+Could not store the key for this Windows user.|无法为当前 Windows 用户保存密钥。|無法為目前 Windows 使用者儲存金鑰。
+Could not remove the key. The stored key was not changed.|无法移除密钥，已保存的密钥未更改。|無法移除金鑰，已儲存的金鑰未變更。
+The key is encrypted for the current Windows user and sent only to api.deepseek.com. Saving a key does not enable monitoring.|密钥以当前 Windows 用户身份加密，仅发送至 api.deepseek.com。保存密钥不会开启监控。|金鑰以目前 Windows 使用者身分加密，僅傳送至 api.deepseek.com。儲存金鑰不會開啟監控。
+Available balance|可用余额|可用餘額
+Granted|赠送|贈送
+Topped up|充值|儲值
 Drag the center to move. Drag any edge or corner to resize.|拖动中间移动，拖动任意边缘或角落调整大小。|拖曳中間移動，拖曳任意邊緣或角落調整大小。
 Done|完成|完成
 Return to App|返回 App|返回 App

@@ -9,6 +9,7 @@ using HardwarePulse;
 
 internal static class NativeQuotaTests {
     static System.Collections.Generic.IEnumerable<string> Labels(DependencyObject node){var text=node as TextBlock;if(text!=null)yield return text.Text;foreach(object child in LogicalTreeHelper.GetChildren(node)){var item=child as DependencyObject;if(item!=null)foreach(string label in Labels(item))yield return label;}}
+    static System.Collections.Generic.IEnumerable<ProgressBar> Bars(DependencyObject node){var bar=node as ProgressBar;if(bar!=null)yield return bar;foreach(object child in LogicalTreeHelper.GetChildren(node)){var item=child as DependencyObject;if(item!=null)foreach(var found in Bars(item))yield return found;}}
     static void Check(bool value,string message){if(!value)throw new Exception("Quota: "+message);}
     static QuotaReading Decode(string provider,string json){return QuotaDecoder.Decode(provider,QuotaData.Parse(json),DateTimeOffset.UtcNow);}
         public static void Run(){
@@ -70,11 +71,29 @@ internal static class NativeQuotaTests {
     }
     public static void RunUI(Shell shell,string screenshot){
         var field=typeof(Shell).GetField("quotas",BindingFlags.NonPublic|BindingFlags.Instance);var original=(QuotaSession)field.GetValue(shell);
-        using(var fake=new QuotaSession((provider,cancel)=>new QuotaReading{Provider=provider,Status="Live",Observed=DateTimeOffset.UtcNow,Windows=new System.Collections.Generic.List<QuotaWindow>{new QuotaWindow{Label="5-hour",Remaining=74,Reset=DateTimeOffset.UtcNow.AddMinutes(30)},new QuotaWindow{Label="Weekly",Remaining=96,Reset=DateTimeOffset.UtcNow.AddDays(6)}}})){
+        var paths=(PulsePaths)typeof(Shell).GetField("paths",BindingFlags.NonPublic|BindingFlags.Instance).GetValue(shell);
+        using(var fake=new QuotaSession((provider,cancel)=>provider=="DeepSeek"
+            ?new QuotaReading{Provider=provider,Status="Live",Observed=DateTimeOffset.UtcNow,Balances=new System.Collections.Generic.List<QuotaBalance>{new QuotaBalance{Label="Available balance",Currency="CNY",Amount="110.00"}},AllBalances=new System.Collections.Generic.List<QuotaBalance>{new QuotaBalance{Label="Available balance",Currency="CNY",Amount="110.00"},new QuotaBalance{Label="Granted",Currency="CNY",Amount="10.00"},new QuotaBalance{Label="Topped up",Currency="CNY",Amount="100.00"}}}
+            :new QuotaReading{Provider=provider,Status="Live",Observed=DateTimeOffset.UtcNow,Windows=new System.Collections.Generic.List<QuotaWindow>{new QuotaWindow{Label="5-hour",Remaining=74,Reset=DateTimeOffset.UtcNow.AddMinutes(30)},new QuotaWindow{Label="Weekly",Remaining=96,Reset=DateTimeOffset.UtcNow.AddDays(6)}}})){
             field.SetValue(shell,fake);try{
                 foreach(string provider in QuotaSession.Providers){var toggle=shell.Control<CheckBox>("Quota"+provider);Check(toggle.IsChecked!=true,"providers opt in");toggle.IsChecked=true;toggle.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));}
                 fake.Tick(DateTimeOffset.UtcNow);for(int i=0;i<100&&fake.Readings.Any(r=>r.Status!="Live");i++){Thread.Sleep(10);fake.Tick(DateTimeOffset.UtcNow);}shell.UpdatePanel();
-                Check(shell.Control<StackPanel>("QuotaCards").Children.Count==3,"three provider cards");
+                Check(shell.Control<StackPanel>("QuotaCards").Children.Count==QuotaSession.Providers.Length,"one card per provider");
+                var moneyCard=shell.Control<StackPanel>("QuotaCards").Children.Cast<Border>().Single(c=>(string)c.Tag=="DeepSeek");
+                Check(Labels(moneyCard).Any(s=>s=="CNY 110.00"),"money card shows the formatted balance amount");
+                Check(!Bars(moneyCard).Any(),"money card must not draw a percentage bar");
+                var percentCard=shell.Control<StackPanel>("QuotaCards").Children.Cast<Border>().Single(c=>(string)c.Tag=="Codex");
+                Check(Bars(percentCard).Any(),"percentage cards keep their progress bar");
+                var keyBox=shell.Control<PasswordBox>("DeepSeekKey");var keyStatus=shell.Control<TextBlock>("DeepSeekKeyStatus");
+                Check(keyStatus.Text=="API key required"||keyStatus.Text=="Encrypted key saved","key editor reports whether a key is stored");
+                bool stored=ProtectedQuotaCredentials.Exists("DeepSeek");
+                keyBox.Password="bad key";shell.Control<Button>("DeepSeekKeySave").RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+                Check(keyStatus.Text=="Enter a valid API key. The previous key was not changed."&&keyBox.Password=="","rejected key is reported and cleared from the box");
+                Check(ProtectedQuotaCredentials.Exists("DeepSeek")==stored,"rejected key never writes a credential");
+                shell.Save();
+                string settingsPath=System.IO.Path.Combine(paths.State,"widget-settings.json");
+                string settingsText=System.IO.File.Exists(settingsPath)?System.IO.File.ReadAllText(settingsPath):"";
+                Check(settingsText.Length>0&&!settingsText.Contains("bad key")&&!settingsText.Contains("fixture-key"),"settings never store key material");
                 var source=shell.Control<ComboBox>("ClaudeQuotaSource");
                 Check(source.SelectedIndex==0&&shell.Control<StackPanel>("ClaudeSnapshotTools").Visibility==Visibility.Collapsed,"existing login remains default and snapshot setup stays optional");
                 var claudeReading=fake.Readings.Single(r=>r.Provider=="Claude");claudeReading.Status="CLI snapshot";claudeReading.Source="CLI snapshot";
@@ -92,7 +111,6 @@ internal static class NativeQuotaTests {
                 var commandButton=shell.Control<Button>("ClaudeSnapshotCommand");commandButton.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
                 Check(commandButton.ContextMenu!=null&&commandButton.ContextMenu.Items.Count==2,"command copy must expose both documented Windows shells");commandButton.ContextMenu.IsOpen=false;
                 Check((bool)typeof(Shell).GetField("claudeSnapshotSource",BindingFlags.NonPublic|BindingFlags.Instance).GetValue(shell),"snapshot route is selected before local-only probe");
-                var paths=(PulsePaths)typeof(Shell).GetField("paths",BindingFlags.NonPublic|BindingFlags.Instance).GetValue(shell);
                 var received=DateTimeOffset.UtcNow;long reset=(long)(received.AddHours(1)-new DateTimeOffset(1970,1,1,0,0,0,TimeSpan.Zero)).TotalSeconds;
                 string payload="{\"session_id\":\"isolated-ui-fixture\",\"rate_limits\":{\"five_hour\":{\"used_percentage\":17,\"resets_at\":"+reset+"}}}";
                 Check(ClaudeStatusLineReceiver.Receive(paths.State,new System.IO.StringReader(payload),received)=="CLI snapshot","isolated local source fixture");
@@ -105,6 +123,8 @@ internal static class NativeQuotaTests {
                 var metrics=(System.Collections.IEnumerable)typeof(Shell).GetMethod("DesktopMetrics",BindingFlags.NonPublic|BindingFlags.Instance).Invoke(shell,null);Check(metrics.Cast<object>().Count()>=6,"Desktop quota readings");
                 var geminiMetrics=metrics.Cast<DesktopMetric>().Where(m=>m.Key.StartsWith("quotaAntigravity",StringComparison.Ordinal)).ToArray();
                 Check(geminiMetrics.Length==2&&geminiMetrics.All(m=>m.Title.StartsWith("Gemini · ",StringComparison.Ordinal)&&!m.Title.Contains("CLI")&&m.ToolTip!=null&&m.ToolTip.Contains("Antigravity CLI")),"Gemini keeps concise titles and discloses CLI source in tooltip");
+                var moneyMetrics=metrics.Cast<DesktopMetric>().Where(m=>m.Key.StartsWith("quotaDeepSeek",StringComparison.Ordinal)).ToArray();
+                Check(moneyMetrics.Length==1&&moneyMetrics[0].Value=="CNY 110.00"&&moneyMetrics[0].Title.Contains("Available balance"),"Desktop shows the money balance as an amount");
                 antigravityReading.Source=null;shell.UpdatePanel();
                 metrics=(System.Collections.IEnumerable)typeof(Shell).GetMethod("DesktopMetrics",BindingFlags.NonPublic|BindingFlags.Instance).Invoke(shell,null);
                 Check(metrics.Cast<DesktopMetric>().Where(m=>m.Key.StartsWith("quotaAntigravity",StringComparison.Ordinal)).All(m=>m.ToolTip==null),"Returning to Desktop source clears the previous CLI tooltip");

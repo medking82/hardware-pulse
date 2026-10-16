@@ -102,6 +102,13 @@ namespace HardwarePulse {
                         var cli=AntigravityCliQuota.Read(executable,cancel);if(cli.Status!="Live")cli.FailureKind="Invalid response";return cli;
                     }
                 }
+                else if(provider=="DeepSeek"){
+                    source="API";
+                    string apiKey=ProtectedQuotaCredentials.Read(provider);
+                    try{body=Request("https://api.deepseek.com/user/balance",new Dictionary<string,string>{{"Authorization","Bearer "+apiKey}},null,cancel,false);}
+                    // A rejected API key is not a login another CLI could renew; keep the actionable status.
+                    catch(QuotaFailure failure){if(failure.Status=="Login required")throw new QuotaFailure("API key rejected",failure.RetryAt,failure.HttpStatus,failure.FailureKind);throw;}
+                }
                 else if(provider=="Claude"){
                     string supplied=Environment.GetEnvironmentVariable("CLAUDE_CODE_OAUTH_TOKEN");
                     Func<object> selectedLogin=null;
@@ -111,7 +118,7 @@ namespace HardwarePulse {
                         var login=selectedLogin();return QuotaDecoder.Text(QuotaDecoder.Get(QuotaDecoder.Get(login,"claudeAiOauth")??login,"accessToken"));
                     },(token,requestCancel)=>Request("https://api.anthropic.com/api/oauth/usage",new Dictionary<string,string>{{"Authorization","Bearer "+token},{"anthropic-beta","oauth-2025-04-20"}},null,requestCancel,false),cancel);
                 }else throw new QuotaFailure("Quota unavailable");
-                cancel.ThrowIfCancellationRequested();var decoded=QuotaDecoder.Decode(provider,body,DateTimeOffset.UtcNow);decoded.CacheScope=cacheScope;decoded.Source=source;decoded.HttpStatus=provider=="Claude"?200:0;if(decoded.Status!="Live")decoded.FailureKind="Invalid response";return decoded;
+                cancel.ThrowIfCancellationRequested();var decoded=QuotaDecoder.Decode(provider,body,DateTimeOffset.UtcNow);decoded.CacheScope=cacheScope;decoded.Source=source;decoded.HttpStatus=provider=="Claude"||provider=="DeepSeek"?200:0;if(decoded.Status!="Live")decoded.FailureKind="Invalid response";return decoded;
             }catch(QuotaFailure e){return new QuotaReading{Provider=provider,Status=e.Status,Observed=DateTimeOffset.UtcNow,RetryAt=e.RetryAt,CacheScope=cacheScope,HttpStatus=e.HttpStatus,Source=source,FailureKind=e.FailureKind??(source=="CLI"?"CLI failure":null)};}
             catch(OperationCanceledException){cancel.ThrowIfCancellationRequested();return new QuotaReading{Provider=provider,Status="Quota unavailable",Observed=DateTimeOffset.UtcNow,Source=source,FailureKind="Transport timeout"};}
             catch{cancel.ThrowIfCancellationRequested();return new QuotaReading{Provider=provider,Status="Quota unavailable",Observed=DateTimeOffset.UtcNow,Source=source,FailureKind=source=="CLI"?"CLI failure":"Transport failure"};}
@@ -124,7 +131,7 @@ namespace HardwarePulse {
         // All callers supply fixed endpoints or a verified local process endpoint. Never follow redirects with login headers.
         internal static object Request(string url,Dictionary<string,string> headers,string body,CancellationToken cancel,bool local){
             cancel.ThrowIfCancellationRequested();var uri=new Uri(url);
-            if(local?uri.Host!="127.0.0.1":url!="https://chatgpt.com/backend-api/wham/usage"&&url!="https://api.anthropic.com/api/oauth/usage")throw new QuotaFailure("Quota unavailable");
+            if(local?uri.Host!="127.0.0.1":url!="https://chatgpt.com/backend-api/wham/usage"&&url!="https://api.anthropic.com/api/oauth/usage"&&url!="https://api.deepseek.com/user/balance")throw new QuotaFailure("Quota unavailable");
             // Enable TLS 1.2 and TLS 1.3 (numeric value for the older compiler).
             // Pinning TLS 1.2 fails the Codex endpoint on current Windows configurations.
             ServicePointManager.SecurityProtocol=SecurityProtocolType.Tls12 | (SecurityProtocolType)12288;

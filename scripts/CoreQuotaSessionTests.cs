@@ -12,6 +12,7 @@ internal static class CoreQuotaSessionTests {
         throw new Exception("Core quota completion timed out");
     }
     public static void Run(){
+        CredentialChanges();
         ExplicitClaudeAuthenticationRecovery();
         ConservativeRequestBudget();
         RestartAndAlternatingFailures();
@@ -179,8 +180,11 @@ internal static class CoreQuotaSessionTests {
         })){
             for(int round=0;round<360;round++){
                 var instant=now.AddHours(round*2);Interlocked.Exchange(ref clockTicks,instant.UtcTicks);
+                // The lifecycle soak keeps its original three slots and 810-read budget; the money
+                // provider's decode and credential paths are covered by their own fixtures.
+                int soakProviders=3;
                 int hidden=round%4-1;int before=counts[0]+counts[1]+counts[2];
-                for(int provider=0;provider<3;provider++)soak.Enable(QuotaSession.Providers[provider],provider!=hidden);
+                for(int provider=0;provider<soakProviders;provider++)soak.Enable(QuotaSession.Providers[provider],provider!=hidden);
                 if(round%7==0)soak.Refresh();
                 Pump(soak,instant,()=>Array.TrueForAll(soak.Readings,r=>r.Observed==instant));
                 var results=soak.Readings;Check(results.Length==(hidden<0?3:2),"soak exposed a disabled provider");
@@ -191,6 +195,42 @@ internal static class CoreQuotaSessionTests {
         }
         Console.WriteLine("PASS quota lifecycle soak: 360 simulated refresh rounds / 30 days, 810 reads, mixed failures, recovery, provider toggles and no overlapping requests");
         Console.WriteLine("PASS Core quota lifecycle: opt-in, host deadlines, manual refresh, no overlap, cancellation, re-enable late results, faults and disposal");
+    }
+    static void CredentialChanges(){
+        var changed=typeof(QuotaSession).GetMethod("CredentialsChanged");
+        Check(changed!=null,"credential changes need an explicit observation invalidation path");
+        Action<QuotaSession,bool> notify=(session,present)=>changed.Invoke(session,new object[]{"DeepSeek",present});
+        var now=new DateTimeOffset(2026,10,16,0,0,0,TimeSpan.Zero);
+        int calls=0;
+        using(var session=new QuotaSession((provider,cancel)=>{
+            Interlocked.Increment(ref calls);
+            return new QuotaReading{Provider=provider,Status="Live",Observed=now,Balances=new List<QuotaBalance>{new QuotaBalance{Currency="CNY",Amount="110.00"}}};
+        })){
+            notify(session,true);session.Tick(now);Check(calls==0&&session.Readings.Length==0,"saving does not enable monitoring");
+            session.Enable("DeepSeek",true);Pump(session,now,()=>session.Readings[0].Status=="Live");
+            var floor=session.GetState("DeepSeek").NextAttempt;
+            notify(session,true);
+            Check(session.Readings[0].Status=="Refresh pending"&&session.Readings[0].Balances.Count==0,"replacement clears old-account amounts immediately");
+            Check(!session.GetState("DeepSeek").LastSuccess.HasValue&&session.GetState("DeepSeek").NextAttempt==floor,"replacement clears identity feedback without erasing request budget");
+            notify(session,false);
+            Check(session.Readings[0].Status=="API key required"&&session.Readings[0].AllBalances.Count==0,"removal clears old amounts and shows missing key");
+        }
+        foreach(string result in new[]{"Live","Refresh rate limited"}){
+            using(var entered=new ManualResetEventSlim())using(var release=new ManualResetEventSlim())
+            using(var session=new QuotaSession((provider,cancel)=>{
+                Interlocked.Increment(ref calls);entered.Set();release.Wait(5000);
+                return new QuotaReading{Provider=provider,Status=result,Observed=now,RetryAt=result=="Refresh rate limited"?(DateTimeOffset?)now.AddHours(1):null,Balances=new List<QuotaBalance>{new QuotaBalance{Amount="old-account"}}};
+            })){
+                try{
+                    session.Enable("DeepSeek",true);session.Tick(now);Check(entered.Wait(3000),"old-key request entered");
+                    notify(session,true);release.Set();Pump(session,now,()=>!session.GetState("DeepSeek").Refreshing);
+                    Check(session.Readings[0].Status=="Refresh pending"&&session.Readings[0].Balances.Count==0,"late old-key result cannot reappear after replacement");
+                    if(result=="Refresh rate limited")Check(session.GetState("DeepSeek").NextAttempt>=now.AddHours(1)&&session.GetState("DeepSeek").RateLimitFailures==1,"late old-key 429 still preserves server cooldown");
+                    int before=calls;session.Tick(now.AddSeconds(1));Check(calls==before,"replacement never bypasses reservation or cooldown");
+                }finally{release.Set();}
+            }
+        }
+        Console.WriteLine("PASS credential changes: immediate invalidation, late-result rejection, opt-in and cooldown preserved");
     }
     static void ExplicitClaudeAuthenticationRecovery(){
         var now=new DateTimeOffset(2026,10,2,2,19,0,TimeSpan.Zero);int calls=0;
