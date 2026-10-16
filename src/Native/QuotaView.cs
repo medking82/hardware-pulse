@@ -22,7 +22,14 @@ namespace HardwarePulse {
         void LocalizeDeepSeekKeyStatus(){if(deepSeekKeyStatus!=null)Text("DeepSeekKeyStatus",language.Label(deepSeekKeyStatus));}
         DateTimeOffset nextClaudeRevisionCheck;
         readonly Dictionary<string,QuotaReading> quotaRefreshBefore=new Dictionary<string,QuotaReading>();
-        string[] QuotaOrder(){return settings.Order("quotaCardOrder",QuotaSession.Providers);}
+        Brush AiCardBackground(){return SystemParameters.HighContrast?SystemColors.WindowBrush:Brush(light?"#20FFFFFF":"#20122029");}
+        void StyleAiCard(Border card){card.Padding=new Thickness(12);card.Margin=new Thickness(0,8,0,0);card.CornerRadius=new CornerRadius(16);card.BorderThickness=new Thickness(1);card.BorderBrush=SystemParameters.HighContrast?SystemColors.WindowTextBrush:Brush("#608BA8B8");card.Background=AiCardBackground();}
+        Thumb AiCardGrip(string title){
+            var grip=new Thumb{Width=16,Height=24,Margin=new Thickness(0,0,6,0),Cursor=Cursors.SizeAll,Focusable=true,IsEnabled=!locked,Template=views["CPU"].Grip.Template,ToolTip=language.T("Drag To Reorder (Esc To Cancel)")};
+            System.Windows.Automation.AutomationProperties.SetName(grip,title+" · "+language.T("Reading Order"));return grip;
+        }
+        string[] QuotaOrder(){return settings.Order("quotaCardOrder",QuotaSession.Providers.Concat(new[]{"localModelSpeed"}));}
+        void SaveQuotaOrder(){var panel=Control<StackPanel>("QuotaCards");settings.Data["quotaCardOrder"]=panel.Children.Cast<Border>().Select(c=>(string)c.Tag).Concat(QuotaOrder()).Distinct().ToArray();QueueSave();}
         string DeepSeekCurrency(){string value=settings.Text("deepSeekCurrency","CNY");return value=="USD"||value=="All"?value:"CNY";}
         void WireQuota(){
             var desktopVisible=settings.Map("desktopVisible");
@@ -188,8 +195,7 @@ namespace HardwarePulse {
                 var body=new StackPanel();var foreground=SystemParameters.HighContrast?SystemColors.WindowTextBrush:Brush(light?"#17202B":"#F0F5FA");
                 string accent=SystemParameters.HighContrast?SystemColors.WindowTextColor.ToString():light?"#17202B":settings.Flag("unifiedReadingColors")?ReadingColor():QuotaCatalog.Accent(reading.Provider);
                 var title=new Grid();title.ColumnDefinitions.Add(new ColumnDefinition{Width=GridLength.Auto});title.ColumnDefinitions.Add(new ColumnDefinition{Width=GridLength.Auto});title.ColumnDefinitions.Add(new ColumnDefinition());title.ColumnDefinitions.Add(new ColumnDefinition{Width=GridLength.Auto});
-                var grip=new Thumb{Width=16,Height=24,Margin=new Thickness(0,0,6,0),Cursor=Cursors.SizeAll,Focusable=true,Foreground=foreground,IsEnabled=!locked,Template=views["CPU"].Grip.Template,ToolTip=language.T("Drag To Reorder (Esc To Cancel)")};title.Children.Add(grip);
-                System.Windows.Automation.AutomationProperties.SetName(grip,reading.Provider+" · "+language.T("Reading Order"));
+                var grip=AiCardGrip(reading.Provider);grip.Foreground=foreground;title.Children.Add(grip);
                 var icon=Icon(reading.Provider.ToLowerInvariant(),19,accent);icon.Margin=new Thickness(0,0,8,0);Grid.SetColumn(icon,1);title.Children.Add(icon);
                 var name=new TextBlock{Text=reading.Provider=="Antigravity"&&!full?"Antigravity · Gemini":reading.Provider,FontSize=13*Window.FontSize/12,FontWeight=FontWeights.SemiBold,Foreground=foreground,TextWrapping=TextWrapping.Wrap,VerticalAlignment=VerticalAlignment.Center};Grid.SetColumn(name,2);title.Children.Add(name);
                 string provider=reading.Provider;bool canRefresh=quotas.CanRequestRefresh(provider,now);
@@ -217,9 +223,10 @@ namespace HardwarePulse {
                     if(QuotaWindowVisible(reading,window))body.Children.Add(new ProgressBar{Minimum=0,Maximum=100,Value=window.Remaining.Value,Height=3,Foreground=Brush(accent),Background=Brush("#304F6B7C"),IsHitTestVisible=false});
                     string reset=QuotaDecoder.ResetText(window.Reset,now);if(reset!="")body.Children.Add(new TextBlock{Text=reset=="Reset pending"?language.T(reset):reset.Replace("Reset ",language.T("Reset")+" "),Foreground=foreground,Opacity=.75,Margin=new Thickness(0,3,0,5)});
                 }
-                var card=new Border{Tag=reading.Provider,Child=body,Padding=new Thickness(12),Margin=new Thickness(0,8,0,0),CornerRadius=new CornerRadius(16),BorderThickness=new Thickness(1),BorderBrush=Brush("#608BA8B8"),Background=SystemParameters.HighContrast?SystemColors.WindowBrush:Brush(light?"#20FFFFFF":"#20122029")};panel.Children.Add(card);
-                panel.Attach(card,grip,Control<ScrollViewer>("CardScroll"),delegate{settings.Data["quotaCardOrder"]=panel.Children.Cast<Border>().Select(c=>(string)c.Tag).Concat(QuotaOrder()).Distinct().ToArray();QueueSave();});
+                var card=new Border{Tag=reading.Provider,Child=body};StyleAiCard(card);panel.Children.Add(card);
+                panel.Attach(card,grip,Control<ScrollViewer>("CardScroll"),SaveQuotaOrder);
             }
+            RenderLocalInference();
         }
         void AddDesktopQuotas(List<DesktopMetric> metrics){var now=DateTimeOffset.UtcNow;foreach(var original in quotas.Readings){
             var reading=DisplayQuota(original,false,now);string source=QuotaDetails(original,reading,now);

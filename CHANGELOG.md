@@ -4,6 +4,12 @@
 
 Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
+## 0.6.59 — 2026-10-16
+
+- Integrate the Strata/local-inference card with the existing translucent AI card surface and responsive columns instead of a separate opaque, full-width panel.
+- Add the standard drag handle, keyboard reordering, drag cancellation, position lock and saved card order. Keep local telemetry in place across quota refreshes and visibility changes without joining quota polling.
+- Match title, SVG, padding and corner sizing to neighboring cards. Keep unloaded/idle/error states compact, scale text with the user's font setting and move the long telemetry explanation into a tooltip; genuine generation speed retains its numeric emphasis.
+
 ## 0.6.58 — 2026-10-16
 
 - Add opt-in native local generation-speed readings through a backend catalog and version-isolated polling session. The initial Strata adapter reads only loopback `/metrics`, reuses its three-layer SVG and distinguishes generating, prefill, idle, unloaded and stale states. Other serving backends require their own telemetry adapters; this is not a benchmark or automatic model loader.

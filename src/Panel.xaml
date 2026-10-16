@@ -249,10 +249,15 @@
         </ControlTemplate>
       </ScrollViewer.Template>
       <StackPanel><StackPanel x:Name="Cards" /><StackPanel x:Name="QuotaCards" />
-        <Border x:Name="LocalInferenceCard" Visibility="Collapsed" CornerRadius="14" Padding="16" Margin="0,12,0,0" BorderThickness="1">
+        <Border x:Name="LocalInferenceCard" Visibility="Collapsed">
           <StackPanel>
-            <StackPanel Orientation="Horizontal"><ContentControl x:Name="LocalInferenceIcon" Margin="0,0,8,0"/><TextBlock x:Name="LocalInferenceTitle" VerticalAlignment="Center" FontWeight="SemiBold"/></StackPanel>
-            <TextBlock x:Name="LocalInferenceValue" FontSize="24" FontWeight="SemiBold" Margin="0,10,0,6" TextWrapping="Wrap"/>
+            <Grid>
+              <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition/></Grid.ColumnDefinitions>
+              <ContentControl x:Name="LocalInferenceDrag"/>
+              <ContentControl x:Name="LocalInferenceIcon" Grid.Column="1" Margin="0,0,8,0" VerticalAlignment="Center"/>
+              <TextBlock x:Name="LocalInferenceTitle" Grid.Column="2" VerticalAlignment="Center" FontWeight="SemiBold" TextWrapping="Wrap"/>
+            </Grid>
+            <TextBlock x:Name="LocalInferenceValue" FontWeight="SemiBold" Margin="0,6,0,3" TextWrapping="Wrap"/>
             <TextBlock x:Name="LocalInferenceDetail" FontSize="11" TextWrapping="Wrap" Opacity="0.8"/>
           </StackPanel>
         </Border>
@@ -278,7 +283,7 @@
             </ComboBox>
             <CheckBox x:Name="StartWithWindows" Content="Start with Windows" Margin="0,0,0,10" />
             <TextBlock x:Name="StartupStatus" FontSize="11" Margin="0,0,0,10" />
-            <TextBlock Text="Version 0.6.58 · Marck Wong" FontSize="11" Foreground="#ADC1D2" Margin="0,0,0,8" />
+            <TextBlock Text="Version 0.6.59 · Marck Wong" FontSize="11" Foreground="#ADC1D2" Margin="0,0,0,8" />
             <Button x:Name="GitHub" Content="GitHub" HorizontalAlignment="Left" ToolTip="github.com/medking82/hardware-pulse" />
             <CheckBox x:Name="AutoUpdates" Content="Check for Updates Automatically" Margin="0,12,0,8" />
             <CheckBox x:Name="AutoDownload" Content="Download Updates Automatically" Margin="0,0,0,8" />

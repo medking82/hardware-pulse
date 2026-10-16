@@ -4,12 +4,14 @@ using System.Globalization;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using System.Xml;
 
 namespace HardwarePulse {
     public sealed partial class Shell {
         readonly LocalInferenceSession localInference=new LocalInferenceSession(LocalInferenceSource.Read);
+        Thumb localInferenceGrip;
         string InferenceProvider {get{return settings.Text("localInferenceProvider","Strata");}}
         LocalInferenceSpec InferenceSpec {get{return LocalInferenceCatalog.Find(InferenceProvider);}}
         string InferenceTitle {get{return InferenceSpec==null?language.Label("Local Model"):InferenceSpec.Name;}}
@@ -18,6 +20,9 @@ namespace HardwarePulse {
             RenderLocalInference();ApplyDensity(false);UpdateDesktop();QueueSave();
         }
         void WireLocalInference(){
+            var card=Control<Border>("LocalInferenceCard");((Panel)card.Parent).Children.Remove(card);card.Tag="localModelSpeed";
+            localInferenceGrip=AiCardGrip(InferenceTitle);Control<ContentControl>("LocalInferenceDrag").Content=localInferenceGrip;
+            ((ResponsivePanel)Control<StackPanel>("QuotaCards")).Attach(card,localInferenceGrip,Control<ScrollViewer>("CardScroll"),SaveQuotaOrder);
             var enabled=Control<CheckBox>("LocalInferenceEnabled");enabled.IsChecked=settings.Flag("localInferenceEnabled",false);
             var provider=Control<ComboBox>("LocalInferenceProvider");
             foreach(var source in LocalInferenceCatalog.All)provider.Items.Add(new ComboBoxItem{Tag=source.Name,Content=source.Name});
@@ -38,13 +43,19 @@ namespace HardwarePulse {
             return detail;
         }
         void RenderLocalInference(){
-            var card=Control<Border>("LocalInferenceCard");if(card==null)return;
+            var card=Control<Border>("LocalInferenceCard");if(card==null||localInferenceGrip==null)return;
+            var panel=(ResponsivePanel)Control<StackPanel>("QuotaCards");if(panel.Dragging)return;
             card.Visibility=settings.Flag("localInferenceEnabled",false)?Visibility.Visible:Visibility.Collapsed;
-            if(card.Visibility!=Visibility.Visible)return;
-            var reading=localInference.Current(DateTimeOffset.UtcNow);Text("LocalInferenceTitle",InferenceTitle);Text("LocalInferenceValue",InferenceValue(reading));Text("LocalInferenceDetail",InferenceDetail(reading));
-            card.Background=Brush(light?"#FFFFFF":"#202831");card.BorderBrush=Brush(light?"#D4DCE2":"#40515D");
-            foreach(string name in new[]{"LocalInferenceTitle","LocalInferenceValue","LocalInferenceDetail"})Control<TextBlock>(name).Foreground=Brush(light?"#17202B":"#F0F5FA");
-            var source=InferenceSpec;Control<ContentControl>("LocalInferenceIcon").Content=Icon(source==null?"live":source.Icon,22,DesktopPaletteColor(source==null?"live":source.Icon,light?"#17202B":"#F0F5FA"));
+            if(card.Visibility!=Visibility.Visible){panel.Children.Remove(card);return;}
+            if(card.Parent!=panel){var order=QuotaOrder();int position=Array.IndexOf(order,"localModelSpeed"),index=0;foreach(Border existing in panel.Children){if(Array.IndexOf(order,(string)existing.Tag)>position)break;index++;}panel.Children.Insert(index,card);}
+            var reading=localInference.Current(DateTimeOffset.UtcNow);Text("LocalInferenceTitle",InferenceTitle);Text("LocalInferenceValue",InferenceValue(reading));card.ToolTip=InferenceDetail(reading);
+            string last=reading.Status=="Idle"&&reading.LastTokensPerSecond.HasValue?language.Label("Last Request")+": "+reading.LastTokensPerSecond.Value.ToString("0.#",CultureInfo.InvariantCulture)+" tok/s":"";
+            Text("LocalInferenceDetail",last);Control<TextBlock>("LocalInferenceDetail").Visibility=last.Length==0?Visibility.Collapsed:Visibility.Visible;
+            StyleAiCard(card);var foreground=SystemParameters.HighContrast?SystemColors.WindowTextBrush:Brush(light?"#17202B":"#F0F5FA");
+            double scale=Window.FontSize/12;Control<TextBlock>("LocalInferenceTitle").FontSize=13*scale;Control<TextBlock>("LocalInferenceValue").FontSize=(reading.Status=="Generating"&&reading.TokensPerSecond.HasValue?21:13)*scale;Control<TextBlock>("LocalInferenceDetail").FontSize=11*scale;
+            foreach(string name in new[]{"LocalInferenceTitle","LocalInferenceValue","LocalInferenceDetail"})Control<TextBlock>(name).Foreground=foreground;
+            localInferenceGrip.IsEnabled=!locked;localInferenceGrip.Foreground=foreground;localInferenceGrip.ToolTip=language.T("Drag To Reorder (Esc To Cancel)");System.Windows.Automation.AutomationProperties.SetName(localInferenceGrip,InferenceTitle+" · "+language.T("Reading Order"));
+            var source=InferenceSpec;Control<ContentControl>("LocalInferenceIcon").Content=Icon(source==null?"live":source.Icon,19,DesktopPaletteColor(source==null?"live":source.Icon,foreground.ToString()));
         }
         void AddDesktopInference(List<DesktopMetric> metrics){
             if(!settings.Flag("localInferenceEnabled",false))return;
