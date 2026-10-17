@@ -4,11 +4,14 @@
 
 Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
-## 0.6.60 — 2026-10-17
+## 0.6.61 — 2026-10-17
+
+The v0.6.60 validation tag was not released: CI exposed a diagnostic-read race, corrected here without moving that tag.
 
 - Add the opt-in Claude Auto source in native Settings. Start with OAuth API; only HTTP 401 queues Claude Code `/usage` for a later refresh after the shared cooldown. A successful CLI result is displayed directly, with API retried on the next normal cycle.
 - Preserve the five-minute minimum, longer server Retry-After and throttling debt across both routes, source changes and restart. Never switch routes to evade 429; Auto makes only one request per refresh and disables the API's same-cycle changed-login retry.
 - Distinguish authentication, permissions, throttling, timeout and other CLI errors using bounded, metadata-only diagnostics. Pause automatic retries after both sources reject authentication; sign in through Claude Code and use Refresh to start a new cycle after cooldown.
+- Drain buffered CLI stderr after the owned child exits, before cancelling the reader. Preserve authentication/permission/throttle classification and Retry-After even when the child exits quickly; retained writer handles, byte limits, cancellation and cleanup remain bounded.
 - Show Auto, the actual API/CLI source and pending/stopped recovery in App and Desktop. Keep Existing Login, CLI Query and CLI Snapshot choices and existing saved selections; Auto is not silently enabled on upgrade. Pulse does not copy or write login material.
 
 ## 0.6.59 — 2026-10-16

@@ -20,7 +20,7 @@ namespace HardwarePulse {
         }
         internal static object ReadProtocol(TextReader input,TextWriter output,CancellationToken cancel){
             int total=0;
-            output.WriteLine("{\"id\":1,\"method\":\"initialize\",\"params\":{\"clientInfo\":{\"name\":\"hardware_pulse\",\"title\":\"Hardware Pulse\",\"version\":\"0.6.60\"}}}");output.Flush();
+            output.WriteLine("{\"id\":1,\"method\":\"initialize\",\"params\":{\"clientInfo\":{\"name\":\"hardware_pulse\",\"title\":\"Hardware Pulse\",\"version\":\"0.6.61\"}}}");output.Flush();
             Response(input,1,ref total,cancel);
             output.WriteLine("{\"method\":\"initialized\",\"params\":{}}");
             output.WriteLine("{\"id\":2,\"method\":\"account/rateLimits/read\",\"params\":{}}");output.Flush();
@@ -67,7 +67,8 @@ namespace HardwarePulse {
                 using(deadline.Token.Register(()=>stop()))
                 using(var reading=CancellationTokenSource.CreateLinkedTokenSource(deadline.Token))
                 using(var stdout=new StreamReader(new QuotaPipeStream(process.StandardOutput.BaseStream,reading.Token),Encoding.UTF8))
-                using(var stderr=new StreamReader(new QuotaPipeStream(process.StandardError.BaseStream,reading.Token),Encoding.UTF8)){
+                using(var errorPipe=new QuotaPipeStream(process.StandardError.BaseStream,reading.Token))
+                using(var stderr=new StreamReader(errorPipe,Encoding.UTF8)){
                     int diagnosticOverflow=0;var diagnostics=classify==null?null:new StringBuilder();
                     var errors=Task.Run(()=>{try{var buffer=new char[2048];int count,total=0;while((count=stderr.Read(buffer,0,buffer.Length))>0){total+=count;if(total>65536){Interlocked.Exchange(ref diagnosticOverflow,1);reading.Cancel();stop();break;}if(diagnostics!=null)diagnostics.Append(buffer,0,count);}}catch(OperationCanceledException){}catch(IOException){}catch(ObjectDisposedException){}});
                     object body=null;QuotaFailure readFailure=null;
@@ -83,10 +84,11 @@ namespace HardwarePulse {
                         finally{
                             try{if(!process.WaitForExit(500)){stop();if(!process.WaitForExit(2000)){if(cancel.IsCancellationRequested)throw new OperationCanceledException(cancel);throw new QuotaFailure("Quota unavailable",null,0,deadline.IsCancellationRequested?"CLI timeout":"CLI failure");}}}
                             finally{
-                                // A descendant may retain stderr after the owned child exits.
-                                // Cancel the pipe reader before joining; never abandon a worker.
+                                // Drain bytes written before the owned child exited, without
+                                // waiting for EOF from a descendant that inherited stderr.
+                                errorPipe.Complete();bool drained=errors.Wait(1000);
                                 reading.Cancel();
-                                if(!errors.Wait(2000)){if(cancel.IsCancellationRequested)throw new OperationCanceledException(cancel);throw new QuotaFailure("Quota unavailable",null,0,deadline.IsCancellationRequested?"CLI timeout":"CLI failure");}
+                                if(!errors.Wait(1000)||!drained){if(cancel.IsCancellationRequested)throw new OperationCanceledException(cancel);throw new QuotaFailure("Quota unavailable",null,0,deadline.IsCancellationRequested?"CLI timeout":"CLI failure");}
                             }
                         }
                     }
@@ -116,6 +118,7 @@ namespace HardwarePulse {
     internal sealed class QuotaPipeStream:Stream {
         readonly SafeHandle handle;
         readonly CancellationToken cancel;
+        volatile bool completed;
         readonly byte[] bytes=new byte[4096];
         [DllImport("kernel32.dll",SetLastError=true)]static extern bool PeekNamedPipe(SafeHandle pipe,IntPtr buffer,uint size,IntPtr read,out uint available,IntPtr remaining);
         [DllImport("kernel32.dll",SetLastError=true)]static extern bool ReadFile(SafeHandle file,byte[] buffer,uint count,out uint read,IntPtr overlapped);
@@ -126,6 +129,7 @@ namespace HardwarePulse {
             else throw new ArgumentException("Expected an owned pipe stream","source");
             this.cancel=cancel;
         }
+        internal void Complete(){completed=true;}
         public override int Read(byte[] buffer,int offset,int count){
             if(buffer==null)throw new ArgumentNullException("buffer");
             if(offset<0||count<0||offset>buffer.Length-count)throw new ArgumentOutOfRangeException();
@@ -138,6 +142,7 @@ namespace HardwarePulse {
                     if(!ReadFile(handle,bytes,wanted,out received,IntPtr.Zero))return EndOrThrow();
                     Buffer.BlockCopy(bytes,0,buffer,offset,(int)received);return (int)received;
                 }
+                if(completed)return 0;
                 cancel.WaitHandle.WaitOne(25);
             }
         }

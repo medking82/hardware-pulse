@@ -193,14 +193,17 @@ class WindowsAdapterTests {
         string previousFailure=Environment.GetEnvironmentVariable("PULSE_CLAUDE_FIXTURE");
         try{
             foreach(string failure in new[]{"stdout-login","stderr-login","stderr-403","stdout-429","stderr-429","mixed-429","network","nonzero-valid"}){
-                Environment.SetEnvironmentVariable("PULSE_CLAUDE_FIXTURE",failure);bool rejected=false;
-                try{read.Invoke(null,new object[]{Assembly.GetExecutingAssembly().Location,CancellationToken.None});}
-                catch(TargetInvocationException error){
-                    var quota=error.InnerException as QuotaFailure;string expected=failure.EndsWith("login")?"Login required":failure.EndsWith("403")?"Quota access denied":failure.EndsWith("429")?"Refresh rate limited":"Quota unavailable";
-                    Check(quota!=null&&quota.Status==expected,"CLI failure category must survive nonzero exit: "+failure);
-                    if(failure.EndsWith("429"))Check(quota.RetryAt>DateTimeOffset.UtcNow.AddMinutes(119),"CLI retry deadline was discarded");rejected=true;
+                Environment.SetEnvironmentVariable("PULSE_CLAUDE_FIXTURE",failure);
+                for(int attempt=0;attempt<(failure.StartsWith("stderr-")?16:1);attempt++){
+                    bool rejected=false;
+                    try{read.Invoke(null,new object[]{Assembly.GetExecutingAssembly().Location,CancellationToken.None});}
+                    catch(TargetInvocationException error){
+                        var quota=error.InnerException as QuotaFailure;string expected=failure.EndsWith("login")?"Login required":failure.EndsWith("403")?"Quota access denied":failure.EndsWith("429")?"Refresh rate limited":"Quota unavailable";
+                        Check(quota!=null&&quota.Status==expected,"CLI failure category must survive nonzero exit: "+failure+"; actual "+(quota==null?error.InnerException.GetType().Name:quota.Status+" / "+quota.FailureKind));
+                        if(failure.EndsWith("429"))Check(quota.RetryAt>DateTimeOffset.UtcNow.AddMinutes(119),"CLI retry deadline was discarded");rejected=true;
+                    }
+                    Check(rejected,"Failed CLI child was admitted: "+failure);
                 }
-                Check(rejected,"Failed CLI child was admitted: "+failure);
             }
         }finally{Environment.SetEnvironmentVariable("PULSE_CLAUDE_FIXTURE",previousFailure);}
         string prior=Environment.GetEnvironmentVariable("DISABLE_AUTOUPDATER");

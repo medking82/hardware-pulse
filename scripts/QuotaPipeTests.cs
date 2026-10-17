@@ -49,7 +49,26 @@ static class QuotaPipeTests {
                 finally{writer.Dispose();Check(task.Wait(2000),"Diagnostic worker cleaned up");}
                 Check(bounded&&task.Result,"Idle stderr cancellation");
             }
-            Console.WriteLine("PASS quota pipes: both parsers, idle stderr, fragmented UTF-8, EOF, worker cleanup");return 0;
+            var complete=pipeType.GetMethod("Complete",BindingFlags.Instance|BindingFlags.NonPublic);
+            Check(complete!=null,"Completed stderr must drain buffered diagnostics without waiting for an inherited writer");
+            foreach(string diagnostic in new[]{"","API Error: 403\n","API Error: 429\nRetry-After: 7200\n"}){
+                using(var pipe=new AnonymousPipeServerStream(PipeDirection.In,HandleInheritability.None))
+                using(var writer=new AnonymousPipeClientStream(PipeDirection.Out,pipe.ClientSafePipeHandle))
+                using(var cancel=new CancellationTokenSource())
+                using(var wrapped=Wrap(pipe,cancel.Token))
+                using(var reader=new StreamReader(wrapped,Encoding.UTF8)){
+                    byte[] text=Encoding.UTF8.GetBytes(diagnostic);writer.Write(text,0,text.Length);writer.Flush();
+                    // The owned child exited but an inherited writer remains open. The
+                    // diagnostic worker has not started yet: completion must not discard bytes.
+                    complete.Invoke(wrapped,null);
+                    var task=Task.Run(()=>reader.ReadToEnd());bool bounded=false;
+                    try{bounded=task.Wait(1000);}
+                    finally{writer.Dispose();Check(task.Wait(2000),"Completed diagnostic worker cleaned up");}
+                    Check(bounded&&task.Result==diagnostic,"Buffered stderr survives completion with an open writer");
+                    Check(!cancel.IsCancellationRequested,"Normal completion must not cancel diagnostic reads");
+                }
+            }
+            Console.WriteLine("PASS quota pipes: both parsers, idle stderr, fragmented UTF-8, EOF, buffered completion, retained writer and worker cleanup");return 0;
         }catch(Exception error){Console.Error.WriteLine(error);return 1;}
     }
 }
