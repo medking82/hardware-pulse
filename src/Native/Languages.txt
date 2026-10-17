@@ -32,6 +32,14 @@ Enable quota in Settings first|请先在设置中启用额度显示|請先在設
 Off|已关闭|已關閉
 Refresh deferred until {0}|暂未请求，将于 {0} 重试|暫未請求，將於 {0} 重試
 Last quota login check failed|上次额度查询认证失败|上次額度查詢驗證失敗
+Auto|自动|自動
+CLI recovery pending|等待 CLI 恢复|等待 CLI 復原
+Claude Code login required|需要登录 Claude Code|需要登入 Claude Code
+Source: OAuth API|来源：OAuth API|來源：OAuth API
+CLI response|CLI 返回错误|CLI 傳回錯誤
+API authentication failed. CLI recovery waits for the shared retry deadline.|API 认证失败，等待共享冷却结束后尝试 CLI 恢复。|API 驗證失敗，等待共用冷卻結束後嘗試 CLI 復原。
+Both sources rejected authentication. Sign in to Claude Code, then refresh. Automatic retries are paused.|两路认证均失败。请登录 Claude Code 后再刷新；自动重试已暂停。|兩路驗證均失敗。請登入 Claude Code 後再更新；自動重試已暫停。
+API first. After HTTP 401, wait for the shared cooldown, then query Claude Code /usage. No parallel requests; 429 never switches sources. Existing manual choices are preserved.|优先使用 API。HTTP 401 后等待共享冷却，再查询 Claude Code /usage。不并发请求，429 不会切换来源。保留原有手动选择。|優先使用 API。HTTP 401 後等待共用冷卻，再查詢 Claude Code /usage。不並行請求，429 不會切換來源。保留原有手動選擇。
 Refresh pending|等待刷新|等待更新
 Login required|需要登录或重新登录|需要登入或重新登入
 Quota access denied|额度访问被拒绝|額度存取被拒絕
@@ -137,7 +145,7 @@ Leave a name blank to use device information. Hover over a field to see its auto
 SPD numbers identify sensor addresses, not physical slots. Installed slots are reported separately; assign a slot name only after confirming its sensor.|SPD 编号代表传感器地址，并非实体插槽。已安装插槽单独显示；确认对应关系后再命名。|SPD 編號代表感測器位址，並非實體插槽。已安裝插槽單獨顯示；確認對應關係後再命名。
 Changes save automatically.|更改自动保存。|變更自動儲存。
 About Pulse|关于 Pulse|關於 Pulse
-Version 0.6.59 · Marck Wong|版本 0.6.59 · Marck Wong|版本 0.6.59 · Marck Wong
+Version 0.6.60 · Marck Wong|版本 0.6.60 · Marck Wong|版本 0.6.60 · Marck Wong
 Sensors by LibreHardwareMonitor. Shared driver by PawnIO.|传感器：LibreHardwareMonitor。共享驱动：PawnIO。|感測器：LibreHardwareMonitor。共用驅動程式：PawnIO。
 Language|语言 / Language|語言 / Language
 Minimize|最小化|最小化

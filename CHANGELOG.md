@@ -4,6 +4,13 @@
 
 Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
+## 0.6.60 — 2026-10-17
+
+- Add the opt-in Claude Auto source in native Settings. Start with OAuth API; only HTTP 401 queues Claude Code `/usage` for a later refresh after the shared cooldown. A successful CLI result is displayed directly, with API retried on the next normal cycle.
+- Preserve the five-minute minimum, longer server Retry-After and throttling debt across both routes, source changes and restart. Never switch routes to evade 429; Auto makes only one request per refresh and disables the API's same-cycle changed-login retry.
+- Distinguish authentication, permissions, throttling, timeout and other CLI errors using bounded, metadata-only diagnostics. Pause automatic retries after both sources reject authentication; sign in through Claude Code and use Refresh to start a new cycle after cooldown.
+- Show Auto, the actual API/CLI source and pending/stopped recovery in App and Desktop. Keep Existing Login, CLI Query and CLI Snapshot choices and existing saved selections; Auto is not silently enabled on upgrade. Pulse does not copy or write login material.
+
 ## 0.6.59 — 2026-10-16
 
 - Integrate the Strata/local-inference card with the existing translucent AI card surface and responsive columns instead of a separate opaque, full-width panel.

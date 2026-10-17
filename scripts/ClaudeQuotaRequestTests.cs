@@ -5,6 +5,12 @@ using HardwarePulse;
 static class ClaudeQuotaRequestTests {
     static void Check(bool ok,string message){if(!ok)throw new Exception("Claude recovery: "+message);}
     public static void Run(){
+        var method=typeof(ClaudeQuotaRequest).GetMethod("Read");
+        Check(method.GetParameters().Length==4,"Auto must disable same-cycle owner-token retry");
+        int autoReads=0,autoCalls=0;
+        try{method.Invoke(null,new object[]{new Func<CancellationToken,string>(_=>++autoReads==1?"old":"new"),new Func<string,CancellationToken,object>((token,cancel)=>{autoCalls++;throw new QuotaFailure("Login required",null,401,"HTTP response");}),CancellationToken.None,false});}
+        catch(System.Reflection.TargetInvocationException error){Check(error.InnerException is QuotaFailure&&((QuotaFailure)error.InnerException).HttpStatus==401,"Auto preserves explicit 401");}
+        Check(autoReads==1&&autoCalls==1,"Auto issued multiple API requests in one cycle");
         foreach(string outcome in new[]{"success","Login required","Quota access denied","Refresh rate limited","Quota unavailable"}){
             int reads=0,calls=0;object result=new object();
             try{

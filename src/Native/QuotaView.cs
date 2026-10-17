@@ -12,6 +12,7 @@ namespace HardwarePulse {
         readonly QuotaSession quotas;
         volatile bool claudeSnapshotSource;
         volatile bool claudeCliSource;
+        bool claudeAutoSource;
         string quotaSignature;
         string quotaReadySignature;
         string deepSeekKeyStatus;
@@ -38,16 +39,19 @@ namespace HardwarePulse {
                 bool hidden=desktopVisible.TryGetValue("quotaAntigravity0",out sessionVisible)&&sessionVisible is bool&&!(bool)sessionVisible&&desktopVisible.TryGetValue("quotaAntigravity1",out weeklyVisible)&&weeklyVisible is bool&&!(bool)weeklyVisible;
                 desktopVisible["quotaAntigravityArgonWeekly"]=!hidden;
             }
-            var source=Control<ComboBox>("ClaudeQuotaSource");source.SelectedIndex=claudeCliSource?2:claudeSnapshotSource?1:0;
+            var source=Control<ComboBox>("ClaudeQuotaSource");source.SelectedIndex=claudeAutoSource?3:claudeCliSource?2:claudeSnapshotSource?1:0;
             Control<StackPanel>("ClaudeSnapshotTools").Visibility=claudeSnapshotSource?Visibility.Visible:Visibility.Collapsed;
             Control<TextBlock>("ClaudeQueryHelp").Visibility=claudeCliSource?Visibility.Visible:Visibility.Collapsed;
+            Control<TextBlock>("ClaudeAutoHelp").Visibility=claudeAutoSource?Visibility.Visible:Visibility.Collapsed;
             source.SelectionChanged+=delegate{
-                quotas.Enable("Claude",false,claudeSnapshotSource);claudeSnapshotSource=source.SelectedIndex==1;claudeCliSource=source.SelectedIndex==2;
+                quotas.Enable("Claude",false,claudeSnapshotSource,claudeAutoSource);claudeSnapshotSource=source.SelectedIndex==1;claudeCliSource=source.SelectedIndex==2;claudeAutoSource=source.SelectedIndex==3;
                 settings.Data["claudeSnapshotSource"]=claudeSnapshotSource;
+                settings.Data["claudeAutoSource"]=claudeAutoSource;
                 settings.Data["claudeCliSource"]=claudeCliSource;quotaRefreshBefore.Remove("Claude");
                 Control<StackPanel>("ClaudeSnapshotTools").Visibility=claudeSnapshotSource?Visibility.Visible:Visibility.Collapsed;
                 Control<TextBlock>("ClaudeQueryHelp").Visibility=claudeCliSource?Visibility.Visible:Visibility.Collapsed;
-                quotas.Enable("Claude",Checked("QuotaClaude"),claudeSnapshotSource);if(!isolated)quotas.Tick(DateTimeOffset.UtcNow);
+                Control<TextBlock>("ClaudeAutoHelp").Visibility=claudeAutoSource?Visibility.Visible:Visibility.Collapsed;
+                quotas.Enable("Claude",Checked("QuotaClaude"),claudeSnapshotSource,claudeAutoSource);if(!isolated)quotas.Tick(DateTimeOffset.UtcNow);
                 RenderQuota();UpdateDesktop();QueueSave();
             };
             Click("ClaudeSnapshotRebind",delegate{
@@ -73,8 +77,8 @@ namespace HardwarePulse {
                 var selected=currency.SelectedItem as ComboBoxItem;if(selected==null)return;
                 settings.Data["deepSeekCurrency"]=(string)selected.Tag;RenderQuota();UpdateDesktop();QueueSave();
             };
-            foreach(string provider in QuotaSession.Providers){string name=provider;var control=Control<CheckBox>("Quota"+name);control.IsChecked=settings.Flag("quota"+name,false);quotas.Enable(name,control.IsChecked==true,name=="Claude"&&claudeSnapshotSource);
-                control.Click+=delegate{settings.Data["quota"+name]=control.IsChecked==true;quotas.Enable(name,control.IsChecked==true,name=="Claude"&&claudeSnapshotSource);if(!isolated)quotas.Tick(DateTimeOffset.UtcNow);RenderQuota();UpdateDesktop();QueueSave();};
+            foreach(string provider in QuotaSession.Providers){string name=provider;var control=Control<CheckBox>("Quota"+name);control.IsChecked=settings.Flag("quota"+name,false);quotas.Enable(name,control.IsChecked==true,name=="Claude"&&claudeSnapshotSource,name=="Claude"&&claudeAutoSource);
+                control.Click+=delegate{settings.Data["quota"+name]=control.IsChecked==true;quotas.Enable(name,control.IsChecked==true,name=="Claude"&&claudeSnapshotSource,name=="Claude"&&claudeAutoSource);if(!isolated)quotas.Tick(DateTimeOffset.UtcNow);RenderQuota();UpdateDesktop();QueueSave();};
             }
             // DeepSeek needs an API key instead of a local login; the editor is the only path that
             // writes it, and it never leaves this machine except to the fixed provider endpoint.
@@ -109,7 +113,7 @@ namespace HardwarePulse {
         void CheckClaudeLoginRecovery(DateTimeOffset now,Func<string,bool> isCurrent){
             if(now<nextClaudeRevisionCheck)return;nextClaudeRevisionCheck=now.AddSeconds(30);
             var reading=quotas.Readings.FirstOrDefault(r=>r.Provider=="Claude");
-            if(reading!=null&&reading.Status=="Login required"&&!claudeSnapshotSource&&!claudeCliSource&&!string.IsNullOrEmpty(reading.CacheScope)&&!quotas.GetState("Claude").Refreshing&&!isCurrent(reading.CacheScope))quotas.RecoverClaudeLogin(now);
+            if(reading!=null&&reading.Status=="Login required"&&!claudeAutoSource&&!claudeSnapshotSource&&!claudeCliSource&&!string.IsNullOrEmpty(reading.CacheScope)&&!quotas.GetState("Claude").Refreshing&&!isCurrent(reading.CacheScope))quotas.RecoverClaudeLogin(now);
         }
         void RenderQuotaRefreshFeedback(DateTimeOffset now){
             var output=Control<TextBlock>("QuotaRefreshStatus");if(quotaRefreshBefore.Count==0)return;
@@ -132,7 +136,10 @@ namespace HardwarePulse {
         }
         QuotaReading ReadQuota(string provider,System.Threading.CancellationToken token){token.ThrowIfCancellationRequested();return provider=="Claude"&&claudeSnapshotSource?ClaudeStatusLineReceiver.Read(paths.State,DateTimeOffset.UtcNow):provider=="Claude"&&claudeCliSource?QuotaProviders.ReadClaudeCli(token):QuotaProviders.Read(provider,token);}
         bool QuotaFresh(QuotaReading r){var age=DateTimeOffset.UtcNow-r.Observed;return (r.Status=="Live"||r.Status=="CLI snapshot"||r.Status=="Cached")&&age>=TimeSpan.Zero&&age<TimeSpan.FromMinutes(10);}
-        string QuotaState(QuotaReading r){if((r.Status=="Live"||r.Status=="CLI snapshot")&&!QuotaFresh(r))return language.Label("Quota stale");return language.Label(r.Status);}
+        string QuotaState(QuotaReading r){
+            if(r.Provider=="Claude"&&claudeAutoSource){var state=quotas.GetState("Claude");if(state.AutoLoginRequired)return language.Label("Claude Code login required");if(state.AutoCliPending&&r.Status=="Login required")return language.Label("CLI recovery pending");}
+            if((r.Status=="Live"||r.Status=="CLI snapshot")&&!QuotaFresh(r))return language.Label("Quota stale");return language.Label(r.Status);
+        }
         bool QuotaWindowVisible(QuotaReading r,QuotaWindow w){return QuotaFresh(r)&&w.Remaining.HasValue&&(r.Source!="CLI snapshot"||w.Reset>DateTimeOffset.UtcNow)&&(r.Status!="Cached"||!w.Reset.HasValue||w.Reset>DateTimeOffset.UtcNow);}
         string QuotaValue(QuotaReading r,QuotaWindow w){return QuotaWindowVisible(r,w)?w.Remaining.Value.ToString("0.#")+"% "+language.Label("left"):"—";}
         // A money provider shows the amount or an explicit blank; it never invents a percentage.
@@ -159,7 +166,8 @@ namespace HardwarePulse {
         }
         string QuotaRecoveryState(QuotaReading original,QuotaReading displayed,DateTimeOffset now){
             var refresh=quotas.GetState(original.Provider);bool healthy=(displayed.Status=="Live"||displayed.Status=="CLI snapshot")&&!refresh.TimedOut;
-            string state=original.Provider=="Claude"&&original.Status=="Login required"?language.Label("Last quota login check failed"):QuotaState(healthy?displayed:original);
+            string state=original.Provider=="Claude"&&original.Status=="Login required"&&!claudeAutoSource?language.Label("Last quota login check failed"):QuotaState(healthy?displayed:original);
+            if(original.Provider=="Claude"&&claudeAutoSource)state+=" · "+language.Label("Auto")+(original.Source=="CLI"?" · "+language.Label("CLI query"):original.Source=="API"?" · OAuth API":"");
             if(refresh.TimedOut||original.FailureKind=="Request timeout")state=language.Label("Refresh timed out");
             if(refresh.Refreshing)return state+" · "+language.Label(refresh.TimedOut?"Waiting for request to stop":"Refreshing quota…");
             QuotaReading before;
@@ -172,9 +180,12 @@ namespace HardwarePulse {
         }
         string QuotaDetails(QuotaReading original,QuotaReading displayed,DateTimeOffset now){
             string source=original.Source=="CLI"?original.Provider=="Antigravity"?language.T("Source: Antigravity CLI"):original.Provider=="Claude"?language.T("Source: Claude Code /usage"):null:null;
+            if(original.Provider=="Claude"&&original.Source=="API")source=language.T("Source: OAuth API");
             var refresh=quotas.GetState(original.Provider);if((displayed.Status=="Live"||displayed.Status=="CLI snapshot")&&!refresh.TimedOut)return source;
             var lines=new List<string>{QuotaRecoveryState(original,displayed,now)};
             if(source!=null)lines.Add(source);
+            if(original.Provider=="Claude"&&refresh.AutoCliPending)lines.Add(language.T("API authentication failed. CLI recovery waits for the shared retry deadline."));
+            if(original.Provider=="Claude"&&refresh.AutoLoginRequired)lines.Add(language.T("Both sources rejected authentication. Sign in to Claude Code, then refresh. Automatic retries are paused."));
             if(refresh.LastSuccess.HasValue)lines.Add(language.Label("Last successful update")+": "+refresh.LastSuccess.Value.ToLocalTime().ToString("g"));
             if(original.Observed!=default(DateTimeOffset))lines.Add(language.Label("Last attempt")+": "+original.Observed.ToLocalTime().ToString("g"));
             if(!refresh.Refreshing&&refresh.NextAttempt.HasValue)lines.Add(language.Label("Next retry")+": "+refresh.NextAttempt.Value.ToLocalTime().ToString("g"));

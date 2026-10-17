@@ -41,8 +41,11 @@ Provider adapters return only sanitized quota windows and finite-state errors. N
 credentials, account emails or HTTP response bodies enter snapshots, settings or logs.
 
 Authentication: read existing current-user Codex/Claude login on each refresh;
-never write/rotate credentials or launch a login/CLI. Expired login requires the
-owning application to renew it. Antigravity requires its local language server;
+never write/rotate credentials or launch a login flow. Native Claude CLI Query
+and Auto may invoke the installed Claude Code quota-only `/usage` command with
+customizations/tools disabled, stdin closed and a bounded deadline. Existing
+Login and CLI Snapshot remain separate manual choices. Expired or revoked login
+may require the owning application to renew it. Antigravity requires its local language server;
 verify current-user process ownership and PID-owned listening ports before sending
 its CSRF token to loopback. No Token Monitor process or PowerShell/Node runtime.
 Only fixed provider HTTPS endpoints; disable redirects. Loopback TLS exceptions
@@ -61,6 +64,20 @@ TLS 1.3 available. Quota and UpdateCheck therefore enable TLS 1.2 and TLS 1.3,
 so updater refresh cannot re-pin a process-wide TLS 1.2-only policy. Windows
 chooses an available protocol. System-default mode also failed in the live probe.
 Rollback is removal of the opt-in feature; existing settings remain compatible.
+
+Native Claude Auto is opt-in (`claudeAutoSource`); upgrades retain existing source
+selections. The session starts with API and queues CLI only after an explicit API
+HTTP 401. It never queries both in one refresh: wait for the shared deadline, then
+read CLI. CLI success is final for that cycle; the next normal cycle returns to
+API. A 429 from either stream retains the longer server deadline and never switches
+routes. Transport, permission and unclassified errors are not login failures.
+After API and CLI both reject authentication, automatic retries stop until the
+user signs in through Claude Code and requests Refresh after cooldown. Source
+toggles do not clear that cooldown. Schedule schema 2 preserves recovery stage
+and stop state; schema 1 loads with API as its initial stage and unchanged debt.
+Only allowlisted source/status/error metadata enters diagnostics, never raw CLI
+output or credential contents. The shared preview host retains its existing
+manual API reader and does not silently opt into the native Auto feature.
 
 Acceptance: parser fixtures for all three providers including missing, zero,
 malformed and additional windows; cancellation/disable/error lifecycle tests;

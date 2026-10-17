@@ -139,11 +139,49 @@ static class QuotaFeatureTests {
         }
         Language(shell,"en");shell.ShowSettings(false);
     }
+    static void ClaudeAutoChecks(string root,string state){
+        Directory.CreateDirectory(state);Json.WriteAtomic(Path.Combine(state,"widget-settings.json"),new{language="en",solid=true});
+        int api=0,cli=0;var now=DateTimeOffset.UtcNow;
+        using(var shell=new Shell(new PulsePaths(root,state,Path.Combine(state,"runtime")),true))
+        using(var fake=new QuotaSession((provider,cancel)=>{throw new Exception("Auto used manual reader");},(useCli,cancel)=>{
+            if(useCli){Interlocked.Increment(ref cli);return new QuotaReading{Provider="Claude",Status="Live",Observed=DateTimeOffset.UtcNow,Windows=new List<QuotaWindow>{new QuotaWindow{Label="Weekly",Remaining=61}}};}
+            Interlocked.Increment(ref api);return new QuotaReading{Provider="Claude",Status="Login required",HttpStatus=401,Observed=DateTimeOffset.UtcNow};
+        })){
+            var field=typeof(Shell).GetField("quotas",Hidden);var original=(QuotaSession)field.GetValue(shell);field.SetValue(shell,fake);
+            try{
+                shell.Window.ShowActivated=false;shell.Window.ShowInTaskbar=false;shell.Show();Pump();
+                var source=shell.Control<ComboBox>("ClaudeQuotaSource");Check(source.SelectedIndex==0,"Existing manual default preserved");source.SelectedIndex=3;
+                var toggle=shell.Control<CheckBox>("QuotaClaude");toggle.IsChecked=true;toggle.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+                Check(shell.Control<TextBlock>("ClaudeAutoHelp").Visibility==Visibility.Visible&&shell.Control<StackPanel>("ClaudeSnapshotTools").Visibility==Visibility.Collapsed,"Auto exposes its own contract, not snapshot setup");
+                fake.Tick(now);for(int i=0;i<200&&fake.GetState("Claude").Refreshing;i++){Thread.Sleep(5);fake.Tick(now);}Invoke(shell,"RenderQuota");
+                Check(api==1&&cli==0&&Tree(shell.Control<StackPanel>("QuotaCards")).OfType<TextBlock>().Any(t=>t.Text.Contains("CLI Recovery Pending")),"API 401 shows pending recovery rather than requiring login");
+                var rows=new List<DesktopMetric>();typeof(Shell).GetMethod("AddDesktopQuotas",Hidden).Invoke(shell,new object[]{rows});
+                Check(rows.Single().Value=="CLI Recovery Pending"&&rows.Single().ToolTip.Contains("HTTP 401")&&rows.Single().ToolTip.Contains("Source: OAuth API"),"Desktop exposes recovery and real API failure/source");
+                var deadline=fake.GetState("Claude").NextAttempt;source.SelectedIndex=2;source.SelectedIndex=3;Check(fake.GetState("Claude").NextAttempt==deadline,"Auto/manual transitions retain cooldown");
+                shell.Save();Check(new Settings(Path.Combine(state,"widget-settings.json")).Flag("claudeAutoSource"),"Auto selection persisted");
+                using(var restored=new Shell(new PulsePaths(root,state,Path.Combine(state,"runtime-restored")),true)){Check(restored.Control<ComboBox>("ClaudeQuotaSource").SelectedIndex==3,"New window restores Auto");restored.Exit();}
+                fake.Tick(now.AddMinutes(5));for(int i=0;i<200&&fake.GetState("Claude").Refreshing;i++){Thread.Sleep(5);fake.Tick(now.AddMinutes(5));}Invoke(shell,"RenderQuota");
+                Check(api==1&&cli==1&&Tree(shell.Control<StackPanel>("QuotaCards")).OfType<TextBlock>().Any(t=>t.Text.Contains("Auto · CLI Query")),"CLI success visibly names Auto and actual source");
+                var settings=(Settings)typeof(Shell).GetField("settings",Hidden).GetValue(shell);
+                foreach(string locale in new[]{"en","zh-CN"}){
+                    Language(shell,locale);settings.Data["background"]=locale=="en"?"#202831":"#F4F6F8";Invoke(shell,"ApplyMaterial");shell.Window.Width=280;shell.Window.Height=720;
+                    shell.Control<StackPanel>("Cards").Visibility=Visibility.Collapsed;Invoke(shell,"RenderQuota");Settle();Capture(shell,Path.Combine(state,"auto-card-"+locale+".png"));
+                    shell.ShowSettings(true);Invoke(shell,"SelectSettingsCategory","AI Quota");Settle();shell.Control<TextBlock>("ClaudeAutoHelp").BringIntoView();Settle();Capture(shell,Path.Combine(state,"auto-settings-"+locale+".png"));
+                    Check((string)((ComboBoxItem)source.SelectedItem).Content==(locale=="en"?"Auto":"自动"),"Auto choice localized");shell.ShowSettings(false);
+                }
+                Language(shell,"en");fake.RestoreSchedules(new[]{new QuotaSchedule{Provider="Claude",Status="Login required",Observed=now,NextAttempt=now.AddHours(1),NotBefore=now.AddHours(1),RecoveryFailures=2,ClaudeRecovery=ClaudeRecoveryStage.LoginRequired}});Invoke(shell,"RenderQuota");
+                rows.Clear();typeof(Shell).GetMethod("AddDesktopQuotas",Hidden).Invoke(shell,new object[]{rows});
+                Check(rows.Single().Value=="Claude Code Login Required"&&rows.Single().ToolTip.Contains("Automatic retries are paused.")&&!rows.Single().ToolTip.Contains("Next Retry"),"Both-auth failure explains required login and paused retries");
+            }finally{field.SetValue(shell,original);shell.Exit();}
+        }
+        Console.WriteLine("PASS Claude Auto WPF: actual setting/toggle path, persistence/reload, shared cooldown, API/CLI source, paused login and bilingual narrow renders");
+    }
     [STAThread] static int Main(string[] args){
         try{
             string root=AppDomain.CurrentDomain.BaseDirectory,state=Path.GetFullPath(args[0]);Directory.CreateDirectory(state);
             Json.WriteAtomic(Path.Combine(state,"widget-settings.json"),new {language="en",solid=true});
             var application=new Application{ShutdownMode=ShutdownMode.OnExplicitShutdown};
+            ClaudeAutoChecks(root,Path.Combine(state,"claude-auto"));
             NativeLocalInferenceTests.Run(root,Path.Combine(state,"local-inference"));
             NativeSnapshotRecoveryTests.Run(root,Path.Combine(state,"snapshot-recovery"));
             NativeArgonTests.Run(root,Path.Combine(state,"argon"));

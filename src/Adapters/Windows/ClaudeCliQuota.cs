@@ -7,7 +7,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 
 namespace HardwarePulse {
-    // Explicit alternative to OAuth HTTP, not a retry after a server throttle.
+    // Explicit/Auto alternative to OAuth HTTP; the session owns the shared request budget.
     // Claude Code owns its login. No prompts, browser cookies or token arguments.
     internal static class ClaudeCliQuota {
         internal static string InstalledExecutable(){
@@ -16,13 +16,25 @@ namespace HardwarePulse {
         }
         internal static QuotaReading Read(string executable,CancellationToken cancel){
             var environment=new Dictionary<string,string>{{"DISABLE_AUTOUPDATER","1"}};
-            return (QuotaReading)QuotaChildProcess.ReadWithDeadline(executable,"--safe-mode --strict-mcp-config --tools \"\" --permission-mode dontAsk /usage",ReadReport,cancel,true,TimeSpan.FromSeconds(12),environment);
+            return (QuotaReading)QuotaChildProcess.ReadWithDiagnostics(executable,"--safe-mode --strict-mcp-config --tools \"\" --permission-mode dontAsk /usage",ReadReport,cancel,TimeSpan.FromSeconds(12),environment,Failure);
         }
         static object ReadReport(TextReader input,TextWriter output,CancellationToken cancel){
             // Slash-command output is a finite report. Never leave stdin open or send a turn.
             output.Close();var text=new StringBuilder();int value;
             while((value=input.Read())>=0){cancel.ThrowIfCancellationRequested();if(text.Length>=65536)throw new QuotaFailure("Quota unavailable",null,0,"Response too large");text.Append((char)value);}
-            return Parse(text.ToString(),DateTimeOffset.UtcNow);
+            string report=text.ToString();var failure=Failure(report);if(failure!=null)throw failure;
+            return Parse(report,DateTimeOffset.UtcNow);
+        }
+        static QuotaFailure Failure(string text){
+            text=Regex.Replace(text??"",@"\x1b\[[0-9;?]*[ -/]*[@-~]","");
+            // Recognize explicit CLI error forms, not a bare number or a mention of login.
+            var codes=Regex.Matches(text,@"(?im)^\s*(?:API Error:\s*|(?:Error:\s*)?(?:Failed to fetch usage(?: data)?:\s*)?Request failed with status code\s+)(401|403|429)\b");
+            int status=0;
+            foreach(Match match in codes){int code=int.Parse(match.Groups[1].Value,CultureInfo.InvariantCulture);if(code==429||status!=429&&(code==403||status==0))status=code;}
+            if(status==0&&Regex.IsMatch(text,@"(?im)^\s*(?:Error:\s*)?Not logged in(?:\s|[.·]|$)"))status=401;
+            if(status==0)return null;
+            var retry=Regex.Match(text,@"(?im)^[ \t]*Retry-After:[ \t]*([^\r\n]+)\r?$");
+            return new QuotaFailure(status==429?"Refresh rate limited":status==403?"Quota access denied":"Login required",status==429&&retry.Success?QuotaFailure.ParseRetryAfter(retry.Groups[1].Value.Trim(),DateTimeOffset.UtcNow):null,status,"CLI response");
         }
         internal static QuotaReading Parse(string text,DateTimeOffset now){
             var missing=new QuotaReading{Provider="Claude",Source="CLI",Status="Quota unavailable",Observed=now,FailureKind="Invalid response"};

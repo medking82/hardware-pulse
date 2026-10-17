@@ -283,7 +283,7 @@
             </ComboBox>
             <CheckBox x:Name="StartWithWindows" Content="Start with Windows" Margin="0,0,0,10" />
             <TextBlock x:Name="StartupStatus" FontSize="11" Margin="0,0,0,10" />
-            <TextBlock Text="Version 0.6.59 · Marck Wong" FontSize="11" Foreground="#ADC1D2" Margin="0,0,0,8" />
+            <TextBlock Text="Version 0.6.60 · Marck Wong" FontSize="11" Foreground="#ADC1D2" Margin="0,0,0,8" />
             <Button x:Name="GitHub" Content="GitHub" HorizontalAlignment="Left" ToolTip="github.com/medking82/hardware-pulse" />
             <CheckBox x:Name="AutoUpdates" Content="Check for Updates Automatically" Margin="0,12,0,8" />
             <CheckBox x:Name="AutoDownload" Content="Download Updates Automatically" Margin="0,0,0,8" />
@@ -398,7 +398,8 @@
               <TextBlock Text="The key is encrypted for the current Windows user and sent only to api.deepseek.com. Saving a key does not enable monitoring." TextWrapping="Wrap" FontSize="11" Opacity="0.8" Margin="0,6,0,0" />
             </StackPanel>
             <TextBlock Text="Claude quota source" Margin="0,12,0,6" />
-            <ComboBox x:Name="ClaudeQuotaSource" AutomationProperties.Name="Claude quota source"><ComboBoxItem Content="Existing login"/><ComboBoxItem Content="CLI snapshot"/><ComboBoxItem Content="CLI query"/></ComboBox>
+            <ComboBox x:Name="ClaudeQuotaSource" AutomationProperties.Name="Claude quota source"><ComboBoxItem Content="Existing login"/><ComboBoxItem Content="CLI snapshot"/><ComboBoxItem Content="CLI query"/><ComboBoxItem Content="Auto"/></ComboBox>
+            <TextBlock x:Name="ClaudeAutoHelp" Text="API first. After HTTP 401, wait for the shared cooldown, then query Claude Code /usage. No parallel requests; 429 never switches sources. Existing manual choices are preserved." TextWrapping="Wrap" Margin="0,8,0,0" Opacity="0.8" Visibility="Collapsed" />
             <TextBlock x:Name="ClaudeQueryHelp" Text="Runs installed Claude Code /usage using its login. No prompts or browser cookies. API and CLI share refresh limits." TextWrapping="Wrap" Margin="0,8,0,0" Opacity="0.8" Visibility="Collapsed" />
             <StackPanel x:Name="ClaudeSnapshotTools" Margin="0,8,0,0">
               <TextBlock Text="Experimental. Requires a configured Claude Code status line. Snapshots expire after 10 minutes and do not refresh while CLI is closed." TextWrapping="Wrap" Opacity="0.8" />

@@ -13,6 +13,7 @@ namespace HardwarePulse {
         static readonly string[] Statuses={"Live","Quota unavailable","Login required","Login unavailable","Quota access denied","Refresh rate limited","Open Antigravity to read quota","Refresh pending","API key required","API key rejected","Credential unavailable"};
         static readonly string[] RootKeys={"schema","schedules"};
         static readonly string[] ScheduleKeys={"provider","status","observed","nextAttempt","notBefore","recoveryFailures","rateLimitFailures"};
+        static readonly string[] AutoScheduleKeys={"provider","status","observed","nextAttempt","notBefore","recoveryFailures","rateLimitFailures","claudeRecovery"};
         readonly string path;
 
         sealed class StoredSchedule {
@@ -23,6 +24,7 @@ namespace HardwarePulse {
             public string notBefore;
             public int recoveryFailures;
             public int rateLimitFailures;
+            public int claudeRecovery;
         }
 
         public QuotaScheduleStore(string stateDirectory){path=Path.Combine(stateDirectory,"quota-schedule.json");}
@@ -47,7 +49,8 @@ namespace HardwarePulse {
         }
         static bool Valid(QuotaSchedule item){
             return item!=null&&Array.IndexOf(Providers,item.Provider)>=0&&Array.IndexOf(Statuses,item.Status)>=0&&
-                item.RecoveryFailures>=0&&item.RecoveryFailures<=4&&item.RateLimitFailures>=0&&item.RateLimitFailures<=4;
+                item.RecoveryFailures>=0&&item.RecoveryFailures<=4&&item.RateLimitFailures>=0&&item.RateLimitFailures<=4&&
+                Enum.IsDefined(typeof(ClaudeRecoveryStage),item.ClaudeRecovery)&&(item.Provider=="Claude"||item.ClaudeRecovery==ClaudeRecoveryStage.Api);
         }
         static StoredSchedule Project(QuotaSchedule item){
             return new StoredSchedule{
@@ -57,7 +60,8 @@ namespace HardwarePulse {
                 nextAttempt=item.NextAttempt.ToString("o",CultureInfo.InvariantCulture),
                 notBefore=item.NotBefore.ToString("o",CultureInfo.InvariantCulture),
                 recoveryFailures=item.RecoveryFailures,
-                rateLimitFailures=item.RateLimitFailures
+                rateLimitFailures=item.RateLimitFailures,
+                claudeRecovery=(int)item.ClaudeRecovery
             };
         }
 
@@ -75,14 +79,14 @@ namespace HardwarePulse {
                 var root=Json.Serializer().DeserializeObject(json) as Dictionary<string,object>;
                 if(!HasOnlyKeys(root,RootKeys))return Empty();
                 int schema;
-                if(!TryInteger(root["schema"],out schema)||schema!=1)return Empty();
+                if(!TryInteger(root["schema"],out schema)||(schema!=1&&schema!=2))return Empty();
                 var rows=root["schedules"] as object[];
                 if(rows==null||rows.Length>Providers.Length)return Empty();
                 var result=new List<QuotaSchedule>(rows.Length);
                 var seen=new HashSet<string>(StringComparer.Ordinal);
                 foreach(object row in rows){
                     var value=row as Dictionary<string,object>;
-                    if(!HasOnlyKeys(value,ScheduleKeys))return Empty();
+                    if(!HasOnlyKeys(value,schema==1?ScheduleKeys:AutoScheduleKeys))return Empty();
                     string provider=value["provider"] as string,status=value["status"] as string;
                     if(Array.IndexOf(Providers,provider)<0||Array.IndexOf(Statuses,status)<0||!seen.Add(provider))return Empty();
                     DateTimeOffset observed,nextAttempt,notBefore;
@@ -90,7 +94,9 @@ namespace HardwarePulse {
                     if(!TryTimestamp(value["observed"],out observed)||!TryTimestamp(value["nextAttempt"],out nextAttempt)||!TryTimestamp(value["notBefore"],out notBefore)||
                         !TryInteger(value["recoveryFailures"],out recoveryFailures)||recoveryFailures<0||recoveryFailures>4||
                         !TryInteger(value["rateLimitFailures"],out rateLimitFailures)||rateLimitFailures<0||rateLimitFailures>4)return Empty();
-                    result.Add(new QuotaSchedule{Provider=provider,Status=status,Observed=observed,NextAttempt=nextAttempt,NotBefore=notBefore,RecoveryFailures=recoveryFailures,RateLimitFailures=rateLimitFailures});
+                    int recovery=0;
+                    if(schema==2&&(!TryInteger(value["claudeRecovery"],out recovery)||recovery<0||recovery>2||(provider!="Claude"&&recovery!=0)))return Empty();
+                    result.Add(new QuotaSchedule{Provider=provider,Status=status,Observed=observed,NextAttempt=nextAttempt,NotBefore=notBefore,RecoveryFailures=recoveryFailures,RateLimitFailures=rateLimitFailures,ClaudeRecovery=(ClaudeRecoveryStage)recovery});
                 }
                 return result.ToArray();
             }catch{return Empty();}
@@ -106,7 +112,7 @@ namespace HardwarePulse {
                     if(!Valid(item)||!seen.Add(item.Provider))return;
                     rows[i]=Project(item);
                 }
-                var document=new{schema=1,schedules=rows};
+                var document=new{schema=2,schedules=rows};
                 string json=Json.Serializer().Serialize(document);
                 if(new UTF8Encoding(false).GetByteCount(json)>MaximumBytes)return;
                 Json.WriteAtomic(path,document);

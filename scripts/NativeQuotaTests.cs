@@ -96,7 +96,7 @@ internal static class NativeQuotaTests {
                 Check(settingsText.Length>0&&!settingsText.Contains("bad key")&&!settingsText.Contains("fixture-key"),"settings never store key material");
                 var source=shell.Control<ComboBox>("ClaudeQuotaSource");
                 Check(source.SelectedIndex==0&&shell.Control<StackPanel>("ClaudeSnapshotTools").Visibility==Visibility.Collapsed,"existing login remains default and snapshot setup stays optional");
-                Check(source.Items.Count==3,"Claude has an explicit CLI query backup choice");
+                Check(source.Items.Count==4,"Claude has Auto plus the three preserved manual choices");
                 var claudeReading=fake.Readings.Single(r=>r.Provider=="Claude");claudeReading.Status="CLI snapshot";claudeReading.Source="CLI snapshot";
                 shell.UpdatePanel();
                 var claudeCard=shell.Control<StackPanel>("QuotaCards").Children.Cast<Border>().Single(c=>(string)c.Tag=="Claude");

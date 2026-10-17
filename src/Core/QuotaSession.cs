@@ -8,7 +8,7 @@ namespace HardwarePulse {
     // UI-thread owned orchestration; adapters execute on workers. No files or credentials retained here.
     public sealed class QuotaSession:IDisposable {
         sealed class Slot {
-            internal bool Enabled,Local,PendingLocal,RefreshQueued,TimedOut,TimeoutReported;
+            internal bool Enabled,Local,PendingLocal,RefreshQueued,TimedOut,TimeoutReported,Auto,PendingAuto,PendingCli;
             internal CancellationTokenSource Cancel;
             internal Task<QuotaReading> Pending;
             internal QuotaReading Reading,LastGood;
@@ -22,28 +22,32 @@ namespace HardwarePulse {
         }
         readonly Dictionary<string,Slot> slots=new Dictionary<string,Slot>();
         readonly Func<string,CancellationToken,QuotaReading> read;
+        readonly Func<bool,CancellationToken,QuotaReading> readClaudeAuto;
         bool disposed;
         // Provider identity comes from the catalog so a new provider cannot exist in one view only.
         public static readonly string[] Providers=QuotaCatalog.Names();
         public event Action<QuotaAttempt> AttemptCompleted;
         public event Action<QuotaSchedule[]> ScheduleChanged;
-        public QuotaSession(Func<string,CancellationToken,QuotaReading> reader){read=reader;foreach(string provider in Providers)slots.Add(provider,new Slot{Reading=new QuotaReading{Provider=provider,Status="Refresh pending"},Remote=new QuotaSchedule{Provider=provider,Status="Refresh pending"}});}
+        public QuotaSession(Func<string,CancellationToken,QuotaReading> reader):this(reader,null){}
+        public QuotaSession(Func<string,CancellationToken,QuotaReading> reader,Func<bool,CancellationToken,QuotaReading> claudeAutoReader){read=reader;readClaudeAuto=claudeAutoReader;foreach(string provider in Providers)slots.Add(provider,new Slot{Reading=new QuotaReading{Provider=provider,Status="Refresh pending"},Remote=new QuotaSchedule{Provider=provider,Status="Refresh pending"}});}
         public QuotaReading[] Readings {get{return slots.Values.Where(s=>s.Enabled).Select(s=>s.Reading).ToArray();}}
-        public QuotaRefreshState GetState(string provider){var s=slots[provider];s.State.NextAttempt=s.Next==DateTimeOffset.MinValue?(DateTimeOffset?)null:s.Next;s.State.Started=s.Started;s.State.LastSuccess=s.LastSuccess;s.State.Refreshing=s.Pending!=null;s.State.TimedOut=s.TimedOut;s.State.RateLimitFailures=s.Local?0:s.Remote.RateLimitFailures;s.State.LastDurationMilliseconds=s.LastDurationMilliseconds;s.State.LastGood=s.LastGood;return s.State;}
+        public QuotaRefreshState GetState(string provider){var s=slots[provider];s.State.AutoCliPending=s.Auto&&s.Remote.ClaudeRecovery==ClaudeRecoveryStage.Cli;s.State.AutoLoginRequired=s.Auto&&s.Remote.ClaudeRecovery==ClaudeRecoveryStage.LoginRequired;s.State.NextAttempt=s.Next==DateTimeOffset.MinValue||s.State.AutoLoginRequired?(DateTimeOffset?)null:s.Next;s.State.Started=s.Started;s.State.LastSuccess=s.LastSuccess;s.State.Refreshing=s.Pending!=null;s.State.TimedOut=s.TimedOut;s.State.RateLimitFailures=s.Local?0:s.Remote.RateLimitFailures;s.State.LastDurationMilliseconds=s.LastDurationMilliseconds;s.State.LastGood=s.LastGood;return s.State;}
         public QuotaReading CachedReading(string provider,DateTimeOffset now){if(provider!="Claude")return null;var s=slots[provider];var current=s.Reading;if(current==null||current.Status!="Refresh rate limited"||s.LastGood==null||s.LastGood.Status!="Live")return null;if(string.IsNullOrEmpty(current.CacheScope)||current.CacheScope!=s.LastGood.CacheScope||current.Source!=s.LastGood.Source)return null;if(s.LastGood.Observed>now||now-s.LastGood.Observed>=TimeSpan.FromMinutes(10))return null;return s.LastGood;}
         public QuotaSchedule[] CaptureSchedules(){return slots.Values.Select(s=>CopySchedule(s.Remote)).ToArray();}
         public void RestoreSchedules(IEnumerable<QuotaSchedule> schedules){
             if(disposed||schedules==null)return;
             foreach(var saved in schedules){Slot slot;if(saved==null||saved.Provider==null||!slots.TryGetValue(saved.Provider,out slot)||slot.Pending!=null)continue;
                 if(saved.RecoveryFailures<0||saved.RecoveryFailures>4||saved.RateLimitFailures<0||saved.RateLimitFailures>4)continue;
+                if(!Enum.IsDefined(typeof(ClaudeRecoveryStage),saved.ClaudeRecovery)||(saved.Provider!="Claude"&&saved.ClaudeRecovery!=ClaudeRecoveryStage.Api))continue;
                 slot.Remote=CopySchedule(saved);if(slot.Remote.NextAttempt<slot.Remote.NotBefore)slot.Remote.NextAttempt=slot.Remote.NotBefore;
                 if(!slot.Local)slot.Reading=RestoredReading(slot.Remote);
             }
         }
         static QuotaReading RestoredReading(QuotaSchedule saved){return new QuotaReading{Provider=saved.Provider,Status=saved.RecoveryFailures>0||saved.RateLimitFailures>0?saved.Status:"Refresh pending",Observed=saved.Observed};}
-        public void Enable(string provider,bool enabled,bool localSnapshot=false){
-            var slot=slots[provider];if(slot.Enabled==enabled&&slot.Local==localSnapshot)return;
-            slot.Enabled=enabled;slot.Local=localSnapshot;slot.RefreshQueued=false;slot.LastGood=null;slot.LastSuccess=null;slot.TimedOut=false;slot.TimeoutReported=false;slot.Version++;
+        public void Enable(string provider,bool enabled,bool localSnapshot=false,bool autoClaude=false){
+            if(autoClaude&&(provider!="Claude"||localSnapshot||readClaudeAuto==null))throw new ArgumentException("Auto requires a Claude API/CLI reader","autoClaude");
+            var slot=slots[provider];if(slot.Enabled==enabled&&slot.Local==localSnapshot&&slot.Auto==autoClaude)return;
+            slot.Enabled=enabled;slot.Local=localSnapshot;slot.Auto=autoClaude;slot.RefreshQueued=false;slot.LastGood=null;slot.LastSuccess=null;slot.TimedOut=false;slot.TimeoutReported=false;slot.Version++;
             if(slot.Cancel!=null)slot.Cancel.Cancel();
             slot.Reading=localSnapshot?new QuotaReading{Provider=provider,Status="Refresh pending"}:RestoredReading(slot.Remote);slot.LocalNext=DateTimeOffset.MinValue;
             // Provider/source toggles do not erase a remote request's reservation or cooldown.
@@ -67,6 +71,15 @@ namespace HardwarePulse {
                 if(result==null||(slot.TimedOut&&result.Status!="Refresh rate limited"))result=new QuotaReading{Provider=pair.Key,Status="Quota unavailable",Observed=now};
                 if(slot.TimedOut)result.FailureKind="Request timeout";
                 bool accepted=slot.Enabled&&slot.Version==slot.PendingVersion;
+                if(slot.PendingAuto){
+                    result.Source=slot.PendingCli?"CLI":"API";
+                    if(accepted&&!slot.TimedOut){
+                        if(result.Status=="Live")slot.Remote.ClaudeRecovery=ClaudeRecoveryStage.Api;
+                        else if(!slot.PendingCli&&result.Status=="Login required"&&result.HttpStatus==401)slot.Remote.ClaudeRecovery=ClaudeRecoveryStage.Cli;
+                        else if(slot.PendingCli&&result.Status=="Login required")slot.Remote.ClaudeRecovery=ClaudeRecoveryStage.LoginRequired;
+                    }
+                }
+                if(accepted&&!slot.PendingLocal&&!slot.TimedOut&&result.Status=="Live")slot.Remote.ClaudeRecovery=ClaudeRecoveryStage.Api;
                 if(!slot.PendingLocal)ScheduleRemote(slot.Remote,result,now,accepted&&!slot.TimedOut);
                 if(accepted){
                     slot.Reading=result;
@@ -84,11 +97,13 @@ namespace HardwarePulse {
                 if(!slot.PendingLocal)EmitSchedule();
                 slot.TimedOut=false;slot.TimeoutReported=false;slot.RefreshQueued=false;slot.Pending=null;slot.Started=null;slot.Cancel.Dispose();slot.Cancel=null;
             }
-            if(!slot.Enabled||slot.Pending!=null||now<slot.Next||(!slot.Local&&now<slot.Remote.NotBefore))continue;
+            if(!slot.Enabled||slot.Pending!=null||(slot.Auto&&slot.Remote.ClaudeRecovery==ClaudeRecoveryStage.LoginRequired)||now<slot.Next||(!slot.Local&&now<slot.Remote.NotBefore))continue;
             slot.Next=now.AddMinutes(5);
             if(!slot.Local){slot.Remote.NotBefore=slot.Next;slot.Remote.Status="Refresh pending";slot.Remote.Observed=now;EmitSchedule();} // Reserve before IO, including process shutdown/crash.
             slot.Cancel=new CancellationTokenSource(TimeSpan.FromSeconds(30));slot.PendingVersion=slot.Version;slot.PendingLocal=slot.Local;slot.Started=now;slot.TimedOut=false;slot.TimeoutReported=false;string provider=pair.Key;var token=slot.Cancel.Token;
-            var source=slot.Cancel;slot.Pending=Task.Run(()=>ExecuteRead(provider,token,source));
+            slot.PendingAuto=slot.Auto;slot.PendingCli=slot.Auto&&slot.Remote.ClaudeRecovery==ClaudeRecoveryStage.Cli;
+            bool auto=slot.PendingAuto,cli=slot.PendingCli;
+            var source=slot.Cancel;slot.Pending=Task.Run(()=>ExecuteRead(provider,token,source,auto,cli));
         }}
         static void ScheduleRemote(QuotaSchedule schedule,QuotaReading reading,DateTimeOffset now,bool accepted){
             bool live=accepted&&reading.Status=="Live";
@@ -109,7 +124,7 @@ namespace HardwarePulse {
         // The five-minute floor survives restart; throttling debt is only cleared by success.
         public bool RecoverClaudeLogin(DateTimeOffset now){
             var slot=slots["Claude"];
-            if(disposed||!slot.Enabled||slot.Local||slot.Pending!=null||slot.Remote.Status!="Login required"||slot.Remote.Observed==default(DateTimeOffset)||slot.Remote.Observed>now)return false;
+            if(disposed||!slot.Enabled||slot.Local||slot.Auto||slot.Remote.ClaudeRecovery!=ClaudeRecoveryStage.Api||slot.Pending!=null||slot.Remote.Status!="Login required"||slot.Remote.Observed==default(DateTimeOffset)||slot.Remote.Observed>now)return false;
             var floor=slot.Remote.Observed.AddMinutes(5);
             if(slot.Remote.NextAttempt<=floor&&slot.Remote.NotBefore<=floor)return false;
             slot.Remote.NextAttempt=floor;slot.Remote.NotBefore=floor;EmitSchedule();return true;
@@ -117,12 +132,16 @@ namespace HardwarePulse {
         public bool CanRequestRefresh(string provider,DateTimeOffset now){
             if(disposed)return false;var slot=slots[provider];if(!slot.Enabled||slot.Pending!=null)return false;
             if(slot.Local)return true;
-            if(provider=="Claude"&&slot.Remote.Status=="Login required"&&slot.Remote.Observed!=default(DateTimeOffset)&&slot.Remote.Observed<=now&&now>=slot.Remote.Observed.AddMinutes(5))return true;
+            if(provider=="Claude"&&!slot.Auto&&slot.Remote.ClaudeRecovery==ClaudeRecoveryStage.Api&&slot.Remote.Status=="Login required"&&slot.Remote.Observed!=default(DateTimeOffset)&&slot.Remote.Observed<=now&&now>=slot.Remote.Observed.AddMinutes(5))return true;
             return now>=slot.Remote.NotBefore&&(slot.Remote.RecoveryFailures==0&&slot.Remote.RateLimitFailures==0||now>=slot.Next);
         }
         public void RequestRefresh(string provider,DateTimeOffset now){
             if(disposed)return;var slot=slots[provider];if(!slot.Enabled)return;
             if(slot.Pending!=null)return; // One running request is already fulfilling this action.
+            if(slot.Auto&&slot.Remote.ClaudeRecovery==ClaudeRecoveryStage.LoginRequired){
+                if(now<slot.Remote.NotBefore||now<slot.Next)return;
+                slot.Remote.ClaudeRecovery=ClaudeRecoveryStage.Api;EmitSchedule();
+            }
             if(provider=="Claude")RecoverClaudeLogin(now);
             if(slot.Local)slot.Next=DateTimeOffset.MinValue;
             else if(slot.Remote.RecoveryFailures==0&&slot.Remote.RateLimitFailures==0)slot.Next=slot.Remote.NotBefore;
@@ -131,8 +150,8 @@ namespace HardwarePulse {
         public void Dispose(){if(disposed)return;disposed=true;foreach(var slot in slots.Values){if(slot.Cancel!=null){slot.Cancel.Cancel();var source=slot.Cancel;if(slot.Pending!=null)slot.Pending.ContinueWith(t=>{var ignored=t.Exception;source.Dispose();},TaskScheduler.Default);else source.Dispose();}}}
         void Emit(QuotaAttempt attempt){var handler=AttemptCompleted;if(handler==null)return;foreach(Action<QuotaAttempt> subscriber in handler.GetInvocationList()){try{subscriber(attempt);}catch{}}}
         void EmitSchedule(){var handler=ScheduleChanged;if(handler==null)return;foreach(Action<QuotaSchedule[]> subscriber in handler.GetInvocationList()){try{subscriber(CaptureSchedules());}catch{}}}
-        static QuotaSchedule CopySchedule(QuotaSchedule source){return new QuotaSchedule{Provider=source.Provider,Status=source.Status,Observed=source.Observed,NextAttempt=source.NextAttempt,NotBefore=source.NotBefore,RecoveryFailures=source.RecoveryFailures,RateLimitFailures=source.RateLimitFailures};}
+        static QuotaSchedule CopySchedule(QuotaSchedule source){return new QuotaSchedule{Provider=source.Provider,Status=source.Status,Observed=source.Observed,NextAttempt=source.NextAttempt,NotBefore=source.NotBefore,RecoveryFailures=source.RecoveryFailures,RateLimitFailures=source.RateLimitFailures,ClaudeRecovery=source.ClaudeRecovery};}
         static QuotaReading Copy(QuotaReading source){if(source==null)return null;var copy=new QuotaReading{Provider=source.Provider,Status=source.Status,Source=source.Source,FailureKind=source.FailureKind,CacheScope=source.CacheScope,HttpStatus=source.HttpStatus,Observed=source.Observed,RetryAt=source.RetryAt};foreach(var w in source.Windows)copy.Windows.Add(new QuotaWindow{Id=w.Id,Label=w.Label,Remaining=w.Remaining,Reset=w.Reset});foreach(var w in source.AllWindows)copy.AllWindows.Add(new QuotaWindow{Id=w.Id,Label=w.Label,Remaining=w.Remaining,Reset=w.Reset});foreach(var b in source.Balances)copy.Balances.Add(new QuotaBalance{Label=b.Label,Currency=b.Currency,Amount=b.Amount});foreach(var b in source.AllBalances)copy.AllBalances.Add(new QuotaBalance{Label=b.Label,Currency=b.Currency,Amount=b.Amount});return copy;}
-        QuotaReading ExecuteRead(string provider,CancellationToken token,CancellationTokenSource source){try{var result=read(provider,token);if(result==null||result.Status!="Refresh rate limited")token.ThrowIfCancellationRequested();return result;}finally{try{source.CancelAfter(Timeout.Infinite);}catch(ObjectDisposedException){}}}
+        QuotaReading ExecuteRead(string provider,CancellationToken token,CancellationTokenSource source,bool auto,bool cli){try{token.ThrowIfCancellationRequested();var result=auto?readClaudeAuto(cli,token):read(provider,token);if(result==null||result.Status!="Refresh rate limited")token.ThrowIfCancellationRequested();return result;}finally{try{source.CancelAfter(Timeout.Infinite);}catch(ObjectDisposedException){}}}
     }
 }

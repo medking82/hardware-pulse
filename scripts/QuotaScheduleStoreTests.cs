@@ -24,6 +24,10 @@ static class QuotaScheduleStoreTests {
             QuotaSchedule[] loaded=store.Load();
             Check(loaded.Length==2&&loaded[0].Provider=="Antigravity"&&loaded[0].Status=="Refresh rate limited"&&loaded[0].NextAttempt==deadline&&loaded[0].NotBefore==deadline&&loaded[0].RecoveryFailures==3&&loaded[0].RateLimitFailures==4,"schedule roundtrip");
             Check(loaded[1].Provider=="Claude"&&loaded[1].NextAttempt==deadline.AddDays(1),"multiple provider roundtrip");
+            foreach(ClaudeRecoveryStage stage in Enum.GetValues(typeof(ClaudeRecoveryStage))){
+                var routed=Schedule("Claude",deadline);routed.ClaudeRecovery=stage;store.Save(new[]{routed});loaded=store.Load();
+                Check(loaded.Length==1&&loaded[0].ClaudeRecovery==stage&&loaded[0].NotBefore==deadline&&loaded[0].RateLimitFailures==4,"Auto route/stop and shared cooldown survive disk roundtrip");
+            }
 
             using(var session=new QuotaSession((provider,cancel)=>new QuotaReading{Provider=provider})){
                 store.Save(session.CaptureSchedules());
@@ -37,7 +41,10 @@ static class QuotaScheduleStoreTests {
             }
 
             Write(root,"{");Check(Read(root).Length==0,"malformed JSON ignored");
-            Write(root,"{\"schema\":2,\"schedules\":[]}");Check(Read(root).Length==0,"unknown schema ignored");
+            Write(root,"{\"schema\":99,\"schedules\":[]}");Check(Read(root).Length==0,"unknown schema ignored");
+            string legacy="{\"schema\":1,\"schedules\":[{\"provider\":\"Claude\",\"status\":\"Refresh rate limited\",\"observed\":\"2026-09-27T08:26:11.0000000+08:00\",\"nextAttempt\":\"2056-09-27T08:26:11.0000000+08:00\",\"notBefore\":\"2056-09-27T08:26:11.0000000+08:00\",\"recoveryFailures\":3,\"rateLimitFailures\":4}]}";
+            Write(root,legacy);loaded=Read(root);Check(loaded.Length==1&&loaded[0].NotBefore==deadline&&loaded[0].ClaudeRecovery==ClaudeRecoveryStage.Api,"Legacy schedule migrates without clearing cooldown");
+            foreach(string value in new[]{"-1","3","true","\"Cli\""}){Write(root,legacy.Replace("\"schema\":1","\"schema\":2").Replace("\"rateLimitFailures\":4","\"rateLimitFailures\":4,\"claudeRecovery\":"+value));Check(Read(root).Length==0,"Malformed Auto route rejected");}
             Write(root,"{\"schema\":1,\"schedules\":[{\"provider\":\"Unknown\",\"status\":\"Live\",\"observed\":\"2026-09-27T08:26:11.0000000+08:00\",\"nextAttempt\":\"2056-09-27T08:26:11.0000000+08:00\",\"notBefore\":\"2056-09-27T08:26:11.0000000+08:00\",\"recoveryFailures\":0,\"rateLimitFailures\":0}]}");
             Check(Read(root).Length==0,"unknown provider ignored");
             Write(root,"{\"schema\":1,\"schedules\":[{\"provider\":\"Claude\",\"status\":\"Live\",\"observed\":\"not-a-roundtrip-timestamp\",\"nextAttempt\":\"2056-09-27T08:26:11.0000000+08:00\",\"notBefore\":\"2056-09-27T08:26:11.0000000+08:00\",\"recoveryFailures\":0,\"rateLimitFailures\":0}]}");

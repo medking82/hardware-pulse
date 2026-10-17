@@ -84,10 +84,12 @@ namespace HardwarePulse {
                 string executable=ClaudeCliQuota.InstalledExecutable();
                 if(executable==null)throw new QuotaFailure("Quota unavailable",null,0,"Local discovery");
                 return ClaudeCliQuota.Read(executable,cancel);
-            }catch(QuotaFailure failure){return new QuotaReading{Provider="Claude",Source="CLI",Status=failure.Status,Observed=DateTimeOffset.UtcNow,RetryAt=failure.RetryAt,FailureKind=failure.FailureKind??"CLI failure"};}
+            }catch(QuotaFailure failure){return new QuotaReading{Provider="Claude",Source="CLI",Status=failure.Status,Observed=DateTimeOffset.UtcNow,RetryAt=failure.RetryAt,HttpStatus=failure.HttpStatus,FailureKind=failure.FailureKind??"CLI failure"};}
             catch{cancel.ThrowIfCancellationRequested();return new QuotaReading{Provider="Claude",Source="CLI",Status="Quota unavailable",Observed=DateTimeOffset.UtcNow,FailureKind="CLI failure"};}
         }
-        public static QuotaReading Read(string provider,CancellationToken cancel){
+        public static QuotaReading ReadClaudeAuto(bool cli,CancellationToken cancel){return cli?ReadClaudeCli(cancel):ReadCore("Claude",cancel,false);}
+        public static QuotaReading Read(string provider,CancellationToken cancel){return ReadCore(provider,cancel,true);}
+        static QuotaReading ReadCore(string provider,CancellationToken cancel,bool retryChangedLogin){
             cancel.ThrowIfCancellationRequested();
             string cacheScope=null;
             string source=null;
@@ -119,13 +121,14 @@ namespace HardwarePulse {
                     catch(QuotaFailure failure){if(failure.Status=="Login required")throw new QuotaFailure("API key rejected",failure.RetryAt,failure.HttpStatus,failure.FailureKind);throw;}
                 }
                 else if(provider=="Claude"){
+                    source="API";
                     string supplied=Environment.GetEnvironmentVariable("CLAUDE_CODE_OAUTH_TOKEN");
                     Func<object> selectedLogin=null;
                     body=ClaudeQuotaRequest.Read(delegate(CancellationToken ignored){
                         if(!string.IsNullOrEmpty(supplied))return supplied;
                         if(selectedLogin==null)selectedLogin=ClaudeScopedLoginReader(value=>cacheScope=value);
                         var login=selectedLogin();return QuotaDecoder.Text(QuotaDecoder.Get(QuotaDecoder.Get(login,"claudeAiOauth")??login,"accessToken"));
-                    },(token,requestCancel)=>Request("https://api.anthropic.com/api/oauth/usage",new Dictionary<string,string>{{"Authorization","Bearer "+token},{"anthropic-beta","oauth-2025-04-20"}},null,requestCancel,false),cancel);
+                    },(token,requestCancel)=>Request("https://api.anthropic.com/api/oauth/usage",new Dictionary<string,string>{{"Authorization","Bearer "+token},{"anthropic-beta","oauth-2025-04-20"}},null,requestCancel,false),cancel,retryChangedLogin);
                 }else throw new QuotaFailure("Quota unavailable");
                 cancel.ThrowIfCancellationRequested();var decoded=QuotaDecoder.Decode(provider,body,DateTimeOffset.UtcNow);decoded.CacheScope=cacheScope;decoded.Source=source;decoded.HttpStatus=provider=="Claude"||provider=="DeepSeek"?200:0;if(decoded.Status!="Live")decoded.FailureKind="Invalid response";return decoded;
             }catch(QuotaFailure e){return new QuotaReading{Provider=provider,Status=e.Status,Observed=DateTimeOffset.UtcNow,RetryAt=e.RetryAt,CacheScope=cacheScope,HttpStatus=e.HttpStatus,Source=source,FailureKind=e.FailureKind??(source=="CLI"?"CLI failure":null)};}

@@ -20,7 +20,7 @@ namespace HardwarePulse {
         }
         internal static object ReadProtocol(TextReader input,TextWriter output,CancellationToken cancel){
             int total=0;
-            output.WriteLine("{\"id\":1,\"method\":\"initialize\",\"params\":{\"clientInfo\":{\"name\":\"hardware_pulse\",\"title\":\"Hardware Pulse\",\"version\":\"0.6.59\"}}}");output.Flush();
+            output.WriteLine("{\"id\":1,\"method\":\"initialize\",\"params\":{\"clientInfo\":{\"name\":\"hardware_pulse\",\"title\":\"Hardware Pulse\",\"version\":\"0.6.60\"}}}");output.Flush();
             Response(input,1,ref total,cancel);
             output.WriteLine("{\"method\":\"initialized\",\"params\":{}}");
             output.WriteLine("{\"id\":2,\"method\":\"account/rateLimits/read\",\"params\":{}}");output.Flush();
@@ -46,6 +46,12 @@ namespace HardwarePulse {
             return ReadWithDeadline(executable,arguments,read,cancel,requireSuccessfulExit,TimeSpan.FromSeconds(15));
         }
         internal static object ReadWithDeadline(string executable,string arguments,Func<TextReader,TextWriter,CancellationToken,object> read,CancellationToken cancel,bool requireSuccessfulExit,TimeSpan maximumDuration,IDictionary<string,string> environment=null){
+            return ReadCore(executable,arguments,read,cancel,requireSuccessfulExit,maximumDuration,environment,null);
+        }
+        internal static object ReadWithDiagnostics(string executable,string arguments,Func<TextReader,TextWriter,CancellationToken,object> read,CancellationToken cancel,TimeSpan maximumDuration,IDictionary<string,string> environment,Func<string,QuotaFailure> classify){
+            return ReadCore(executable,arguments,read,cancel,true,maximumDuration,environment,classify);
+        }
+        static object ReadCore(string executable,string arguments,Func<TextReader,TextWriter,CancellationToken,object> read,CancellationToken cancel,bool requireSuccessfulExit,TimeSpan maximumDuration,IDictionary<string,string> environment,Func<string,QuotaFailure> classify){
             using(var deadline=CancellationTokenSource.CreateLinkedTokenSource(cancel))
             using(var process=new Process()){
                 deadline.CancelAfter(maximumDuration);
@@ -62,8 +68,8 @@ namespace HardwarePulse {
                 using(var reading=CancellationTokenSource.CreateLinkedTokenSource(deadline.Token))
                 using(var stdout=new StreamReader(new QuotaPipeStream(process.StandardOutput.BaseStream,reading.Token),Encoding.UTF8))
                 using(var stderr=new StreamReader(new QuotaPipeStream(process.StandardError.BaseStream,reading.Token),Encoding.UTF8)){
-                    int diagnosticOverflow=0;
-                    var errors=Task.Run(()=>{try{var buffer=new char[2048];int count,total=0;while((count=stderr.Read(buffer,0,buffer.Length))>0){total+=count;if(total>65536){Interlocked.Exchange(ref diagnosticOverflow,1);reading.Cancel();stop();break;}}}catch(OperationCanceledException){}catch(IOException){}catch(ObjectDisposedException){}});
+                    int diagnosticOverflow=0;var diagnostics=classify==null?null:new StringBuilder();
+                    var errors=Task.Run(()=>{try{var buffer=new char[2048];int count,total=0;while((count=stderr.Read(buffer,0,buffer.Length))>0){total+=count;if(total>65536){Interlocked.Exchange(ref diagnosticOverflow,1);reading.Cancel();stop();break;}if(diagnostics!=null)diagnostics.Append(buffer,0,count);}}catch(OperationCanceledException){}catch(IOException){}catch(ObjectDisposedException){}});
                     object body=null;QuotaFailure readFailure=null;
                     try{
                         body=read(stdout,process.StandardInput,reading.Token);
@@ -87,6 +93,16 @@ namespace HardwarePulse {
                     cancel.ThrowIfCancellationRequested();
                     if(deadline.IsCancellationRequested)throw new QuotaFailure("Quota unavailable",null,0,"CLI timeout");
                     if(diagnosticOverflow!=0)throw new QuotaFailure("Quota unavailable",null,0,"CLI failure");
+                    if(classify!=null){
+                        // Classifiers return allowlisted metadata only; raw diagnostics never leave this method.
+                        var failure=classify(diagnostics.ToString());
+                        // A message on stderr cannot downgrade a throttle or permission failure on stdout.
+                        if(readFailure!=null&&(failure==null||
+                            readFailure.Status=="Refresh rate limited"&&(failure.Status!="Refresh rate limited"||!failure.RetryAt.HasValue||readFailure.RetryAt>failure.RetryAt)||
+                            readFailure.Status=="Quota access denied"&&failure.Status!="Refresh rate limited"))failure=readFailure;
+                        if(failure!=null)throw failure;
+                        if(readFailure!=null)throw readFailure;
+                    }
                     if(requireSuccessfulExit&&process.ExitCode!=0)throw new QuotaFailure("Quota unavailable",null,0,"CLI exit failure");
                     if(readFailure!=null)throw readFailure;
                     return body;

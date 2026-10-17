@@ -12,6 +12,8 @@ internal static class CoreQuotaSessionTests {
         throw new Exception("Core quota completion timed out");
     }
     public static void Run(){
+        ClaudeAutoRecovery();
+        ClaudeAutoFailureBoundaries();
         CredentialChanges();
         ClaudeManualRefreshFloor();
         ExplicitClaudeAuthenticationRecovery();
@@ -199,6 +201,71 @@ internal static class CoreQuotaSessionTests {
         }
         Console.WriteLine("PASS quota lifecycle soak: 360 simulated refresh rounds / 30 days, 810 reads, mixed failures, recovery, provider toggles and no overlapping requests");
         Console.WriteLine("PASS Core quota lifecycle: opt-in, host deadlines, manual refresh, no overlap, cancellation, re-enable late results, faults and disposal");
+    }
+    static QuotaSession AutoSession(Func<bool,CancellationToken,QuotaReading> reader){
+        var constructor=typeof(QuotaSession).GetConstructor(new[]{typeof(Func<string,CancellationToken,QuotaReading>),typeof(Func<bool,CancellationToken,QuotaReading>)});
+        Check(constructor!=null,"Auto needs a scheduler-owned API/CLI reader");
+        return (QuotaSession)constructor.Invoke(new object[]{new Func<string,CancellationToken,QuotaReading>((provider,cancel)=>{throw new Exception("Auto escaped its selected route");}),reader});
+    }
+    static void EnableAuto(QuotaSession session,bool enabled=true){
+        var enable=typeof(QuotaSession).GetMethod("Enable");
+        Check(enable.GetParameters().Length==4,"Auto mode is missing");
+        enable.Invoke(session,new object[]{"Claude",enabled,false,true});
+    }
+    static void ClaudeAutoRecovery(){
+        var now=new DateTimeOffset(2026,10,17,0,0,0,TimeSpan.Zero);int api=0,cli=0;
+        using(var session=AutoSession((useCli,cancel)=>{
+            if(useCli){Interlocked.Increment(ref cli);return new QuotaReading{Provider="Claude",Source="CLI",Status="Live"};}
+            int count=Interlocked.Increment(ref api);return new QuotaReading{Provider="Claude",Source="API",Status=count==1?"Login required":"Live",HttpStatus=count==1?401:200};
+        })){
+            EnableAuto(session);Pump(session,now,()=>api==1&&!session.GetState("Claude").Refreshing);
+            Check(cli==0,"401 must not issue a second request in the same refresh");
+            for(int i=0;i<10;i++){session.RequestRefresh("Claude",now.AddMinutes(4));session.Refresh();session.Tick(now.AddMinutes(5).AddTicks(-1));}
+            Check(api==1&&cli==0,"Auto bypassed the shared five-minute floor");
+            Pump(session,now.AddMinutes(5),()=>cli==1&&!session.GetState("Claude").Refreshing);
+            Check(api==1&&session.Readings[0].Status=="Live"&&session.Readings[0].Source=="CLI","CLI success must stand without a follow-up API request");
+            Pump(session,now.AddMinutes(10),()=>api==2&&!session.GetState("Claude").Refreshing);
+            Check(cli==1&&session.Readings[0].Source=="API","Next normal refresh returns to API");
+        }
+        Console.WriteLine("PASS Claude Auto: serial 401 recovery, shared floor, CLI result and next-cycle API");
+    }
+    static void ClaudeAutoFailureBoundaries(){
+        var now=new DateTimeOffset(2026,10,17,0,0,0,TimeSpan.Zero);
+        foreach(int code in new[]{0,403,429,500}){
+            int api=0,cli=0;string status=code==403?"Quota access denied":code==429?"Refresh rate limited":"Quota unavailable";
+            using(var session=AutoSession((useCli,cancel)=>{if(useCli)Interlocked.Increment(ref cli);else Interlocked.Increment(ref api);return new QuotaReading{Provider="Claude",Status=status,HttpStatus=code,RetryAt=code==429?(DateTimeOffset?)now.AddHours(2):null};})){
+                EnableAuto(session);Pump(session,now,()=>api==1&&!session.GetState("Claude").Refreshing);
+                var deadline=session.GetState("Claude").NextAttempt.Value;
+                for(int i=0;i<10;i++){session.RequestRefresh("Claude",now.AddMinutes(5));EnableAuto(session,false);EnableAuto(session);session.Tick(deadline.AddTicks(-1));}
+                Check(api==1&&cli==0,"Non-auth failure bypassed shared cooldown");
+                Pump(session,deadline,()=>api==2&&!session.GetState("Claude").Refreshing);
+                Check(cli==0,"Only an explicit API 401 can select CLI");
+            }
+        }
+        int calls=0;QuotaSchedule[] saved;
+        using(var session=AutoSession((useCli,cancel)=>{Interlocked.Increment(ref calls);return new QuotaReading{Provider="Claude",Status="Login required",HttpStatus=401};})){
+            EnableAuto(session);Pump(session,now,()=>calls==1&&!session.GetState("Claude").Refreshing);saved=session.CaptureSchedules();
+        }
+        using(var session=AutoSession((useCli,cancel)=>{Check(useCli,"Restart lost queued CLI recovery");Interlocked.Increment(ref calls);return new QuotaReading{Provider="Claude",Status="Refresh rate limited",RetryAt=now.AddHours(2)};})){
+            session.RestoreSchedules(saved);EnableAuto(session);session.Tick(now.AddMinutes(4));Check(calls==1,"Restart bypassed reservation");
+            Pump(session,now.AddMinutes(5),()=>calls==2&&!session.GetState("Claude").Refreshing);
+            Check(session.GetState("Claude").NextAttempt==now.AddHours(2),"CLI throttle lost longer server deadline");saved=session.CaptureSchedules();
+        }
+        using(var session=AutoSession((useCli,cancel)=>{Check(useCli,"CLI throttle switched back to API");Interlocked.Increment(ref calls);return new QuotaReading{Provider="Claude",Status="Login required",Observed=now.AddHours(2)};})){
+            session.RestoreSchedules(saved);EnableAuto(session);
+            for(int i=0;i<10;i++){session.RequestRefresh("Claude",now.AddMinutes(30));session.Tick(now.AddHours(2).AddTicks(-1));}
+            Check(calls==2,"CLI throttle was bypassed");Pump(session,now.AddHours(2),()=>calls==3&&!session.GetState("Claude").Refreshing);
+            var protectedDeadline=Array.Find(session.CaptureSchedules(),s=>s.Provider=="Claude").NotBefore;
+            session.Enable("Claude",true);session.RequestRefresh("Claude",now.AddHours(2).AddMinutes(5));
+            Check(session.GetState("Claude").NextAttempt==protectedDeadline,"Manual source switch bypassed Auto cooldown debt");EnableAuto(session);
+            session.Tick(now.AddDays(1));Thread.Sleep(50);Check(calls==3&&!session.GetState("Claude").Refreshing,"Both authentication failures must stop automatic retry");
+            Check(!session.GetState("Claude").NextAttempt.HasValue,"Stopped Auto must not advertise another automatic retry");saved=session.CaptureSchedules();
+        }
+        using(var session=AutoSession((useCli,cancel)=>{Check(!useCli,"Explicit recovery starts a new API cycle");Interlocked.Increment(ref calls);return new QuotaReading{Provider="Claude",Status="Live"};})){
+            session.RestoreSchedules(saved);EnableAuto(session);session.Refresh();session.Tick(now.AddDays(1));Check(calls==3,"Restart/toggle/queued refresh restarted blocked authentication");
+            session.RequestRefresh("Claude",now.AddDays(1));Pump(session,now.AddDays(1),()=>calls==4&&!session.GetState("Claude").Refreshing);
+        }
+        Console.WriteLine("PASS Claude Auto failures: non-auth isolation, persisted route, two-route cooldown, both-auth stop and explicit recovery");
     }
     static void CredentialChanges(){
         var changed=typeof(QuotaSession).GetMethod("CredentialsChanged");

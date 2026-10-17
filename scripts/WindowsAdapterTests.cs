@@ -27,6 +27,13 @@ class WindowsAdapterTests {
         if(Array.IndexOf(args,"/usage")>=0){
             if(args.Length!=7||args[0]!="--safe-mode"||args[1]!="--strict-mcp-config"||args[2]!="--tools"||args[3]!=""||args[4]!="--permission-mode"||args[5]!="dontAsk")return 19;
             if(Console.In.ReadToEnd()!="")return 20;
+            string failure=Environment.GetEnvironmentVariable("PULSE_CLAUDE_FIXTURE");
+            if(!string.IsNullOrEmpty(failure)){
+                if(failure=="nonzero-valid"){Console.WriteLine("Current session: 2% used\nCurrent week (all models): 41% used");return 7;}
+                if(failure=="mixed-429"){Console.WriteLine("API Error: 429\nRetry-After: 7200");Console.Error.WriteLine("Not logged in · Please run /login");return 7;}
+                var writer=failure.StartsWith("stderr-")?Console.Error:Console.Out;
+                writer.WriteLine(failure.EndsWith("login")?"Not logged in · Please run /login":failure.EndsWith("403")?"API Error: 403":failure.EndsWith("429")?"API Error: 429\nRetry-After: 7200":"network unavailable");return 7;
+            }
             Console.WriteLine("Current session: 2% used · resets Oct 17, 1am (Asia/Kuala_Lumpur)");
             Console.WriteLine("Current week (all models): 41% used · resets Oct 19, 1pm (Asia/Kuala_Lumpur)");
             return Environment.GetEnvironmentVariable("DISABLE_AUTOUPDATER")=="1"?0:21;
@@ -183,6 +190,19 @@ class WindowsAdapterTests {
         var multiline=parse("\u001b[32mCurrent session\u001b[0m\n2% used\nResets 1am (Asia/Kuala_Lumpur)\nCurrent week (all models)\n41% used\nResets Oct 19, 1pm (Asia/Kuala_Lumpur)\n");
         Check(multiline.Status=="Live"&&multiline.Windows[0].Remaining==98,"ANSI and bounded multiline CLI usage are parsed");
         var read=type.GetMethod("Read",BindingFlags.Static|BindingFlags.NonPublic);
+        string previousFailure=Environment.GetEnvironmentVariable("PULSE_CLAUDE_FIXTURE");
+        try{
+            foreach(string failure in new[]{"stdout-login","stderr-login","stderr-403","stdout-429","stderr-429","mixed-429","network","nonzero-valid"}){
+                Environment.SetEnvironmentVariable("PULSE_CLAUDE_FIXTURE",failure);bool rejected=false;
+                try{read.Invoke(null,new object[]{Assembly.GetExecutingAssembly().Location,CancellationToken.None});}
+                catch(TargetInvocationException error){
+                    var quota=error.InnerException as QuotaFailure;string expected=failure.EndsWith("login")?"Login required":failure.EndsWith("403")?"Quota access denied":failure.EndsWith("429")?"Refresh rate limited":"Quota unavailable";
+                    Check(quota!=null&&quota.Status==expected,"CLI failure category must survive nonzero exit: "+failure);
+                    if(failure.EndsWith("429"))Check(quota.RetryAt>DateTimeOffset.UtcNow.AddMinutes(119),"CLI retry deadline was discarded");rejected=true;
+                }
+                Check(rejected,"Failed CLI child was admitted: "+failure);
+            }
+        }finally{Environment.SetEnvironmentVariable("PULSE_CLAUDE_FIXTURE",previousFailure);}
         string prior=Environment.GetEnvironmentVariable("DISABLE_AUTOUPDATER");
         try{
             Environment.SetEnvironmentVariable("DISABLE_AUTOUPDATER","parent-sentinel");

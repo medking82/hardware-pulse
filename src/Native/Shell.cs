@@ -51,7 +51,7 @@ namespace HardwarePulse {
             readings=new ReadingSession(snapshotReader.Read);
             hardwareLog=new HardwareDiagnosticLog(paths.State);
             settings=new Settings(Path.Combine(paths.State,"widget-settings.json"));language=new Languages(Path.Combine(paths.Root,"Languages.txt"));language.Preference=settings.Text("language","auto");
-            claudeCliSource=settings.Flag("claudeCliSource",false);claudeSnapshotSource=!claudeCliSource&&settings.Flag("claudeSnapshotSource",false);quotas=new QuotaSession(ReadQuota);
+            claudeAutoSource=settings.Flag("claudeAutoSource",false);claudeCliSource=!claudeAutoSource&&settings.Flag("claudeCliSource",false);claudeSnapshotSource=!claudeAutoSource&&!claudeCliSource&&settings.Flag("claudeSnapshotSource",false);quotas=new QuotaSession(ReadQuota,QuotaProviders.ReadClaudeAuto);
             if(!isolated){
                 var quotaStore=new QuotaScheduleStore(paths.State);
                 quotas.RestoreSchedules(quotaStore.Load());quotas.ScheduleChanged+=quotaStore.Save;

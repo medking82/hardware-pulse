@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 
 namespace HardwarePulse {
+    public enum ClaudeRecoveryStage { Api, Cli, LoginRequired }
     public sealed class QuotaWindow {
         public string Label,Id;
         public double? Remaining;
@@ -35,6 +36,7 @@ namespace HardwarePulse {
         public DateTimeOffset NotBefore {get;set;}
         public int RecoveryFailures {get;set;}
         public int RateLimitFailures {get;set;}
+        public ClaudeRecoveryStage ClaudeRecovery {get;set;}
     }
     public sealed class QuotaRefreshState {
         public DateTimeOffset? NextAttempt {get;internal set;}
@@ -42,6 +44,8 @@ namespace HardwarePulse {
         public DateTimeOffset? LastSuccess {get;internal set;}
         public bool Refreshing {get;internal set;}
         public bool TimedOut {get;internal set;}
+        public bool AutoCliPending {get;internal set;}
+        public bool AutoLoginRequired {get;internal set;}
         public int RateLimitFailures {get;internal set;}
         public double? LastDurationMilliseconds {get;internal set;}
         public QuotaReading LastGood {get;internal set;}

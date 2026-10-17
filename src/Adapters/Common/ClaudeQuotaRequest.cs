@@ -4,11 +4,11 @@ using System.Threading;
 namespace HardwarePulse {
     // Re-read the selected login only after a rejected request. Never renew or persist tokens.
     public static class ClaudeQuotaRequest {
-        public static object Read(Func<CancellationToken,string> login,Func<string,CancellationToken,object> request,CancellationToken cancel){
+        public static object Read(Func<CancellationToken,string> login,Func<string,CancellationToken,object> request,CancellationToken cancel,bool retryChangedLogin=true){
             string token=ReadToken(login,cancel);
             try{return Request(request,token,cancel);}
             catch(QuotaFailure failure){
-                if(failure.Status!="Login required")throw;
+                if(!retryChangedLogin||failure.Status!="Login required")throw;
                 string current=ReadToken(login,cancel);
                 if(string.Equals(token,current,StringComparison.Ordinal))throw;
                 return Request(request,current,cancel);
