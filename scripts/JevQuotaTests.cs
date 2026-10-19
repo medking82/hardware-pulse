@@ -12,10 +12,24 @@ internal static class JevQuotaTests {
     static object Decode(Dictionary<string,object> wire){return Adapter().GetMethod("Decode").Invoke(null,new object[]{wire,DateTimeOffset.UtcNow});}
     static Dictionary<string,object> Wire(int http,string type,string text){return new Dictionary<string,object>{{"http",http},{"contentType",type},{"text",text}};}
     static QuotaFailure Failure(Dictionary<string,object> wire){try{Decode(wire);throw new Exception("Invalid response accepted");}catch(TargetInvocationException e){var failure=e.InnerException as QuotaFailure;Check(failure!=null,"only sanitized failures may cross transport");return failure;}}
+    static void PublishPid(string file,int pid,Action writing){
+        string pending=file+".tmp";
+        try{
+            using(var writer=new StreamWriter(pending)){writer.Write(pid);if(writing!=null)writing();}
+            File.Move(pending,file);
+        }finally{if(File.Exists(pending))File.Delete(pending);}
+    }
+    static void PidPublication(){
+        string file=Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"jev-ready-"+Guid.NewGuid().ToString("N")+".txt");
+        try{
+            bool checkedWriting=false;PublishPid(file,12345,delegate{checkedWriting=true;Check(!File.Exists(file),"ready PID path must stay absent while its writer is open");});
+            Check(checkedWriting&&int.Parse(File.ReadAllText(file))==12345,"published PID is complete and readable immediately");
+        }finally{if(File.Exists(file))File.Delete(file);}
+    }
     public static int JobChild(string[] args){
         if(args[0]=="--jev-job-leaf"){Thread.Sleep(30000);return 0;}
         using(var leaf=Process.Start(new ProcessStartInfo{FileName=Assembly.GetExecutingAssembly().Location,Arguments="--jev-job-leaf",UseShellExecute=false,CreateNoWindow=true})){
-            File.WriteAllText(args[1],leaf.Id.ToString());Thread.Sleep(30000);
+            PublishPid(args[1],leaf.Id,null);Thread.Sleep(30000);
         }
         return 0;
     }
@@ -50,6 +64,7 @@ internal static class JevQuotaTests {
             Check(rejected,"pre-cancel must run before credential decoding or browser startup");
         }
         JevProtocolTests.Run();
+        PidPublication();
         OwnedTree();
         Console.WriteLine("PASS Jev: fixed response contract, strict Flight, money, redirects, status distinctions, Retry-After, cancellation and private protocol firewall");
     }
