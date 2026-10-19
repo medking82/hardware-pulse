@@ -55,10 +55,11 @@ namespace HardwarePulse {
             double opacity=material.EffectiveOpacity(supported);
             Window.Background=new SolidColorBrush(Color.FromArgb((byte)Math.Round(255*opacity),color.R,color.G,color.B));Control<Slider>("OpacitySlider").IsEnabled=material.CanAdjustOpacity(supported);Text("OpacityValue",Math.Round(opacity*100)+"%");
             foreach(var entry in themed)entry.Item2.SetValue(entry.Item1,SystemParameters.HighContrast?SystemColors.WindowTextBrush:light?Brush("#17202B"):entry.Item3,null);
-            var key=Control<PasswordBox>("DeepSeekKey");
+            foreach(var key in new Control[]{Control<PasswordBox>("DeepSeekKey"),Control<PasswordBox>("JevCookie"),Control<TextBox>("JevUserAgent")}){
             key.Background=SystemParameters.HighContrast?SystemColors.WindowBrush:Brush(light?"#F4F6F8":"#202831");
             key.Foreground=SystemParameters.HighContrast?SystemColors.WindowTextBrush:Brush(light?"#17202B":"#F0F5FA");
             key.BorderBrush=SystemParameters.HighContrast?SystemColors.WindowTextBrush:Brush("#718596");
+            }
             string chrome=SystemParameters.HighContrast?SystemColors.WindowTextColor.ToString():light?"#17202B":"#C2D8E5";
             Control<Button>("Settings").Content=Icon("settings",20,chrome);Control<Button>("Back").Content=Icon("back",16,chrome);Control<Button>("Minimize").Content=Icon("minimize",14,chrome);Control<Button>("Close").Content=Icon("close",14,chrome);
             Control<ContentControl>("BrandIcon").Content=Icon("live",22,SystemParameters.HighContrast?chrome:light?"#17634F":"#A5E7D5");

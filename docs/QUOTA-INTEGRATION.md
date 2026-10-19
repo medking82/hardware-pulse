@@ -1,5 +1,44 @@
 # Independent quota readings
 
+## Native Jev Balance
+
+Jev is a USD wallet, not a percentage quota. Settings → AI Quota → Jev Session
+contains a masked Cookie editor, encrypted save/remove, PC Chrome DevTools steps
+and an explicit Open TypeSafe button (Chrome preferred, Edge fallback). Browser
+metadata is generated from the installed version; the optional override is folded.
+Saving never enables monitoring; enabling without a saved session opens guidance
+without consuming a network attempt. Session replacement/removal invalidates old
+observations and in-flight completions without forgiving existing cooldown debt.
+
+The adapter launches the installed Chromium browser (112+) with private anonymous
+inherited pipes and an isolated current-user profile/context. It attaches only to
+its own process, not an existing browser. A local empty document establishes the
+fixed origin. The process starts suspended with an explicit inherited-handle list,
+is assigned to a private kill-on-close Job Object, then resumes; child creation
+cannot race assignment, and shutdown/cancellation contains the whole owned tree.
+Only the two CDP client pipe handles are inherited from Pulse. That document uses the
+fixed HTTPS origin. Request interception admits that document and exactly one
+balance POST, injecting the Cookie only into that POST; foreign requests and
+redirects are blocked. No Electron, Node or browser bundle is shipped. A 25-second
+owned process deadline bounds startup, protocol, fetch and cleanup. Extra-info
+events correlate opaque manual redirects/429 with the originating request ID.
+
+The deployed Next.js action ID is pinned to the known read-only balance function.
+It is not a public API contract: an upstream action change fails closed and may
+require a Pulse update. No automatic action discovery or account-writing fallback
+is attempted. Only one unambiguous successful Flight result with finite integer
+`data.balanceCents` is accepted. Zero and negative USD balances are genuine values.
+HTTP 403 alone does not imply expired login; known login redirects, challenges,
+rate limits and changed actions remain distinguishable.
+
+Core decoding/presentation is portable. The separate shared Desktop preview has
+no Cookie editor and continues rejecting Jev before credential reads; it never
+falls through to a different provider. Native card and Desktop share the catalog,
+wallet visibility/order key and theme tint. DeepSeek's currency filter cannot hide
+or alter Jev's USD. The original Pulse Jev monogram is not an official TypeSafe mark.
+Synthetic protocol/DPAPI/WPF tests are separate from authenticated consumer
+acceptance; a normal HTTP 307 invalid-session control is not balance acceptance.
+
 ## Shared Antigravity (P02)
 
 The shared host composes readers in `DesktopQuotaReaders`; quota panels receive

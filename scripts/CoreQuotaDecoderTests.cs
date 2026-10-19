@@ -30,6 +30,7 @@ internal static class CoreQuotaDecoderTests {
     }
 #endif
     public static void Run(){
+        JevUsdBalance();
         ArgonIndependentWindow();
         LocalGenerationSpeed();
         LocalInferenceLifecycle();
@@ -60,6 +61,18 @@ internal static class CoreQuotaDecoderTests {
         Check(QuotaDecoder.ResetText(null,now)==""&&QuotaDecoder.ResetText(now.AddSeconds(1),now)=="Reset 1m","missing reset and minimum minute");
         Check(QuotaDecoder.ResetText(now.AddHours(2).AddMinutes(3),now)=="Reset 2h 3m"&&QuotaDecoder.ResetText(now.AddDays(2).AddHours(3),now)=="Reset 2d 3h","reset formatting");
         Console.WriteLine("PASS Core quota: provider fixtures, compact/full windows, missing/zero, disabled, aliases, deduplication and reset semantics");
+    }
+    static void JevUsdBalance(){
+        Check(QuotaCatalog.Find("Jev")!=null&&QuotaCatalog.IsMoney("Jev")&&!QuotaCatalog.NeedsApiKey("Jev"),"Jev is a session-authenticated money provider, not an API key or percentage window");
+        foreach(string cents in new[]{"1000","0","-1"}){
+            var reading=Decode("Jev","{\"ok\":true,\"data\":{\"balanceCents\":"+cents+"}}");
+            Check(reading.Status=="Live"&&reading.Balances.Count==1&&reading.Balances[0].Currency=="USD"&&reading.Windows.Count==0,"Jev preserves positive, zero and negative USD money");
+            Check(reading.AllBalances.Count==1,"Jev balance survives full/compact projection");
+        }
+        Check(Decode("Jev","{\"ok\":true,\"data\":{\"balanceCents\":1000}}").Balances[0].Amount=="10.00","cents map to USD dollars");
+        foreach(string cents in new[]{"\"1000\"","1.5","true","null","9007199254740992","-9007199254740992","1.0000000000000002"})Check(Decode("Jev","{\"ok\":true,\"data\":{\"balanceCents\":"+cents+"}}").Status!="Live","reject malformed or unsafe integer cents: "+cents);
+        Check(Decode("Jev","{\"ok\":true,\"data\":{\"balanceCents\":9007199254740991}}").Balances[0].Amount=="90071992547409.91","the largest safe integer retains exact cents on both runtimes");
+        Check(Decode("Jev","{\"ok\":false,\"data\":{\"balanceCents\":1000}}").Status!="Live","a failed action cannot report a balance");
     }
     static void ArgonIndependentWindow(){
         string gemini="{\"displayName\":\"Gemini Models\",\"buckets\":[{\"window\":\"weekly\",\"remainingFraction\":0.54},{\"window\":\"5h\",\"remainingFraction\":0.73}]}";

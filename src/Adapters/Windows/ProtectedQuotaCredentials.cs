@@ -18,6 +18,7 @@ namespace HardwarePulse {
         const uint UiForbidden=0x1;
         const int MaxLength=16384;
         const int MaxFile=65536;
+        static int MaximumLength(string provider){return QuotaCatalog.NeedsSessionHeader(provider)?65536:MaxLength;}
         public static string Directory(){return System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"HardwarePulse","credentials");}
         public static string KeyFile(string provider){return System.IO.Path.Combine(Directory(),Provider(provider)+".dpapi");}
         public static bool Exists(string provider){try{return File.Exists(KeyFile(provider));}catch{return false;}}
@@ -28,9 +29,10 @@ namespace HardwarePulse {
             foreach(char character in key)if(character<0x21||character>0x7E)return false;
             return true;
         }
+        public static bool Valid(string provider,string key){return QuotaCatalog.NeedsSessionHeader(provider)?JevSession.Decode(key)!=null:Valid(key);}
         public static string Read(string provider){
             string path=KeyFile(provider);
-            if(!File.Exists(path))throw new QuotaFailure("API key required");
+            if(!File.Exists(path))throw new QuotaFailure(QuotaCatalog.NeedsSessionHeader(provider)?"Session required":"API key required");
             byte[] protectedBytes=null;
             try{
                 var info=new FileInfo(path);if(info.Length<=0||info.Length>MaxFile)throw new QuotaFailure("Credential unavailable");
@@ -41,7 +43,7 @@ namespace HardwarePulse {
             finally{if(protectedBytes!=null)Array.Clear(protectedBytes,0,protectedBytes.Length);}
         }
         public static void Save(string provider,string key){
-            if(!Valid(key))throw new QuotaFailure("Credential unavailable");
+            if(!Valid(provider,key))throw new QuotaFailure("Credential unavailable");
             string path=KeyFile(provider);string temporary=path+".tmp";
             System.IO.Directory.CreateDirectory(Directory());
             byte[] protectedBytes=null;
@@ -92,12 +94,12 @@ namespace HardwarePulse {
                 DataBlob output;
                 if(!CryptUnprotectData(ref input,IntPtr.Zero,ref salt,IntPtr.Zero,IntPtr.Zero,UiForbidden,out output))throw new QuotaFailure("Credential unavailable");
                 try{
-                    if(output.Size<=0||output.Size>MaxLength)throw new QuotaFailure("Credential unavailable");
+                    if(output.Size<=0||output.Size>MaximumLength(provider))throw new QuotaFailure("Credential unavailable");
                     var plain=new byte[output.Size];Marshal.Copy(output.Data,plain,0,plain.Length);
                     try{
                         string key=Encoding.UTF8.GetString(plain);
                         // A protected file that no longer holds a usable key is not a key.
-                        if(!Valid(key))throw new QuotaFailure("Credential unavailable");
+                        if(!Valid(provider,key))throw new QuotaFailure("Credential unavailable");
                         return key;
                     }finally{Array.Clear(plain,0,plain.Length);}
                 }finally{outputPointer=output.Data;LocalFree(outputPointer);}

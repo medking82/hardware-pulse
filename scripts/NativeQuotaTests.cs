@@ -72,7 +72,9 @@ internal static class NativeQuotaTests {
     public static void RunUI(Shell shell,string screenshot){
         var field=typeof(Shell).GetField("quotas",BindingFlags.NonPublic|BindingFlags.Instance);var original=(QuotaSession)field.GetValue(shell);
         var paths=(PulsePaths)typeof(Shell).GetField("paths",BindingFlags.NonPublic|BindingFlags.Instance).GetValue(shell);
-        using(var fake=new QuotaSession((provider,cancel)=>provider=="DeepSeek"
+        var hasSessionField=typeof(Shell).GetField("jevHasSession",BindingFlags.NonPublic|BindingFlags.Instance);var previousHasSession=hasSessionField.GetValue(shell);
+        hasSessionField.SetValue(shell,new Func<bool>(()=>true));
+        using(var fake=new QuotaSession((provider,cancel)=>provider=="Jev"?JevBalance.Decode(QuotaData.Parse("{\"ok\":true,\"data\":{\"balanceCents\":1000}}"),DateTimeOffset.UtcNow):provider=="DeepSeek"
             ?new QuotaReading{Provider=provider,Status="Live",Observed=DateTimeOffset.UtcNow,Balances=new System.Collections.Generic.List<QuotaBalance>{new QuotaBalance{Label="Available balance",Currency="CNY",Amount="110.00"}},AllBalances=new System.Collections.Generic.List<QuotaBalance>{new QuotaBalance{Label="Available balance",Currency="CNY",Amount="110.00"},new QuotaBalance{Label="Granted",Currency="CNY",Amount="10.00"},new QuotaBalance{Label="Topped up",Currency="CNY",Amount="100.00"}}}
             :new QuotaReading{Provider=provider,Status="Live",Observed=DateTimeOffset.UtcNow,Windows=new System.Collections.Generic.List<QuotaWindow>{new QuotaWindow{Label="5-hour",Remaining=74,Reset=DateTimeOffset.UtcNow.AddMinutes(30)},new QuotaWindow{Label="Weekly",Remaining=96,Reset=DateTimeOffset.UtcNow.AddDays(6)}}})){
             field.SetValue(shell,fake);try{
@@ -143,7 +145,7 @@ internal static class NativeQuotaTests {
                 shell.Save();Check(new Settings(settingsPath).Flag("claudeCliSource"),"Explicit CLI source choice persists");
                 source.SelectedIndex=0;Check(fake.GetState("Claude").NextAttempt==deadline,"Returning to HTTP preserves the same server deadline");fake.RestoreSchedules(saved);
                 foreach(string provider in QuotaSession.Providers){var toggle=shell.Control<CheckBox>("Quota"+provider);toggle.IsChecked=false;toggle.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));}shell.UpdatePanel();Check(shell.Control<StackPanel>("QuotaCards").Children.Count==0,"disable removes quota view");
-            }finally{field.SetValue(shell,original);}
+            }finally{field.SetValue(shell,original);hasSessionField.SetValue(shell,previousHasSession);}
         }
         NativeQuotaRecoveryTests.RunUI(shell,System.IO.Path.Combine(System.IO.Path.GetDirectoryName(screenshot),"quota-recovery.png"));
     }

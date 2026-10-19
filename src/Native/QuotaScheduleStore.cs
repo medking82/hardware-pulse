@@ -10,7 +10,7 @@ namespace HardwarePulse {
     public sealed class QuotaScheduleStore {
         public const int MaximumBytes=16*1024;
         static readonly string[] Providers=QuotaCatalog.Names();
-        static readonly string[] Statuses={"Live","Quota unavailable","Login required","Login unavailable","Quota access denied","Refresh rate limited","Open Antigravity to read quota","Refresh pending","API key required","API key rejected","Credential unavailable"};
+        static readonly string[] Statuses={"Live","Quota unavailable","Login required","Login unavailable","Quota access denied","Refresh rate limited","Open Antigravity to read quota","Refresh pending","API key required","API key rejected","Credential unavailable","Session required","Session rejected","Browser challenge required","Chrome or Edge required","Console changed"};
         static readonly string[] RootKeys={"schema","schedules"};
         static readonly string[] ScheduleKeys={"provider","status","observed","nextAttempt","notBefore","recoveryFailures","rateLimitFailures"};
         static readonly string[] AutoScheduleKeys={"provider","status","observed","nextAttempt","notBefore","recoveryFailures","rateLimitFailures","claudeRecovery"};

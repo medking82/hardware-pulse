@@ -19,10 +19,10 @@ static class QuotaFeatureTests {
     static void Check(bool value,string name){if(!value)failures.Add(name);}
     static IEnumerable<DependencyObject> Tree(DependencyObject node){yield return node;foreach(object child in LogicalTreeHelper.GetChildren(node)){var d=child as DependencyObject;if(d!=null)foreach(var item in Tree(d))yield return item;}}
     static void Pump(){var frame=new DispatcherFrame();Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle,new Action(()=>frame.Continue=false));Dispatcher.PushFrame(frame);}
-    static void Settle(){var frame=new DispatcherFrame();var timer=new DispatcherTimer{Interval=TimeSpan.FromMilliseconds(250)};timer.Tick+=delegate{timer.Stop();frame.Continue=false;};timer.Start();Dispatcher.PushFrame(frame);}
+    internal static void Settle(){var frame=new DispatcherFrame();var timer=new DispatcherTimer{Interval=TimeSpan.FromMilliseconds(250)};timer.Tick+=delegate{timer.Stop();frame.Continue=false;};timer.Start();Dispatcher.PushFrame(frame);}
     static void Invoke(Shell shell,string method,params object[] args){typeof(Shell).GetMethod(method,Hidden).Invoke(shell,args);}
-    static void Language(Shell shell,string name){foreach(ComboBoxItem item in shell.Control<ComboBox>("LanguagePicker").Items)if((string)item.Tag==name)shell.Control<ComboBox>("LanguagePicker").SelectedItem=item;Pump();shell.Window.UpdateLayout();}
-    static void Capture(Shell shell,string path){Pump();shell.Window.UpdateLayout();var bitmap=new RenderTargetBitmap((int)shell.Window.ActualWidth,(int)shell.Window.ActualHeight,96,96,PixelFormats.Pbgra32);bitmap.Render(shell.Window);var png=new PngBitmapEncoder();png.Frames.Add(BitmapFrame.Create(bitmap));using(var stream=File.Create(path))png.Save(stream);}
+    internal static void Language(Shell shell,string name){foreach(ComboBoxItem item in shell.Control<ComboBox>("LanguagePicker").Items)if((string)item.Tag==name)shell.Control<ComboBox>("LanguagePicker").SelectedItem=item;Pump();shell.Window.UpdateLayout();}
+    internal static void Capture(Shell shell,string path){Pump();shell.Window.UpdateLayout();var bitmap=new RenderTargetBitmap((int)shell.Window.ActualWidth,(int)shell.Window.ActualHeight,96,96,PixelFormats.Pbgra32);bitmap.Render(shell.Window);var png=new PngBitmapEncoder();png.Frames.Add(BitmapFrame.Create(bitmap));using(var stream=File.Create(path))png.Save(stream);}
     static DesktopMetric[] MoneyRows(Shell shell){return ((IEnumerable<DesktopMetric>)typeof(Shell).GetMethod("DesktopMetrics",Hidden).Invoke(shell,null)).Where(m=>m.Key.StartsWith("quotaDeepSeek",StringComparison.Ordinal)).ToArray();}
     static void Currency(ComboBox choice,string code){choice.SelectedItem=choice.Items.Cast<ComboBoxItem>().Single(item=>(string)item.Tag==code);Pump();}
     static void ProviderIcons(Shell shell,Settings settings,string state){
@@ -181,6 +181,7 @@ static class QuotaFeatureTests {
             string root=AppDomain.CurrentDomain.BaseDirectory,state=Path.GetFullPath(args[0]);Directory.CreateDirectory(state);
             Json.WriteAtomic(Path.Combine(state,"widget-settings.json"),new {language="en",solid=true});
             var application=new Application{ShutdownMode=ShutdownMode.OnExplicitShutdown};
+            NativeJevTests.Run(root,Path.Combine(state,"jev"));
             ClaudeAutoChecks(root,Path.Combine(state,"claude-auto"));
             NativeLocalInferenceTests.Run(root,Path.Combine(state,"local-inference"));
             NativeSnapshotRecoveryTests.Run(root,Path.Combine(state,"snapshot-recovery"));

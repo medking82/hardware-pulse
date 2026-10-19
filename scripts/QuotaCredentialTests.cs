@@ -10,6 +10,7 @@ internal static class QuotaCredentialTests {
     const string Sample="fixture-key-not-a-real-key";
     static void Check(bool value,string message){if(!value)throw new Exception("Quota credential: "+message);}
     public static void Run(){
+        JevSessionCrypto();
         string path=ProtectedQuotaCredentials.KeyFile(Fixture);
         try{
             if(File.Exists(path))ProtectedQuotaCredentials.Remove(Fixture);
@@ -48,6 +49,26 @@ internal static class QuotaCredentialTests {
         }finally{
             try{if(File.Exists(path))File.Delete(path);}catch{}
             try{if(File.Exists(path+".tmp"))File.Delete(path+".tmp");}catch{}
+        }
+    }
+    static void JevSessionCrypto(){
+        var session=typeof(QuotaReading).Assembly.GetType("HardwarePulse.JevSession");Check(session!=null,"Jev needs a bounded session credential contract");
+        var encode=session.GetMethod("Encode");var decode=session.GetMethod("Decode");
+        string cookie="session=fixture-cookie; organization_id=fixture-org",agent="fixture-browser";
+        string packed=(string)encode.Invoke(null,new object[]{cookie,agent});
+        object parsed=decode.Invoke(null,new object[]{packed});
+        Check(parsed!=null&&(string)session.GetField("Cookie").GetValue(parsed)==cookie&&(string)session.GetField("UserAgent").GetValue(parsed)==agent,"saved session preserves both fields without entering settings");
+        foreach(string bad in new[]{"session=fixture\r\nInjected: fixture","Cookie: session=fixture","no-pair","session=fixture; invalid name=value"}){
+            bool rejected=false;try{encode.Invoke(null,new object[]{bad,agent});}catch(System.Reflection.TargetInvocationException e){rejected=e.InnerException is ArgumentException;}
+            Check(rejected,"invalid Cookie header accepted");
+        }
+        var type=typeof(ProtectedQuotaCredentials);var flags=System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Static;
+        // In-memory native DPAPI only: do not create/read/replace the real Jev credential file.
+        foreach(int length in new[]{32,32750}){
+            string value=(string)encode.Invoke(null,new object[]{"session="+new string('x',length),agent});
+            byte[] blob=(byte[])type.GetMethod("Protect",flags).Invoke(null,new object[]{"Jev",value});
+            try{Check((string)type.GetMethod("Unprotect",flags).Invoke(null,new object[]{"Jev",blob})==value,"session DPAPI round trip must support the full bounded Cookie header");}
+            finally{Array.Clear(blob,0,blob.Length);}
         }
     }
 }

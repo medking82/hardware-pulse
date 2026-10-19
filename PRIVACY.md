@@ -8,7 +8,7 @@ The separate, opt-in Local adaptive text contrast captures the screen rectangle 
 
 Network readings use local adapter byte counters through LibreHardwareMonitor. Pulse does not inspect packet contents or run a speed test; adapter names and rates stay in the local snapshot.
 
-AI Quota is independently opt-in for Codex, Antigravity, Claude and DeepSeek. Codex and Claude
+AI Quota is independently opt-in for Codex, Antigravity, Claude, DeepSeek and Jev. Codex and Claude
 read the current user's existing login (Codex auth.json, Claude Code credential file
 or Windows Credential Manager, or configured Claude OAuth environment token). Their
 access token is sent only to the corresponding fixed HTTPS quota endpoint at
@@ -31,6 +31,22 @@ no model inference or purchase. Saving a key does not enable monitoring. Replaci
 or removing it clears old account readings; local removal does not revoke the key
 at the provider. An API key may permit paid model calls outside Pulse. DPAPI protects
 the stored file, not a compromised Windows user account or a running process.
+
+Jev uses a TypeSafe Cookie value entered into its masked Settings field, not a model
+API key. The Cookie and browser User-Agent are protected together with current-user
+Windows DPAPI in `%LocalAppData%\HardwarePulse\credentials\Jev.dpapi`. Saving does
+not enable monitoring. Pulse launches an isolated installed Chrome or Edge (112+)
+with private inherited debugging pipes, not a listening debugging port or your
+normal browser profile. The generated User-Agent uses public installed-version
+metadata; no browser credential database is read. One fixed read-only balance
+action goes to `https://console.typesafe.ai/usage`; redirects and other page
+requests are blocked. The credential is sent through process memory and private
+pipes, never command-line arguments or plaintext files. The temporary browser
+profile is removed after the owned browser exits. TypeSafe receives your IP,
+Cookie and browser headers. No inference, recharge or account changes are performed.
+Removing the local session does not revoke it at TypeSafe; sign out there to
+invalidate it. A Cookie may grant broader account access outside Pulse. DPAPI and
+private pipes do not protect a compromised Windows account or process.
 
 Quota recovery diagnostics stay in the local settings directory as
 `quota-diagnostics.jsonl` and one rotated copy, each limited to 32 KiB. These files

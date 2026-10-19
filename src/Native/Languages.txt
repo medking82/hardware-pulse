@@ -1,4 +1,30 @@
 ﻿Live|实时|即時
+Jev Session|Jev 会话|Jev 工作階段
+Session required|需要会话|需要工作階段
+Session rejected|会话已失效|工作階段已失效
+Browser challenge required|需要完成浏览器验证|需要完成瀏覽器驗證
+Chrome or Edge required|需要安装 Chrome 或 Edge|需要安裝 Chrome 或 Edge
+Console changed|控制台接口已变更|控制台介面已變更
+Encrypted session saved|会话已加密保存|工作階段已加密儲存
+Encrypted session saved. Enable Jev to read the balance.|会话已加密保存。启用 Jev 即可读取余额。|工作階段已加密儲存。啟用 Jev 即可讀取餘額。
+Could not store the session for this Windows user.|无法为当前 Windows 用户保存会话。|無法為目前 Windows 使用者儲存工作階段。
+Could not remove the session. The stored session was not changed.|无法移除会话，已保存的会话未更改。|無法移除工作階段，已儲存的工作階段未變更。
+Enter a valid Cookie value. The previous session was not changed.|请输入有效的 Cookie 值，原会话未更改。|請輸入有效的 Cookie 值，原工作階段未變更。
+Open TypeSafe|打开 TypeSafe|開啟 TypeSafe
+How To Get The Cookie|如何获取 Cookie|如何取得 Cookie
+Return To Session|返回填写会话|返回填寫工作階段
+Cookie Header Value|Cookie 请求头的值|Cookie 請求標頭的值
+Browser Details|浏览器详细信息|瀏覽器詳細資料
+Remove Session|移除会话|移除工作階段
+Jev uses your TypeSafe browser session, not a model API key. Save the session first, then enable Jev above.|Jev 使用 TypeSafe 浏览器会话，而非模型 API 密钥。请先保存会话，再启用上方的 Jev。|Jev 使用 TypeSafe 瀏覽器工作階段，而非模型 API 金鑰。請先儲存工作階段，再啟用上方的 Jev。
+Opens TypeSafe in Chrome, or Edge if Chrome is not installed.|在 Chrome 中打开 TypeSafe；未安装 Chrome 时使用 Edge。|在 Chrome 中開啟 TypeSafe；未安裝 Chrome 時使用 Edge。
+1. Open TypeSafe above in your PC Chrome and sign in. Press F12 or Ctrl+Shift+I.|1. 点击上方按钮，在 PC 的 Chrome 中登录 TypeSafe。按 F12 或 Ctrl+Shift+I。|1. 點選上方按鈕，在 PC 的 Chrome 中登入 TypeSafe。按 F12 或 Ctrl+Shift+I。
+2. In DevTools, select Network, select Fetch/XHR, then reload Usage. Select a successful console.typesafe.ai request.|2. 在开发者工具中选择 Network、Fetch/XHR，再刷新 Usage。选择成功的 console.typesafe.ai 请求。|2. 在開發人員工具中選擇 Network、Fetch/XHR，再重新整理 Usage。選擇成功的 console.typesafe.ai 請求。
+3. Open Headers → Request Headers → cookie. Copy only its value, not the Cookie: prefix, Set-Cookie, or all headers.|3. 打开 Headers → Request Headers → cookie。只复制值，不要复制 Cookie: 前缀、Set-Cookie 或整段请求头。|3. 開啟 Headers → Request Headers → cookie。只複製值，不要複製 Cookie: 前綴、Set-Cookie 或整段請求標頭。
+4. Return here, paste into the masked field, and save. Never share the Cookie in chat. Ordinary request headers are prepared automatically.|4. 返回这里，将值粘贴到遮罩输入框并保存。不要在聊天中分享 Cookie，普通请求头由程序自动准备。|4. 返回這裡，將值貼到遮罩輸入框並儲存。不要在聊天中分享 Cookie，一般請求標頭由程式自動準備。
+User-Agent is generated from the installed browser version. Override only if your session requires the exact value from Chrome.|User-Agent 根据已安装的浏览器版本自动生成。仅在会话要求与 Chrome 完全一致时手动修改。|User-Agent 依已安裝的瀏覽器版本自動產生。僅在工作階段要求與 Chrome 完全一致時手動修改。
+Encrypted for this Windows user. Read-only requests go only to console.typesafe.ai. Pulse does not read your Chrome profile. Saving does not enable monitoring.|会话仅为当前 Windows 用户加密，只向 console.typesafe.ai 发出只读请求。Pulse 不读取 Chrome 个人资料，保存不会启用监控。|工作階段僅為目前 Windows 使用者加密，只向 console.typesafe.ai 發出唯讀請求。Pulse 不讀取 Chrome 個人資料，儲存不會啟用監控。
+Desktop keeps its essential quotas. Drag the handles to reorder provider cards.|桌面保留精简额度，可拖动把手调整提供方卡片顺序。|桌面保留精簡額度，可拖曳把手調整供應商卡片順序。
 Local Inference|本地推理|本機推論
 Local Model|本地模型|本機模型
 Local Model Speed|本地模型速度|本機模型速度
@@ -145,7 +171,7 @@ Leave a name blank to use device information. Hover over a field to see its auto
 SPD numbers identify sensor addresses, not physical slots. Installed slots are reported separately; assign a slot name only after confirming its sensor.|SPD 编号代表传感器地址，并非实体插槽。已安装插槽单独显示；确认对应关系后再命名。|SPD 編號代表感測器位址，並非實體插槽。已安裝插槽單獨顯示；確認對應關係後再命名。
 Changes save automatically.|更改自动保存。|變更自動儲存。
 About Pulse|关于 Pulse|關於 Pulse
-Version 0.6.61 · Marck Wong|版本 0.6.61 · Marck Wong|版本 0.6.61 · Marck Wong
+Version 0.6.62 · Marck Wong|版本 0.6.62 · Marck Wong|版本 0.6.62 · Marck Wong
 Sensors by LibreHardwareMonitor. Shared driver by PawnIO.|传感器：LibreHardwareMonitor。共享驱动：PawnIO。|感測器：LibreHardwareMonitor。共用驅動程式：PawnIO。
 Language|语言 / Language|語言 / Language
 Minimize|最小化|最小化

@@ -4,6 +4,11 @@ Select network interface|選擇網路介面
 Refresh interfaces|重新整理網路介面
 Pause hardware monitoring|暫停硬體監控
 Live|即時
+Session required|需要工作階段
+Session rejected|工作階段已失效
+Browser challenge required|需要完成瀏覽器驗證
+Chrome or Edge required|需要安裝 Chrome 或 Edge
+Console changed|控制台介面已變更
 Session Max|本次峰值
 Memory|記憶體
 System load|系統使用率

@@ -7,6 +7,7 @@ $arguments=@('/nologo','/target:exe',"/out:$app\QuotaFeatureTests.exe","/referen
 $arguments+=@("$root\scripts\QuotaDiagnosticLogTests.cs","$root\scripts\QuotaScheduleStoreTests.cs","$root\scripts\NativeArgonTests.cs")
 $arguments+=@("$root\scripts\NativeSnapshotRecoveryTests.cs")
 $arguments+=@("$root\scripts\NativeLocalInferenceTests.cs")
+$arguments+=@("$root\scripts\NativeJevTests.cs")
 & "$PSScriptRoot/Run-Hidden.ps1" "$framework/csc.exe" $arguments $root
 Copy-Item "$app/HardwarePulse.exe.config" "$app/QuotaFeatureTests.exe.config" -Force
 $testRoot=Join-Path $root ('vendor/quota-feature-'+[Guid]::NewGuid().ToString('N'))

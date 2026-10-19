@@ -56,10 +56,10 @@ namespace HardwarePulse {
         // Keep an old request owned until it stops, reject its result by version, but retain 429s.
         public void CredentialsChanged(string provider,bool present){
             if(disposed)return;
-            if(!QuotaCatalog.NeedsApiKey(provider))throw new ArgumentException("Provider does not use API keys","provider");
+            if(!QuotaCatalog.NeedsApiKey(provider)&&!QuotaCatalog.NeedsSessionHeader(provider))throw new ArgumentException("Provider does not use stored credentials","provider");
             var slot=slots[provider];slot.Version++;slot.RefreshQueued=false;
             slot.LastGood=null;slot.State.LastGood=null;slot.LastSuccess=null;slot.LastDurationMilliseconds=null;
-            slot.Reading=new QuotaReading{Provider=provider,Status=present?"Refresh pending":"API key required"};
+            slot.Reading=new QuotaReading{Provider=provider,Status=present?"Refresh pending":QuotaCatalog.NeedsSessionHeader(provider)?"Session required":"API key required"};
             if(slot.Cancel!=null)slot.Cancel.Cancel();
         }
         public void Tick(DateTimeOffset now){if(disposed)return;foreach(var pair in slots){var slot=pair.Value;

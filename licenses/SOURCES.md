@@ -22,6 +22,7 @@
   Build tool only. This personal, non-commercial build does not bundle the compiler.
 - Segoe UI is supplied by Windows; no font files are redistributed.
 - Hardware Pulse SVG line icons and Pulse app artwork are original project assets.
+- The Jev J/diamond monogram is original Pulse artwork, not an official TypeSafe logo.
 # Token Monitor quota parsing
 
 Quota response mappings are adapted from Javis603/token-monitor under the MIT

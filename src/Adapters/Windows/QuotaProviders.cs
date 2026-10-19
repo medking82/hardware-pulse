@@ -120,6 +120,14 @@ namespace HardwarePulse {
                     // A rejected API key is not a login another CLI could renew; keep the actionable status.
                     catch(QuotaFailure failure){if(failure.Status=="Login required")throw new QuotaFailure("API key rejected",failure.RetryAt,failure.HttpStatus,failure.FailureKind);throw;}
                 }
+                else if(provider=="Jev"){
+                    source="Browser";
+#if NET
+                    throw new QuotaFailure("Quota unavailable",null,0,"Unsupported platform");
+#else
+                    body=JevQuota.Read(ProtectedQuotaCredentials.Read(provider),cancel);
+#endif
+                }
                 else if(provider=="Claude"){
                     source="API";
                     string supplied=Environment.GetEnvironmentVariable("CLAUDE_CODE_OAUTH_TOKEN");
@@ -130,7 +138,7 @@ namespace HardwarePulse {
                         var login=selectedLogin();return QuotaDecoder.Text(QuotaDecoder.Get(QuotaDecoder.Get(login,"claudeAiOauth")??login,"accessToken"));
                     },(token,requestCancel)=>Request("https://api.anthropic.com/api/oauth/usage",new Dictionary<string,string>{{"Authorization","Bearer "+token},{"anthropic-beta","oauth-2025-04-20"}},null,requestCancel,false),cancel,retryChangedLogin);
                 }else throw new QuotaFailure("Quota unavailable");
-                cancel.ThrowIfCancellationRequested();var decoded=QuotaDecoder.Decode(provider,body,DateTimeOffset.UtcNow);decoded.CacheScope=cacheScope;decoded.Source=source;decoded.HttpStatus=provider=="Claude"||provider=="DeepSeek"?200:0;if(decoded.Status!="Live")decoded.FailureKind="Invalid response";return decoded;
+                cancel.ThrowIfCancellationRequested();var decoded=QuotaDecoder.Decode(provider,body,DateTimeOffset.UtcNow);decoded.CacheScope=cacheScope;decoded.Source=source;decoded.HttpStatus=provider=="Claude"||provider=="DeepSeek"||provider=="Jev"?200:0;if(decoded.Status!="Live")decoded.FailureKind="Invalid response";return decoded;
             }catch(QuotaFailure e){return new QuotaReading{Provider=provider,Status=e.Status,Observed=DateTimeOffset.UtcNow,RetryAt=e.RetryAt,CacheScope=cacheScope,HttpStatus=e.HttpStatus,Source=source,FailureKind=e.FailureKind??(source=="CLI"?"CLI failure":null)};}
             catch(OperationCanceledException){cancel.ThrowIfCancellationRequested();return new QuotaReading{Provider=provider,Status="Quota unavailable",Observed=DateTimeOffset.UtcNow,Source=source,FailureKind="Transport timeout"};}
             catch{cancel.ThrowIfCancellationRequested();return new QuotaReading{Provider=provider,Status="Quota unavailable",Observed=DateTimeOffset.UtcNow,Source=source,FailureKind=source=="CLI"?"CLI failure":"Transport failure"};}

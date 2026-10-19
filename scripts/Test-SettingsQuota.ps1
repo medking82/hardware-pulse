@@ -7,10 +7,12 @@ $compiler=[CodeDom.Compiler.CompilerParameters]::new();[void]$compiler.Reference
 Add-Type -CompilerParameters $compiler -TypeDefinition @'
 using System;using System.Threading;using HardwarePulse;
 public static class SettingsQuotaFixture {
+ public static bool HasSession(){return true;}
  [System.Runtime.InteropServices.DllImport("user32.dll")]static extern IntPtr SendMessage(IntPtr hwnd,int message,IntPtr w,IntPtr l);
  [System.Runtime.InteropServices.DllImport("user32.dll",EntryPoint="GetWindowLongPtrW")] public static extern IntPtr Style(IntPtr hwnd,int index);
  public static int Hit(IntPtr hwnd,int x,int y){return SendMessage(hwnd,0x84,IntPtr.Zero,new IntPtr((y<<16)|(x&65535))).ToInt32();}
  public static QuotaReading Read(string provider,CancellationToken cancel){
+  if(provider=="Jev")return JevBalance.Decode(QuotaData.Parse("{\"ok\":true,\"data\":{\"balanceCents\":1000}}"),DateTimeOffset.UtcNow);
   if(provider=="DeepSeek")return QuotaDecoder.Decode(provider,QuotaData.Parse("{\"balance_infos\":[{\"currency\":\"CNY\",\"total_balance\":\"110.00\",\"granted_balance\":\"10.00\",\"topped_up_balance\":\"100.00\"}]}"),DateTimeOffset.UtcNow);
   string json=provider=="Codex"?"{\"rateLimitsByLimitId\":{\"codex\":{\"primary\":{\"windowDurationMins\":300,\"usedPercent\":10},\"secondary\":{\"windowDurationMins\":10080,\"usedPercent\":40}},\"A very long extra model quota name\":{\"primary\":{\"windowDurationMins\":300,\"usedPercent\":0},\"secondary\":{\"windowDurationMins\":10080,\"usedPercent\":3}}}}":provider=="Antigravity"?"{\"groups\":[{\"displayName\":\"Gemini Models\",\"buckets\":[{\"window\":\"session\",\"remainingFraction\":0.9},{\"window\":\"weekly\",\"remainingFraction\":0.8}]},{\"displayName\":\"Claude and GPT Models\",\"buckets\":[{\"window\":\"session\",\"remainingFraction\":0.7},{\"window\":\"weekly\",\"remainingFraction\":0.6}]}]}":"{\"five_hour\":{\"utilization\":12},\"seven_day\":{\"utilization\":20},\"seven_day_sonnet\":{\"utilization\":30}}";
   return QuotaDecoder.Decode(provider,QuotaData.Parse(json),DateTimeOffset.UtcNow);
@@ -31,6 +33,8 @@ try {
  Assert ($shell.Window.FindName('DesktopAppIconColors').IsChecked) 'New default must follow App icon colors'
  $delegate=[Delegate]::CreateDelegate([Func[string,Threading.CancellationToken,HardwarePulse.QuotaReading]],[SettingsQuotaFixture].GetMethod('Read'))
  $session=[HardwarePulse.QuotaSession]::new($delegate);$field=$shell.GetType().GetField('quotas',$flags);$field.GetValue($shell).Dispose();$field.SetValue($shell,$session)
+ # The isolated fixture never reads/writes a real session; simulate its presence.
+ $hasSession=[Delegate]::CreateDelegate([Func[bool]],[SettingsQuotaFixture].GetMethod('HasSession'));$shell.GetType().GetField('jevHasSession',$flags).SetValue($shell,$hasSession)
  foreach($provider in [HardwarePulse.QuotaSession]::Providers){Toggle ('Quota'+$provider) $true}
  $session.Tick([DateTimeOffset]::UtcNow);foreach($i in 1..100){$session.Tick([DateTimeOffset]::UtcNow);if(@($session.Readings|Where-Object Status -ne 'Live').Count -eq 0){break};Start-Sleep -Milliseconds 10}
  $codex=@($session.Readings|Where-Object Provider -eq 'Codex')[0];$ag=@($session.Readings|Where-Object Provider -eq 'Antigravity')[0]

@@ -33,7 +33,7 @@ namespace HardwarePulse {
         static QuotaReading DecodeWindows(string provider,object body,DateTimeOffset now,bool full){
             var r=new QuotaReading{Provider=provider,Observed=now};
             if(QuotaCatalog.IsMoney(provider)){
-                var money=DeepSeekBalance.Decode(body,now);
+                var money=provider=="Jev"?JevBalance.Decode(body,now):DeepSeekBalance.Decode(body,now);
                 r.Status=money.Status;r.Balances=full?money.AllBalances:money.Balances;r.AllBalances=money.AllBalances;
                 return r;
             }else if(provider=="Codex"){

@@ -77,8 +77,11 @@ namespace HardwarePulse {
                 var selected=currency.SelectedItem as ComboBoxItem;if(selected==null)return;
                 settings.Data["deepSeekCurrency"]=(string)selected.Tag;RenderQuota();UpdateDesktop();QueueSave();
             };
-            foreach(string provider in QuotaSession.Providers){string name=provider;var control=Control<CheckBox>("Quota"+name);control.IsChecked=settings.Flag("quota"+name,false);quotas.Enable(name,control.IsChecked==true,name=="Claude"&&claudeSnapshotSource,name=="Claude"&&claudeAutoSource);
-                control.Click+=delegate{settings.Data["quota"+name]=control.IsChecked==true;quotas.Enable(name,control.IsChecked==true,name=="Claude"&&claudeSnapshotSource,name=="Claude"&&claudeAutoSource);if(!isolated)quotas.Tick(DateTimeOffset.UtcNow);RenderQuota();UpdateDesktop();QueueSave();};
+            WireJevSession();
+            foreach(string provider in QuotaSession.Providers){string name=provider;var control=Control<CheckBox>("Quota"+name);control.IsChecked=settings.Flag("quota"+name,false)&&(name!="Jev"||!isolated&&jevHasSession());quotas.Enable(name,control.IsChecked==true,name=="Claude"&&claudeSnapshotSource,name=="Claude"&&claudeAutoSource);
+                control.Click+=delegate{
+                    if(name=="Jev"&&control.IsChecked==true&&!jevHasSession()){control.IsChecked=false;ShowJevSessionGuide();}
+                    settings.Data["quota"+name]=control.IsChecked==true;quotas.Enable(name,control.IsChecked==true,name=="Claude"&&claudeSnapshotSource,name=="Claude"&&claudeAutoSource);if(!isolated)quotas.Tick(DateTimeOffset.UtcNow);RenderQuota();UpdateDesktop();QueueSave();};
             }
             // DeepSeek needs an API key instead of a local login; the editor is the only path that
             // writes it, and it never leaves this machine except to the fixed provider endpoint.
@@ -144,7 +147,7 @@ namespace HardwarePulse {
         string QuotaValue(QuotaReading r,QuotaWindow w){return QuotaWindowVisible(r,w)?w.Remaining.Value.ToString("0.#")+"% "+language.Label("left"):"—";}
         // A money provider shows the amount or an explicit blank; it never invents a percentage.
         string MoneyValue(QuotaReading r,QuotaBalance b){return QuotaFresh(r)&&!string.IsNullOrEmpty(b.Amount)?b.Currency+" "+b.Amount:"—";}
-        string MoneyEmptyValue(QuotaReading reading){return !QuotaFresh(reading)?QuotaState(reading):DeepSeekCurrency()=="All"?language.T("No Balance"):string.Format(language.T("No {0} Balance"),DeepSeekCurrency());}
+        string MoneyEmptyValue(QuotaReading reading){return !QuotaFresh(reading)?QuotaState(reading):reading.Provider!="DeepSeek"||DeepSeekCurrency()=="All"?language.T("No Balance"):string.Format(language.T("No {0} Balance"),DeepSeekCurrency());}
         QuotaReading DisplayQuota(QuotaReading original,bool full,DateTimeOffset now){
             if(original.Provider=="Antigravity"){
                 var windows=(full&&original.AllWindows.Count>0?original.AllWindows:original.Windows).ToList();

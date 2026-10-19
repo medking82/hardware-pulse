@@ -180,7 +180,8 @@ class CoreTests {
         for(int i=0;i<10000;i++)analysis.RegionColor(0,0,64,32,20,out minority);
         Check(AllocatedBytes()-before<1024,"Region queries allocate per reading");
 #if NET10_0
-        var allowedReferences=new[]{"System.Runtime","System.Collections","System.Linq","System.Threading","System.Threading.Tasks","System.Memory"};
+        // Jev's portable credential envelope adds UTF-8 encoding, not platform IO or cryptography.
+        var allowedReferences=new[]{"System.Runtime","System.Collections","System.Linq","System.Threading","System.Threading.Tasks","System.Memory","System.Text.Encoding.Extensions"};
 #else
         var allowedReferences=new[]{"mscorlib","System","System.Core"};
 #endif

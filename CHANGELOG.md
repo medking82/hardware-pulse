@@ -4,6 +4,13 @@
 
 Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
+## 0.6.62 — Unreleased
+
+- Add opt-in Jev / TypeSafe USD balances to native App and Desktop, with theme-adaptive artwork, independent visibility/order and English/Simplified/Traditional Chinese UI. Money never becomes a percentage or follows DeepSeek's currency filter.
+- Add a masked Cookie editor with current-user DPAPI save/remove, built-in PC Chrome DevTools guidance, one-click TypeSafe launch and automatically generated browser metadata. Saving does not enable monitoring; account changes clear old/in-flight readings without resetting cooldown debt.
+- Use installed Chrome/Edge through private inherited pipes and a separate browser context, without Node/Electron or the normal Chrome profile. Start the owned browser suspended, restrict inherited handles, assign its process-tree Job Object, then resume; cancellation/deadline closes only this owned tree.
+- Admit exactly one fixed-origin read-only balance action; block other requests and redirects. Preserve real login/challenge/429 distinctions, Retry-After, strict integer USD cents and bounded responses. Changed console actions fail closed rather than guessing account endpoints.
+
 ## 0.6.61 — 2026-10-17
 
 The v0.6.60 validation tag was not released: CI exposed a diagnostic-read race, corrected here without moving that tag.

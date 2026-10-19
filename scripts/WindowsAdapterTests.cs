@@ -8,6 +8,8 @@ using HardwarePulse;
 class WindowsAdapterTests {
     static void Check(bool value,string message){if(!value)throw new Exception(message);}
     static int Main(string[] args){
+        if(args.Length>0&&(args[0]=="--jev-job-root"||args[0]=="--jev-job-leaf"))return JevQuotaTests.JobChild(args);
+        if(Array.IndexOf(args,"--jev-live-invalid")>=0)return JevQuotaTests.LiveInvalid();
         if(Array.IndexOf(args,"--terminate_existing_session")>=0)return 0;
         if(Array.IndexOf(args,"--process_id")>=0){
             // Model a presenter whose display/GPU completion events are unavailable.
@@ -57,6 +59,7 @@ class WindowsAdapterTests {
         QuotaLoginFileTests.Run();
         ClaudeQuotaRequestTests.Run();
         QuotaCredentialTests.Run();
+        JevQuotaTests.Run();
         TestAntigravityChildEnvironment();
         TestClaudeCliQuota();
         AntigravityEndpointTests.Run();

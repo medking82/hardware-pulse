@@ -283,7 +283,7 @@
             </ComboBox>
             <CheckBox x:Name="StartWithWindows" Content="Start with Windows" Margin="0,0,0,10" />
             <TextBlock x:Name="StartupStatus" FontSize="11" Margin="0,0,0,10" />
-            <TextBlock Text="Version 0.6.61 · Marck Wong" FontSize="11" Foreground="#ADC1D2" Margin="0,0,0,8" />
+            <TextBlock Text="Version 0.6.62 · Marck Wong" FontSize="11" Foreground="#ADC1D2" Margin="0,0,0,8" />
             <Button x:Name="GitHub" Content="GitHub" HorizontalAlignment="Left" ToolTip="github.com/medking82/hardware-pulse" />
             <CheckBox x:Name="AutoUpdates" Content="Check for Updates Automatically" Margin="0,12,0,8" />
             <CheckBox x:Name="AutoDownload" Content="Download Updates Automatically" Margin="0,0,0,8" />
@@ -397,6 +397,36 @@
               <TextBlock x:Name="DeepSeekKeyStatus" TextWrapping="Wrap" Margin="0,6,0,0" Opacity="0.8" AutomationProperties.LiveSetting="Polite" />
               <TextBlock Text="The key is encrypted for the current Windows user and sent only to api.deepseek.com. Saving a key does not enable monitoring." TextWrapping="Wrap" FontSize="11" Opacity="0.8" Margin="0,6,0,0" />
             </StackPanel>
+            <CheckBox x:Name="QuotaJev" Content="Jev" Margin="0,14,0,6" />
+            <Expander x:Name="JevSessionTools" Header="Jev Session" Margin="0,4,0,0">
+              <StackPanel Margin="0,8,0,0">
+                <TextBlock Text="Jev uses your TypeSafe browser session, not a model API key. Save the session first, then enable Jev above." TextWrapping="Wrap" Margin="0,0,0,8" />
+                <Button x:Name="JevOpenBrowser" Content="Open TypeSafe" HorizontalAlignment="Left" ToolTip="Opens TypeSafe in Chrome, or Edge if Chrome is not installed." Margin="0,0,0,8" />
+                <Expander x:Name="JevGuide" Header="How To Get The Cookie" Margin="0,0,0,8">
+                  <StackPanel Margin="0,6,0,0">
+                    <TextBlock Text="1. Open TypeSafe above in your PC Chrome and sign in. Press F12 or Ctrl+Shift+I." TextWrapping="Wrap" Margin="0,0,0,6" />
+                    <TextBlock Text="2. In DevTools, select Network, select Fetch/XHR, then reload Usage. Select a successful console.typesafe.ai request." TextWrapping="Wrap" Margin="0,0,0,6" />
+                    <TextBlock Text="3. Open Headers → Request Headers → cookie. Copy only its value, not the Cookie: prefix, Set-Cookie, or all headers." TextWrapping="Wrap" Margin="0,0,0,6" />
+                    <TextBlock Text="4. Return here, paste into the masked field, and save. Never share the Cookie in chat. Ordinary request headers are prepared automatically." TextWrapping="Wrap" Margin="0,0,0,6" />
+                    <Button x:Name="JevGuideReturn" Content="Return To Session" HorizontalAlignment="Left" />
+                  </StackPanel>
+                </Expander>
+                <TextBlock Text="Cookie Header Value" Margin="0,4,0,6" />
+                <PasswordBox x:Name="JevCookie" MaxLength="32768" AutomationProperties.Name="Cookie Header Value" MinHeight="36" Padding="8,6" Foreground="#F0F5FA" Background="#202831" BorderBrush="#718596" />
+                <Expander x:Name="JevBrowserDetails" Header="Browser Details" Margin="0,8,0,8">
+                  <StackPanel>
+                    <TextBlock Text="User-Agent is generated from the installed browser version. Override only if your session requires the exact value from Chrome." TextWrapping="Wrap" Margin="0,6,0,6" />
+                    <TextBox x:Name="JevUserAgent" MaxLength="1024" TextWrapping="Wrap" AutomationProperties.Name="Browser User-Agent" MinHeight="36" Padding="8,6" />
+                  </StackPanel>
+                </Expander>
+                <WrapPanel Margin="0,4,0,0">
+                  <Button x:Name="JevSessionSave" Content="Save encrypted" Margin="0,0,8,6" />
+                  <Button x:Name="JevSessionRemove" Content="Remove Session" Margin="0,0,0,6" />
+                </WrapPanel>
+                <TextBlock x:Name="JevSessionStatus" TextWrapping="Wrap" Margin="0,6,0,0" Opacity="0.8" AutomationProperties.LiveSetting="Polite" />
+                <TextBlock Text="Encrypted for this Windows user. Read-only requests go only to console.typesafe.ai. Pulse does not read your Chrome profile. Saving does not enable monitoring." TextWrapping="Wrap" FontSize="11" Opacity="0.8" Margin="0,6,0,0" />
+              </StackPanel>
+            </Expander>
             <TextBlock Text="Claude quota source" Margin="0,12,0,6" />
             <ComboBox x:Name="ClaudeQuotaSource" AutomationProperties.Name="Claude quota source"><ComboBoxItem Content="Existing login"/><ComboBoxItem Content="CLI snapshot"/><ComboBoxItem Content="CLI query"/><ComboBoxItem Content="Auto"/></ComboBox>
             <TextBlock x:Name="ClaudeAutoHelp" Text="API first. After HTTP 401, wait for the shared cooldown, then query Claude Code /usage. No parallel requests; 429 never switches sources. Existing manual choices are preserved." TextWrapping="Wrap" Margin="0,8,0,0" Opacity="0.8" Visibility="Collapsed" />
@@ -409,7 +439,7 @@
             </StackPanel>
             <TextBlock Text="App quota display" Margin="0,12,0,6" />
             <ComboBox x:Name="QuotaDisplay" AutomationProperties.Name="App quota display"><ComboBoxItem Content="Essential quotas"/><ComboBoxItem Content="All available quotas"/></ComboBox>
-            <TextBlock Text="Desktop keeps its essential quotas. Drag the handles to reorder the four provider cards." FontSize="12" Opacity="0.8" Margin="0,8,0,0" />
+            <TextBlock Text="Desktop keeps its essential quotas. Drag the handles to reorder provider cards." TextWrapping="Wrap" FontSize="12" Opacity="0.8" Margin="0,8,0,0" />
             <Button x:Name="QuotaRefresh" Content="Refresh Quota" Margin="0,12,0,8" />
             <TextBlock x:Name="QuotaRefreshStatus" Visibility="Collapsed" TextWrapping="Wrap" Margin="0,0,0,8" AutomationProperties.LiveSetting="Polite" />
             <TextBlock Text="Login in Codex or Claude Code first. Antigravity can also use an installed, signed-in CLI. Pulse never changes your login." TextWrapping="Wrap" Opacity="0.8" />

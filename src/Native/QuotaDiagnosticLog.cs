@@ -11,8 +11,8 @@ namespace HardwarePulse {
         static string Allowed(string value,string[] choices){return Array.IndexOf(choices,value)>=0?value:null;}
         internal static byte[] Project(QuotaAttempt attempt){
             if(attempt==null||Array.IndexOf(QuotaSession.Providers,attempt.Provider)<0)return null;
-            string status=Allowed(attempt.Status,new[]{"Live","CLI snapshot","Quota unavailable","Refresh rate limited","Login required","Login unavailable","Quota access denied","Refresh timed out","Open Antigravity to read quota"})??"Quota unavailable";
-            string source=Allowed(attempt.Source,new[]{"Desktop","CLI","CLI snapshot","API"});
+            string status=Allowed(attempt.Status,new[]{"Live","CLI snapshot","Quota unavailable","Refresh rate limited","Login required","Login unavailable","Quota access denied","Refresh timed out","Open Antigravity to read quota","Session required","Session rejected","Browser challenge required","Chrome or Edge required","Console changed"})??"Quota unavailable";
+            string source=Allowed(attempt.Source,new[]{"Desktop","CLI","CLI snapshot","API","Browser"});
             string reason=Allowed(attempt.FailureKind,new[]{"HTTP response","Transport timeout","Transport failure","Invalid response","Response too large","CLI failure","CLI timeout","CLI exit failure","CLI response","Local discovery","Local port unavailable","Request timeout"});
             var entry=new {schema=1,provider=attempt.Provider,source=source,status=status,httpStatus=attempt.HttpStatus>=100&&attempt.HttpStatus<=599?(int?)attempt.HttpStatus:null,reason=reason,
                 started=attempt.Started.ToString("o"),completed=attempt.Completed.ToString("o"),durationMs=double.IsNaN(attempt.DurationMilliseconds)||double.IsInfinity(attempt.DurationMilliseconds)?(double?)null:Math.Max(0,Math.Round(attempt.DurationMilliseconds)),

@@ -14,7 +14,8 @@ internal static class CoreQuotaSessionTests {
     public static void Run(){
         ClaudeAutoRecovery();
         ClaudeAutoFailureBoundaries();
-        CredentialChanges();
+        CredentialChanges("DeepSeek");
+        CredentialChanges("Jev");
         ClaudeManualRefreshFloor();
         ExplicitClaudeAuthenticationRecovery();
         ConservativeRequestBudget();
@@ -267,10 +268,10 @@ internal static class CoreQuotaSessionTests {
         }
         Console.WriteLine("PASS Claude Auto failures: non-auth isolation, persisted route, two-route cooldown, both-auth stop and explicit recovery");
     }
-    static void CredentialChanges(){
+    static void CredentialChanges(string name){
         var changed=typeof(QuotaSession).GetMethod("CredentialsChanged");
         Check(changed!=null,"credential changes need an explicit observation invalidation path");
-        Action<QuotaSession,bool> notify=(session,present)=>changed.Invoke(session,new object[]{"DeepSeek",present});
+        Action<QuotaSession,bool> notify=(session,present)=>changed.Invoke(session,new object[]{name,present});
         var now=new DateTimeOffset(2026,10,16,0,0,0,TimeSpan.Zero);
         int calls=0;
         using(var session=new QuotaSession((provider,cancel)=>{
@@ -278,13 +279,13 @@ internal static class CoreQuotaSessionTests {
             return new QuotaReading{Provider=provider,Status="Live",Observed=now,Balances=new List<QuotaBalance>{new QuotaBalance{Currency="CNY",Amount="110.00"}}};
         })){
             notify(session,true);session.Tick(now);Check(calls==0&&session.Readings.Length==0,"saving does not enable monitoring");
-            session.Enable("DeepSeek",true);Pump(session,now,()=>session.Readings[0].Status=="Live");
-            var floor=session.GetState("DeepSeek").NextAttempt;
+            session.Enable(name,true);Pump(session,now,()=>session.Readings[0].Status=="Live");
+            var floor=session.GetState(name).NextAttempt;
             notify(session,true);
             Check(session.Readings[0].Status=="Refresh pending"&&session.Readings[0].Balances.Count==0,"replacement clears old-account amounts immediately");
-            Check(!session.GetState("DeepSeek").LastSuccess.HasValue&&session.GetState("DeepSeek").NextAttempt==floor,"replacement clears identity feedback without erasing request budget");
+            Check(!session.GetState(name).LastSuccess.HasValue&&session.GetState(name).NextAttempt==floor,"replacement clears identity feedback without erasing request budget");
             notify(session,false);
-            Check(session.Readings[0].Status=="API key required"&&session.Readings[0].AllBalances.Count==0,"removal clears old amounts and shows missing key");
+            Check(session.Readings[0].Status==(name=="Jev"?"Session required":"API key required")&&session.Readings[0].AllBalances.Count==0,"removal clears old amounts and shows missing credential");
         }
         foreach(string result in new[]{"Live","Refresh rate limited"}){
             using(var entered=new ManualResetEventSlim())using(var release=new ManualResetEventSlim())
@@ -293,10 +294,10 @@ internal static class CoreQuotaSessionTests {
                 return new QuotaReading{Provider=provider,Status=result,Observed=now,RetryAt=result=="Refresh rate limited"?(DateTimeOffset?)now.AddHours(1):null,Balances=new List<QuotaBalance>{new QuotaBalance{Amount="old-account"}}};
             })){
                 try{
-                    session.Enable("DeepSeek",true);session.Tick(now);Check(entered.Wait(3000),"old-key request entered");
-                    notify(session,true);release.Set();Pump(session,now,()=>!session.GetState("DeepSeek").Refreshing);
+                    session.Enable(name,true);session.Tick(now);Check(entered.Wait(3000),"old-key request entered");
+                    notify(session,true);release.Set();Pump(session,now,()=>!session.GetState(name).Refreshing);
                     Check(session.Readings[0].Status=="Refresh pending"&&session.Readings[0].Balances.Count==0,"late old-key result cannot reappear after replacement");
-                    if(result=="Refresh rate limited")Check(session.GetState("DeepSeek").NextAttempt>=now.AddHours(1)&&session.GetState("DeepSeek").RateLimitFailures==1,"late old-key 429 still preserves server cooldown");
+                    if(result=="Refresh rate limited")Check(session.GetState(name).NextAttempt>=now.AddHours(1)&&session.GetState(name).RateLimitFailures==1,"late old-key 429 still preserves server cooldown");
                     int before=calls;session.Tick(now.AddSeconds(1));Check(calls==before,"replacement never bypasses reservation or cooldown");
                 }finally{release.Set();}
             }

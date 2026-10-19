@@ -4,6 +4,11 @@ Select network interface|选择网卡
 Refresh interfaces|刷新网卡列表
 Pause hardware monitoring|暂停硬件监控
 Live|实时
+Session required|需要会话
+Session rejected|会话已失效
+Browser challenge required|需要完成浏览器验证
+Chrome or Edge required|需要安装 Chrome 或 Edge
+Console changed|控制台接口已变更
 Session Max|本次峰值
 Memory|内存
 System load|系统使用率
