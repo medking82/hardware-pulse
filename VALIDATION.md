@@ -29,6 +29,12 @@
   driver-free collector, sensor/history, WPF, quota, package and updater checks.
   The signed 0.6.63 installer and both installer variants compile. Signing uses
   the existing self-signed certificate; no trusted-root status is claimed.
+- GitHub's Windows collector and x64/ARM64 adapter workflows passed, including
+  all three new crash/recovery checks. The shared Desktop Windows x64 packaging
+  and launch job also passed. The Windows ARM64 preview job failed at the
+  unchanged game-overlay foreground fixture (`Fixture target could not become
+  foreground`); no Desktop host or fixture source changed in this hotfix.
+  This preview acceptance gap is retained rather than reported as passing CI.
 - `scripts/Test-CollectorRecovery.ps1` exercised the production recovery policy
   against an isolated real Scheduled Task: an injected `0xC0000005` exit was
   recovered in 61.5 seconds by one application retry. A subsequent normal STOP
