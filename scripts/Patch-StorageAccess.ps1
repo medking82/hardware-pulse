@@ -50,6 +50,23 @@ try {
                 if($sites.Count -ne 1 -or $sites[0].Next.OpCode.Name -ne 'ldc.i4.3'){throw 'Unexpected LHM permission instruction'}
                 $sites[0].Next.OpCode=[Mono.Cecil.Cil.OpCodes]::Ldc_I4_0
                 $sites[0].Next.Operand=$null
+                # Marshal the revocable ADL PMLog mapping only after a guarded
+                # local copy; preserve the pinned layout and sensor fallbacks.
+                $adapter=[Mono.Cecil.ModuleDefinition]::ReadModule((Join-Path (Split-Path $directory) 'Pulse.Adapters.Windows.dll'))
+                try {
+                    $reader=@($adapter.GetType('HardwarePulse.AmdPmLogMemory').Methods|Where-Object Name -eq 'Read')
+                    if($reader.Count -ne 1){throw 'Missing guarded AMD PMLog reader'}
+                    $replacement=$module.ImportReference($reader[0])
+                    $amd=$module.GetType('LibreHardwareMonitor.Hardware.Gpu.AmdGpu')
+                    $reads=@($amd.Methods|Where-Object HasBody|ForEach-Object {$_.Body.Instructions}|Where-Object {
+                        $_.Operand -is [Mono.Cecil.MethodReference] -and $_.Operand.DeclaringType.FullName -eq 'System.Runtime.InteropServices.Marshal' -and $_.Operand.Name -eq 'PtrToStructure'
+                    })
+                    if($reads.Count -ne 2){throw 'Unexpected AMD PMLog marshal sites'}
+                    foreach($read in $reads){
+                        if($read.Operand.FullName -ne 'System.Object System.Runtime.InteropServices.Marshal::PtrToStructure(System.IntPtr,System.Type)'){throw 'Unexpected AMD PMLog marshal signature'}
+                        $read.Operand=$replacement
+                    }
+                } finally {$adapter.Dispose()}
             } else {
                 $methods=@($module.GetType('BlackSharp.Core.Interop.Windows.Utilities.SafeFileHandler').Methods|Where-Object Name -eq 'OpenHandle')
                 if($methods.Count -ne 1){throw 'Unexpected storage handle method'}
@@ -61,8 +78,9 @@ try {
             $writer.DeterministicMvid=$true;$writer.Timestamp=[uint32]0
             $module.Write($item.temporary,$writer)
         } finally {$module.Dispose()}
-        if((Get-FileHash $item.temporary -Algorithm SHA256).Hash -ne $item.entry.output_sha256){throw "Non-reproducible storage patch: $($item.entry.file)"}
+        $outputHash=(Get-FileHash $item.temporary -Algorithm SHA256).Hash
+        if($outputHash -ne $item.entry.output_sha256){throw "Non-reproducible dependency patch: $($item.entry.file); actual SHA256 $outputHash"}
     }
     foreach($item in $pending){Move-Item -LiteralPath $item.temporary -Destination $item.path -Force}
 } finally {foreach($item in $pending){if(Test-Path $item.temporary){Remove-Item -LiteralPath $item.temporary -Force}}}
-'Applied pinned storage-only permission changes; sensor code and identifiers unchanged.'
+'Applied pinned read-only storage permissions and guarded AMD PMLog reads; sensor identifiers unchanged.'

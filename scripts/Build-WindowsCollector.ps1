@@ -24,14 +24,15 @@ foreach($name in @('LibreHardwareMonitor','PresentMon','LibreHardwareMonitor Sou
 $lhm=Join-Path $payload 'lhm-extract'
 Expand-Archive "$root/vendor/LibreHardwareMonitor-0.9.6.zip" $lhm
 Copy-Item "$lhm/*.dll" "$worker/lib"
-& "$PSScriptRoot/Patch-StorageAccess.ps1" -LibraryDirectory "$worker/lib"
 Remove-Item -LiteralPath $lhm -Recurse -Force
 Copy-Item "$root/vendor/PresentMon-2.5.1-x64.exe" "$payload/tools/PresentMon.exe"
 Copy-Item "$root/src/HardwarePulse.exe.config" "$worker/HardwarePulse.Collector.exe.config"
 Copy-Item "$root/licenses/*" "$payload/licenses" -Recurse
+Copy-Item "$root/src/Adapters/Windows/AmdPmLogMemory.cs" "$payload/licenses/AmdPmLogMemory.cs.txt" -Force
 Copy-Item "$root/vendor/LibreHardwareMonitor-source-0.9.6.zip","$root/vendor/PawnIO-source-2.2.0.zip","$root/vendor/BlackSharp-source-1.0.7.zip" "$payload/licenses"
 Copy-Item "$root/LICENSE","$root/dependencies.lock.json" $payload
 & "$PSScriptRoot/Build-WindowsAdapters.ps1" -OutputDirectory $worker
+& "$PSScriptRoot/Patch-StorageAccess.ps1" -LibraryDirectory "$worker/lib"
 $compiler=Join-Path $env:WINDIR 'Microsoft.NET/Framework64/v4.0.30319/csc.exe'
 $arguments=@('/nologo','/target:winexe','/platform:x64','/optimize+',"/out:$worker/HardwarePulse.Collector.exe",'/reference:System.Web.Extensions.dll','/reference:System.Management.dll',"/reference:$worker/Pulse.Core.dll","/reference:$worker/Pulse.Adapters.Windows.dll","/reference:$worker/lib/LibreHardwareMonitorLib.dll")
 $arguments+=@('/reference:Microsoft.CSharp.dll')

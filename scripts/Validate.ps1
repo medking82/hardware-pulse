@@ -3,6 +3,8 @@ $ErrorActionPreference='Stop'
 $root=Split-Path $PSScriptRoot
 & "$PSScriptRoot/Set-Version.ps1" -Check
 & "$PSScriptRoot/Test-Version.ps1"
+& "$PSScriptRoot/Test-Startup.ps1"
+& "$PSScriptRoot/Test-CollectorRecoveryPolicy.ps1"
 foreach($file in Get-ChildItem "$root/src","$root/scripts" -Filter *.ps1){
     $bytes=[IO.File]::ReadAllBytes($file.FullName)
     $null=[Text.UTF8Encoding]::new($false,$true).GetString($bytes)
@@ -17,6 +19,7 @@ $null=[xml](Get-Content "$root/src/Panel.xaml" -Raw)
 & "$PSScriptRoot/Run-Hidden.ps1" "$env:WINDIR/System32/WindowsPowerShell/v1.0/powershell.exe" @('-NoProfile','-STA','-File',"$PSScriptRoot/Test-Snap.ps1") $root
 & "$PSScriptRoot/Build.ps1"
 & "$PSScriptRoot/Test-StorageAccess.ps1" -AppPath "$root/build/app"
+& "$PSScriptRoot/Test-AmdPmLogMemory.ps1"
 & "$PSScriptRoot/Run-Hidden.ps1" "$env:WINDIR/System32/WindowsPowerShell/v1.0/powershell.exe" @('-NoProfile','-File',"$PSScriptRoot/Test-Package.ps1") $root
 & "$PSScriptRoot/Build-Native.ps1"
 & "$PSScriptRoot/Test-CollectorHistory.ps1"

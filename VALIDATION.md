@@ -1,5 +1,47 @@
 # Local validation — 2026-09-13
 
+## 0.6.63 collector crash recovery — 2026-10-21
+
+- Analyzed the local 0.6.62 collector minidump with Microsoft CDB/SOS. The
+  failing chain is `Collector.ReadSensors` → `AmdGpu.Update` →
+  `Marshal.PtrToStructure` → `clr!FieldMarshaler::ScalarUpdateCLR`, reading
+  inaccessible address `0x041b0000` with `0xC0000005`. The PMLog mapping was
+  unreadable; the minidump does not establish why the AMD driver mapping became
+  unavailable. The final snapshot at 06:31:27 MYT precedes the 06:31:29 crash.
+- Replaced both AMD PMLog marshal sites in the pinned LHM dependency with an
+  owned-copy reader. `ReadProcessMemory` failure/partial reads clear the PMLog
+  timestamp before marshaling an owned pinned buffer, preserving LHM's existing
+  OD8 fallback. The [Windows API contract](https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-readprocessmemory)
+  reports inaccessible ranges as failure. Valid-copy, null, invalid-address and
+  cross-guard-page tests pass against the shipped ADL structure, and IL checks
+  verify both shipped call sites. Input/output hashes, storage permissions and
+  corresponding source patches remain checked and bundled.
+- Configured collector-only Task Scheduler restart at one minute / three
+  attempts. Local on-demand fixture runs did not restart from this setting
+  alone, including a `0xC0000005` exit with the production logon trigger present.
+  Therefore the native UI's existing two-second poll also recovers sustained
+  STALE/OFFLINE after a 60-second grace, with three attempts until fresh LIVE
+  data resets the budget. It uses only the validated owned collector task;
+  isolated/unloaded/disposed/STOP states suppress recovery, and automatic
+  recovery never clears STOP.
+- Full `scripts/Validate.ps1` passed after the final implementation, including
+  native/shared startup ownership and repair, recovery clock/budget/STOP tests,
+  driver-free collector, sensor/history, WPF, quota, package and updater checks.
+  The signed 0.6.63 installer and both installer variants compile. Signing uses
+  the existing self-signed certificate; no trusted-root status is claimed.
+- `scripts/Test-CollectorRecovery.ps1` exercised the production recovery policy
+  against an isolated real Scheduled Task: an injected `0xC0000005` exit was
+  recovered in 61.5 seconds by one application retry. A subsequent normal STOP
+  returned 0 and did not restart during a further 65-second observation.
+  The fixture task was removed; production tasks were not changed by that test.
+- Windows UAC was canceled during the local upgrade attempt; 0.6.63 was not
+  installed and installed-runtime fault injection remains unverified. The
+  existing 0.6.62 collector was restarted through its validated owned task;
+  advancing snapshots and a new hardware-diagnostics LIVE entry confirmed
+  recovery. Its installed task still has no restart policy. No comparable
+  46-hour hardware soak has been performed. Publish 0.6.63 as a pre-release
+  while retaining 0.6.62 as the stable release.
+
 ## 0.5.4 state feedback — 2026-09-14
 
 - Recorded failing headless stale-device-identity and real WPF update-language regressions before the fixes. Both now pass; fresh recovery replaces retained labels and stale live values stay empty.

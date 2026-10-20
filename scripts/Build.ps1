@@ -20,12 +20,12 @@ foreach($dep in $deps){
 Copy-Item "$root/src/Panel.xaml","$root/src/HardwarePulse.exe.config","$root/src/Native/Languages.txt" $app -Force
 Copy-Item "$root/assets" $app -Recurse -Force
 Copy-Item "$root/licenses" $app -Recurse -Force
+Copy-Item "$root/src/Adapters/Windows/AmdPmLogMemory.cs" "$app/licenses/AmdPmLogMemory.cs.txt" -Force
 Copy-Item "$root/LICENSE","$root/PRIVACY.md","$root/SIGNING.md" $app -Force
 Copy-Item "$root/dependencies.lock.json" $app -Force
 Copy-Item "$root/vendor/*-source-*.zip" "$app/licenses" -Force
 Expand-Archive "$root/vendor/LibreHardwareMonitor-0.9.6.zip" "$root/vendor/lhm" -Force
 Copy-Item "$root/vendor/lhm/*.dll" "$app/lib" -Force
-& "$PSScriptRoot/Patch-StorageAccess.ps1" -LibraryDirectory "$app/lib"
 $null=New-Item -ItemType Directory -Path "$app/tools" -Force
 Copy-Item "$root/vendor/PresentMon-2.5.1-x64.exe" "$app/tools/PresentMon.exe" -Force
 $ps5="$env:WINDIR/System32/WindowsPowerShell/v1.0/powershell.exe"
@@ -45,7 +45,7 @@ if($Installer){
     $compilerArguments=@("$root/installer/HardwarePulse.iss")
     if($Win7Compatibility){$compilerArguments=@('/DWin7Compatibility')+$compilerArguments}
     & "$PSScriptRoot/Run-Hidden.ps1" $iscc $compilerArguments $root
-    $installerPath=if($Win7Compatibility){"$root/dist/HardwarePulse-Win7-x64-Setup.exe"}else{"$root/dist/HardwarePulse-0.6.62-Setup.exe"}
+    $installerPath=if($Win7Compatibility){"$root/dist/HardwarePulse-Win7-x64-Setup.exe"}else{"$root/dist/HardwarePulse-0.6.63-Setup.exe"}
     if($SigningCertificateThumbprint){& "$PSScriptRoot/Sign.ps1" -Path $installerPath -Thumbprint $SigningCertificateThumbprint}
     if(-not $Win7Compatibility){Copy-Item $installerPath "$root/dist/HardwarePulse-Setup.exe" -Force}
     Get-FileHash $installerPath -Algorithm SHA256 | Select-Object Hash,Path

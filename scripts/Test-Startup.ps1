@@ -1,5 +1,15 @@
 ﻿$ErrorActionPreference='Stop'
 $root=Split-Path $PSScriptRoot
+# Compile the common registration source directly: no app build, sensor access,
+# UI launch or live task mutation is needed for native/shared startup coverage.
+$testDirectory=Join-Path $root ('vendor/startup-test-'+[Guid]::NewGuid().ToString('N'))
+$null=New-Item -ItemType Directory -Path $testDirectory -Force
+$testExe=Join-Path $testDirectory 'StartupTests.exe'
+$compiler=Join-Path $env:WINDIR 'Microsoft.NET/Framework64/v4.0.30319/csc.exe'
+$arguments=@('/nologo','/target:exe',"/out:$testExe",'/reference:Microsoft.CSharp.dll')
+$arguments+=@('src/Native/Startup.cs','scripts/NativeStartupTests.cs','scripts/SharedStartupTests.cs','scripts/StartupTests.cs') | ForEach-Object {[IO.Path]::GetFullPath((Join-Path $root $_))}
+& "$PSScriptRoot/Run-Hidden.ps1" $compiler $arguments $root
+& "$PSScriptRoot/Run-Hidden.ps1" $testExe @() $root
 $expected=Join-Path $root 'src\HardwarePulse.exe'
 $sid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value
 $global:pulseStartupTestTasks=@{}

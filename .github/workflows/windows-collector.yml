@@ -3,9 +3,9 @@ name: Windows x64 collector
 on:
   push:
     branches: [main]
-    paths: ['src/Hosts/WindowsCollector/**', 'src/Native/Collector.cs', 'src/Native/FpsTransport.cs', 'src/Native/Startup.cs', 'src/Adapters/Windows/**', 'src/Adapters/Common/**', 'src/Core/**', 'src/HardwarePulse.exe.config', 'dependencies.lock.json', 'scripts/Build-WindowsCollector.ps1', 'scripts/Test-WindowsCollector.ps1', 'scripts/WindowsCollectorTests.cs', 'scripts/SharedStartupTests.cs', 'scripts/Build-WindowsAdapters.ps1', 'scripts/Build-Core.ps1', 'scripts/Run-Hidden.ps1', '.github/workflows/windows-collector.yml']
+    paths: ['src/Hosts/WindowsCollector/**', 'src/Native/Collector.cs', 'src/Native/FpsTransport.cs', 'src/Native/Startup.cs', 'src/Native/CollectorRecovery.cs', 'src/Native/Shell.cs', 'src/Adapters/Windows/**', 'src/Adapters/Common/**', 'src/Core/**', 'src/HardwarePulse.exe.config', 'dependencies.lock.json', 'scripts/Build-WindowsCollector.ps1', 'scripts/Test-WindowsCollector.ps1', 'scripts/WindowsCollectorTests.cs', 'scripts/SharedStartupTests.cs', 'scripts/StartupTests.cs', 'scripts/NativeStartupTests.cs', 'scripts/Test-Startup.ps1', 'scripts/CollectorRecoveryTests.cs', 'scripts/Test-CollectorRecoveryPolicy.ps1', 'scripts/AmdPmLogMemoryTests.cs', 'scripts/Test-AmdPmLogMemory.ps1', 'scripts/Patch-StorageAccess.ps1', 'scripts/storage-access-patch.json', 'scripts/Build-WindowsAdapters.ps1', 'scripts/Build-Core.ps1', 'scripts/Run-Hidden.ps1', '.github/workflows/windows-collector.yml']
   pull_request:
-    paths: ['src/Hosts/WindowsCollector/**', 'src/Native/Collector.cs', 'src/Native/FpsTransport.cs', 'src/Native/Startup.cs', 'src/Adapters/Windows/**', 'src/Adapters/Common/**', 'src/Core/**', 'src/HardwarePulse.exe.config', 'dependencies.lock.json', 'scripts/Build-WindowsCollector.ps1', 'scripts/Test-WindowsCollector.ps1', 'scripts/WindowsCollectorTests.cs', 'scripts/SharedStartupTests.cs', 'scripts/Build-WindowsAdapters.ps1', 'scripts/Build-Core.ps1', 'scripts/Run-Hidden.ps1', '.github/workflows/windows-collector.yml']
+    paths: ['src/Hosts/WindowsCollector/**', 'src/Native/Collector.cs', 'src/Native/FpsTransport.cs', 'src/Native/Startup.cs', 'src/Native/CollectorRecovery.cs', 'src/Native/Shell.cs', 'src/Adapters/Windows/**', 'src/Adapters/Common/**', 'src/Core/**', 'src/HardwarePulse.exe.config', 'dependencies.lock.json', 'scripts/Build-WindowsCollector.ps1', 'scripts/Test-WindowsCollector.ps1', 'scripts/WindowsCollectorTests.cs', 'scripts/SharedStartupTests.cs', 'scripts/StartupTests.cs', 'scripts/NativeStartupTests.cs', 'scripts/Test-Startup.ps1', 'scripts/CollectorRecoveryTests.cs', 'scripts/Test-CollectorRecoveryPolicy.ps1', 'scripts/AmdPmLogMemoryTests.cs', 'scripts/Test-AmdPmLogMemory.ps1', 'scripts/Patch-StorageAccess.ps1', 'scripts/storage-access-patch.json', 'scripts/Build-WindowsAdapters.ps1', 'scripts/Build-Core.ps1', 'scripts/Run-Hidden.ps1', '.github/workflows/windows-collector.yml']
 
 permissions:
   contents: read
@@ -21,3 +21,12 @@ jobs:
       - name: Build dedicated payload and verify isolated counters
         shell: pwsh
         run: ./scripts/Run-Hidden.ps1 (Get-Command pwsh).Source @('-NoProfile','-File','scripts/Test-WindowsCollector.ps1') $PWD.Path
+      - name: Verify shipped AMD PMLog memory guard
+        shell: pwsh
+        run: ./scripts/Run-Hidden.ps1 (Get-Command pwsh).Source @('-NoProfile','-File','scripts/Test-AmdPmLogMemory.ps1','-AppPath','build/windows-worker/worker') $PWD.Path
+      - name: Verify bounded collector recovery policy
+        shell: pwsh
+        run: ./scripts/Run-Hidden.ps1 (Get-Command pwsh).Source @('-NoProfile','-File','scripts/Test-CollectorRecoveryPolicy.ps1') $PWD.Path
+      - name: Verify collector restart registration and ownership
+        shell: pwsh
+        run: ./scripts/Run-Hidden.ps1 (Get-Command pwsh).Source @('-NoProfile','-File','scripts/Test-Startup.ps1') $PWD.Path

@@ -5,8 +5,9 @@
 
 - LibreHardwareMonitor v0.9.6: https://github.com/LibreHardwareMonitor/LibreHardwareMonitor/tree/v0.9.6
   MPL-2.0. The exact upstream source archive is included in the installer.
-  Its storage performance handle has a local minimum-access patch; see
-  STORAGE-ACCESS-PATCH.md and StorageAccess.patch for corresponding changes.
+  Its storage performance handle has a local minimum-access patch, and its
+  AMD PMLog mapping uses a guarded copy. See STORAGE-ACCESS-PATCH.md,
+  StorageAccess.patch, AmdPmLog.patch and AmdPmLogMemory.cs.txt for source.
 - BlackSharp.Core 1.0.7 (MPL-2.0), commit c70b735c6cec123ee8a046ac4a0bc6c606f52cf0:
   https://github.com/Blacktempel/BlackSharp
   The exact source archive and local read-only handle patch are included.

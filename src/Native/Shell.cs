@@ -23,6 +23,7 @@ namespace HardwarePulse {
         public readonly Window Window;readonly PulsePaths paths;readonly Settings settings;readonly Languages language;
         readonly StackPanel cards;readonly Dictionary<string,CardView> views=new Dictionary<string,CardView>();
         readonly ReadingSession readings;
+        readonly CollectorRecovery collectorRecovery=new CollectorRecovery();
         readonly HardwareDiagnosticLog hardwareLog;
         readonly List<Tuple<object,PropertyInfo,string>> localized=new List<Tuple<object,PropertyInfo,string>>();
         readonly List<Tuple<object,PropertyInfo,Brush>> themed=new List<Tuple<object,PropertyInfo,Brush>>();
@@ -77,11 +78,25 @@ namespace HardwarePulse {
             poll.Interval=TimeSpan.FromSeconds(2);poll.Tick+=delegate{UpdatePanel();};poll.Start();
         }
         public void Start(){if(DesktopEnabled)Initialize();else Show();}
-        void Initialize(){if(loaded)return;loaded=true;if(!isolated)StartCollector();UpdatePanel();ApplyDensity();}
+        void Initialize(){if(loaded||disposed)return;loaded=true;if(!isolated){StartCollector();collectorRecovery.Observe(DateTimeOffset.UtcNow,false,File.Exists(paths.Stop));}UpdatePanel();ApplyDensity();}
         void StartCollector(){try{if(File.Exists(paths.Stop)){try{File.Delete(paths.Stop);}catch{ignoredStop=File.GetLastWriteTimeUtc(paths.Stop).Ticks;throw;}}if(SensorProfile.Read(paths.Snapshot,DateTimeOffset.Now).state!="LIVE")using(var store=new SchedulerStore())new Startup(store,paths.Exe,WindowsIdentity.GetCurrent().User.Value).StartCollector();}catch{collectorFailed=true;}}
+        void RecoverCollector(DateTimeOffset now){
+            if(isolated||!loaded||disposed||exit)return;
+            bool healthy=readings.Latest.state=="LIVE"&&readings.Latest.readErrorCode==0;
+            if(healthy)collectorFailed=false;
+            if(!collectorRecovery.Observe(now,healthy,File.Exists(paths.Stop)))return;
+            try{
+                using(var store=new SchedulerStore()){
+                    // Recheck after COM connection; recovery must never clear a
+                    // cooperative STOP or bypass the owned task validation.
+                    if(!disposed&&!exit&&!File.Exists(paths.Stop))new Startup(store,paths.Exe,WindowsIdentity.GetCurrent().User.Value).StartCollector();
+                }
+            }catch{collectorFailed=true;}
+        }
         public void UpdatePanel(){
+            if(disposed)return;
             if(!isolated&&File.Exists(paths.Stop)&&File.GetLastWriteTimeUtc(paths.Stop).Ticks!=ignoredStop){Exit();return;}
-            readings.Poll(DateTimeOffset.Now);if(!isolated){TickQuotas(DateTimeOffset.UtcNow);localInference.Tick(DateTimeOffset.UtcNow);}RenderQuotaRefreshFeedback(DateTimeOffset.UtcNow);UpdateDesktop();
+            readings.Poll(DateTimeOffset.Now);RecoverCollector(DateTimeOffset.UtcNow);if(!isolated){TickQuotas(DateTimeOffset.UtcNow);localInference.Tick(DateTimeOffset.UtcNow);}RenderQuotaRefreshFeedback(DateTimeOffset.UtcNow);UpdateDesktop();
             if(!isolated)hardwareLog.Record(readings.Latest,DateTimeOffset.UtcNow);
             // Keep collection, peaks, stale-state detection and STOP handling active
             // while Settings or the tray/minimized window has no visible cards to render.

@@ -1,0 +1,20 @@
+--- a/LibreHardwareMonitorLib/Hardware/Gpu/AmdGpu.cs
++++ b/LibreHardwareMonitorLib/Hardware/Gpu/AmdGpu.cs
+@@ -421,7 +421,7 @@
+             AtiAdlxx.ADLPMLogData adlPMLogData = new();
+             if (_pmLogStarted)
+             {
+-                adlPMLogData = (AtiAdlxx.ADLPMLogData)Marshal.PtrToStructure(_adlPMLogStartOutput.pLoggingAddress, typeof(AtiAdlxx.ADLPMLogData));
++                adlPMLogData = (AtiAdlxx.ADLPMLogData)HardwarePulse.AmdPmLogMemory.Read(_adlPMLogStartOutput.pLoggingAddress, typeof(AtiAdlxx.ADLPMLogData));
+             }
+ 
+             GetAdlSensor(adlPMLogData, logDataOutput, AtiAdlxx.ADLPMLogSensors.ADL_PMLOG_CLK_GFXCLK, _coreClock, reset: false);
+@@ -606,7 +606,7 @@
+                 AtiAdlxx.ADLPMLogData adlPMLogData = new();
+                 if (_pmLogStarted)
+                 {
+-                    adlPMLogData = (AtiAdlxx.ADLPMLogData)Marshal.PtrToStructure(_adlPMLogStartOutput.pLoggingAddress, typeof(AtiAdlxx.ADLPMLogData));
++                    adlPMLogData = (AtiAdlxx.ADLPMLogData)HardwarePulse.AmdPmLogMemory.Read(_adlPMLogStartOutput.pLoggingAddress, typeof(AtiAdlxx.ADLPMLogData));
+                 }
+ 
+                 foreach (AtiAdlxx.ADLPMLogSensors sensorType in Enum.GetValues(typeof(AtiAdlxx.ADLPMLogSensors)))

@@ -11,6 +11,15 @@ Hardware Pulse pins upstream release versions and SHA-256 digests in `dependenci
 
 LibreHardwareMonitor is the sensor library; PawnIO is the low-level Windows driver dependency. PresentMon provides Windows frame telemetry. Build tooling such as Inno Setup is maintained separately from runtime components. An automatic upstream-check/PR workflow is not yet implemented.
 
+### 0.6.63 hotfix review — 2026-10-21
+
+Checked the official upstream releases before packaging: LibreHardwareMonitor
+v0.9.6 and PawnIO 2.2.0 match the pinned sensor/driver versions. PresentMon v2.6.0
+and Inno Setup 7.1.0 are newer than the pinned 2.5.1 and 6.7.3. This collector
+hotfix retains the tested dependency set; those upgrades need separate FPS,
+installer and security-change assessment. The bundled LHM has the documented
+PMLog memory guard and existing storage access patch, with matching source.
+
 ## Platform roadmap
 
 Windows 10 22H2 / Windows 11 x64 is the current target. Linux and macOS support is planned, not implemented or validated. Each needs a platform-specific sensor/capture backend and a compatible UI implementation; Windows drivers and WPF cannot simply be repackaged for those systems. Shared metric definitions, settings semantics and visual design should be preserved where practical. Unsupported sensors must be shown as unavailable rather than fabricated.

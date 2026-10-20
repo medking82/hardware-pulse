@@ -4,6 +4,12 @@
 
 日期为发布日期。未发布条目仅描述源代码变化，不代表已有可下载版本。作者：[Marck Wong](https://github.com/medking82)。
 
+## 0.6.63 — 2026-10-21（Pre-release）
+
+- 修复 AMD ADL PMLog mapping 失效或部分不可读时的 collector Access Violation。改为先复制到 owned snapshot 再做 marshaling，并保留现有 sensor fallback。
+- 在现有 UI poll 中为持续 hardware STALE／OFFLINE 加上 recovery，经验证的 owned task 每隔一分钟 retry，单次 outage 最多三次，fresh data 会 reset budget；同时配置 bounded Task Scheduler restart。保留 startup preference 以及 upgrade／uninstall 的正常 STOP exit。
+- 增加 invalid pointer、guard page、两处 shipped PMLog call site，以及 native／shared collector restart registration 和 repair 的 regression。
+
 ## 0.6.62 — 未发布
 
 - 原生 App 与桌面新增可选的 Jev／TypeSafe USD 余额、主题图标、独立显隐排序，以及英文／简体／繁体界面；金额不转换为百分比，也不受 DeepSeek 币种筛选影响。

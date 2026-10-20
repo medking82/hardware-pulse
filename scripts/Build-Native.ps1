@@ -12,6 +12,7 @@ Copy-Item "$root/src/Panel.xaml" $app -Force
 Copy-Item "$root/assets/*.svg" (Join-Path $app 'assets') -Force
 $framework=Join-Path $env:WINDIR 'Microsoft.NET/Framework64/v4.0.30319'
 & "$PSScriptRoot/Build-WindowsAdapters.ps1" -OutputDirectory $app
+& "$PSScriptRoot/Patch-StorageAccess.ps1" -LibraryDirectory "$app/lib"
 $arguments=@('/nologo','/target:winexe','/platform:x64',"/out:$app\HardwarePulse.exe",'/reference:System.Web.Extensions.dll','/reference:System.Management.dll','/reference:System.Windows.Forms.dll','/reference:System.Drawing.dll','/reference:Microsoft.CSharp.dll','/reference:System.Xaml.dll',"/reference:$framework\WPF\PresentationFramework.dll","/reference:$framework\WPF\PresentationCore.dll","/reference:$framework\WPF\WindowsBase.dll","/reference:$app\lib\LibreHardwareMonitorLib.dll","/win32icon:$app\assets\pulse.ico")
 $arguments+=@(Get-ChildItem "$root/src/Native" -Filter *.cs | Select-Object -ExpandProperty FullName)
 $arguments+=@("/reference:$app/Pulse.Core.dll","/reference:$app/Pulse.Adapters.Windows.dll")
