@@ -4,7 +4,7 @@
 
 日期为发布日期。未发布条目仅描述源代码变化，不代表已有可下载版本。作者：[Marck Wong](https://github.com/medking82)。
 
-## 0.6.63 — 2026-10-21（Pre-release）
+## 0.6.63 — 2026-10-21
 
 - 修复 AMD ADL PMLog mapping 失效或部分不可读时的 collector Access Violation。改为先复制到 owned snapshot 再做 marshaling，并保留现有 sensor fallback。
 - 在现有 UI poll 中为持续 hardware STALE／OFFLINE 加上 recovery，经验证的 owned task 每隔一分钟 retry，单次 outage 最多三次，fresh data 会 reset budget；同时配置 bounded Task Scheduler restart。保留 startup preference 以及 upgrade／uninstall 的正常 STOP exit。

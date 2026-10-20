@@ -8,7 +8,7 @@
 
 [更新记录](CHANGELOG.zh-CN.md) · [操作示意图](docs/QUICKSTART.zh-CN.md)
 
-**[下载 Windows 0.6.63 Pre-release](https://github.com/medking82/hardware-pulse/releases/download/v0.6.63/HardwarePulse-Setup.exe)**。现有 stable release 继续通过 [Latest Release](https://github.com/medking82/hardware-pulse/releases/latest) 提供。
+**[下载 Windows stable release 0.6.63](https://github.com/medking82/hardware-pulse/releases/download/v0.6.63/HardwarePulse-Setup.exe)**，或使用 App 内的 update check。
 
 macOS 可测试 [0.7.0-macos-rc.1 — Apple Silicon／Intel](https://github.com/medking82/hardware-pulse/releases/tag/v0.7.0-macos-rc.1)。此 RC 尚未完成 Developer ID signing 与 notarization，真实 Mac 的 Gatekeeper、温度和风扇 acceptance 仍未完成，不是 macOS stable release。
 
@@ -20,7 +20,7 @@ macOS 可测试 [0.7.0-macos-rc.1 — Apple Silicon／Intel](https://github.com/
 - **锁定位置与大小** 禁用移动、调整大小和卡片排序。锁定监控页面的背景不透明度降为原设置的四分之一并关闭模糊；设置保持可读。从托盘或设置解锁后恢复；纯色／高对比度设置优先。这还不是桌面层嵌入。
 - 应用程序默认 **自动（跟随系统）**，安装程序也根据 Windows UI 语言预选英语、简体或繁体中文。
 
-当前 Pre-release **0.6.63** 为 AMD driver PMLog memory read 加上 guard，修复长时间运行后 mapping 失效引发的 collector crash。App 也会在持续 STALE／OFFLINE 后，经 owned collector task 每隔一分钟 retry，单次 outage 最多三次。保留现有 quota 功能。[Validation 与待完成的 acceptance](VALIDATION.md)。Pulse 保持只读硬件监控边界；[Resources 与进程清理功能已退役](docs/MEMORY-CLEANUP.zh-CN.md)。
+当前版本 **0.6.63** 为 AMD driver PMLog memory read 加上 guard，修复长时间运行后 mapping 失效引发的 collector crash。App 也会在持续 STALE／OFFLINE 后，经 owned collector task 每隔一分钟 retry，单次 outage 最多三次。保留现有 quota 功能。[Validation 与待完成的 acceptance](VALIDATION.md)。Pulse 保持只读硬件监控边界；[Resources 与进程清理功能已退役](docs/MEMORY-CLEANUP.zh-CN.md)。
 
 刷新时，点击额度卡片的 **↻** 按钮；也可进入 **设置 → AI Quota → 刷新额度**，刷新所有已启用的来源。暂缓请求会显示下一次允许请求的时间；连续点击不能绕过限流。
 

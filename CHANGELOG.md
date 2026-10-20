@@ -4,7 +4,7 @@
 
 Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
-## 0.6.63 — 2026-10-21 (Pre-release)
+## 0.6.63 — 2026-10-21
 
 - Guard AMD ADL PMLog reads against revoked or partially inaccessible driver mappings. Marshal an owned snapshot and retain existing sensor fallbacks instead of terminating the hardware collector with an Access Violation.
 - Recover sustained hardware STALE/OFFLINE from the existing UI poll through the validated owned task, with a one-minute backoff and three attempts per outage; fresh data resets the budget. Also configure bounded Task Scheduler restart. Preserve startup preferences and normal upgrade/uninstall STOP exits.

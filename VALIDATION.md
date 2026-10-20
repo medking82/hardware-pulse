@@ -39,8 +39,9 @@
   existing 0.6.62 collector was restarted through its validated owned task;
   advancing snapshots and a new hardware-diagnostics LIVE entry confirmed
   recovery. Its installed task still has no restart policy. No comparable
-  46-hour hardware soak has been performed. Publish 0.6.63 as a pre-release
-  while retaining 0.6.62 as the stable release.
+  46-hour hardware soak has been performed. The requested App auto-update
+  delivery uses GitHub's stable/latest channel, which rejects pre-releases;
+  the release notes retain these outstanding acceptance limits.
 
 ## 0.5.4 state feedback — 2026-09-14
 

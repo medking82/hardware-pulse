@@ -18,7 +18,7 @@
 
 **Earlier experimental shared Desktop:** [0.7.0-preview.1 — Windows / Linux / macOS, x64 / ARM64](https://github.com/medking82/hardware-pulse/releases/tag/v0.7.0-preview.1). Self-contained downloads with live CPU/RAM/network and opt-in Codex quota. This preview does not replace the stable Windows App; [feature gaps, signing status and launch guide](docs/DESKTOP-PREVIEW.md).
 
-**[Download 0.6.63 Pre-release EXE](https://github.com/medking82/hardware-pulse/releases/download/v0.6.63/HardwarePulse-Setup.exe)** · [0.6.63 release notes](https://github.com/medking82/hardware-pulse/releases/tag/v0.6.63). The stable Windows release remains available through [Latest Release](https://github.com/medking82/hardware-pulse/releases/latest).
+**[Download 0.6.63 EXE](https://github.com/medking82/hardware-pulse/releases/download/v0.6.63/HardwarePulse-Setup.exe)** · [0.6.63 release notes](https://github.com/medking82/hardware-pulse/releases/tag/v0.6.63)
 
 **0.5.0** migrates the installed UI, collector and startup helpers to C#/.NET without a PowerShell runtime dependency. [Measured comparison](docs/PERFORMANCE-0.5.0.md). The installer remains self-signed; The SignPath Foundation application was declined; no publicly trusted certificate is claimed.
 
@@ -26,7 +26,7 @@ See [Desktop Mode](docs/DESKTOP-MODE.md) for wallpaper integration, appearance c
 
 Use **Ctrl+Alt+F10** to show/hide Desktop without opening App. Customize or disable it in Settings → Desktop; enable Always on top for games.
 
-Pre-release: **0.6.63** guards invalid AMD driver PMLog memory reads that could crash the collector after a long run. The App also restarts its owned collector task after sustained STALE/OFFLINE, with a one-minute backoff and three attempts per outage. Existing quota features remain available. [Validation and remaining acceptance](VALIDATION.md). Pulse remains a read-only hardware monitor; [Resources and process cleanup are retired](docs/MEMORY-CLEANUP.md).
+Latest: **0.6.63** guards invalid AMD driver PMLog memory reads that could crash the collector after a long run. The App also restarts its owned collector task after sustained STALE/OFFLINE, with a one-minute backoff and three attempts per outage. Existing quota features remain available. [Validation and remaining acceptance](VALIDATION.md). Pulse remains a read-only hardware monitor; [Resources and process cleanup are retired](docs/MEMORY-CLEANUP.md).
 
 Appearance → Colors selects Hardware Colors or a custom Unified Color for Monitor icons and temperatures. Cards → Network Speed Unit selects Auto, KB/s, MB/s or Mbit/s (decimal units; 1 MB/s = 8 Mbit/s). Network shows the busiest adapter by combined download/upload rate, with its name visible, and is not the sum of all adapters. Desktop reading order includes Download and Upload.
 
@@ -83,7 +83,7 @@ Author:**[Marck Wong](https://github.com/medking82)**
 - **Lock Position and Size** disables window movement, resizing and card reordering. Locked Monitor uses one-quarter of your saved background opacity and disables blur; Settings remains readable. Unlock in Settings or the tray to restore the previous appearance. Solid/high-contrast preferences take precedence. This does not embed Pulse into the desktop layer.
 - App language defaults to **Auto (System)**, with English fallback; installer supports English, Simplified and Traditional Chinese, preselected from Windows UI language.
 
-The Windows pre-release is **0.6.63**, with multilingual UI and animated card reordering. Use its versioned download above to test the collector fix; Latest Release continues to provide the stable installer.
+The published Windows version is **0.6.63**, with multilingual UI and animated card reordering. Use the versioned download above or the App's built-in update check.
 
 A compact hardware widget by **[Marck Wong](https://github.com/medking82)** for **Windows 10 22H2 / Windows 11 x64**.
 
