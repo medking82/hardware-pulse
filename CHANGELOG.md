@@ -4,6 +4,11 @@
 
 Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
+## 0.6.64 — 2026-10-21
+
+- Check Claude Code's local authentication status before CLI quota queries. A signed-out CLI now reports Login Required even when `/usage` exits successfully with only session cost statistics; invalid authentication reports stay unavailable.
+- Add regression coverage for logged-out, malformed, missing, oversized and failed authentication reports, and retain only sanitized authentication diagnostics. Claude Code still owns sign-in; a signed-in Claude app does not establish CLI authentication.
+
 ## 0.6.63 — 2026-10-21
 
 - Guard AMD ADL PMLog reads against revoked or partially inaccessible driver mappings. Marshal an owned snapshot and retain existing sensor fallbacks instead of terminating the hardware collector with an Access Violation.

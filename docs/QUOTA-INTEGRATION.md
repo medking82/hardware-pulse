@@ -118,6 +118,14 @@ Only allowlisted source/status/error metadata enters diagnostics, never raw CLI
 output or credential contents. The shared preview host retains its existing
 manual API reader and does not silently opt into the native Auto feature.
 
+Before `/usage`, the native CLI reader checks the bounded local `auth status --json`
+report. An explicit `loggedIn: false` returns `Login required`, including when the
+CLI exits with code 1; malformed or oversized auth reports return `Login unavailable`.
+No account identity or raw report is retained. Claude Code 2.1.304 on this Windows
+host returned only session cost/token statistics for redirected `/usage`, even with
+exit code 0. Those statistics are not subscription quota. Use Existing Login when
+its API check succeeds; a signed-in Claude app does not establish CLI authentication.
+
 Acceptance: parser fixtures for all three providers including missing, zero,
 malformed and additional windows; cancellation/disable/error lifecycle tests;
 isolated WPF rendering/settings/Desktop tests; full scripts/Validate.ps1. Real

@@ -26,11 +26,24 @@ class WindowsAdapterTests {
             Console.WriteLine("Gemini Models\tFive Hour Limit Remaining\t100%\t2099-09-30T12:00:00+08:00");
             return string.Equals(Environment.GetEnvironmentVariable("AGY_CLI_DISABLE_AUTO_UPDATE"),"true",StringComparison.Ordinal)?0:17;
         }
+        if(Array.IndexOf(args,"auth")>=0){
+            if(args.Length!=5||args[0]!="--safe-mode"||args[1]!="--strict-mcp-config"||args[2]!="auth"||args[3]!="status"||args[4]!="--json")return 22;
+            if(Console.In.ReadToEnd()!=""||Environment.GetEnvironmentVariable("DISABLE_AUTOUPDATER")!="1")return 23;
+            string failure=Environment.GetEnvironmentVariable("PULSE_CLAUDE_FIXTURE");
+            if(failure=="auth-logged-out"){Console.WriteLine("{\"loggedIn\":false,\"authMethod\":\"none\"}");return 1;}
+            if(failure=="auth-malformed"){Console.WriteLine("invalid authentication report");return 1;}
+            if(failure=="auth-missing"){Console.WriteLine("{}");return 0;}
+            if(failure=="auth-string"){Console.WriteLine("{\"loggedIn\":\"false\"}");return 0;}
+            if(failure=="auth-oversized"){Console.Write(new string('x',65537));return 0;}
+            Console.WriteLine("{\"loggedIn\":true,\"authMethod\":\"oauth\",\"email\":\"private-fixture@example.invalid\"}");
+            return failure=="auth-nonzero"?1:0;
+        }
         if(Array.IndexOf(args,"/usage")>=0){
             if(args.Length!=7||args[0]!="--safe-mode"||args[1]!="--strict-mcp-config"||args[2]!="--tools"||args[3]!=""||args[4]!="--permission-mode"||args[5]!="dontAsk")return 19;
             if(Console.In.ReadToEnd()!="")return 20;
             string failure=Environment.GetEnvironmentVariable("PULSE_CLAUDE_FIXTURE");
-            if(!string.IsNullOrEmpty(failure)){
+            // An auth failure must stop before /usage; returning valid quota here exposes a missing guard.
+            if(!string.IsNullOrEmpty(failure)&&!failure.StartsWith("auth-")){
                 if(failure=="nonzero-valid"){Console.WriteLine("Current session: 2% used\nCurrent week (all models): 41% used");return 7;}
                 if(failure=="mixed-429"){Console.WriteLine("API Error: 429\nRetry-After: 7200");Console.Error.WriteLine("Not logged in · Please run /login");return 7;}
                 var writer=failure.StartsWith("stderr-")?Console.Error:Console.Out;
@@ -192,9 +205,21 @@ class WindowsAdapterTests {
         Check(parse(session.Replace("Asia/Kuala_Lumpur","Unknown/Zone")+weekly).Windows[0].Reset==null,"Unknown timezone never invents a reset");
         var multiline=parse("\u001b[32mCurrent session\u001b[0m\n2% used\nResets 1am (Asia/Kuala_Lumpur)\nCurrent week (all models)\n41% used\nResets Oct 19, 1pm (Asia/Kuala_Lumpur)\n");
         Check(multiline.Status=="Live"&&multiline.Windows[0].Remaining==98,"ANSI and bounded multiline CLI usage are parsed");
+        Check(parse("Total cost: $0.0000\nTotal duration (API): 0s\nTotal duration (wall): 0s\nTotal code changes: 0 lines added, 0 lines removed\nUsage: 0 input, 0 output, 0 cache read, 0 cache write\n").Status!="Live","Real redirected CLI cost output cannot be mistaken for subscription quota");
         var read=type.GetMethod("Read",BindingFlags.Static|BindingFlags.NonPublic);
         string previousFailure=Environment.GetEnvironmentVariable("PULSE_CLAUDE_FIXTURE");
         try{
+            foreach(string failure in new[]{"auth-logged-out","auth-malformed","auth-missing","auth-string","auth-oversized","auth-nonzero"}){
+                Environment.SetEnvironmentVariable("PULSE_CLAUDE_FIXTURE",failure);bool rejected=false;
+                try{read.Invoke(null,new object[]{Assembly.GetExecutingAssembly().Location,CancellationToken.None});}
+                catch(TargetInvocationException error){
+                    var quota=error.InnerException as QuotaFailure;
+                    string expected=failure=="auth-logged-out"?"Login required":failure=="auth-nonzero"?"Quota unavailable":"Login unavailable";
+                    Check(quota!=null&&quota.Status==expected,"CLI authentication status must be bounded and fail closed: "+failure);
+                    Check(quota.FailureKind=="CLI authentication"||failure=="auth-nonzero"&&quota.FailureKind=="CLI exit failure","CLI auth diagnostics must contain only a fixed category");rejected=true;
+                }
+                Check(rejected,"CLI /usage ran after a missing or invalid authentication report: "+failure);
+            }
             foreach(string failure in new[]{"stdout-login","stderr-login","stderr-403","stdout-429","stderr-429","mixed-429","network","nonzero-valid"}){
                 Environment.SetEnvironmentVariable("PULSE_CLAUDE_FIXTURE",failure);
                 for(int attempt=0;attempt<(failure.StartsWith("stderr-")?16:1);attempt++){

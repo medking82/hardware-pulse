@@ -16,7 +16,20 @@ namespace HardwarePulse {
         }
         internal static QuotaReading Read(string executable,CancellationToken cancel){
             var environment=new Dictionary<string,string>{{"DISABLE_AUTOUPDATER","1"}};
+            // In redirected mode /usage can exit successfully with only session cost statistics,
+            // even when logged out. Check the CLI's local auth report before asking for quota.
+            QuotaChildProcess.ReadWithDiagnostics(executable,"--safe-mode --strict-mcp-config auth status --json",ReadAuthentication,cancel,TimeSpan.FromSeconds(5),environment,Failure);
             return (QuotaReading)QuotaChildProcess.ReadWithDiagnostics(executable,"--safe-mode --strict-mcp-config --tools \"\" --permission-mode dontAsk /usage",ReadReport,cancel,TimeSpan.FromSeconds(12),environment,Failure);
+        }
+        static object ReadAuthentication(TextReader input,TextWriter output,CancellationToken cancel){
+            output.Close();var text=new StringBuilder();int value;
+            while((value=input.Read())>=0){cancel.ThrowIfCancellationRequested();if(text.Length>=65536)throw new QuotaFailure("Login unavailable",null,0,"CLI authentication");text.Append((char)value);}
+            object loggedIn;
+            try{loggedIn=QuotaDecoder.Get(QuotaData.Parse(text.ToString()),"loggedIn");}
+            catch{throw new QuotaFailure("Login unavailable",null,0,"CLI authentication");}
+            if(!(loggedIn is bool))throw new QuotaFailure("Login unavailable",null,0,"CLI authentication");
+            if(!(bool)loggedIn)throw new QuotaFailure("Login required",null,0,"CLI authentication");
+            return true;
         }
         static object ReadReport(TextReader input,TextWriter output,CancellationToken cancel){
             // Slash-command output is a finite report. Never leave stdin open or send a turn.

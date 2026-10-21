@@ -4,6 +4,11 @@
 
 日期为发布日期。未发布条目仅描述源代码变化，不代表已有可下载版本。作者：[Marck Wong](https://github.com/medking82)。
 
+## 0.6.64 — 2026-10-21
+
+- 在 CLI quota query 前检查 Claude Code 的 local authentication status。CLI 已 logout 时，即使 `/usage` 以 exit code 0 返回 session cost statistics，也会正确报告 Login Required；无效的 authentication report 保持 unavailable。
+- 增加 logged-out、malformed、missing、oversized 和 failed authentication report 的 regression coverage，diagnostics 只保留固定的 authentication category。sign-in 仍由 Claude Code 管理；Claude app 已 login 不代表 CLI 也已 login。
+
 ## 0.6.63 — 2026-10-21
 
 - 修复 AMD ADL PMLog mapping 失效或部分不可读时的 collector Access Violation。改为先复制到 owned snapshot 再做 marshaling，并保留现有 sensor fallback。

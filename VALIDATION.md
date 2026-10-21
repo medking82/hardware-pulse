@@ -1,5 +1,30 @@
 # Local validation — 2026-09-13
 
+## 0.6.64 Claude CLI authentication — 2026-10-21
+
+- Reproduced the reported failure with Claude Code 2.1.304: redirected `/usage`
+  exited 0 and returned only zero session cost/token statistics. Its local
+  `auth status --json` independently reported `loggedIn: false`; the existing
+  credential sources had no usable access token. The Claude app remaining
+  signed in did not establish a Claude Code login.
+- Added a failing owned-child regression before the fix. The bounded local
+  authentication preflight now reports `Login required` for boolean false,
+  including exit 1, and skips `/usage`. Malformed, missing, wrong-type and
+  oversized reports fail closed as `Login unavailable`. Successful-auth
+  nonzero exits, existing CLI failures and real cost-only output are covered.
+- The implementation passed full `scripts/Validate.ps1` and was installed
+  locally as a 0.6.63 hotfix before this release version bump. After the user
+  signed in through Claude Code, the real Existing Login API returned HTTP 200.
+  The installed Desktop displayed both Claude quota windows; UI Automation
+  confirmed their visible values. Only `claudeAutoSource` changed during local
+  recovery; all other saved settings were preserved. The installed EXE and
+  adapter hashes matched the tested local package.
+- Final 0.6.64 `scripts/Validate.ps1` passed, including owned-child authentication,
+  quota lifecycle, WPF, package and updater regressions. `scripts/Build.ps1
+  -Installer` compiled both installer variants and signed the Windows x64 release
+  package with the existing self-signed certificate. This fix does not make
+  redirected CLI cost reports into subscription quota or establish all CLI versions.
+
 ## 0.6.63 collector crash recovery — 2026-10-21
 
 - Analyzed the local 0.6.62 collector minidump with Microsoft CDB/SOS. The
