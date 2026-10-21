@@ -95,6 +95,14 @@ bounded requests, no per-frame API calls. Disable/dispose cancels requests and
 rejects late results. Clear old windows on failures/account transitions; no fabricated
 100% or reset-to-full inference. Show observation age and expired readings explicitly.
 
+Native Monitor card and Settings Refresh actions force an immediate attempt for
+each selected, enabled provider, bypassing Pulse's cadence, saved reservation and
+retry deadline. Card Refresh stays enabled while idle and disables during a request,
+including a timed-out worker that has not stopped. Repeated clicks during a request
+do not overlap or queue another attempt. Forced requests retain failure counters;
+their outcome sets the next automatic retry, including any new server Retry-After.
+An explicit force also rechecks API authentication after Claude Auto has stopped.
+
 Allowed surfaces: quota adapters/model/session, Shell wiring, XAML/settings,
 Desktop quota rows, localization, attribution, focused regression tests and docs.
 No changes to installed authentication stores, elevation or hardware acquisition.
@@ -111,7 +119,7 @@ read CLI. CLI success is final for that cycle; the next normal cycle returns to
 API. A 429 from either stream retains the longer server deadline and never switches
 routes. Transport, permission and unclassified errors are not login failures.
 After API and CLI both reject authentication, automatic retries stop until the
-user signs in through Claude Code and requests Refresh after cooldown. Source
+user signs in through Claude Code and requests Refresh. Source
 toggles do not clear that cooldown. Schedule schema 2 preserves recovery stage
 and stop state; schema 1 loads with API as its initial stage and unchanged debt.
 Only allowlisted source/status/error metadata enters diagnostics, never raw CLI

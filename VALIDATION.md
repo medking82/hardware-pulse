@@ -1,5 +1,27 @@
 # Local validation — 2026-09-13
 
+## 0.6.65 forced manual quota refresh — 2026-10-22
+
+- Recorded a failing Core regression for an idle provider whose restored
+  `Refresh pending` deadline prevented manual Refresh. Explicit native card and
+  Settings actions now bypass Pulse's cadence, saved reservation and retry wait;
+  ordinary automatic/programmatic scheduling retains its existing policy.
+- Framework and .NET 10 tests cover every provider, restored pending/live/error
+  states, disabled/disposed rejection, request reservation, no overlapping or queued
+  clicks, retained failure counters, new Retry-After persistence, success cadence
+  and explicit Claude Auto authentication recovery. WPF tests exercise the actual
+  card and Settings actions, including Claude failures, Jev's restored 15-minute
+  reservation, provider isolation, pending/timeout disabling and re-enabling.
+- Final `scripts/Validate.ps1 -ModernCore` passed for 0.6.65, including syntax,
+  version consistency, sensors, Core, Windows adapters/collector, quota/WPF,
+  Settings, startup/lifecycle, package and updater regressions. Providers in these
+  refresh tests are synthetic; no account credentials or installed runtime were
+  changed, and an immediate attempt does not establish upstream account success.
+- `scripts/Build.ps1 -Installer` compiled both installer variants and the final
+  Windows x64 package. The app and installer use the existing self-signed
+  `CN=Marck Wong` certificate; the versioned installer and update-channel alias
+  are byte-identical. No trusted-root change or local installation is claimed.
+
 ## 0.6.64 Claude CLI authentication — 2026-10-21
 
 - Reproduced the reported failure with Claude Code 2.1.304: redirected `/usage`

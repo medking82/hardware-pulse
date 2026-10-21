@@ -119,7 +119,7 @@ namespace HardwarePulse {
             if(schedule.NotBefore>deadline)deadline=schedule.NotBefore;
             schedule.NextAttempt=deadline;schedule.NotBefore=deadline;
         }
-        // Explicit user action (or an owner revision change) can recheck Claude authentication,
+        // Owner revision changes or non-forced requests can recheck Claude authentication,
         // but never a 429, transport failure, in-flight reservation or another provider.
         // The five-minute floor survives restart; throttling debt is only cleared by success.
         public bool RecoverClaudeLogin(DateTimeOffset now){
@@ -129,15 +129,23 @@ namespace HardwarePulse {
             if(slot.Remote.NextAttempt<=floor&&slot.Remote.NotBefore<=floor)return false;
             slot.Remote.NextAttempt=floor;slot.Remote.NotBefore=floor;EmitSchedule();return true;
         }
-        public bool CanRequestRefresh(string provider,DateTimeOffset now){
+        public bool CanRequestRefresh(string provider,DateTimeOffset now,bool force=false){
             if(disposed)return false;var slot=slots[provider];if(!slot.Enabled||slot.Pending!=null)return false;
-            if(slot.Local)return true;
+            if(force||slot.Local)return true;
             if(provider=="Claude"&&!slot.Auto&&slot.Remote.ClaudeRecovery==ClaudeRecoveryStage.Api&&slot.Remote.Status=="Login required"&&slot.Remote.Observed!=default(DateTimeOffset)&&slot.Remote.Observed<=now&&now>=slot.Remote.Observed.AddMinutes(5))return true;
             return now>=slot.Remote.NotBefore&&(slot.Remote.RecoveryFailures==0&&slot.Remote.RateLimitFailures==0||now>=slot.Next);
         }
-        public void RequestRefresh(string provider,DateTimeOffset now){
+        public void RequestRefresh(string provider,DateTimeOffset now,bool force=false){
             if(disposed)return;var slot=slots[provider];if(!slot.Enabled)return;
             if(slot.Pending!=null)return; // One running request is already fulfilling this action.
+            // Explicit clicks bypass scheduling delays, while retaining failure debt for automatic retries.
+            // Tick still reserves before IO; clicks during a request never queue another attempt.
+            if(force){
+                if(slot.Auto&&slot.Remote.ClaudeRecovery==ClaudeRecoveryStage.LoginRequired)slot.Remote.ClaudeRecovery=ClaudeRecoveryStage.Api;
+                if(slot.Local)slot.Next=DateTimeOffset.MinValue;
+                else{slot.Remote.NotBefore=now;slot.Next=now;}
+                return;
+            }
             if(slot.Auto&&slot.Remote.ClaudeRecovery==ClaudeRecoveryStage.LoginRequired){
                 if(now<slot.Remote.NotBefore||now<slot.Next)return;
                 slot.Remote.ClaudeRecovery=ClaudeRecoveryStage.Api;EmitSchedule();

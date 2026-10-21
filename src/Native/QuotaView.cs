@@ -107,7 +107,7 @@ namespace HardwarePulse {
         }
         void RefreshQuota(string provider){
             var now=DateTimeOffset.UtcNow;quotaRefreshBefore.Clear();
-            foreach(var reading in quotas.Readings){if(provider!=null&&reading.Provider!=provider)continue;quotaRefreshBefore[reading.Provider]=reading;quotas.RequestRefresh(reading.Provider,now);}
+            foreach(var reading in quotas.Readings){if(provider!=null&&reading.Provider!=provider)continue;quotaRefreshBefore[reading.Provider]=reading;quotas.RequestRefresh(reading.Provider,now,true);}
             if(quotaRefreshBefore.Count==0){Text("QuotaRefreshStatus",language.T("Enable quota in Settings first"));Control<TextBlock>("QuotaRefreshStatus").Visibility=Visibility.Visible;}
             if(!isolated)quotas.Tick(now);
             RenderQuota();UpdateDesktop();
@@ -202,7 +202,7 @@ namespace HardwarePulse {
             bool full=settings.Flag("quotaFull");var order=QuotaOrder();
             var displayed=readings.ToDictionary(r=>r.Provider,r=>DisplayQuota(r,full,now));
             string signature=language.Preference+"|"+light+"|"+locked+"|"+full+"|"+DeepSeekCurrency()+"|"+SystemParameters.HighContrast+"|"+Window.FontSize+"|"+settings.Flag("unifiedReadingColors")+ReadingColor()+"|"+string.Join(";",readings.Select(r=>r.Provider+r.Status+r.Source+r.Observed.ToString("o")+QuotaRecoveryState(r,displayed[r.Provider],now)+QuotaDetails(r,displayed[r.Provider],now)+string.Join(",",displayed[r.Provider].Windows.Select(w=>w.Label+w.Remaining+w.Reset+QuotaWindowVisible(displayed[r.Provider],w)))+string.Join(",",displayed[r.Provider].Balances.Select(b=>b.Label+b.Currency+b.Amount))));
-            string readySignature=string.Join(",",readings.Select(r=>quotas.CanRequestRefresh(r.Provider,now)));
+            string readySignature=string.Join(",",readings.Select(r=>quotas.CanRequestRefresh(r.Provider,now,true)));
             if(signature==quotaSignature&&readySignature==quotaReadySignature)return;quotaSignature=signature;quotaReadySignature=readySignature;panel.Children.Clear();
             foreach(var original in readings.OrderBy(r=>Array.IndexOf(order,r.Provider))){
                 var reading=displayed[original.Provider];
@@ -212,8 +212,8 @@ namespace HardwarePulse {
                 var grip=AiCardGrip(reading.Provider);grip.Foreground=foreground;title.Children.Add(grip);
                 var icon=Icon(reading.Provider.ToLowerInvariant(),19,accent);icon.Margin=new Thickness(0,0,8,0);Grid.SetColumn(icon,1);title.Children.Add(icon);
                 var name=new TextBlock{Text=reading.Provider=="Antigravity"&&!full?"Antigravity · Gemini":reading.Provider,FontSize=13*Window.FontSize/12,FontWeight=FontWeights.SemiBold,Foreground=foreground,TextWrapping=TextWrapping.Wrap,VerticalAlignment=VerticalAlignment.Center};Grid.SetColumn(name,2);title.Children.Add(name);
-                string provider=reading.Provider;bool canRefresh=quotas.CanRequestRefresh(provider,now);
-                var refreshButton=new Button{Content="↻",Foreground=foreground,ToolTip=language.T(canRefresh?"Refresh Quota":"Refresh available after the minimum interval or retry deadline."),Padding=new Thickness(5,1,5,1),Margin=new Thickness(6,0,0,0),VerticalAlignment=VerticalAlignment.Center,IsEnabled=canRefresh};
+                string provider=reading.Provider;bool canRefresh=quotas.CanRequestRefresh(provider,now,true);
+                var refreshButton=new Button{Content="↻",Foreground=foreground,ToolTip=language.Label(canRefresh?"Refresh Quota":"Refreshing quota…"),Padding=new Thickness(5,1,5,1),Margin=new Thickness(6,0,0,0),VerticalAlignment=VerticalAlignment.Center,IsEnabled=canRefresh};
                 ToolTipService.SetShowOnDisabled(refreshButton,true);
                 System.Windows.Automation.AutomationProperties.SetName(refreshButton,provider+" · "+language.T("Refresh Quota"));refreshButton.Click+=delegate{RefreshQuota(provider);};Grid.SetColumn(refreshButton,3);title.Children.Add(refreshButton);body.Children.Add(title);
                 string state=QuotaRecoveryState(original,reading,now);

@@ -14,6 +14,7 @@ internal static class NativeQuotaRecoveryTests {
     static IEnumerable<string> Labels(DependencyObject node){var text=node as TextBlock;if(text!=null)yield return text.Text;foreach(object child in LogicalTreeHelper.GetChildren(node)){var item=child as DependencyObject;if(item!=null)foreach(string label in Labels(item))yield return label;}}
     static void Render(Shell shell){typeof(Shell).GetMethod("RenderQuota",Hidden).Invoke(shell,null);}
     static string[] Card(Shell shell,string provider){return Labels(shell.Control<StackPanel>("QuotaCards").Children.Cast<Border>().Single(c=>(string)c.Tag==provider)).ToArray();}
+    static Button RefreshButton(Shell shell,string provider){var card=shell.Control<StackPanel>("QuotaCards").Children.Cast<Border>().Single(c=>(string)c.Tag==provider);return ((Grid)((StackPanel)card.Child).Children[0]).Children.OfType<Button>().Single();}
     static DesktopMetric[] Desktop(Shell shell){var result=new List<DesktopMetric>();typeof(Shell).GetMethod("AddDesktopQuotas",Hidden).Invoke(shell,new object[]{result});return result.ToArray();}
     static void Complete(QuotaSession session,string provider,DateTimeOffset now){for(int i=0;i<200&&session.GetState(provider).Refreshing;i++){Thread.Sleep(5);session.Tick(now);}Check(!session.GetState(provider).Refreshing,"synthetic worker did not finish");}
     static void Capture(Shell shell,string path){
@@ -29,24 +30,32 @@ internal static class NativeQuotaRecoveryTests {
             try{
                 fake.RestoreSchedules(new[]{new QuotaSchedule{Provider="Claude",Status="Login required",Observed=now.AddMinutes(-10),NextAttempt=now.AddMinutes(20),NotBefore=now.AddMinutes(20),RecoveryFailures=4,RateLimitFailures=1},new QuotaSchedule{Provider="Codex",Status="Live",Observed=now,NextAttempt=now.AddMinutes(5),NotBefore=now.AddSeconds(30)}});
                 fake.Enable("Claude",true);fake.Enable("Codex",true);Render(shell);
-                var card=shell.Control<StackPanel>("QuotaCards").Children.Cast<Border>().Single(c=>(string)c.Tag=="Claude");
-                var header=(Grid)((StackPanel)card.Child).Children[0];var button=header.Children.OfType<Button>().Single();
-                button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));fake.Tick(now);Check(entered.Wait(5000),"card refresh did not request Claude");Render(shell);
+                var button=RefreshButton(shell,"Claude");Check(button.IsEnabled,"idle Claude card must allow a manual attempt during login backoff");
+                button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));now=DateTimeOffset.UtcNow;fake.Tick(now);Check(entered.Wait(5000),"card refresh did not request Claude");Render(shell);
                 Check(shell.Control<TextBlock>("QuotaRefreshStatus").Text.Contains("Claude: Refreshing Quota")&&Card(shell,"Claude").Any(s=>s.Contains("Refreshing Quota")),"refresh progress missing in Settings/card");
-                Check(codexCalls==0,"Claude card button refreshed another provider");
+                Check(!RefreshButton(shell,"Claude").IsEnabled,"card refresh must disable while its worker is pending");
+                for(int i=0;i<3;i++)button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));fake.Tick(now);
+                Check(claudeCalls==1&&codexCalls==0,"repeated Claude card clicks overlap or refresh another provider");
                 release.Set();Complete(fake,"Claude",now);Render(shell);
                 Check(shell.Control<TextBlock>("QuotaRefreshStatus").Text=="Claude: Quota Refresh Complete","completed refresh missing explicit feedback");
-                var completedCard=shell.Control<StackPanel>("QuotaCards").Children.Cast<Border>().Single(c=>(string)c.Tag=="Claude");
-                Check(!((Grid)((StackPanel)completedCard.Child).Children[0]).Children.OfType<Button>().Single().IsEnabled,"Claude card must disable refresh during its five-minute request interval");
-                shell.Control<Button>("QuotaRefresh").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Render(shell);
-                Check(shell.Control<TextBlock>("QuotaRefreshStatus").Text.Contains("Refresh Deferred Until"),"minimum request interval was silently skipped");
+                Check(RefreshButton(shell,"Claude").IsEnabled,"completed Claude card must immediately re-enable despite cadence");
+                release.Reset();entered.Reset();
+                shell.Control<Button>("QuotaRefresh").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));now=DateTimeOffset.UtcNow;fake.Tick(now);
+                Check(entered.Wait(5000),"Settings refresh did not bypass Claude cadence");Complete(fake,"Codex",now);Render(shell);
+                Check(claudeCalls==2&&codexCalls==1,"Settings refresh must force every enabled provider despite cadence/reservation");
+                Check(shell.Control<TextBlock>("QuotaRefreshStatus").Text.Contains("Claude: Refreshing Quota"),"Settings force refresh did not show progress");
+                release.Set();Complete(fake,"Claude",now);Render(shell);
                 Capture(shell,Path.Combine(Path.GetDirectoryName(screenshot),"quota-refresh-feedback.png"));
                 fake.Enable("Claude",false);fake.Enable("Codex",false);
                 fake.RestoreSchedules(new[]{new QuotaSchedule{Provider="Claude",Status="Refresh rate limited",Observed=now,NextAttempt=now.AddHours(1),NotBefore=now.AddHours(1),RecoveryFailures=1,RateLimitFailures=1}});fake.Enable("Claude",true);
-                shell.Control<Button>("QuotaRefresh").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Render(shell);
-                Check(shell.Control<TextBlock>("QuotaRefreshStatus").Text.Contains("Refresh Deferred Until")&&shell.Control<TextBlock>("QuotaRefreshStatus").Text.Contains("Refresh Rate Limited"),"429 refresh must explain its wait");
-                fake.Tick(now);Check(claudeCalls==1,"feedback button bypassed real 429");
+                Render(shell);Check(RefreshButton(shell,"Claude").IsEnabled,"429 Retry-After must not disable an idle manual card");
+                release.Reset();entered.Reset();
+                shell.Control<Button>("QuotaRefresh").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));now=DateTimeOffset.UtcNow;fake.Tick(now);
+                Check(entered.Wait(5000)&&claudeCalls==3&&codexCalls==1,"Settings refresh failed to bypass 429 or refreshed disabled Codex");Render(shell);
+                Check(!RefreshButton(shell,"Claude").IsEnabled,"429 force attempt must disable the pending card");
+                Check(shell.Control<TextBlock>("QuotaRefreshStatus").Text.Contains("Refreshing Quota"),"429 manual attempt must show progress");
                 Capture(shell,Path.Combine(Path.GetDirectoryName(screenshot),"quota-refresh-wait.png"));
+                release.Set();Complete(fake,"Claude",now);Render(shell);
                 shell.ShowSettings(true);typeof(Shell).GetMethod("SelectSettingsCategory",Hidden).Invoke(shell,new object[]{"AI Quota"});shell.Window.UpdateLayout();
                 Capture(shell,Path.Combine(Path.GetDirectoryName(screenshot),"quota-refresh-settings.png"));shell.ShowSettings(false);
                 // Only metadata is consulted, using an injected synthetic predicate.
@@ -64,7 +73,27 @@ internal static class NativeQuotaRecoveryTests {
                 finally{language.Preference=preference;}
             }finally{release.Set();((Dictionary<string,QuotaReading>)typeof(Shell).GetField("quotaRefreshBefore",Hidden).GetValue(shell)).Clear();shell.Control<TextBlock>("QuotaRefreshStatus").Visibility=Visibility.Collapsed;field.SetValue(shell,original);Render(shell);}
         }
-        Console.WriteLine("PASS native quota refresh feedback: single-provider button, progress, success, cooldown reason and metadata-only recovery");
+        Console.WriteLine("PASS native quota refresh feedback: single-provider button, progress, success, forced cadence/429 bypass and metadata-only recovery");
+    }
+    static void RestoredJevRefresh(Shell shell){
+        var field=typeof(Shell).GetField("quotas",Hidden);var original=(QuotaSession)field.GetValue(shell);var now=DateTimeOffset.UtcNow;int jevCalls=0,claudeCalls=0;
+        using(var entered=new ManualResetEventSlim())using(var release=new ManualResetEventSlim())
+        using(var fake=new QuotaSession((provider,cancel)=>{if(provider=="Jev"){Interlocked.Increment(ref jevCalls);entered.Set();Check(release.Wait(5000),"Jev fixture not released");}else Interlocked.Increment(ref claudeCalls);return new QuotaReading{Provider=provider,Status="Live",Observed=now};})){
+            field.SetValue(shell,fake);
+            try{
+                var deadline=now.AddMinutes(15);
+                fake.RestoreSchedules(new[]{new QuotaSchedule{Provider="Jev",Status="Refresh pending",Observed=now.AddMinutes(-1),NextAttempt=deadline,NotBefore=deadline},new QuotaSchedule{Provider="Claude",Status="Refresh rate limited",Observed=now,NextAttempt=now.AddHours(1),NotBefore=now.AddHours(1),RecoveryFailures=2,RateLimitFailures=1}});
+                fake.Enable("Jev",true);fake.Enable("Claude",true);fake.Tick(now);Render(shell);
+                Check(jevCalls==0&&claudeCalls==0&&!fake.CanRequestRefresh("Jev",now),"restored automatic reservation must remain intact before a manual click");
+                var button=RefreshButton(shell,"Jev");Check(button.IsEnabled,"restored Jev pending/15-minute reservation must allow manual refresh");
+                button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));var attempt=DateTimeOffset.UtcNow;fake.Tick(attempt);Check(entered.Wait(5000),"Jev card did not immediately bypass restored reservation");Render(shell);
+                Check(!RefreshButton(shell,"Jev").IsEnabled&&RefreshButton(shell,"Claude").IsEnabled,"only the in-flight provider card must disable");
+                for(int i=0;i<3;i++)button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));fake.Tick(now);
+                Check(jevCalls==1&&claudeCalls==0&&fake.GetState("Claude").NextAttempt==now.AddHours(1),"Jev repeated clicks overlap or change Claude cooldown");
+                release.Set();Complete(fake,"Jev",attempt);fake.Tick(attempt.AddSeconds(31));Render(shell);
+                Check(jevCalls==1&&RefreshButton(shell,"Jev").IsEnabled,"pending Jev clicks queued a follow-up or left the idle card disabled");
+            }finally{release.Set();Complete(fake,"Jev",now.AddSeconds(31));((Dictionary<string,QuotaReading>)typeof(Shell).GetField("quotaRefreshBefore",Hidden).GetValue(shell)).Clear();shell.Control<TextBlock>("QuotaRefreshStatus").Visibility=Visibility.Collapsed;field.SetValue(shell,original);Render(shell);}
+        }
     }
     static void TimeoutFeedback(Shell shell){
         var field=typeof(Shell).GetField("quotas",Hidden);var original=(QuotaSession)field.GetValue(shell);var now=DateTimeOffset.UtcNow;int calls=0;
@@ -73,18 +102,23 @@ internal static class NativeQuotaRecoveryTests {
             field.SetValue(shell,fake);
             try{
                 fake.Enable("Claude",true);fake.Tick(now);Complete(fake,"Claude",now);Render(shell);
-                typeof(Shell).GetMethod("RefreshQuota",Hidden).Invoke(shell,new object[]{"Claude"});fake.Tick(now.AddMinutes(5));Check(entered.Wait(5000),"timeout feedback fixture not started");
-                fake.Tick(now.AddMinutes(5).AddSeconds(30));Render(shell);
+                typeof(Shell).GetMethod("RefreshQuota",Hidden).Invoke(shell,new object[]{"Claude"});now=DateTimeOffset.UtcNow;fake.Tick(now);Check(entered.Wait(5000),"timeout feedback fixture not started");
+                fake.Tick(now.AddSeconds(30));Render(shell);
                 Check(Card(shell,"Claude").Any(s=>s.StartsWith("Refresh Timed Out · Waiting For Request To Stop")),"timed-out card still claims Live while waiting for worker");
                 Check(shell.Control<TextBlock>("QuotaRefreshStatus").Text.Contains("Refresh Timed Out"),"Settings hides the pending timeout reason");
+                Check(!RefreshButton(shell,"Claude").IsEnabled,"timed-out card must stay disabled until its worker exits");
+                for(int i=0;i<3;i++)typeof(Shell).GetMethod("RefreshQuota",Hidden).Invoke(shell,new object[]{"Claude"});
+                fake.Tick(now.AddSeconds(31));Check(calls==2,"pending timeout clicks started an overlapping worker");
+                release.Set();Complete(fake,"Claude",now.AddSeconds(31));fake.Tick(now.AddSeconds(32));Render(shell);
+                Check(calls==2&&RefreshButton(shell,"Claude").IsEnabled,"pending timeout clicks queued another attempt or left the idle card disabled");
             }finally{
-                release.Set();Complete(fake,"Claude",now.AddMinutes(5).AddSeconds(30));
+                release.Set();Complete(fake,"Claude",now.AddSeconds(32));
                 ((Dictionary<string,QuotaReading>)typeof(Shell).GetField("quotaRefreshBefore",Hidden).GetValue(shell)).Clear();shell.Control<TextBlock>("QuotaRefreshStatus").Visibility=Visibility.Collapsed;field.SetValue(shell,original);Render(shell);
             }
         }
     }
     public static void RunUI(Shell shell,string screenshot){
-        RefreshFeedback(shell,screenshot);TimeoutFeedback(shell);
+        RefreshFeedback(shell,screenshot);RestoredJevRefresh(shell);TimeoutFeedback(shell);
         var field=typeof(Shell).GetField("quotas",Hidden);var original=(QuotaSession)field.GetValue(shell);var now=DateTimeOffset.UtcNow;
         QuotaReading next=new QuotaReading{Provider="Claude",Status="Live",CacheScope="synthetic-source",Observed=now.AddMinutes(-2),Windows=new List<QuotaWindow>{new QuotaWindow{Label="5-hour",Remaining=73,Reset=now.AddMinutes(30)},new QuotaWindow{Label="Weekly",Remaining=91,Reset=now.AddDays(5)}}};
         using(var fake=new QuotaSession((provider,cancel)=>next)){

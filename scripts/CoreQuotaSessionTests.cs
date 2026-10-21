@@ -12,6 +12,8 @@ internal static class CoreQuotaSessionTests {
         throw new Exception("Core quota completion timed out");
     }
     public static void Run(){
+        ForcedProviderRefresh();
+        ForcedRefreshBackoffAndAutoRecovery();
         ClaudeAutoRecovery();
         ClaudeAutoFailureBoundaries();
         CredentialChanges("DeepSeek");
@@ -202,6 +204,58 @@ internal static class CoreQuotaSessionTests {
         }
         Console.WriteLine("PASS quota lifecycle soak: 360 simulated refresh rounds / 30 days, 810 reads, mixed failures, recovery, provider toggles and no overlapping requests");
         Console.WriteLine("PASS Core quota lifecycle: opt-in, host deadlines, manual refresh, no overlap, cancellation, re-enable late results, faults and disposal");
+    }
+    static void ForcedProviderRefresh(){
+        var now=new DateTimeOffset(2026,10,22,0,0,0,TimeSpan.Zero);
+        foreach(string provider in QuotaSession.Providers)
+        foreach(string status in new[]{"Refresh pending","Live","Login required","Quota unavailable","Refresh rate limited"}){
+            int calls=0;
+            using(var entered=new ManualResetEventSlim())using(var release=new ManualResetEventSlim())
+            using(var session=new QuotaSession((requested,cancel)=>{Interlocked.Increment(ref calls);entered.Set();Check(release.Wait(5000),"forced fixture was not released");return new QuotaReading{Provider=requested,Status="Live",Observed=now};})){
+                try{
+                    session.RestoreSchedules(new[]{new QuotaSchedule{Provider=provider,Status=status,Observed=now.AddMinutes(-1),NextAttempt=now.AddMinutes(15),NotBefore=now.AddMinutes(15),RecoveryFailures=2,RateLimitFailures=1}});
+                    Check(!session.CanRequestRefresh(provider,now,true),"disabled provider allowed forced refresh");
+                    session.RequestRefresh(provider,now,true);session.Tick(now);Check(calls==0,"force enabled an opted-out provider");
+                    session.Enable(provider,true);session.Tick(now);Check(calls==0&&!session.GetState(provider).Refreshing,"automatic tick ignored saved cooldown");
+                    Check(session.CanRequestRefresh(provider,now,true),provider+" manual button is blocked by "+status);
+                    session.RequestRefresh(provider,now,true);session.Tick(now);Check(entered.Wait(5000),"forced request did not start before cooldown: "+provider+" / "+status);
+                    Check(!session.CanRequestRefresh(provider,now,true),"running request allowed another forced refresh");
+                    var reserved=Array.Find(session.CaptureSchedules(),s=>s.Provider==provider);
+                    Check(reserved.NextAttempt==now.AddMinutes(5)&&reserved.NotBefore==reserved.NextAttempt,"forced request did not reserve before IO");
+                    Check(reserved.RecoveryFailures==2&&reserved.RateLimitFailures==1,"force erased failure debt before success");
+                    for(int click=0;click<10;click++){session.RequestRefresh(provider,now,true);session.Tick(now);}
+                    Check(calls==1,"forced clicks overlapped a running request");
+                    release.Set();Pump(session,now,()=>!session.GetState(provider).Refreshing);
+                    session.Tick(now.AddSeconds(1));Check(calls==1,"pending forced clicks queued an extra request");
+                    Check(session.GetState(provider).NextAttempt==now.AddMinutes(5)&&session.GetState(provider).RateLimitFailures==0,"successful force did not restore normal cadence");
+                    Check(session.CanRequestRefresh(provider,now,true),"completed request kept manual refresh disabled");
+                    session.Dispose();Check(!session.CanRequestRefresh(provider,now,true),"disposed session allowed forced refresh");
+                }finally{release.Set();}
+            }
+        }
+        Console.WriteLine("PASS forced quota refresh: every provider, saved deadlines, failure states, single request, no queued clicks and success cadence");
+    }
+    static void ForcedRefreshBackoffAndAutoRecovery(){
+        var now=new DateTimeOffset(2026,10,22,0,0,0,TimeSpan.Zero);int calls=0;
+        using(var session=new QuotaSession((provider,cancel)=>{Interlocked.Increment(ref calls);return new QuotaReading{Provider=provider,Status="Refresh rate limited",Observed=now,RetryAt=now.AddHours(1)};})){
+            session.RestoreSchedules(new[]{new QuotaSchedule{Provider="Claude",Status="Refresh rate limited",Observed=now.AddMinutes(-1),NextAttempt=now.AddMinutes(30),NotBefore=now.AddMinutes(30),RecoveryFailures=2,RateLimitFailures=1}});
+            session.Enable("Claude",true);session.RequestRefresh("Claude",now,true);Pump(session,now,()=>calls==1&&!session.GetState("Claude").Refreshing);
+            var schedule=Array.Find(session.CaptureSchedules(),s=>s.Provider=="Claude");
+            Check(schedule.RecoveryFailures==3&&schedule.RateLimitFailures==2&&schedule.NextAttempt==now.AddHours(1),"failed force lost failure debt or new server deadline");
+            session.Tick(now.AddHours(1).AddTicks(-1));Check(calls==1&&!session.GetState("Claude").Refreshing,"failed force caused an early automatic retry");
+            using(var restored=new QuotaSession((provider,cancel)=>{throw new Exception("saved cooldown was ignored");})){
+                restored.RestoreSchedules(session.CaptureSchedules());restored.Enable("Claude",true);restored.Tick(now.AddMinutes(1));
+                Check(!restored.GetState("Claude").Refreshing&&restored.GetState("Claude").NextAttempt==now.AddHours(1),"forced failure cooldown did not survive restart");
+            }
+        }
+        int apiCalls=0,cliCalls=0;
+        using(var session=new QuotaSession((provider,cancel)=>{throw new Exception("Auto left its selected reader");},(cli,cancel)=>{if(cli)Interlocked.Increment(ref cliCalls);else Interlocked.Increment(ref apiCalls);return new QuotaReading{Provider="Claude",Status="Live",Observed=now};})){
+            session.RestoreSchedules(new[]{new QuotaSchedule{Provider="Claude",Status="Login required",Observed=now.AddMinutes(-1),NextAttempt=now.AddHours(1),NotBefore=now.AddHours(1),RecoveryFailures=2,ClaudeRecovery=ClaudeRecoveryStage.LoginRequired}});
+            session.Enable("Claude",true,false,true);session.Tick(now);Check(!session.GetState("Claude").Refreshing,"Auto retried stopped authentication");
+            session.RequestRefresh("Claude",now,true);Pump(session,now,()=>apiCalls==1&&!session.GetState("Claude").Refreshing);
+            Check(cliCalls==0&&!session.GetState("Claude").AutoLoginRequired&&session.Readings[0].Status=="Live","forced Auto refresh did not recheck API authentication");
+        }
+        Console.WriteLine("PASS forced quota recovery: failure debt, Retry-After, restart persistence and explicit Auto authentication recheck");
     }
     static QuotaSession AutoSession(Func<bool,CancellationToken,QuotaReading> reader){
         var constructor=typeof(QuotaSession).GetConstructor(new[]{typeof(Func<string,CancellationToken,QuotaReading>),typeof(Func<bool,CancellationToken,QuotaReading>)});

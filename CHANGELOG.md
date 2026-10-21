@@ -4,6 +4,12 @@
 
 Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
+## 0.6.65 — 2026-10-22
+
+- Manual Refresh requests an immediate quota attempt: use a card's ↻ for that provider or Settings → AI Quota → Refresh Quota for all enabled providers. Bypass Pulse's polling interval, saved reservation, backoff and Retry-After for this explicit attempt.
+- Keep an enabled provider's idle card Refresh available during retry waits. Disable it while a request is pending, including a timed-out worker that has not stopped; repeated clicks neither overlap requests nor queue a follow-up.
+- Preserve failure counters when starting a manual attempt. Its outcome still determines automatic retry backoff and Retry-After.
+
 ## 0.6.64 — 2026-10-21
 
 - Check Claude Code's local authentication status before CLI quota queries. A signed-out CLI now reports Login Required even when `/usage` exits successfully with only session cost statistics; invalid authentication reports stay unavailable.

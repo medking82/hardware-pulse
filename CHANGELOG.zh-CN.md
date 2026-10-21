@@ -4,6 +4,12 @@
 
 日期为发布日期。未发布条目仅描述源代码变化，不代表已有可下载版本。作者：[Marck Wong](https://github.com/medking82)。
 
+## 0.6.65 — 2026-10-22
+
+- 手动 Refresh 立即发起一次 quota attempt：卡片的 ↻ 仅作用于该 provider，Settings → AI Quota → Refresh Quota 作用于所有 enabled providers。本次 explicit attempt 可越过 Pulse polling interval、saved reservation、backoff 和 Retry-After。
+- enabled provider 处于 idle 时，即使仍在 retry wait，卡片 Refresh 也保持可用。request pending 期间禁用，包括 timeout 后 worker 尚未停止的情况；连续点击不会产生 overlapping requests，也不会 queue follow-up。
+- 发起手动 attempt 时保留 failure counters；其 outcome 仍决定后续 automatic retry 的 backoff 和 Retry-After。
+
 ## 0.6.64 — 2026-10-21
 
 - 在 CLI quota query 前检查 Claude Code 的 local authentication status。CLI 已 logout 时，即使 `/usage` 以 exit code 0 返回 session cost statistics，也会正确报告 Login Required；无效的 authentication report 保持 unavailable。
