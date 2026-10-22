@@ -4,6 +4,10 @@
 
 日期为发布日期。未发布条目仅描述源代码变化，不代表已有可下载版本。作者：[Marck Wong](https://github.com/medking82)。
 
+## 0.6.66 — 2026-10-22
+
+- 更新 Jev 的 pinned read-only balance action，适配当前 console deployment。修复 HTTP 404 / Console Changed，无需替换有效的 session Cookie；保留原有 response、redirect 和 request isolation checks。
+
 ## 0.6.65 — 2026-10-22
 
 - 手动 Refresh 立即发起一次 quota attempt：卡片的 ↻ 仅作用于该 provider，Settings → AI Quota → Refresh Quota 作用于所有 enabled providers。本次 explicit attempt 可越过 Pulse polling interval、saved reservation、backoff 和 Retry-After。

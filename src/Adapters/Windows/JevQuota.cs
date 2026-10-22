@@ -18,7 +18,8 @@ namespace HardwarePulse {
     public static class JevQuota {
         public const string Origin="https://console.typesafe.ai";
         public const string Endpoint=Origin+"/usage";
-        const string ActionId="0007a99e21add197587fad1474318c6ac08c3ff8cc";
+        // Pinned zero-argument getBillingBalanceResult from the 2026-10-22 console client.
+        const string ActionId="00b163e3f5850493c1a7aea4324b5defb38da0f21a";
         public static string InstalledBrowser(){
             if(Environment.OSVersion.Platform!=PlatformID.Win32NT)return null;
             foreach(string relative in new[]{"Google/Chrome/Application/chrome.exe","Microsoft/Edge/Application/msedge.exe"})

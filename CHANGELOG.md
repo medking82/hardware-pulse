@@ -4,6 +4,10 @@
 
 Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
+## 0.6.66 — 2026-10-22
+
+- Update Jev's pinned read-only balance action to match the current console deployment. Fix HTTP 404 / Console Changed without replacing a valid session Cookie; preserve the existing response, redirect and request-isolation checks.
+
 ## 0.6.65 — 2026-10-22
 
 - Manual Refresh requests an immediate quota attempt: use a card's ↻ for that provider or Settings → AI Quota → Refresh Quota for all enabled providers. Bypass Pulse's polling interval, saved reservation, backoff and Retry-After for this explicit attempt.

@@ -31,6 +31,12 @@ internal static class JevProtocolTests {
                 catch(TargetInvocationException e){var failure=e.InnerException as QuotaFailure;Check(failure!=null&&failure.HttpStatus==status&&(status==307?failure.Status=="Session rejected":status==429&&failure.RetryAt>DateTimeOffset.UtcNow.AddMinutes(119)),"opaque redirects and 429 retain correlated safe metadata");}
             }
             var sent=Encoding.UTF8.GetString(output.ToArray()).Split(new[]{'\0'},StringSplitOptions.RemoveEmptyEntries).Select(QuotaData.Parse).ToArray();
+            var expression=sent.Where(row=>QuotaDecoder.Text(QuotaDecoder.Get(row,"method"))=="Runtime.evaluate").Select(row=>QuotaDecoder.Text(QuotaDecoder.Get(QuotaDecoder.Get(row,"params"),"expression"))).Single(value=>value!=null&&value.Contains("fetch("));
+            // Assert the emitted request, independently of the production pin and fixture request headers.
+            Check(expression.Contains("'Next-Action':'00b163e3f5850493c1a7aea4324b5defb38da0f21a'"),"billing balance fetch must use the confirmed getBillingBalanceResult action ID");
+            Check(expression.Contains("body:'[]'"),"billing balance action must retain its zero-argument body");
+            Check(expression.Contains("fetch('/usage',{")&&expression.Contains("method:'POST'")&&expression.Contains("credentials:'include'")&&expression.Contains("redirect:'manual'"),"read-only balance request must keep its fixed path, POST, browser credentials and manual redirect contract");
+            Check(expression.Contains("'Accept':'text/x-component'")&&expression.Contains("'Content-Type':'text/plain;charset=UTF-8'"),"billing balance request must retain its Flight action headers");
             Check(sent.Count(row=>QuotaDecoder.Text(QuotaDecoder.Get(row,"method"))=="Fetch.continueRequest")==1,"only one POST is admitted");
             var admitted=sent.Single(row=>QuotaDecoder.Text(QuotaDecoder.Get(row,"method"))=="Fetch.continueRequest");
             Check(QuotaDecoder.Text(QuotaDecoder.Get(QuotaDecoder.Get(admitted,"params"),"requestId"))=="fixture-read","credential is attached only to the fixed-origin request");

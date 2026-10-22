@@ -55,6 +55,10 @@ internal static class JevQuotaTests {
         Check(JevBalance.Decode(body,DateTimeOffset.UtcNow).Balances[0].Amount=="10.00","Flight action body reaches strict money decoder");
         foreach(string invalid in new[]{payload+payload,payload+"1:{\"ok\":true,\"data\":{\"balanceCents\":\"bad\"}}","z:{\"ok\":true,\"data\":{\"balanceCents\":1000}}","<html>not a response</html>"})Check(Failure(Wire(200,"text/x-component",invalid)).Status=="Quota unavailable","malformed or ambiguous Flight is not Live");
         Check(Failure(Wire(200,"text/html",payload)).Status=="Quota unavailable","HTML cannot supply a fake amount");
+        var missingAction=Wire(404,"text/plain","");missingAction["actionNotFound"]=true;var changed=Failure(missingAction);
+        Check(changed.Status=="Console changed"&&changed.HttpStatus==404,"explicit action-not-found 404 identifies console contract drift, not session rejection");
+        var ordinary404=Failure(Wire(404,"text/plain",""));
+        Check(ordinary404.Status=="Quota unavailable"&&ordinary404.HttpStatus==404,"unflagged 404 must not imply a changed action or rejected session");
         var redirected=Wire(307,"","");redirected["loginRedirect"]=true;Check(Failure(redirected).Status=="Session rejected","only a known login redirect identifies rejected session");
         Check(Failure(Wire(403,"text/html","blocked")).Status=="Quota access denied","403 alone is not expired session");
         var challenged=Wire(403,"text/html","");challenged["challenge"]=true;Check(Failure(challenged).Status=="Browser challenge required","challenge remains distinguishable from expired session");

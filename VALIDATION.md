@@ -1,5 +1,30 @@
 # Local validation — 2026-09-13
 
+## 0.6.66 Jev console compatibility — 2026-10-22
+
+- Installed 0.6.65 diagnostics reported Jev `Console changed`, HTTP 404 and
+  `Invalid response`, including after session replacement. The live console client
+  at deployment `45dce70345451973b656b14547b59f3ceca3ee0e` references the zero-argument
+  `getBillingBalanceResult` action as `00b163e3f5850493c1a7aea4324b5defb38da0f21a`;
+  Pulse still used the previous action ID. The `ok`/`data.balanceCents` contract
+  and fixed `/usage` request remain compatible.
+- Recorded a failing protocol regression against the old pin, then updated the
+  pin. `scripts/Test-WindowsAdapters.ps1` passes, including the emitted action
+  request and explicit action-not-found versus session-rejected error distinction.
+- A single bounded live probe used the candidate adapter and the existing
+  encrypted Jev session: HTTP 200, `Live`, one valid USD balance. The probe emitted
+  sanitized status only; no Cookie or amount was logged, and the encrypted
+  credential file remained byte-identical. No installed files were replaced.
+- Final `scripts/Validate.ps1 -ModernCore` passed for 0.6.66, including version
+  consistency, Framework and .NET 10 Core, Windows adapters/collector, Jev protocol
+  and status distinctions, forced quota Refresh, WPF/Settings, startup/lifecycle,
+  package and updater regressions.
+- `scripts/Build.ps1 -Installer` compiled both installer variants and the final
+  Windows x64 package. The app and installer use the existing self-signed
+  `CN=Marck Wong` certificate; the versioned installer and update-channel alias
+  are byte-identical. App file version is 0.6.66.0 and installer product version
+  is 0.6.66. No trusted-root change or local installation is claimed.
+
 ## 0.6.65 forced manual quota refresh — 2026-10-22
 
 - Recorded a failing Core regression for an idle provider whose restored

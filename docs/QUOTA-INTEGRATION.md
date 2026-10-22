@@ -23,13 +23,16 @@ redirects are blocked. No Electron, Node or browser bundle is shipped. A 25-seco
 owned process deadline bounds startup, protocol, fetch and cleanup. Extra-info
 events correlate opaque manual redirects/429 with the originating request ID.
 
-The deployed Next.js action ID is pinned to the known read-only balance function.
+The deployed Next.js action ID is pinned to the known read-only, zero-argument
+`getBillingBalanceResult` function, confirmed in the 2026-10-22 console client.
 It is not a public API contract: an upstream action change fails closed and may
 require a Pulse update. No automatic action discovery or account-writing fallback
 is attempted. Only one unambiguous successful Flight result with finite integer
 `data.balanceCents` is accepted. Zero and negative USD balances are genuine values.
 HTTP 403 alone does not imply expired login; known login redirects, challenges,
 rate limits and changed actions remain distinguishable.
+`Console Changed` with an explicit action-not-found response requires a Pulse
+integration update; replacing the session Cookie does not repair that contract.
 
 Core decoding/presentation is portable. The separate shared Desktop preview has
 no Cookie editor and continues rejecting Jev before credential reads; it never
