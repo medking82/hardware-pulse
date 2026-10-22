@@ -59,6 +59,10 @@ jobs:
         run: python3 scripts/prepare_desktop_fonts.py
       - name: Restore pinned dependencies
         run: dotnet restore scripts/DesktopTests/Pulse.Desktop.Tests.csproj --locked-mode
+      - name: Identify Windows foreground before any test
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./scripts/Run-Hidden.ps1 (Get-Command dotnet).Source @('run','--project','scripts/DesktopTests/Pulse.Desktop.Tests.csproj','-c','Release','--no-restore','--disable-build-servers','-p:UseSharedCompilation=false','--','--foreground-environment') $PWD.Path
       - name: Render, layout, keyboard and shutdown contracts
         run: dotnet run --project scripts/DesktopTests/Pulse.Desktop.Tests.csproj -c Release --no-restore --disable-build-servers -p:UseSharedCompilation=false
       - name: Native Windows demo window measurement

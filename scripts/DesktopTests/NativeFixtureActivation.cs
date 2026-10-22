@@ -43,7 +43,7 @@ static class NativeFixtureActivation {
                 if(!found) {
                     nint obstruct=hits[0];GetWindowRect(obstruct,out var blocked);
                     bool nativeTopmost=(GetWindowLongPtrW(handle,-20).ToInt64()&8)!=0;
-                    Reject($"hit-obstructed roots={string.Join(',',hits)} nativeTopmost={nativeTopmost} blockerRect={blocked.Left},{blocked.Top},{blocked.Right},{blocked.Bottom} virtualDesktop={GetSystemMetrics(76)},{GetSystemMetrics(77)},{GetSystemMetrics(78)},{GetSystemMetrics(79)}");return;
+                    Reject($"hit-obstructed roots={string.Join(',',hits)} nativeTopmost={nativeTopmost} blockerRect={blocked.Left},{blocked.Top},{blocked.Right},{blocked.Bottom} virtualDesktop={GetSystemMetrics(76)},{GetSystemMetrics(77)},{GetSystemMetrics(78)},{GetSystemMetrics(79)}",obstruct);return;
                 }
                 fixture.Closed+=OnClosed;
                 // Keep movement/click/restoration in one ordered input batch.
@@ -59,9 +59,10 @@ static class NativeFixtureActivation {
                 Console.WriteLine($"NATIVE_FIXTURE_CLICK owned={handle} sent={count}");Console.Out.Flush();
             } finally {if(!sent)fixture.Topmost=topmost;}
         }
-        void Reject(string reason) {
+        void Reject(string reason,nint obstruct=0) {
             if(rejected==reason)return;rejected=reason;
             Console.WriteLine($"NATIVE_FIXTURE_BLOCKED owned={handle} reason={reason}");Console.Out.Flush();
+            if(obstruct!=0)WindowsForegroundDiagnostics.Report("fixture-obstruction",obstruct);
         }
         void OnClosed(object? sender,EventArgs args)=>Cleanup();
         void Cleanup() {

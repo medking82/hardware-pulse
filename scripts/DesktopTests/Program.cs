@@ -20,6 +20,7 @@ static class Tests {
         if(args.Length>0&&args[0]=="--ui-benchmark"){Environment.ExitCode=UiBenchmark.Run(args);return;}
         var expected=Environment.GetEnvironmentVariable("PULSE_TEST_ARCH");
         Check(expected==null||expected==System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture.ToString(),"Architecture mismatch");
+        if(args.SequenceEqual(new[]{"--foreground-environment"})){WindowsForegroundDiagnostics.SelfTest();WindowsForegroundDiagnostics.Report("before-tests");return;}
         if(args.SequenceEqual(new[]{"--stack-collector-fixture"})){Console.WriteLine("NATIVE_TEST_BEGIN stack-collector-fixture");Console.Out.Flush();Thread.Sleep(15000);return;}
         if(args.Length==2&&args[0]=="--startup-fixture"){Environment.ExitCode=StartupModeTests.Child(args[1]);return;}
         if(args.SequenceEqual(new[]{"--startup-native"})){StartupModeTests.Native();return;}
@@ -42,6 +43,7 @@ static class Tests {
         if(args.SequenceEqual(new[]{"--sampling-reopen-native"})) {HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();NativeStep("sampling-reopen",SamplingRecoveryTests.Reopen);return;}
         if(args.SequenceEqual(new[]{"--tray-reopen-native"})) {HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();NativeStep("tray",()=>TrayTests.Run(native:true));NativeStep("sampling-reopen",SamplingRecoveryTests.Reopen);return;}
         if(args.SequenceEqual(new[]{"--native-session"})) {
+            WindowsForegroundDiagnostics.Report("native-session-start");
             HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();
             NativeStep("visibility",()=>SamplingRecoveryTests.Visibility());
             NativeStep("profile-migration",ProfileMigrationTests.Run);
