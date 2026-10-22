@@ -115,6 +115,8 @@ static class GameOverlayTests {
                 Check(fixture.Topmost==topmost,"Fixture activation retained temporary topmost policy");
             }
         }finally{other.Close();target.Close();}
+        // Exercise the original input/content contract in the same process after the real clicks and cleanup.
+        WindowsInputTests.Run();
         Console.WriteLine("PASS native owned-fixture activation: actual input/foreground, reversible topmost and no foreign-window mutation");
     }
     public static void Native(string? output=null) {

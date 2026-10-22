@@ -17,7 +17,7 @@ def run_session(command, stack_command=None, *, budget=NATIVE_BUDGET,
                 stall=STALL_SECONDS, stack_budget=STACK_BUDGET):
     started = time.monotonic()
     deadline = started + budget
-    last_progress = [started]
+    last_progress = [None]  # Arm only after native test progress, not slow runtime/font startup.
     lock = threading.Lock()
     flags = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
     process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
@@ -42,8 +42,8 @@ def run_session(command, stack_command=None, *, budget=NATIVE_BUDGET,
                 process.wait()
                 return 124
             with lock:
-                idle = now - last_progress[0]
-            if stack_command and not captured and idle >= stall:
+                idle = None if last_progress[0] is None else now - last_progress[0]
+            if stack_command and not captured and idle is not None and idle >= stall:
                 captured = True
                 print(f"NATIVE_STACK_BEGIN target_pid={process.pid} idleSeconds={idle:.3f}", flush=True)
                 report_env = os.environ.copy()

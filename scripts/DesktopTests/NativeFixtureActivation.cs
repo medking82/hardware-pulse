@@ -9,6 +9,7 @@ static class NativeFixtureActivation {
         readonly bool topmost=fixture.Topmost;
         nint handle;
         bool sent,cleaned;
+        string? rejected;
         Point previous;
         public bool Step() {
             if(!sent) {
@@ -21,17 +22,19 @@ static class NativeFixtureActivation {
             return ready(); // Windows may consume an activation click before routing managed pointer events.
         }
         void TrySend() {
-            if(!OperatingSystem.IsWindows()||!fixture.IsVisible)return;
+            if(!OperatingSystem.IsWindows()||!fixture.IsVisible){Reject("not-visible");return;}
             handle=fixture.TryGetPlatformHandle()?.Handle??0;
             Check(handle!=0&&GetWindowThreadProcessId(handle,out uint owner)!=0&&owner==(uint)Environment.ProcessId,"Fixture input requires this process's live HWND");
-            if(IsIconic(handle)||!GetClientRect(handle,out var rect)||rect.Right<100||rect.Bottom<100)return;
-            if(!GetUserObjectInformationW(GetThreadDesktop(GetCurrentThreadId()),6,out int input,4,out _)||input==0)return;
-            foreach(int key in new[]{1,2,4,0x10,0x11,0x12,0x5B,0x5C})if((GetAsyncKeyState(key)&0x8000)!=0)return;
+            if(IsIconic(handle)||!GetClientRect(handle,out var rect)||rect.Right<100||rect.Bottom<100){Reject("not-ready-client");return;}
+            if(!GetUserObjectInformationW(GetThreadDesktop(GetCurrentThreadId()),6,out int input,4,out _)||input==0){Reject("not-input-desktop");return;}
+            foreach(int key in new[]{1,2,4,0x10,0x11,0x12,0x5B,0x5C})if((GetAsyncKeyState(key)&0x8000)!=0){Reject($"input-held vk={key:X}");return;}
             var point=new Point{X=rect.Right/2,Y=rect.Bottom/2};
-            if(!ClientToScreen(handle,ref point)||!GetCursorPos(out previous))return;
+            if(!ClientToScreen(handle,ref point)){Reject("client-to-screen");return;}
+            if(!GetCursorPos(out previous)){Reject($"cursor-unavailable error={Marshal.GetLastWin32Error()}");return;}
             try {
                 fixture.Topmost=true;
-                if(GetAncestor(WindowFromPoint(point),2)!=handle)return;
+                nint hit=GetAncestor(WindowFromPoint(point),2);
+                if(hit!=handle){GetWindowThreadProcessId(hit,out uint hitOwner);Reject($"hit-obstructed root={hit} owned={hitOwner==(uint)Environment.ProcessId} temporaryTopmost={fixture.Topmost}");return;}
                 fixture.Closed+=OnClosed;
                 // Keep movement/click/restoration in one ordered input batch.
                 var events=new[]{Move(point),new Input{Mouse=new MouseInput{Flags=2}},new Input{Mouse=new MouseInput{Flags=4}},Move(previous)};
@@ -45,6 +48,10 @@ static class NativeFixtureActivation {
                 sent=true;
                 Console.WriteLine($"NATIVE_FIXTURE_CLICK owned={handle} sent={count}");Console.Out.Flush();
             } finally {if(!sent)fixture.Topmost=topmost;}
+        }
+        void Reject(string reason) {
+            if(rejected==reason)return;rejected=reason;
+            Console.WriteLine($"NATIVE_FIXTURE_BLOCKED owned={handle} reason={reason}");Console.Out.Flush();
         }
         void OnClosed(object? sender,EventArgs args)=>Cleanup();
         void Cleanup() {
@@ -74,7 +81,7 @@ static class NativeFixtureActivation {
     [DllImport("kernel32.dll")] static extern uint GetCurrentThreadId();
     [DllImport("user32.dll")] static extern bool GetUserObjectInformationW(nint handle,int index,out int value,int length,out int needed);
     [DllImport("user32.dll")] static extern short GetAsyncKeyState(int key);
-    [DllImport("user32.dll")] static extern bool GetCursorPos(out Point point);
+    [DllImport("user32.dll",SetLastError=true)] static extern bool GetCursorPos(out Point point);
     [DllImport("user32.dll")] static extern int GetSystemMetrics(int index);
     [DllImport("user32.dll",SetLastError=true)] static extern uint SendInput(uint count,Input[] events,int size);
 }

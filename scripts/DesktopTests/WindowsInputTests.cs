@@ -46,7 +46,8 @@ static class WindowsInputTests {
         try {
             Point Sample(){var point=above.PointToScreen(new Avalonia.Point(120,100));return new Point{X=point.X,Y=point.Y};}
             above.Activate();
-            try {Until(()=>HitWindow(Sample())==handle,"Native fixture is not above the underlying window");}
+            // Native hit testing can precede the first composited frame. Establish red content before changing input policy.
+            try {Until(()=>HitWindow(Sample())==handle&&Pixel(Sample())==0x0000ff,"Native fixture is not above the underlying window with visible red content");}
             finally {
                 var p=Sample();Console.WriteLine($"INPUT_FIXTURE above={handle} below={below.TryGetPlatformHandle()!.Handle} hit={WindowFromPoint(p)} point={p.X},{p.Y} position={above.Position} client={above.ClientSize} scale={above.RenderScaling} active={above.IsActive}");
                 Console.WriteLine("INPUT_WINDOW above "+Describe(handle));

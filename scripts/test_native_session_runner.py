@@ -31,7 +31,7 @@ class NativeSessionRunnerTests(unittest.TestCase):
     def test_stalled_report_targets_only_the_owned_pid_and_deadline_holds(self):
         with tempfile.TemporaryDirectory() as directory:
             pid_file = Path(directory)/"report-pid.txt"
-            child = "import os,time;print('CHILD_PID='+str(os.getpid()),flush=True);time.sleep(20)"
+            child = "import os,time;print('CHILD_PID='+str(os.getpid()),flush=True);print('NATIVE_TEST_BEGIN owned-child',flush=True);time.sleep(20)"
             reporter = "from pathlib import Path;import sys;Path(sys.argv[1]).write_text(sys.argv[-1]);print('managed fixture stack')"
             report = [*self.child(reporter), str(pid_file)]
             flags = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
@@ -50,10 +50,18 @@ class NativeSessionRunnerTests(unittest.TestCase):
             finally:
                 peer.kill();peer.wait()
 
+    def test_startup_delay_does_not_consume_the_only_stall_report(self):
+        output = io.StringIO()
+        child = "import time;time.sleep(.5);print('NATIVE_TEST_BEGIN ready',flush=True);time.sleep(.1)"
+        with contextlib.redirect_stdout(output):
+            result = run_session(self.child(child), self.child("print('unexpected startup report')"), budget=2, stall=.3)
+        self.assertEqual(result, 0)
+        self.assertNotIn("NATIVE_STACK_BEGIN", output.getvalue())
+
     def test_reporter_hang_cannot_extend_child_deadline(self):
         output = io.StringIO();started = time.monotonic()
         with contextlib.redirect_stdout(output):
-            result = run_session(self.child("import time;time.sleep(20)"), self.child("import time;time.sleep(20)"),
+            result = run_session(self.child("import time;print('NATIVE_TEST_BEGIN owned-child',flush=True);time.sleep(20)"), self.child("import time;time.sleep(20)"),
                                  budget=1.5, stall=.3, stack_budget=.2)
         self.assertEqual(result, 124)
         self.assertLess(time.monotonic()-started, 3)

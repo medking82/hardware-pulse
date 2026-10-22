@@ -37,6 +37,7 @@ static class Tests {
         if(args.SequenceEqual(new[]{"--shortcuts-native"})) {HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();DesktopShortcutTests.Native();return;}
         if(args.SequenceEqual(new[]{"--layouts-native"})) {HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();ReadingLayoutTests.Run(native:true);return;}
         if(args.SequenceEqual(new[]{"--foreground-fixture-native"})) {HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();NativeStep("foreground-fixture",GameOverlayTests.ForegroundFixtureRegression);return;}
+        if(args.SequenceEqual(new[]{"--pump-native"})) {HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();NativeStep("pump-cancellation",NativePumpTests.Cancellation);return;}
         if(args.SequenceEqual(new[]{"--fps-native"})) {HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();NativeStep("fps",()=>FpsPanelTests.Run());return;}
         if(args.SequenceEqual(new[]{"--sampling-reopen-native"})) {HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();NativeStep("sampling-reopen",SamplingRecoveryTests.Reopen);return;}
         if(args.SequenceEqual(new[]{"--tray-reopen-native"})) {HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();NativeStep("tray",()=>TrayTests.Run(native:true));NativeStep("sampling-reopen",SamplingRecoveryTests.Reopen);return;}
@@ -66,6 +67,7 @@ static class Tests {
             NativeStep("mac-input",MacInputTests.Run);
             NativeStep("mac-material",MacMaterialTests.Run);
             NativeStep("x11-input",X11InputTests.Run);
+            if(OperatingSystem.IsLinux())NativeStep("pump-cancellation",NativePumpTests.Cancellation);
             Console.WriteLine("PASS native Desktop session: isolated settings, language, theme, restore, tray commands and shutdown");
             return;
         }
