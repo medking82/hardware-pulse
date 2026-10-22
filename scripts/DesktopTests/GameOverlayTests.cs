@@ -14,7 +14,7 @@ static class GameOverlayTests {
     static void Check(bool ok,string message){if(!ok)throw new Exception(message);}
     static void Until(Func<bool> done,string message,Func<string>? state=null) {
         var end=DateTime.UtcNow.AddSeconds(8);
-        while(!done()&&DateTime.UtcNow<end){using var slice=new CancellationTokenSource(TimeSpan.FromMilliseconds(20));Dispatcher.UIThread.MainLoop(slice.Token);}
+        while(!done()&&DateTime.UtcNow<end){TestUiPump.Slice(20);}
         if(!done())throw new Exception(message+(state==null?"":"; "+state()));
     }
     static string FixtureState(Window fixture) {

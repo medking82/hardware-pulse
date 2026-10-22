@@ -28,13 +28,23 @@ static class NativeFixtureActivation {
             if(IsIconic(handle)||!GetClientRect(handle,out var rect)||rect.Right<100||rect.Bottom<100){Reject("not-ready-client");return;}
             if(!GetUserObjectInformationW(GetThreadDesktop(GetCurrentThreadId()),6,out int input,4,out _)||input==0){Reject("not-input-desktop");return;}
             foreach(int key in new[]{1,2,4,0x10,0x11,0x12,0x5B,0x5C})if((GetAsyncKeyState(key)&0x8000)!=0){Reject($"input-held vk={key:X}");return;}
-            var point=new Point{X=rect.Right/2,Y=rect.Bottom/2};
-            if(!ClientToScreen(handle,ref point)){Reject("client-to-screen");return;}
             if(!GetCursorPos(out previous)){Reject($"cursor-unavailable error={Marshal.GetLastWin32Error()}");return;}
             try {
                 fixture.Topmost=true;
-                nint hit=GetAncestor(WindowFromPoint(point),2);
-                if(hit!=handle){GetWindowThreadProcessId(hit,out uint hitOwner);Reject($"hit-obstructed root={hit} owned={hitOwner==(uint)Environment.ProcessId} temporaryTopmost={fixture.Topmost}");return;}
+                // A foreign surface can cover the center. Every candidate must still hit this owned client.
+                var candidates=new[]{new Point{X=rect.Right/2,Y=rect.Bottom/2},new Point{X=16,Y=16},new Point{X=rect.Right-16,Y=16},new Point{X=16,Y=rect.Bottom-16},new Point{X=rect.Right-16,Y=rect.Bottom-16}};
+                var point=new Point();var hits=new List<nint>();bool found=false;
+                foreach(var candidate in candidates) {
+                    point=candidate;
+                    if(!ClientToScreen(handle,ref point)){Reject("client-to-screen");return;}
+                    nint hit=GetAncestor(WindowFromPoint(point),2);hits.Add(hit);
+                    if(hit==handle){found=true;break;}
+                }
+                if(!found) {
+                    nint obstruct=hits[0];GetWindowRect(obstruct,out var blocked);
+                    bool nativeTopmost=(GetWindowLongPtrW(handle,-20).ToInt64()&8)!=0;
+                    Reject($"hit-obstructed roots={string.Join(',',hits)} nativeTopmost={nativeTopmost} blockerRect={blocked.Left},{blocked.Top},{blocked.Right},{blocked.Bottom}");return;
+                }
                 fixture.Closed+=OnClosed;
                 // Keep movement/click/restoration in one ordered input batch.
                 var events=new[]{Move(point),new Input{Mouse=new MouseInput{Flags=2}},new Input{Mouse=new MouseInput{Flags=4}},Move(previous)};
@@ -74,6 +84,8 @@ static class NativeFixtureActivation {
     [DllImport("user32.dll")] static extern bool IsWindow(nint window);
     [DllImport("user32.dll")] static extern bool IsIconic(nint window);
     [DllImport("user32.dll")] static extern bool GetClientRect(nint window,out Rect rect);
+    [DllImport("user32.dll")] static extern bool GetWindowRect(nint window,out Rect rect);
+    [DllImport("user32.dll")] static extern nint GetWindowLongPtrW(nint window,int index);
     [DllImport("user32.dll")] static extern bool ClientToScreen(nint window,ref Point point);
     [DllImport("user32.dll")] static extern nint WindowFromPoint(Point point);
     [DllImport("user32.dll")] static extern nint GetAncestor(nint window,uint flags);

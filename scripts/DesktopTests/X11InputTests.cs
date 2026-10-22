@@ -7,7 +7,7 @@ using HardwarePulse.Desktop;
 
 static class X11InputTests {
     static void Check(bool ok,string message){if(!ok)throw new Exception(message);}
-    static void Pump(){using var slice=new CancellationTokenSource(TimeSpan.FromMilliseconds(20));Dispatcher.UIThread.MainLoop(slice.Token);}
+    static void Pump(){TestUiPump.Slice(20);}
     static void Until(Func<bool> predicate,string message){var end=DateTime.UtcNow.AddSeconds(3);while(!predicate()&&DateTime.UtcNow<end)Pump();Check(predicate(),message);}
     public static void Run() {
         if(!OperatingSystem.IsLinux())return;

@@ -27,7 +27,7 @@ static class WindowsInputTests {
         try{using var owner=System.Diagnostics.Process.GetProcessById((int)process);processName=owner.ProcessName;}catch(ArgumentException){}catch(System.ComponentModel.Win32Exception){}
         return $"hwnd={window} root={GetAncestor(window,2)} class={name} pid={process} process={processName} rect={rect.Left},{rect.Top},{rect.Right},{rect.Bottom} exStyle={GetWindowLongPtrW(window,-20).ToInt64():X}";
     }
-    static void Pump(){using var slice=new CancellationTokenSource(TimeSpan.FromMilliseconds(150));Dispatcher.UIThread.MainLoop(slice.Token);}
+    static void Pump(){TestUiPump.Slice(150);}
     static uint Pixel(Point point){var dc=GetDC(0);try{return GetPixel(dc,point.X,point.Y);}finally{ReleaseDC(0,dc);}}
     static void Until(Func<bool> condition,string message) {
         var deadline=DateTime.UtcNow.AddSeconds(5);

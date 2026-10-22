@@ -47,7 +47,7 @@ static class FloatingMonitorTests {
             owner.Language.Select("en");
             var quota=owner.GetVisualDescendants().OfType<CodexQuotaPanel>().Single(x=>x.Provider=="Codex");quota.QuotaEnabled=true;
             var quotaDeadline=DateTime.UtcNow.AddSeconds(5);
-            while(quota.CurrentReading?.Status!="Live"&&DateTime.UtcNow<quotaDeadline){using var slice=new CancellationTokenSource(TimeSpan.FromMilliseconds(20));Dispatcher.UIThread.MainLoop(slice.Token);}
+            while(quota.CurrentReading?.Status!="Live"&&DateTime.UtcNow<quotaDeadline){TestUiPump.Slice(20);}
             Check(quota.CurrentReading?.Status=="Live"&&floating.GetVisualDescendants().OfType<TextBlock>().Any(x=>x.Text=="72.5% left"),"Existing quota session not projected into floating window");
             quota.QuotaEnabled=false;
             Check(!floating.GetVisualDescendants().OfType<TextBlock>().Any(x=>x.Text=="72.5% left"),"Disabled quota remains visible in floating window");
@@ -59,7 +59,7 @@ static class FloatingMonitorTests {
             // A real window manager acknowledges resize asynchronously, especially
             // after removing/restoring decorations. RunJobs alone is not an acknowledgement.
             var resized=DateTime.UtcNow.AddSeconds(3);
-            while(Math.Abs(floating.ClientSize.Width-360)>1&&DateTime.UtcNow<resized){using var slice=new CancellationTokenSource(TimeSpan.FromMilliseconds(20));Dispatcher.UIThread.MainLoop(slice.Token);}
+            while(Math.Abs(floating.ClientSize.Width-360)>1&&DateTime.UtcNow<resized){TestUiPump.Slice(20);}
             Dispatcher.UIThread.RunJobs();
             Console.WriteLine($"FLOATING_RESIZE settled client={floating.ClientSize.Width} widest={floating.GetVisualDescendants().OfType<TextBlock>().Max(x=>x.Bounds.Width)}");
             Check(Math.Abs(floating.ClientSize.Width-360)<=1,"Floating native resize was not acknowledged");

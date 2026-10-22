@@ -6,7 +6,7 @@ using HardwarePulse.Desktop;
 
 static class LockedLayoutTests {
     static void Check(bool ok,string message){if(!ok)throw new Exception(message);}
-    static void Pump(){var end=DateTime.UtcNow.AddMilliseconds(500);while(DateTime.UtcNow<end){using var slice=new CancellationTokenSource(TimeSpan.FromMilliseconds(20));Dispatcher.UIThread.MainLoop(slice.Token);}}
+    static void Pump(){var end=DateTime.UtcNow.AddMilliseconds(500);while(DateTime.UtcNow<end){TestUiPump.Slice(20);}}
     public static void Fps(string? output=null) {
         var saved=new PreviewSettings{FloatingWidth=360};var language=new UiLanguage("en");
         var window=new FloatingMonitorWindow(language,saved);window.Show();

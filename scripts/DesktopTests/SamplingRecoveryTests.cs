@@ -18,7 +18,7 @@ static class SamplingRecoveryTests {
     static void Check(bool ok,string message){if(!ok)throw new Exception(message);}
     static void Until(Func<bool> done) {
         var end=DateTime.UtcNow.AddSeconds(5);
-        while(!done()&&DateTime.UtcNow<end){using var slice=new CancellationTokenSource(TimeSpan.FromMilliseconds(20));Dispatcher.UIThread.MainLoop(slice.Token);}
+        while(!done()&&DateTime.UtcNow<end){TestUiPump.Slice(20);}
         Check(done(),"Sampling recovery timed out");
     }
     static bool Has(Window window,string text)=>window.GetVisualDescendants().OfType<TextBlock>().Any(x=>x.Text==text);

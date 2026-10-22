@@ -12,7 +12,7 @@ static class WindowsInstanceTests {
     static void Check(bool ok,string text){if(!ok)throw new Exception(text);}
     static void Until(Func<bool> done) {
         var deadline=DateTime.UtcNow.AddSeconds(5);
-        while(!done()&&DateTime.UtcNow<deadline){using var slice=new CancellationTokenSource(TimeSpan.FromMilliseconds(20));Dispatcher.UIThread.MainLoop(slice.Token);}
+        while(!done()&&DateTime.UtcNow<deadline){TestUiPump.Slice(20);}
         Check(done(),"Instance activation timed out");
     }
     static Process Child(string command,string id) {

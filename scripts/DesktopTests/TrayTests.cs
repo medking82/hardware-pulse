@@ -14,7 +14,7 @@ static class TrayTests {
     }
     static void Until(Func<bool> done,string failure) {
         var end=DateTime.UtcNow.AddSeconds(5);
-        while(!done()&&DateTime.UtcNow<end){using var slice=new CancellationTokenSource(TimeSpan.FromMilliseconds(20));Dispatcher.UIThread.MainLoop(slice.Token);}
+        while(!done()&&DateTime.UtcNow<end){TestUiPump.Slice(20);}
         if(!done())throw new Exception(failure);
     }
     public static void Run(bool native=false) {

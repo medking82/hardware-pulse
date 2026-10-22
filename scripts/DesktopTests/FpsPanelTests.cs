@@ -18,7 +18,7 @@ static class FpsPanelTests {
     static void Check(bool ok,string message){if(!ok)throw new Exception(message);}
     static void Until(Func<bool> done,string message) {
         var deadline=DateTime.UtcNow.AddSeconds(8);
-        while(!done()&&DateTime.UtcNow<deadline){using var slice=new CancellationTokenSource(TimeSpan.FromMilliseconds(20));Dispatcher.UIThread.MainLoop(slice.Token);}
+        while(!done()&&DateTime.UtcNow<deadline){TestUiPump.Slice(20);}
         Check(done(),message);
     }
     public static void Run(string? output=null) {

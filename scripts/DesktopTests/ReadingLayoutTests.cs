@@ -43,7 +43,7 @@ static class ReadingLayoutTests {
             owner.Language.Select("zh-CN");Check((string?)panel.Children[0].Tag=="Memory","Localization changed stable order");owner.Language.Select("en");
             Check(!owner.GetVisualDescendants().OfType<FpsPanel>().Single().Enabled&&owner.GetVisualDescendants().OfType<CodexQuotaPanel>().All(x=>!x.QuotaEnabled),"Layout enabled optional acquisition");
             main.SelectedIndex=1;Dispatcher.UIThread.RunJobs();tabs.SelectedIndex=4;owner.Width=360;owner.Height=850;Dispatcher.UIThread.RunJobs();
-            if(native){var until=DateTime.UtcNow.AddMilliseconds(500);while(DateTime.UtcNow<until){using var slice=new CancellationTokenSource(TimeSpan.FromMilliseconds(20));Dispatcher.UIThread.MainLoop(slice.Token);}}
+            if(native){var until=DateTime.UtcNow.AddMilliseconds(500);while(DateTime.UtcNow<until){TestUiPump.Slice(20);}}
             foreach(var row in desktop.Children.Cast<Grid>()) {
                 Check(((CheckBox)row.Children[0]).IsEnabled,"Visibility toggle accidentally disabled");
                 Check(row.Children[1].Bounds.Width>=100&&row.Children[3].Bounds.Right<=row.Bounds.Width+1,"Narrow editor clips label/actions");

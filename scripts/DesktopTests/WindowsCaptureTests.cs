@@ -10,7 +10,7 @@ static class WindowsCaptureTests {
     [DllImport("user32.dll")] static extern bool GetWindowDisplayAffinity(nint window,out uint affinity);
     [DllImport("user32.dll")] static extern uint GetGuiResources(nint process,uint flags);
     static void Check(bool ok,string text){if(!ok)throw new Exception(text);}
-    static void Pump(){using var stop=new CancellationTokenSource(200);Dispatcher.UIThread.MainLoop(stop.Token);}
+    static void Pump(){TestUiPump.Slice(200);}
     public static void Native() {
         if(!OperatingSystem.IsWindows())return;
         Check(WindowsBackgroundCapture.Supported,"Capture acceptance requires Windows 10 2004+");

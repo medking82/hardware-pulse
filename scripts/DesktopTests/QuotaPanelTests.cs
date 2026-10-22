@@ -12,7 +12,7 @@ static class QuotaPanelTests {
     static IEnumerable<TextBlock> Text(Window window)=>window.GetVisualDescendants().OfType<TextBlock>();
     static void Until(Func<bool> ready,string message) {
         var deadline=DateTime.UtcNow.AddSeconds(5);
-        while(!ready()&&DateTime.UtcNow<deadline){using var slice=new CancellationTokenSource(TimeSpan.FromMilliseconds(20));Dispatcher.UIThread.MainLoop(slice.Token);}
+        while(!ready()&&DateTime.UtcNow<deadline){TestUiPump.Slice(20);}
         Check(ready(),message);
     }
     static QuotaReading Result() {

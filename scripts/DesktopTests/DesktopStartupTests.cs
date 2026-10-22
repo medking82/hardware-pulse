@@ -23,7 +23,7 @@ static class DesktopStartupTests {
     static void Check(bool ok,string text){if(!ok)throw new Exception(text);}
     static void Wait(Task task) {
         var end=DateTime.UtcNow.AddSeconds(5);
-        while(!task.IsCompleted&&DateTime.UtcNow<end){using var slice=new CancellationTokenSource(20);Dispatcher.UIThread.MainLoop(slice.Token);}
+        while(!task.IsCompleted&&DateTime.UtcNow<end){TestUiPump.Slice(20);}
         Check(task.IsCompleted,"Startup operation timed out");task.GetAwaiter().GetResult();
     }
     public static void Run() {
