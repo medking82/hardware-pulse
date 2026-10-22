@@ -47,16 +47,19 @@ static class SamplingRecoveryTests {
         Console.WriteLine("PASS hidden/minimized Monitor defers controls, preserves floating live/max and restores latest readings");
     }
     public static void Reopen() {
-        var source=new IntermittentSource();var window=new MonitorWindow(source);window.Show();
+        Console.WriteLine("SAMPLING_REOPEN_PHASE construct");Console.Out.Flush();
+        var source=new IntermittentSource();var window=new MonitorWindow(source);
+        void Phase(string stage){Console.WriteLine($"SAMPLING_REOPEN_PHASE {stage} calls={source.Calls} worker={window.Sampling.Status}");Console.Out.Flush();}
+        Phase("show");window.Show();
         try {
-            Until(()=>Has(window,"21.0%"));
+            Phase("wait-first");Until(()=>Has(window,"21.0%"));
             var firstWorker=window.Sampling;
-            window.Hide();Until(()=>source.Calls>=3);
+            Phase("hide");window.Hide();Phase("wait-hidden-poll");Until(()=>source.Calls>=3);
             Check(Has(window,"21.0%"),"Background polling must leave hidden Monitor controls unchanged");
-            window.Show();Until(()=>Has(window,"31.0%"));
-            for(int i=0;i<3;i++){window.Hide();window.Show();}
+            Phase("restore");window.Show();Phase("wait-restored-reading");Until(()=>Has(window,"31.0%"));
+            for(int i=0;i<3;i++){Phase("toggle-"+i);window.Hide();window.Show();}
             Check(ReferenceEquals(firstWorker,window.Sampling),"Reopening Monitor must retain one sampling worker");
-        } finally {window.Close();Until(()=>window.Sampling.IsCompleted);}
+        } finally {Phase("close");window.Close();Phase("wait-worker");Until(()=>window.Sampling.IsCompleted);Phase("complete");}
         Console.WriteLine("PASS Monitor hide/show retains a single sampling worker and closes cleanly");
     }
     public static void Run() {

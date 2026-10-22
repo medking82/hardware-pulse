@@ -11,7 +11,16 @@ using HardwarePulse.Desktop;
 
 static class GameOverlayTests {
     static void Check(bool ok,string message){if(!ok)throw new Exception(message);}
-    static void Until(Func<bool> done,string message){var end=DateTime.UtcNow.AddSeconds(8);while(!done()&&DateTime.UtcNow<end){using var slice=new CancellationTokenSource(TimeSpan.FromMilliseconds(20));Dispatcher.UIThread.MainLoop(slice.Token);}Check(done(),message);}
+    static void Until(Func<bool> done,string message,Func<string>? state=null) {
+        var end=DateTime.UtcNow.AddSeconds(8);
+        while(!done()&&DateTime.UtcNow<end){using var slice=new CancellationTokenSource(TimeSpan.FromMilliseconds(20));Dispatcher.UIThread.MainLoop(slice.Token);}
+        if(!done())throw new Exception(message+(state==null?"":"; "+state()));
+    }
+    static string FixtureState(Window fixture) {
+        nint handle=fixture.TryGetPlatformHandle()?.Handle??0;
+        bool client=GetClientRect(handle,out var rect);var origin=new NativePoint();bool screen=ClientToScreen(handle,ref origin);
+        return $"hwnd={handle}; foreground={GetForegroundWindow()}; visible={fixture.IsVisible}; active={fixture.IsActive}; iconic={IsIconic(handle)}; clientOk={client}; client={rect.Right}x{rect.Bottom}; screenOk={screen}; position={origin.X},{origin.Y}; scale={fixture.RenderScaling}";
+    }
     sealed class Source : IDesktopGameSource {
         public int Calls,Captures,Disposed;
         public bool Hold;
@@ -86,7 +95,7 @@ static class GameOverlayTests {
         var overlay=new GameOverlayWindow();var options=new GameOverlayOptions{Enabled=true};
         try {
             target.Show();target.Activate();nint handle=target.TryGetPlatformHandle()!.Handle;
-            Until(()=>GameOverlayWindow.TargetBounds(handle,out _),"Fixture target could not become foreground");
+            Until(()=>GameOverlayWindow.TargetBounds(handle,out _),"Fixture target requires foreground and a valid client area",()=>FixtureState(target));
             overlay.Display(handle,"FPS 73 · CPU 24%",options);
             Until(()=>overlay.IsVisible&&overlay.InputReady&&overlay.Bounds.Width>10,"Overlay not visible/pass-through ready");
             Check(GetForegroundWindow()==handle,"Overlay stole foreground");
@@ -103,9 +112,9 @@ static class GameOverlayTests {
                 Until(()=>overlay.Position==GameOverlayWindow.Anchor(rect,(int)Math.Ceiling(overlay.Bounds.Width*overlay.RenderScaling),(int)Math.Ceiling(overlay.Bounds.Height*overlay.RenderScaling),position),"Native anchor mismatch");
             }
             target.Position=new(230,220);Until(()=>GameOverlayWindow.TargetBounds(handle,out var moved)&&moved.X>=230,"Target move not acknowledged");overlay.Display(handle,"moved",options);
-            other.Show();other.Activate();Until(()=>GetForegroundWindow()==other.TryGetPlatformHandle()!.Handle,"Other fixture foreground");
+            other.Show();other.Activate();Until(()=>GetForegroundWindow()==other.TryGetPlatformHandle()!.Handle,"Other fixture foreground",()=>FixtureState(other));
             overlay.Display(handle,"hidden",options);Check(!overlay.IsVisible,"Overlay remained on another foreground app");
-            target.Activate();Until(()=>GetForegroundWindow()==handle,"Target restore foreground");overlay.Display(handle,"restored",options);
+            target.Activate();Until(()=>GetForegroundWindow()==handle,"Target restore foreground",()=>FixtureState(target));overlay.Display(handle,"restored",options);
             Check(overlay.IsVisible&&overlay.InputReady&&GetForegroundWindow()==handle,"Overlay restore lost pass-through or activation policy");
             target.WindowState=WindowState.Minimized;Until(()=>!GameOverlayWindow.TargetBounds(handle,out _),"Target minimize not observed");overlay.Display(handle,"minimized",options);Check(!overlay.IsVisible,"Overlay visible over minimized target");
         }finally{overlay.Close();other.Close();target.Close();}
@@ -113,6 +122,10 @@ static class GameOverlayTests {
     }
     [DllImport("user32.dll")] static extern nint GetForegroundWindow();
     [DllImport("user32.dll")] static extern nint GetWindowLongPtrW(nint window,int index);
+    [StructLayout(LayoutKind.Sequential)] struct NativeRect {public int Left,Top,Right,Bottom;}
+    [DllImport("user32.dll")] static extern bool GetClientRect(nint window,out NativeRect rect);
+    [DllImport("user32.dll")] static extern bool ClientToScreen(nint window,ref NativePoint point);
+    [DllImport("user32.dll")] static extern bool IsIconic(nint window);
     [StructLayout(LayoutKind.Sequential)] struct NativePoint {public int X,Y;}
     [DllImport("user32.dll")] static extern nint WindowFromPoint(NativePoint point);
     [DllImport("user32.dll")] static extern nint GetAncestor(nint window,uint flags);

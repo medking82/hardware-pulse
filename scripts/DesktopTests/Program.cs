@@ -8,6 +8,13 @@ using HardwarePulse.Desktop;
 
 static class Tests {
     static void Check(bool ok,string message){if(!ok)throw new Exception(message);}
+    static void NativeStep(string name,Action test) {
+        var elapsed=System.Diagnostics.Stopwatch.StartNew();
+        Console.WriteLine($"NATIVE_TEST_BEGIN {name}");Console.Out.Flush();
+        try {test();}
+        catch {Console.WriteLine($"NATIVE_TEST_FAIL {name} elapsedMs={elapsed.ElapsedMilliseconds}");Console.Out.Flush();throw;}
+        Console.WriteLine($"NATIVE_TEST_PASS {name} elapsedMs={elapsed.ElapsedMilliseconds}");Console.Out.Flush();
+    }
     [STAThread]
     static void Main(string[] args) {
         if(args.Length>0&&args[0]=="--ui-benchmark"){Environment.ExitCode=UiBenchmark.Run(args);return;}
@@ -28,32 +35,34 @@ static class Tests {
         if(args.SequenceEqual(new[]{"--locked-layout-native"})) {HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();LockedLayoutTests.Native();return;}
         if(args.SequenceEqual(new[]{"--shortcuts-native"})) {HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();DesktopShortcutTests.Native();return;}
         if(args.SequenceEqual(new[]{"--layouts-native"})) {HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();ReadingLayoutTests.Run(native:true);return;}
+        if(args.SequenceEqual(new[]{"--sampling-reopen-native"})) {HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();NativeStep("sampling-reopen",SamplingRecoveryTests.Reopen);return;}
+        if(args.SequenceEqual(new[]{"--tray-reopen-native"})) {HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();NativeStep("tray",()=>TrayTests.Run(native:true));NativeStep("sampling-reopen",SamplingRecoveryTests.Reopen);return;}
         if(args.SequenceEqual(new[]{"--native-session"})) {
             HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();
-            SamplingRecoveryTests.Visibility();
-            ProfileMigrationTests.Run();
-            SettingsTests.Run(null);
-            LocalizationTests.Run(null,native:true);
-            TrayTests.Run(native:true);
-            SamplingRecoveryTests.Reopen();
-            FloatingMonitorTests.Run();
-            WindowsHardwareTests.Run(null);
-            FpsPanelTests.Run();
-            GameOverlayTests.Run();GameOverlayTests.Native();
-            DesktopShortcutTests.Native();
-            ReadingLayoutTests.Run(native:true);
-            LockedLayoutTests.Native();
-            WindowsInstanceTests.Native();
-            StartupModeTests.Native();
-            DesktopStartupTests.Run();
-            DesktopUpdateTests.Run();
-            WindowsLayerTests.Native();
-            WindowsCaptureTests.Native();
-            LocalContrastTests.Native();
-            WindowsInputTests.Run();
-            MacInputTests.Run();
-            MacMaterialTests.Run();
-            X11InputTests.Run();
+            NativeStep("visibility",()=>SamplingRecoveryTests.Visibility());
+            NativeStep("profile-migration",ProfileMigrationTests.Run);
+            NativeStep("settings",()=>SettingsTests.Run(null));
+            NativeStep("localization",()=>LocalizationTests.Run(null,native:true));
+            NativeStep("tray",()=>TrayTests.Run(native:true));
+            NativeStep("sampling-reopen",SamplingRecoveryTests.Reopen);
+            NativeStep("floating-monitor",()=>FloatingMonitorTests.Run());
+            NativeStep("windows-hardware",()=>WindowsHardwareTests.Run(null));
+            NativeStep("fps",()=>FpsPanelTests.Run());
+            NativeStep("game-overlay",()=>{GameOverlayTests.Run();GameOverlayTests.Native();});
+            NativeStep("shortcuts",DesktopShortcutTests.Native);
+            NativeStep("reading-layout",()=>ReadingLayoutTests.Run(native:true));
+            NativeStep("locked-layout",LockedLayoutTests.Native);
+            NativeStep("instance",WindowsInstanceTests.Native);
+            NativeStep("startup-mode",StartupModeTests.Native);
+            NativeStep("startup-controls",DesktopStartupTests.Run);
+            NativeStep("updates",DesktopUpdateTests.Run);
+            NativeStep("windows-layer",WindowsLayerTests.Native);
+            NativeStep("windows-capture",WindowsCaptureTests.Native);
+            NativeStep("contrast",LocalContrastTests.Native);
+            NativeStep("windows-input",WindowsInputTests.Run);
+            NativeStep("mac-input",MacInputTests.Run);
+            NativeStep("mac-material",MacMaterialTests.Run);
+            NativeStep("x11-input",X11InputTests.Run);
             Console.WriteLine("PASS native Desktop session: isolated settings, language, theme, restore, tray commands and shutdown");
             return;
         }
