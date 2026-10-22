@@ -35,6 +35,7 @@ static class Tests {
         if(args.SequenceEqual(new[]{"--locked-layout-native"})) {HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();LockedLayoutTests.Native();return;}
         if(args.SequenceEqual(new[]{"--shortcuts-native"})) {HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();DesktopShortcutTests.Native();return;}
         if(args.SequenceEqual(new[]{"--layouts-native"})) {HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();ReadingLayoutTests.Run(native:true);return;}
+        if(args.SequenceEqual(new[]{"--fps-native"})) {HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();NativeStep("fps",()=>FpsPanelTests.Run());return;}
         if(args.SequenceEqual(new[]{"--sampling-reopen-native"})) {HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();NativeStep("sampling-reopen",SamplingRecoveryTests.Reopen);return;}
         if(args.SequenceEqual(new[]{"--tray-reopen-native"})) {HardwarePulse.Desktop.Program.BuildApp().SetupWithoutStarting();NativeStep("tray",()=>TrayTests.Run(native:true));NativeStep("sampling-reopen",SamplingRecoveryTests.Reopen);return;}
         if(args.SequenceEqual(new[]{"--native-session"})) {

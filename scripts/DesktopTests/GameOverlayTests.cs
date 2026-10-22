@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using System.Text.Json;
+using System.Text;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
@@ -17,9 +18,23 @@ static class GameOverlayTests {
         if(!done())throw new Exception(message+(state==null?"":"; "+state()));
     }
     static string FixtureState(Window fixture) {
-        nint handle=fixture.TryGetPlatformHandle()?.Handle??0;
+        nint handle=fixture.TryGetPlatformHandle()?.Handle??0;var foreground=GetForegroundWindow();
+        GetWindowThreadProcessId(foreground,out uint process);
         bool client=GetClientRect(handle,out var rect);var origin=new NativePoint();bool screen=ClientToScreen(handle,ref origin);
-        return $"hwnd={handle}; foreground={GetForegroundWindow()}; visible={fixture.IsVisible}; active={fixture.IsActive}; iconic={IsIconic(handle)}; clientOk={client}; client={rect.Right}x{rect.Bottom}; screenOk={screen}; position={origin.X},{origin.Y}; scale={fixture.RenderScaling}";
+        var name=new StringBuilder(256);GetClassNameW(foreground,name,name.Capacity);
+        string processState="unavailable";
+        try {using var owner=System.Diagnostics.Process.GetProcessById((int)process);processState=$"{owner.ProcessName}/session={owner.SessionId}";}
+        catch(Exception e) when(e is ArgumentException or InvalidOperationException or System.ComponentModel.Win32Exception) {processState=e.GetType().Name;}
+        nint threadDesktop=GetThreadDesktop(GetCurrentThreadId());
+        bool inputRead=GetUserObjectValue(threadDesktop,6,out int receivingInput,4,out _);
+        nint input=OpenInputDesktop(0,false,1);int inputError=input==0?Marshal.GetLastWin32Error():0;
+        string inputName;
+        try {inputName=ObjectName(input);}finally{if(input!=0)CloseDesktop(input);}
+        return $"hwnd={handle}; foreground={foreground}; foregroundProcess={processState}; foregroundClass={name}; foregroundOwned={process==(uint)Environment.ProcessId}; userInteractive={Environment.UserInteractive}; station={ObjectName(GetProcessWindowStation())}; threadDesktop={ObjectName(threadDesktop)}; desktopInputRead={inputRead}; desktopReceivesInput={receivingInput}; inputDesktop={inputName}; inputDesktopError={inputError}; foregroundRoot={GetAncestor(foreground,2)}; foregroundRootOwner={GetAncestor(foreground,3)}; visible={fixture.IsVisible}; active={fixture.IsActive}; iconic={IsIconic(handle)}; clientOk={client}; client={rect.Right}x{rect.Bottom}; screenOk={screen}; position={origin.X},{origin.Y}; scale={fixture.RenderScaling}";
+    }
+    static string ObjectName(nint handle) {
+        var name=new StringBuilder(256);
+        return handle!=0&&GetUserObjectName(handle,2,name,name.Capacity*2,out _)?name.ToString():"unavailable";
     }
     sealed class Source : IDesktopGameSource {
         public int Calls,Captures,Disposed;
@@ -95,6 +110,7 @@ static class GameOverlayTests {
         var overlay=new GameOverlayWindow();var options=new GameOverlayOptions{Enabled=true};
         try {
             target.Show();target.Activate();nint handle=target.TryGetPlatformHandle()!.Handle;
+            Console.WriteLine("GAME_OVERLAY_ENV "+FixtureState(target));Console.Out.Flush();
             Until(()=>GameOverlayWindow.TargetBounds(handle,out _),"Fixture target requires foreground and a valid client area",()=>FixtureState(target));
             overlay.Display(handle,"FPS 73 · CPU 24%",options);
             Until(()=>overlay.IsVisible&&overlay.InputReady&&overlay.Bounds.Width>10,"Overlay not visible/pass-through ready");
@@ -121,6 +137,15 @@ static class GameOverlayTests {
         Console.WriteLine("PASS native game overlay: six anchors, move, foreground/minimize hide, restore, no-activation and input flags");
     }
     [DllImport("user32.dll")] static extern nint GetForegroundWindow();
+    [DllImport("user32.dll",CharSet=CharSet.Unicode)] static extern int GetClassNameW(nint window,StringBuilder name,int count);
+    [DllImport("user32.dll")] static extern nint GetThreadDesktop(uint thread);
+    [DllImport("kernel32.dll")] static extern uint GetCurrentThreadId();
+    [DllImport("user32.dll")] static extern nint GetProcessWindowStation();
+    [DllImport("user32.dll",SetLastError=true)] static extern nint OpenInputDesktop(uint flags,bool inherit,uint access);
+    [DllImport("user32.dll")] static extern bool CloseDesktop(nint desktop);
+    [DllImport("user32.dll",EntryPoint="GetUserObjectInformationW",CharSet=CharSet.Unicode)] static extern bool GetUserObjectName(nint handle,int index,StringBuilder value,int length,out int needed);
+    [DllImport("user32.dll",EntryPoint="GetUserObjectInformationW")] static extern bool GetUserObjectValue(nint handle,int index,out int value,int length,out int needed);
+    [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(nint window,out uint process);
     [DllImport("user32.dll")] static extern nint GetWindowLongPtrW(nint window,int index);
     [StructLayout(LayoutKind.Sequential)] struct NativeRect {public int Left,Top,Right,Bottom;}
     [DllImport("user32.dll")] static extern bool GetClientRect(nint window,out NativeRect rect);
