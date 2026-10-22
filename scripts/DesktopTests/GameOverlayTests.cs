@@ -103,6 +103,20 @@ static class GameOverlayTests {
         }finally{Directory.Delete(directory,true);}
         Console.WriteLine("PASS game overlay: shared target/metrics, hardware-only capture off, independent lifetime, content, anchors and settings");
     }
+    public static void ForegroundFixtureRegression() {
+        if(!OperatingSystem.IsWindows())return;
+        var target=new Window{Title="Pulse activation fixture",Width=360,Height=260};
+        var other=new Window{Title="Pulse activation peer",Width=360,Height=260};
+        try {
+            target.Show();other.Show();
+            for(int repeat=0;repeat<5;repeat++)foreach(var fixture in new[]{target,other,target}) {
+                var handle=fixture.TryGetPlatformHandle()!.Handle;bool topmost=fixture.Topmost;
+                Until(NativeFixtureActivation.WithClick(fixture,()=>GetForegroundWindow()==handle,requireClick:true),"Owned click did not establish real foreground",()=>FixtureState(fixture));
+                Check(fixture.Topmost==topmost,"Fixture activation retained temporary topmost policy");
+            }
+        }finally{other.Close();target.Close();}
+        Console.WriteLine("PASS native owned-fixture activation: actual input/foreground, reversible topmost and no foreign-window mutation");
+    }
     public static void Native(string? output=null) {
         if(!OperatingSystem.IsWindows())return;
         var target=new Window{Title="Pulse overlay target fixture",Width=700,Height=480,Background=Brushes.DarkBlue,Position=new(150,150)};
@@ -111,7 +125,7 @@ static class GameOverlayTests {
         try {
             target.Show();target.Activate();nint handle=target.TryGetPlatformHandle()!.Handle;
             Console.WriteLine("GAME_OVERLAY_ENV "+FixtureState(target));Console.Out.Flush();
-            Until(()=>GameOverlayWindow.TargetBounds(handle,out _),"Fixture target requires foreground and a valid client area",()=>FixtureState(target));
+            Until(NativeFixtureActivation.WithClick(target,()=>GameOverlayWindow.TargetBounds(handle,out _)),"Fixture target requires foreground and a valid client area",()=>FixtureState(target));
             overlay.Display(handle,"FPS 73 · CPU 24%",options);
             Until(()=>overlay.IsVisible&&overlay.InputReady&&overlay.Bounds.Width>10,"Overlay not visible/pass-through ready");
             Check(GetForegroundWindow()==handle,"Overlay stole foreground");
@@ -128,9 +142,9 @@ static class GameOverlayTests {
                 Until(()=>overlay.Position==GameOverlayWindow.Anchor(rect,(int)Math.Ceiling(overlay.Bounds.Width*overlay.RenderScaling),(int)Math.Ceiling(overlay.Bounds.Height*overlay.RenderScaling),position),"Native anchor mismatch");
             }
             target.Position=new(230,220);Until(()=>GameOverlayWindow.TargetBounds(handle,out var moved)&&moved.X>=230,"Target move not acknowledged");overlay.Display(handle,"moved",options);
-            other.Show();other.Activate();Until(()=>GetForegroundWindow()==other.TryGetPlatformHandle()!.Handle,"Other fixture foreground",()=>FixtureState(other));
+            other.Show();other.Activate();Until(NativeFixtureActivation.WithClick(other,()=>GetForegroundWindow()==other.TryGetPlatformHandle()!.Handle),"Other fixture foreground",()=>FixtureState(other));
             overlay.Display(handle,"hidden",options);Check(!overlay.IsVisible,"Overlay remained on another foreground app");
-            target.Activate();Until(()=>GetForegroundWindow()==handle,"Target restore foreground",()=>FixtureState(target));overlay.Display(handle,"restored",options);
+            target.Activate();Until(NativeFixtureActivation.WithClick(target,()=>GetForegroundWindow()==handle),"Target restore foreground",()=>FixtureState(target));overlay.Display(handle,"restored",options);
             Check(overlay.IsVisible&&overlay.InputReady&&GetForegroundWindow()==handle,"Overlay restore lost pass-through or activation policy");
             target.WindowState=WindowState.Minimized;Until(()=>!GameOverlayWindow.TargetBounds(handle,out _),"Target minimize not observed");overlay.Display(handle,"minimized",options);Check(!overlay.IsVisible,"Overlay visible over minimized target");
         }finally{overlay.Close();other.Close();target.Close();}

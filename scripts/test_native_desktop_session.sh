@@ -18,4 +18,6 @@ if [[ "$ready" != true ]]; then
     echo 'FAIL native session: X11 window manager did not become ready' >&2
     exit 1
 fi
-PULSE_TEST_PRIVATE_X11=1 timeout 60s dotnet scripts/DesktopTests/bin/Release/net10.0/Pulse.Desktop.Tests.dll --native-session
+# Same 60s test budget; SIGKILL also enforces it when a blocked native loop ignores TERM.
+# The supervisor samples only its own child after 10s without a test progress marker.
+PULSE_TEST_PRIVATE_X11=1 timeout --signal=KILL 60s python3 scripts/run_native_desktop_session.py --stack-tool "${PULSE_TEST_STACK_TOOL:?Pinned stack tool path is required}"

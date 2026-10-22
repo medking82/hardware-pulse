@@ -3,9 +3,9 @@ name: Desktop preview
 on:
   push:
     branches: [main]
-    paths: ['src/Hosts/Desktop/**', 'src/Core/**', 'src/Adapters/**', 'scripts/DesktopTests/**', 'scripts/test_native_desktop_session.sh', 'scripts/package_desktop.py', 'scripts/prepare_desktop_fonts.py', 'scripts/desktop-fonts.lock.json', 'scripts/test_desktop_package.py', 'licenses/**', 'docs/distribution/**', 'assets/*.svg', '.github/workflows/desktop-preview.yml']
+    paths: ['src/Hosts/Desktop/**', 'src/Core/**', 'src/Adapters/**', 'scripts/DesktopTests/**', 'scripts/test_native_desktop_session.sh', 'scripts/run_native_desktop_session.py', 'scripts/test_native_session_runner.py', 'scripts/package_desktop.py', 'scripts/prepare_desktop_fonts.py', 'scripts/desktop-fonts.lock.json', 'scripts/test_desktop_package.py', 'licenses/**', 'docs/distribution/**', 'assets/*.svg', '.github/workflows/desktop-preview.yml']
   pull_request:
-    paths: ['src/Hosts/Desktop/**', 'src/Core/**', 'src/Adapters/**', 'scripts/DesktopTests/**', 'scripts/test_native_desktop_session.sh', 'scripts/package_desktop.py', 'scripts/prepare_desktop_fonts.py', 'scripts/desktop-fonts.lock.json', 'scripts/test_desktop_package.py', 'licenses/**', 'docs/distribution/**', 'assets/*.svg', '.github/workflows/desktop-preview.yml']
+    paths: ['src/Hosts/Desktop/**', 'src/Core/**', 'src/Adapters/**', 'scripts/DesktopTests/**', 'scripts/test_native_desktop_session.sh', 'scripts/run_native_desktop_session.py', 'scripts/test_native_session_runner.py', 'scripts/package_desktop.py', 'scripts/prepare_desktop_fonts.py', 'scripts/desktop-fonts.lock.json', 'scripts/test_desktop_package.py', 'licenses/**', 'docs/distribution/**', 'assets/*.svg', '.github/workflows/desktop-preview.yml']
   workflow_dispatch:
 
 permissions:
@@ -73,6 +73,9 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install --no-install-recommends -y openbox x11-utils
+          dotnet tool install dotnet-stack --version 10.0.750501 --tool-path "$RUNNER_TEMP/pulse-dotnet-tools" --allow-roll-forward --source https://api.nuget.org/v3/index.json
+          python3 scripts/test_native_session_runner.py
+          export PULSE_TEST_STACK_TOOL="$RUNNER_TEMP/pulse-dotnet-tools/dotnet-stack"
           timeout 75s xvfb-run -a bash scripts/test_native_desktop_session.sh
           timeout 30s xvfb-run -a dotnet src/Hosts/Desktop/bin/Release/net10.0/Pulse.Desktop.dll --smoke-test
       - name: Native macOS window with live telemetry
