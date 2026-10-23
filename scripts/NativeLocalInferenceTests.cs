@@ -34,9 +34,14 @@ internal static class NativeLocalInferenceTests {
                 Check(card.Padding==peer.Padding&&card.CornerRadius==peer.CornerRadius&&card.Margin==peer.Margin,"Local card reuses adjacent card geometry");
                 var before=panel.Children.Cast<Border>().ToArray();grip.RaiseEvent(new DragStartedEventArgs(0,0){RoutedEvent=Thumb.DragStartedEvent});
                 Check(panel.Dragging,"Drag handle is wired to the live layout controller");Call(shell,"RenderQuota");Call(shell,"RenderLocalInference");Check(panel.Children.Cast<Border>().SequenceEqual(before),"Polling does not rebuild cards during a drag");
-                grip.RaiseEvent(new DragDeltaEventArgs(0,-100){RoutedEvent=Thumb.DragDeltaEvent});grip.RaiseEvent(new DragCompletedEventArgs(0,-100,true){RoutedEvent=Thumb.DragCompletedEvent});
+                // Synthetic Thumb events do not move the OS pointer. Supply the reordered state
+                // to test cancel/commit persistence without depending on Mouse.GetPosition.
+                panel.Children.Remove(card);panel.Children.Insert(0,card);
+                grip.RaiseEvent(new DragCompletedEventArgs(0,-100,true){RoutedEvent=Thumb.DragCompletedEvent});
                 Check(!panel.Dragging&&panel.Children.Cast<Border>().SequenceEqual(before),"Canceled drag restores the original order");
-                grip.RaiseEvent(new DragStartedEventArgs(0,0){RoutedEvent=Thumb.DragStartedEvent});grip.RaiseEvent(new DragDeltaEventArgs(0,-100){RoutedEvent=Thumb.DragDeltaEvent});grip.RaiseEvent(new DragCompletedEventArgs(0,-100,false){RoutedEvent=Thumb.DragCompletedEvent});
+                grip.RaiseEvent(new DragStartedEventArgs(0,0){RoutedEvent=Thumb.DragStartedEvent});
+                panel.Children.Remove(card);panel.Children.Insert(0,card);
+                grip.RaiseEvent(new DragCompletedEventArgs(0,-100,false){RoutedEvent=Thumb.DragCompletedEvent});
                 Check(panel.Children[0]==card&&((string[])settings.Data["quotaCardOrder"])[0]=="localModelSpeed","Completed drag commits the reordered local card");
                 grip.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice,PresentationSource.FromVisual(grip),0,Key.Right){RoutedEvent=Keyboard.PreviewKeyDownEvent});Check(panel.Children[1]==card,"Keyboard reorder can move the local card back");
                 var key=new KeyEventArgs(Keyboard.PrimaryDevice,PresentationSource.FromVisual(grip),0,Key.Left){RoutedEvent=Keyboard.PreviewKeyDownEvent};grip.RaiseEvent(key);

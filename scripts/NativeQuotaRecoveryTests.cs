@@ -144,6 +144,14 @@ internal static class NativeQuotaRecoveryTests {
                 next=new QuotaReading{Provider="Claude",Status="Refresh rate limited",Observed=now,CacheScope="different-source",HttpStatus=429};
                 fake.Tick(now.AddMinutes(20));Complete(fake,"Claude",now.AddMinutes(20));Render(shell);
                 card=Card(shell,"Claude");Check(!card.Any(s=>s.Contains("73%")||s.Contains("91%")),"source change cannot reuse previous account values");
+                next=new QuotaReading{Provider="Claude",Status="Login required",Source="API",Observed=now,CacheScope="different-source",HttpStatus=401,FailureKind="HTTP response"};
+                fake.RequestRefresh("Claude",now.AddMinutes(40),true);fake.Tick(now.AddMinutes(40));Complete(fake,"Claude",now.AddMinutes(40));Render(shell);
+                const string loginFailure="Last Quota Login Check Failed";
+                Check(Card(shell,"Claude").Any(s=>s.StartsWith(loginFailure)),"Claude card must describe the failed quota check, not claim logout");
+                var rejected=Desktop(shell).Single();
+                Check(rejected.Value==loginFailure,"Claude desktop must use the same qualified login failure as its card");
+                Check(rejected.ToolTip.Contains("HTTP 401")&&rejected.ToolTip.Contains("Next Retry"),"Claude desktop auth failure must retain HTTP and recovery detail");
+                Capture(shell,Path.Combine(Path.GetDirectoryName(screenshot),"claude-login-failure.png"));
                 fake.Enable("Claude",false);
                 next=new QuotaReading{Provider="Antigravity",Status="Quota unavailable",Source="Desktop",HttpStatus=503,FailureKind="HTTP response",Observed=now};
                 fake.Enable("Antigravity",true);fake.Tick(now);Complete(fake,"Antigravity",now);Render(shell);

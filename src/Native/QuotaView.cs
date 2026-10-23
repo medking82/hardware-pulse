@@ -141,6 +141,7 @@ namespace HardwarePulse {
         bool QuotaFresh(QuotaReading r){var age=DateTimeOffset.UtcNow-r.Observed;return (r.Status=="Live"||r.Status=="CLI snapshot"||r.Status=="Cached")&&age>=TimeSpan.Zero&&age<TimeSpan.FromMinutes(10);}
         string QuotaState(QuotaReading r){
             if(r.Provider=="Claude"&&claudeAutoSource){var state=quotas.GetState("Claude");if(state.AutoLoginRequired)return language.Label("Claude Code login required");if(state.AutoCliPending&&r.Status=="Login required")return language.Label("CLI recovery pending");}
+            if(r.Provider=="Claude"&&r.Status=="Login required"&&!claudeAutoSource)return language.Label("Last quota login check failed");
             if((r.Status=="Live"||r.Status=="CLI snapshot")&&!QuotaFresh(r))return language.Label("Quota stale");return language.Label(r.Status);
         }
         bool QuotaWindowVisible(QuotaReading r,QuotaWindow w){return QuotaFresh(r)&&w.Remaining.HasValue&&(r.Source!="CLI snapshot"||w.Reset>DateTimeOffset.UtcNow)&&(r.Status!="Cached"||!w.Reset.HasValue||w.Reset>DateTimeOffset.UtcNow);}
@@ -169,7 +170,7 @@ namespace HardwarePulse {
         }
         string QuotaRecoveryState(QuotaReading original,QuotaReading displayed,DateTimeOffset now){
             var refresh=quotas.GetState(original.Provider);bool healthy=(displayed.Status=="Live"||displayed.Status=="CLI snapshot")&&!refresh.TimedOut;
-            string state=original.Provider=="Claude"&&original.Status=="Login required"&&!claudeAutoSource?language.Label("Last quota login check failed"):QuotaState(healthy?displayed:original);
+            string state=QuotaState(healthy?displayed:original);
             if(original.Provider=="Claude"&&claudeAutoSource)state+=" · "+language.Label("Auto")+(original.Source=="CLI"?" · "+language.Label("CLI query"):original.Source=="API"?" · OAuth API":"");
             if(refresh.TimedOut||original.FailureKind=="Request timeout")state=language.Label("Refresh timed out");
             if(refresh.Refreshing)return state+" · "+language.Label(refresh.TimedOut?"Waiting for request to stop":"Refreshing quota…");
