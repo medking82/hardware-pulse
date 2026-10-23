@@ -47,7 +47,7 @@ namespace HardwarePulse {
             windowsVersion=platformVersion??WindowsCompatibility.CurrentVersion();
             bool legacyUpdates=WindowsCompatibility.RequiresDriverFreeCollector(windowsVersion);
             updater=new UpdateCoordinator(new UpdateClient(legacyUpdates),typeof(Shell).Assembly.GetName().Version,legacyUpdates);
-            this.paths=paths;this.isolated=isolated;Directory.CreateDirectory(paths.State);
+            this.paths=paths;this.isolated=isolated;AtomicFile.EnsureDirectory(paths.State);
             var snapshotReader=new SensorProfile.Reader(paths.Snapshot);
             readings=new ReadingSession(snapshotReader.Read);
             hardwareLog=new HardwareDiagnosticLog(paths.State);
@@ -79,7 +79,7 @@ namespace HardwarePulse {
         }
         public void Start(){if(DesktopEnabled)Initialize();else Show();}
         void Initialize(){if(loaded||disposed)return;loaded=true;if(!isolated){StartCollector();collectorRecovery.Observe(DateTimeOffset.UtcNow,false,File.Exists(paths.Stop));}UpdatePanel();ApplyDensity();}
-        void StartCollector(){try{if(File.Exists(paths.Stop)){try{File.Delete(paths.Stop);}catch{ignoredStop=File.GetLastWriteTimeUtc(paths.Stop).Ticks;throw;}}if(SensorProfile.Read(paths.Snapshot,DateTimeOffset.Now).state!="LIVE")using(var store=new SchedulerStore())new Startup(store,paths.Exe,WindowsIdentity.GetCurrent().User.Value).StartCollector();}catch{collectorFailed=true;}}
+        void StartCollector(){try{if(File.Exists(paths.Stop)){try{AtomicFile.Delete(paths.Stop);}catch{ignoredStop=File.GetLastWriteTimeUtc(paths.Stop).Ticks;throw;}}if(SensorProfile.Read(paths.Snapshot,DateTimeOffset.Now).state!="LIVE")using(var store=new SchedulerStore())new Startup(store,paths.Exe,WindowsIdentity.GetCurrent().User.Value).StartCollector();}catch{collectorFailed=true;}}
         void RecoverCollector(DateTimeOffset now){
             if(isolated||!loaded||disposed||exit)return;
             bool healthy=readings.Latest.state=="LIVE"&&readings.Latest.readErrorCode==0;
@@ -101,7 +101,11 @@ namespace HardwarePulse {
             // Keep collection, peaks, stale-state detection and STOP handling active
             // while Settings or the tray/minimized window has no visible cards to render.
             if(Window.IsVisible&&Window.WindowState!=WindowState.Minimized&&!settingsVisible)RenderPanel();
-            if(loaded)Json.WriteAtomic(Path.Combine(paths.State,"view-status.json"),new {updated=DateTimeOffset.Now.ToString("o"),state=readings.Latest.state,reason=HardwareDiagnosticLog.Reason(readings.Latest),snapshotTime=readings.Latest.time==default(DateTimeOffset)?null:readings.Latest.time.ToString("o"),mode=maximum?"max":"live",sensors=readings.Latest.values.Count});
+            if(loaded) {
+                // This diagnostic is optional; sharing conflicts must not stop the UI timer.
+                try{Json.WriteAtomic(Path.Combine(paths.State,"view-status.json"),new {updated=DateTimeOffset.Now.ToString("o"),state=readings.Latest.state,reason=HardwareDiagnosticLog.Reason(readings.Latest),snapshotTime=readings.Latest.time==default(DateTimeOffset)?null:readings.Latest.time.ToString("o"),mode=maximum?"max":"live",sensors=readings.Latest.values.Count});}
+                catch(IOException){}catch(UnauthorizedAccessException){}
+            }
         }
         void RenderPanel(){
             bool recent=readings.Latest.state=="LIVE"&&HardwareDiagnosticLog.Reason(readings.Latest)=="Snapshot busy";
@@ -112,11 +116,21 @@ namespace HardwarePulse {
             foreach(var view in views.Values)UpdateCard(view);RenderQuota();RenderLocalInference();
             UpdateMonitorControls();ApplyDensity(false);
         }
-        void QueueSave(){if(!loaded||disposed)return;saveTimer.Stop();saveTimer.Start();}
-        public void Save(){if(!loaded)return;var bounds=Window.RestoreBounds;
+        void QueueSave(){
+            if(!loaded||disposed)return;
+            settingsSaveStatus="Unsaved Changes";UpdateSettingsSaveStatus();
+            saveTimer.Stop();saveTimer.Start();
+        }
+        public void Save(){
+            if(!loaded)return;
+            if(settings.LoadFailed){UpdateSettingsSaveStatus();return;}
+            var bounds=Window.RestoreBounds;
             if(!bounds.IsEmpty){settings.Data["width"]=bounds.Width;settings.Data["height"]=bounds.Height;settings.Data["left"]=bounds.Left;settings.Data["top"]=bounds.Top;}
             settings.Data["fontSize"]=Window.FontSize;settings.Data["pin"]=Window.Topmost;settings.Data["solid"]=Checked("Solid");settings.Data["opacity"]=Control<Slider>("OpacitySlider").Value;settings.Data["language"]=language.Preference;settings.Data["positionLocked"]=locked;settings.Data["cardOrder"]=cards.Children.Cast<Border>().Select(c=>(string)c.Tag).ToArray();
-            try{settings.Save();}catch(Exception e){File.WriteAllText(Path.Combine(paths.State,"settings-error.txt"),e.Message);}
+            try{settings.Save();settingsSaveStatus="Changes Saved";}
+            catch(Exception e){settingsSaveStatus="Could Not Save Changes";AtomicFile.TryWriteAllText(Path.Combine(paths.State,"settings-error.txt"),e.Message);}
+            // Show failure in the UI itself: writing an error log can fail for the same reason.
+            UpdateSettingsSaveStatus();
         }
         Viewbox Icon(string name,double size,string color="#C2D8E5"){
             var doc=new XmlDocument();doc.XmlResolver=null;doc.Load(Path.Combine(paths.Root,"assets",name+".svg"));var node=doc.SelectSingleNode("/*[local-name()='svg']/*[local-name()='path']");
@@ -129,6 +143,6 @@ namespace HardwarePulse {
         public void ShowHome(){ShowSettings(false);Show();}
         public void Show(){Window.Show();Window.WindowState=WindowState.Normal;Window.Activate();}
         public void Exit(){exit=true;Window.Close();}
-        public void Dispose(){if(disposed)return;disposed=true;if(desktopHotkey!=null)desktopHotkey.Dispose();quotas.Dispose();localInference.Dispose();poll.Stop();saveTimer.Stop();StopOverlay();overlay.Close();if(desktop!=null){desktop.Close();desktop=null;}updateTimer.Stop();updater.Dispose();tray.Visible=false;tray.Dispose();if(!isolated){try{if(File.Exists(paths.Snapshot))File.WriteAllText(paths.Stop,"Pulse Exit");}catch(Exception e){File.WriteAllText(Path.Combine(paths.State,"shutdown-error.txt"),e.Message);}}}
+        public void Dispose(){if(disposed)return;disposed=true;if(desktopHotkey!=null)desktopHotkey.Dispose();quotas.Dispose();localInference.Dispose();poll.Stop();saveTimer.Stop();StopOverlay();overlay.Close();if(desktop!=null){desktop.Close();desktop=null;}updateTimer.Stop();updater.Dispose();tray.Visible=false;tray.Dispose();if(!isolated){try{if(File.Exists(paths.Snapshot))AtomicFile.WriteAllText(paths.Stop,"Pulse Exit");}catch(Exception e){AtomicFile.TryWriteAllText(Path.Combine(paths.State,"shutdown-error.txt"),e.Message);}}}
     }
 }

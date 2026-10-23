@@ -22,16 +22,28 @@ namespace HardwarePulse {
     }
 #if !NET
     public static class Json {
-        public static JavaScriptSerializer Serializer() { return new JavaScriptSerializer { MaxJsonLength=8*1024*1024, RecursionLimit=64 }; }
+        const int MaxLength=8*1024*1024;
+        public static JavaScriptSerializer Serializer() { return new JavaScriptSerializer { MaxJsonLength=MaxLength, RecursionLimit=64 }; }
         public static string Read(string path) {
             using(var stream=new FileStream(path,FileMode.Open,FileAccess.Read,FileShare.ReadWrite|FileShare.Delete))
-            using(var reader=new StreamReader(stream)) return reader.ReadToEnd();
+            using(var reader=new StreamReader(stream)) {
+                if(stream.Length>MaxLength)throw new InvalidDataException("JSON file exceeds the size limit.");
+                var text=new StringBuilder();
+                var buffer=new char[4096];
+                int count;
+                while((count=reader.Read(buffer,0,buffer.Length))>0) {
+                    // The shared file can grow after the initial length check.
+                    if(stream.Position>MaxLength||text.Length>MaxLength-count)
+                        throw new InvalidDataException("JSON file exceeds the size limit.");
+                    text.Append(buffer,0,count);
+                }
+                return text.ToString();
+            }
         }
         public static void WriteAtomic(string path,object value) {
-            Directory.CreateDirectory(Path.GetDirectoryName(path));
-            string temp=path+".tmp";
-            File.WriteAllText(temp,Serializer().Serialize(value),new UTF8Encoding(false));
-            if(File.Exists(path)) File.Replace(temp,path,null); else File.Move(temp,path);
+            byte[] bytes=new UTF8Encoding(false).GetBytes(Serializer().Serialize(value));
+            if(bytes.Length>MaxLength)throw new InvalidDataException("JSON file exceeds the size limit.");
+            AtomicFile.WriteAllBytes(path,bytes);
         }
     }
 #endif

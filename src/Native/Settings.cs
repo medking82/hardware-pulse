@@ -7,9 +7,25 @@ using System.Text.RegularExpressions;
 namespace HardwarePulse {
     public sealed class Settings : SettingsValues {
         readonly string path;
-        public Settings(string path):base(Read(path)){this.path=path;}
-        static Dictionary<string,object> Read(string path){try{return Json.Serializer().Deserialize<Dictionary<string,object>>(Json.Read(path))??new Dictionary<string,object>();}catch{return new Dictionary<string,object>();}}
-        public void Save(){Json.WriteAtomic(path,Data);}
+        public bool LoadFailed {get;private set;}
+        public Settings(string path):base(null) {
+            this.path=path;
+            try {
+                var saved=Json.Serializer().DeserializeObject(Json.Read(path)) as Dictionary<string,object>;
+                if(saved==null)throw new InvalidDataException("Settings must be a JSON object.");
+                foreach(var entry in saved)Data.Add(entry.Key,entry.Value);
+            } catch(FileNotFoundException) {
+                // A new profile starts empty and may be saved normally.
+            } catch(DirectoryNotFoundException) {
+            } catch {
+                // Defaults are safe to display, but must never replace an unread profile.
+                LoadFailed=true;
+            }
+        }
+        public void Save() {
+            if(LoadFailed)throw new InvalidDataException("Original settings could not be read; refusing to overwrite them.");
+            Json.WriteAtomic(path,Data);
+        }
     }
     public sealed class Languages {
         readonly Dictionary<string,string[]> catalog=new Dictionary<string,string[]>();

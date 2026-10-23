@@ -85,7 +85,7 @@ namespace HardwarePulse {
                             FpsProtocol.Write(connection,FpsProtocol.Response(capture.Read()));
                         }}finally{capture.Dispose();if(lease!=null)lease.Dispose();}
                     }
-                }catch(IOException){}catch(UnauthorizedAccessException){}catch(ObjectDisposedException){}catch(Exception e){try{File.WriteAllText(Path.Combine(paths.Runtime,"fps-warning.txt"),e.Message);}catch{}}
+                }catch(IOException){}catch(UnauthorizedAccessException){}catch(ObjectDisposedException){}catch(Exception e){AtomicFile.TryWriteAllText(Path.Combine(paths.Runtime,"fps-warning.txt"),e.Message);}
                 finally{lock(gate){pipe=null;}}
                 if(!stopped)Thread.Sleep(500);
             }

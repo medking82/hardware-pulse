@@ -10,5 +10,6 @@
 - DeepSeek 桌面显隐与排序共用稳定的 `quotaDeepSeek` 分组，其所有币种和错误／状态行均跟随该分组。切换币种不能改变位置或让已隐藏的行重新出现。桌面隐藏不影响监控查询或主卡片。
 - 必须实际检查英语、简体中文与明暗主题下的 WPF 设置、卡片和窄桌面读数。使用合成数据运行 `scripts/Test-QuotaFeature.ps1 -AppPath <isolated-built-app>`。编译成功或只截主窗口不能证明桌面行布局通过验收。
 - Argon 是原 Antigravity 来源下的独立周额度，不新增供应商或登录。桌面使用 `Argon · Weekly`，应用内使用 Argon 子区块。保留独立重置时间和真实零值，不借用 Gemini 五小时窗口、不合并百分比。窗口使用稳定标识保存显隐／排序；升级不能让原来完全隐藏的 Gemini 分组重新出现。
-- 最短请求间隔或服务端冷却期间禁用卡片刷新按钮，并让禁用控件仍可显示原因提示。Claude 手动刷新共用五分钟轮询预算，不能清除 Retry-After 让按钮看似有效。
+- Manual Refresh 沿用 0.6.65 的 explicit forced request 行为。仅在 request in flight 时禁用，重复 click 不进入 queue。Automatic polling 保留 cadence、Retry-After 和 failure backoff；不要恢复旧版 cooldown-disabled manual button。通过 `scripts/Test-Core.ps1` 和 native quota feedback tests 验证两条路径。
+- Settings 无法读取 profile 时必须保留原文件，不能用 defaults 覆盖；显示 pending/saved/failed status，diagnostic IO failure 不得中断 UI event loop。Settings categories 支持 Left/Right/Home/End，slider 在两个 theme 中均显示 keyboard focus。
 - 共享冲突回退只能使用原有十五秒有效期内的已验证样本，保留原时间，并在应用及桌面明确显示“最近读数／正在重读快照”。缺失、拒绝访问、畸形或过期快照不能维持旧的实时值。区分快照读取失败和未经证实的采集器退出。

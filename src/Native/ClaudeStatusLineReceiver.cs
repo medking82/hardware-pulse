@@ -38,9 +38,9 @@ namespace HardwarePulse {
                 if(String.IsNullOrWhiteSpace(session)||session.Length>128)return "Invalid snapshot";
                 foreach(char ch in session)if(char.IsControl(ch))return "Invalid snapshot";
                 string owner=Fingerprint(session),directory=Path.Combine(state,"claude-statusline");
-                Directory.CreateDirectory(directory);
                 string path=Path.Combine(directory,"snapshot.json");
                 // FileShare.None serializes read/compare/replace across processes and sessions.
+                using(AtomicFile.PinDirectory(directory))
                 using(var gate=new FileStream(Path.Combine(directory,"write.lock"),FileMode.OpenOrCreate,FileAccess.ReadWrite,FileShare.None)){
                     ClaudeStatusLineSnapshot previous=null;
                     if(File.Exists(path)){
@@ -52,13 +52,7 @@ namespace HardwarePulse {
                     var snapshot=ClaudeStatusLineSnapshot.Decode(body,now,previous);
                     var data=new Dictionary<string,object>{{"schema",1},{"owner",owner},{"windows",snapshot.Export()}};
                     string encoded=Serializer(StoreLimit).Serialize(data);
-                    // At most one interrupted temporary file; the exclusive gate owns reuse.
-                    string temp=Path.Combine(directory,"snapshot.tmp");
-                    try{
-                        using(var file=new FileStream(temp,FileMode.Create,FileAccess.Write,FileShare.None))
-                        using(var writer=new StreamWriter(file,new UTF8Encoding(false))){writer.Write(encoded);writer.Flush();file.Flush(true);}
-                        if(File.Exists(path))File.Replace(temp,path,null);else File.Move(temp,path);
-                    }finally{if(File.Exists(temp))File.Delete(temp);}
+                    AtomicFile.WriteAllText(path,encoded,flushToDisk:true);
                     return snapshot.Read(now).Status;
                 }
             }catch(InvalidDataException){return "Invalid snapshot";}catch(IOException){return "Snapshot unavailable";}catch(UnauthorizedAccessException){return "Snapshot unavailable";}
@@ -73,7 +67,8 @@ namespace HardwarePulse {
         }
         public static bool Reset(string state){
             try{
-                string directory=Path.Combine(state,"claude-statusline");Directory.CreateDirectory(directory);
+                string directory=Path.Combine(state,"claude-statusline");
+                using(AtomicFile.PinDirectory(directory))
                 using(var gate=new FileStream(Path.Combine(directory,"write.lock"),FileMode.OpenOrCreate,FileAccess.ReadWrite,FileShare.None)){
                     File.Delete(Path.Combine(directory,"snapshot.json"));return true;
                 }

@@ -8,7 +8,7 @@
   <ItemGroup>
     <PackageReference Include="System.Management" Version="10.0.0" />
     <Compile Include="../AntigravityQuota.cs;../AntigravityCliQuota.cs;../QuotaProviders.cs;../CodexAppServerQuota.cs;../ClaudeCliQuota.cs;../ProtectedQuotaCredentials.cs" />
-    <Compile Include="../Models.cs;../SensorProfile.cs" />
+    <Compile Include="../Models.cs;../SensorProfile.cs;../AtomicFile.cs" />
     <Compile Include="../../../Native/Backdrop.cs" Link="Backdrop.cs" />
     <Compile Include="../../../Native/FpsTransport.cs;../../../Native/OverlayTarget.cs" />
     <Compile Include="../../../Native/AppActivation.cs" />

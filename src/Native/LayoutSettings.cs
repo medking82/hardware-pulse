@@ -1,10 +1,12 @@
 using System;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 
 namespace HardwarePulse {
     public sealed partial class Shell {
         string settingsCategory="General";
+        string settingsSaveStatus="Changes Save Automatically";
         readonly System.Collections.Generic.List<Button> settingsTabs=new System.Collections.Generic.List<Button>();
         void ReplaceCardPanel(string name){
             var old=Control<StackPanel>(name);var parent=(Panel)old.Parent;int index=parent.Children.IndexOf(old);
@@ -26,9 +28,32 @@ namespace HardwarePulse {
             foreach(string category in new[]{"General","App Appearance","Desktop","App Cards","FPS","AI Quota"}){
                 var button=new Button{Content=category,Tag=category,Padding=new Thickness(10,5,10,5),Margin=new Thickness(0,0,6,6),MinHeight=34};
                 button.Click+=delegate{SelectSettingsCategory((string)button.Tag);};settingsTabs.Add(button);tabs.Children.Add(button);
+                button.KeyDown+=SettingsTabKeyDown;
             }
             toolbar.SizeChanged+=delegate{page.Margin=new Thickness(0,toolbar.ActualHeight,0,0);};
             SelectSettingsCategory(settingsCategory);
+        }
+        void SettingsTabKeyDown(object sender,KeyEventArgs e) {
+            if(Keyboard.Modifiers!=ModifierKeys.None)return;
+            int index=settingsTabs.IndexOf((Button)sender);
+            switch(e.Key) {
+                case Key.Left:index=(index+settingsTabs.Count-1)%settingsTabs.Count;break;
+                case Key.Right:index=(index+1)%settingsTabs.Count;break;
+                case Key.Home:index=0;break;
+                case Key.End:index=settingsTabs.Count-1;break;
+                default:return;
+            }
+            SelectSettingsCategory((string)settingsTabs[index].Tag);
+            settingsTabs[index].Focus();
+            e.Handled=true;
+        }
+        void UpdateSettingsSaveStatus() {
+            var status=Control<TextBlock>("SettingsSaveStatus");
+            status.Text=language.T(settings.LoadFailed?"Settings Unreadable · Not Saving":settingsSaveStatus);
+            status.ToolTip=language.T(settings.LoadFailed?
+                "The original settings file is preserved. Changes will not be saved. Restore the file and reopen Hardware Pulse.":
+                settingsSaveStatus=="Could Not Save Changes"?"Check folder permissions and available disk space, then try saving again.":
+                "Changes are saved automatically on this device.");
         }
         void SelectSettingsCategory(string category){settingsCategory=category;foreach(UIElement child in Control<ResponsivePanel>("SettingsSections").Children){var section=child as Expander;if(section!=null){bool selected=(string)section.Tag==category;section.Visibility=selected?Visibility.Visible:Visibility.Collapsed;if(selected)section.IsExpanded=true;}}Control<ScrollViewer>("SettingsPage").ScrollToTop();UpdateSettingsTabs();}
         void UpdateSettingsTabs(){foreach(var button in settingsTabs){button.Content=language.T((string)button.Tag);bool selected=(string)button.Tag==settingsCategory;SetSelected(button,selected);button.BorderThickness=new Thickness(selected?2:1);}}

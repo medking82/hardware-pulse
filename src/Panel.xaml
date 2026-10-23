@@ -73,12 +73,12 @@
     <Style TargetType="Slider">
       <Setter Property="Foreground" Value="#A5E7D5"/><Setter Property="MinHeight" Value="36"/>
       <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Slider">
-        <Grid Margin="8,0"><Track x:Name="PART_Track" Minimum="{TemplateBinding Minimum}" Maximum="{TemplateBinding Maximum}" Value="{Binding Value,RelativeSource={RelativeSource TemplatedParent},Mode=TwoWay}">
+        <Border x:Name="SliderFocus" BorderBrush="Transparent" BorderThickness="2" CornerRadius="6"><Grid Margin="6,0"><Track x:Name="PART_Track" Minimum="{TemplateBinding Minimum}" Maximum="{TemplateBinding Maximum}" Value="{Binding Value,RelativeSource={RelativeSource TemplatedParent},Mode=TwoWay}">
           <Track.DecreaseRepeatButton><RepeatButton Command="Slider.DecreaseLarge" Background="{TemplateBinding Foreground}" Style="{StaticResource SliderPage}"/></Track.DecreaseRepeatButton>
           <Track.Thumb><Thumb Width="18" Height="18"><Thumb.Template><ControlTemplate TargetType="Thumb"><Border x:Name="Knob" Background="#F5F7FA" BorderBrush="#718596" BorderThickness="1" CornerRadius="9"/><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Knob" Property="BorderThickness" Value="2"/></Trigger><Trigger Property="IsDragging" Value="True"><Setter TargetName="Knob" Property="Background" Value="#A5E7D5"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Thumb.Template></Thumb></Track.Thumb>
           <Track.IncreaseRepeatButton><RepeatButton Command="Slider.IncreaseLarge" Background="#718596" Style="{StaticResource SliderPage}"/></Track.IncreaseRepeatButton>
-        </Track></Grid>
-        <ControlTemplate.Triggers><Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.45"/></Trigger></ControlTemplate.Triggers>
+        </Track></Grid></Border>
+        <ControlTemplate.Triggers><Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter TargetName="SliderFocus" Property="BorderBrush" Value="{Binding Foreground,RelativeSource={RelativeSource TemplatedParent}}"/></Trigger><Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.45"/></Trigger></ControlTemplate.Triggers>
       </ControlTemplate></Setter.Value></Setter>
     </Style>
     <Style TargetType="Button">
@@ -265,10 +265,13 @@
     </ScrollViewer>
     <TextBlock x:Name="CardsEmpty" Grid.Row="1" Text="No cards shown. Choose cards in Settings." Visibility="Collapsed" Margin="20" HorizontalAlignment="Center" VerticalAlignment="Center" />
     <Border x:Name="SettingsToolbar" Grid.Row="1" Visibility="Collapsed" VerticalAlignment="Top" Padding="18,8" Height="56">
-        <StackPanel Orientation="Horizontal">
-          <Button x:Name="Back" ToolTip="Back to Monitor" AutomationProperties.Name="Back to Monitor" Width="32" Padding="7" />
-          <TextBlock Text="Settings" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center" Margin="4,0,0,0" />
-        </StackPanel>
+        <DockPanel>
+          <Button x:Name="Back" DockPanel.Dock="Left" ToolTip="Back to Monitor" AutomationProperties.Name="Back to Monitor" Width="32" Padding="7" VerticalAlignment="Top" />
+          <StackPanel Margin="4,0,0,0">
+            <TextBlock Text="Settings" FontSize="20" FontWeight="SemiBold" />
+            <TextBlock x:Name="SettingsSaveStatus" FontSize="12" TextWrapping="Wrap" Margin="0,3,0,0" />
+          </StackPanel>
+        </DockPanel>
     </Border>
     <ScrollViewer x:Name="SettingsPage" Grid.Row="1" Margin="0,56,0,0" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="14,10,14,0" FontSize="14" FocusVisualStyle="{x:Null}">
       <StackPanel MaxWidth="620" HorizontalAlignment="Stretch">

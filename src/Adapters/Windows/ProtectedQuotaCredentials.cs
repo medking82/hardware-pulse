@@ -35,8 +35,13 @@ namespace HardwarePulse {
             if(!File.Exists(path))throw new QuotaFailure(QuotaCatalog.NeedsSessionHeader(provider)?"Session required":"API key required");
             byte[] protectedBytes=null;
             try{
-                var info=new FileInfo(path);if(info.Length<=0||info.Length>MaxFile)throw new QuotaFailure("Credential unavailable");
-                protectedBytes=File.ReadAllBytes(path);
+                using(var stream=new FileStream(path,FileMode.Open,FileAccess.Read,FileShare.Read|FileShare.Delete)) {
+                    if(stream.Length<=0||stream.Length>MaxFile)throw new QuotaFailure("Credential unavailable");
+                    protectedBytes=new byte[(int)stream.Length];
+                    int total=0,count;
+                    while(total<protectedBytes.Length&&(count=stream.Read(protectedBytes,total,protectedBytes.Length-total))>0)total+=count;
+                    if(total!=protectedBytes.Length||stream.ReadByte()!=-1)throw new QuotaFailure("Credential unavailable");
+                }
                 return Unprotect(provider,protectedBytes);
             }catch(QuotaFailure){throw;}
             catch{throw new QuotaFailure("Credential unavailable");}
@@ -44,16 +49,13 @@ namespace HardwarePulse {
         }
         public static void Save(string provider,string key){
             if(!Valid(provider,key))throw new QuotaFailure("Credential unavailable");
-            string path=KeyFile(provider);string temporary=path+".tmp";
-            System.IO.Directory.CreateDirectory(Directory());
+            string path=KeyFile(provider);
             byte[] protectedBytes=null;
             try{
                 protectedBytes=Protect(provider,key);
-                using(var stream=new FileStream(temporary,FileMode.Create,FileAccess.Write,FileShare.None)){stream.Write(protectedBytes,0,protectedBytes.Length);stream.Flush(true);}
-                if(File.Exists(path))File.Replace(temporary,path,null);else File.Move(temporary,path);
+                AtomicFile.WriteAllBytes(path,protectedBytes,flushToDisk:true);
             }finally{
                 if(protectedBytes!=null)Array.Clear(protectedBytes,0,protectedBytes.Length);
-                try{if(File.Exists(temporary))File.Delete(temporary);}catch{}
             }
         }
         public static void Remove(string provider){

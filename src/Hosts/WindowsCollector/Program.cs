@@ -32,8 +32,8 @@ namespace HardwarePulse {
                     if(command=="--install-startup"){
                         // Filesystem admission must finish before task mutation.
                         startup.ValidateInstall();
-                        Directory.CreateDirectory(paths.Runtime);
-                        if(File.Exists(paths.Stop))File.Delete(paths.Stop);
+                        paths.PrepareRuntime();
+                        if(File.Exists(paths.Stop))AtomicFile.Delete(paths.Stop);
                         startup.InstallAndStartCollector();
                     }else if(command=="--remove-startup")startup.Remove();
                     else if(command=="--start-collector")startup.StartCollector();
@@ -42,7 +42,7 @@ namespace HardwarePulse {
                 return 0;
             }
             catch(Exception e) {
-                try{Directory.CreateDirectory(paths.State);File.WriteAllText(Path.Combine(paths.State,"collector-host-error.txt"),e.ToString());}catch{}
+                AtomicFile.TryWriteAllText(Path.Combine(paths.State,"collector-host-error.txt"),e.ToString());
                 return 1;
             }
         }
