@@ -63,8 +63,8 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: ./scripts/Run-Hidden.ps1 (Get-Command dotnet).Source @('run','--project','scripts/DesktopTests/Pulse.Desktop.Tests.csproj','-c','Release','--no-restore','--disable-build-servers','-p:UseSharedCompilation=false','--','--foreground-environment') $PWD.Path
-      - name: Prepare approved candidate Windows ARM foreground
-        if: runner.os == 'Windows' && matrix.arch == 'Arm64' && runner.environment == 'github-hosted' && github.repository == 'medking82/hardware-pulse' && github.event_name == 'pull_request' && github.head_ref == 'codex/arm-native-session-20261022'
+      - name: Prepare hosted Windows ARM foreground
+        if: runner.os == 'Windows' && matrix.arch == 'Arm64' && runner.environment == 'github-hosted' && github.repository == 'medking82/hardware-pulse'
         shell: pwsh
         env:
           PULSE_CI_CXH_CLOSE_APPROVED: '1'

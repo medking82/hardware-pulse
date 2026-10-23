@@ -9,15 +9,14 @@ static class CiForegroundPreparation {
     internal static bool Authorized(Func<string,string?> env,bool windows,bool arm64)=>windows&&arm64
         &&env("GITHUB_ACTIONS")=="true"&&env("PULSE_CI_HOSTED_RUNNER")=="github-hosted"
         &&env("RUNNER_OS")=="Windows"&&env("RUNNER_ARCH")=="ARM64"
-        &&env("GITHUB_REPOSITORY")=="medking82/hardware-pulse"&&env("GITHUB_EVENT_NAME")=="pull_request"
-        &&env("GITHUB_HEAD_REF")=="codex/arm-native-session-20261022"&&env("PULSE_CI_CXH_CLOSE_APPROVED")=="1";
+        &&env("GITHUB_REPOSITORY")=="medking82/hardware-pulse"&&env("PULSE_CI_CXH_CLOSE_APPROVED")=="1";
     static bool Matches(Target target)=>target.Window>0&&target.Window!=(nint)0xffff&&target.Pid>0&&target.Created>0
         &&target.Process.Equals("WWAHost",StringComparison.OrdinalIgnoreCase)&&target.Class=="Windows.UI.Core.CoreWindow"
         &&target.Package.StartsWith("Microsoft.Windows.CloudExperienceHost_",StringComparison.Ordinal)
         &&target.Package.EndsWith("_cw5n1h2txyewy",StringComparison.Ordinal)&&target.Application==AppId
         &&target.Foreground&&target.FullDesktop&&target.Visible&&target.Foreign;
     internal static int Run(bool authorized,Func<Target?> inspect,Func<nint,uint,uint,Delivery> send,Func<Target,int,bool> waitGone) {
-        if(!authorized){Console.WriteLine("CI_CXH_CLOSE_REFUSED scope=not-approved-hosted-arm-candidate");return 2;}
+        if(!authorized){Console.WriteLine("CI_CXH_CLOSE_REFUSED scope=not-approved-hosted-arm-ci");return 2;}
         var target=inspect();
         if(target==null||!Matches(target)){Console.WriteLine("CI_CXH_CLOSE_SKIPPED target=not-exact-fullscreen-cloudexperiencehost");return 0;}
         // Re-read the live HWND owner, package, creation time and geometry immediately before sending.

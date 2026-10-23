@@ -3,11 +3,15 @@ static class CiForegroundPreparationTests {
     public static void Run() {
         var original=Console.Out;using var quiet=new StringWriter();Console.SetOut(quiet);
         try {
-            var env=new Dictionary<string,string>{{"GITHUB_ACTIONS","true"},{"PULSE_CI_HOSTED_RUNNER","github-hosted"},{"RUNNER_OS","Windows"},{"RUNNER_ARCH","ARM64"},{"GITHUB_REPOSITORY","medking82/hardware-pulse"},{"GITHUB_EVENT_NAME","pull_request"},{"GITHUB_HEAD_REF","codex/arm-native-session-20261022"},{"PULSE_CI_CXH_CLOSE_APPROVED","1"}};
+            var env=new Dictionary<string,string>{{"GITHUB_ACTIONS","true"},{"PULSE_CI_HOSTED_RUNNER","github-hosted"},{"RUNNER_OS","Windows"},{"RUNNER_ARCH","ARM64"},{"GITHUB_REPOSITORY","medking82/hardware-pulse"},{"PULSE_CI_CXH_CLOSE_APPROVED","1"}};
             string? Read(string key)=>env.GetValueOrDefault(key);
             Check(CiForegroundPreparation.Authorized(Read,true,true),"Approved CI scope rejected");
             Check(!CiForegroundPreparation.Authorized(Read,false,true)&&!CiForegroundPreparation.Authorized(Read,true,false),"Local/non-ARM scope accepted");
             foreach(string key in env.Keys.ToArray()) {string value=env[key];env[key]="wrong";Check(!CiForegroundPreparation.Authorized(Read,true,true),"Missing scope guard: "+key);env[key]=value;}
+            foreach(var context in new[]{(Event:"pull_request",Head:"feature/normal-pr",Ref:"refs/pull/3/merge"),(Event:"push",Head:"",Ref:"refs/heads/main"),(Event:"workflow_dispatch",Head:"",Ref:"refs/heads/main")}) {
+                env["GITHUB_EVENT_NAME"]=context.Event;env["GITHUB_HEAD_REF"]=context.Head;env["GITHUB_REF"]=context.Ref;
+                Check(CiForegroundPreparation.Authorized(Read,true,true),"Regular hosted CI was rejected: "+context.Event);
+            }
             var valid=new CiForegroundPreparation.Target((nint)123,42,1,"WWAHost","Windows.UI.Core.CoreWindow","Microsoft.Windows.CloudExperienceHost_10.0.26100.1_neutral_neutral_cw5n1h2txyewy",CiForegroundPreparation.AppId,true,true,true,true);
             int sends=0,waits=0,inspections=0;
             CiForegroundPreparation.Delivery Send(nint window,uint message,uint timeout) {sends++;Check(window==valid.Window&&message==0x10&&timeout==2000,"Close was not one bounded WM_CLOSE");return new(true,0);}
@@ -27,6 +31,6 @@ static class CiForegroundPreparationTests {
             sends=waits=0;
             Check(CiForegroundPreparation.Run(true,()=>valid,Send,Gone)==0&&sends==1&&waits==1,"Successful one-shot close was not verified");
         } finally {Console.SetOut(original);}
-        Console.WriteLine("PASS candidate CI close policy: scope/identity/fullscreen/recheck guards, one bounded WM_CLOSE, no retry after denial/timeout/ignored close; all UI callbacks mocked");
+        Console.WriteLine("PASS hosted ARM CI close policy: scope/identity/fullscreen/recheck guards, one bounded WM_CLOSE, no retry after denial/timeout/ignored close; all UI callbacks mocked");
     }
 }
