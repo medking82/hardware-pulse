@@ -4,6 +4,12 @@
 
 Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
+## 0.6.69 — 2026-10-23
+
+- Show **Last Quota Login Check Failed** consistently on the Claude Desktop row and quota card when a manual source's last authentication check failed. A previous HTTP 401 does not establish the current login state while recovery is pending.
+- Retain HTTP status and retry details in the tooltip. Reuse the existing status mapping and translations; authentication, token handling, refresh limits and Auto recovery are unchanged.
+- Add a real WPF regression for matching card/Desktop wording and retained recovery details. Make the local-card cancel/commit fixture independent of the physical pointer position; this fixture covers persistence, not pointer hit-testing.
+
 ## 0.6.68 — 2026-10-23
 
 - Preserve settings changed outside the running App. Compare file content before saving so an older window cannot silently overwrite observed external changes or discard newly added settings, even when the file timestamp is unchanged.

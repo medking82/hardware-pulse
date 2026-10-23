@@ -4,6 +4,12 @@
 
 日期为发布日期。未发布条目仅描述源代码变化，不代表已有可下载版本。作者：[Marck Wong](https://github.com/medking82)。
 
+## 0.6.69 — 2026-10-23
+
+- 当 manual source 的上次 authentication check 失败时，Claude Desktop row 和 quota card 统一显示 **Last Quota Login Check Failed**。Recovery pending 期间，历史 HTTP 401 不能代表当前 login state。
+- Tooltip 保留 HTTP status 和 retry details。复用现有 status mapping 和 translations；authentication、token handling、refresh limits 和 Auto recovery 不变。
+- 新增真实 WPF regression，检查 card／Desktop wording 一致及 recovery details 保留。Local-card cancel／commit fixture 不再依赖实际鼠标位置；此 fixture 验证 persistence，不代表 pointer hit-testing。
+
 ## 0.6.68 — 2026-10-23
 
 - 保留在运行中的 App 之外被修改的 settings。保存前比较 file content，避免旧窗口覆盖已检测到的 external changes 或丢失新增 settings，即使 file timestamp 没有变化。

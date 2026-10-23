@@ -1,5 +1,35 @@
 # Local validation — 2026-09-13
 
+## 0.6.69 Claude quota status and release validation — 2026-10-23
+
+- The manual Claude Desktop row displayed `Login Required` while its quota card
+  already used `Last Quota Login Check Failed`. A real WPF regression failed on
+  that discrepancy against 0.6.68, then passed after both surfaces reused the
+  existing status mapping. HTTP 401 and next-retry detail remain in the tooltip;
+  Auto recovery states, credential selection and polling behavior are unchanged.
+- Fixed the local-card cancel/commit test fixture's reliance on an uncontrolled
+  physical mouse position. Synthetic Thumb events do not move the OS pointer;
+  the fixture now supplies reordered children and checks cancel/commit persistence
+  plus keyboard reorder. It does not establish real pointer hit-testing.
+- Full `scripts/Validate.ps1 -ModernCore` passed on 0.6.69: version consistency,
+  Framework/.NET 10 Core, Windows adapters/collector, quota, actual native WPF,
+  settings, startup, package and updater regressions. The existing SDK 10.0.401
+  was used; no runtime was installed or added to the stable Framework package.
+- `scripts/Build.ps1 -Installer` passed with the existing signing certificate,
+  including compiled modern/Win7 installer contracts. Both installer names are
+  byte-identical, SHA-256
+  `c539a3e1677e98ac440eec3493506bdba42a363fc6445ae1286e1dc197dce625`.
+  The signer remains self-signed `CN=Marck Wong`; no trust-store change was made.
+- On the previous installed 0.6.68, Claude's 18:31:02 MYT HTTP 401 preceded a
+  credential-file revision at 18:31:15. Existing bounded recovery returned HTTP
+  200 at 18:36:04 and 18:41:08; the UI showed live five-hour and weekly quota.
+  No agent login, token write or extra provider probe was performed. This evidence
+  explains the stale wording; it does not claim a new authentication fix.
+- Local release logs and frozen manifests are in `build/release-0.6.69/`.
+  Installer, CI, uploaded-asset and requested real 0.6.68-to-0.6.69 acceptance
+  results are recorded in the [versioned release notes](https://github.com/medking82/hardware-pulse/releases/tag/v0.6.69)
+  when completed. Source tests alone do not prove installation or live quota.
+
 ## 0.6.68 release validation — 2026-10-23
 
 - Full `scripts/Validate.ps1 -ModernCore` passed on the 0.6.68 source, including
