@@ -100,7 +100,9 @@ namespace HardwarePulse {
             if(!isolated)hardwareLog.Record(readings.Latest,DateTimeOffset.UtcNow);
             // Keep collection, peaks, stale-state detection and STOP handling active
             // while Settings or the tray/minimized window has no visible cards to render.
-            if(Window.IsVisible&&Window.WindowState!=WindowState.Minimized&&!settingsVisible)RenderPanel();
+            if(Window.IsVisible&&Window.WindowState!=WindowState.Minimized){
+                if(settingsVisible)UpdateSettingsSaveStatus();else RenderPanel();
+            }
             if(loaded) {
                 // This diagnostic is optional; sharing conflicts must not stop the UI timer.
                 try{Json.WriteAtomic(Path.Combine(paths.State,"view-status.json"),new {updated=DateTimeOffset.Now.ToString("o"),state=readings.Latest.state,reason=HardwareDiagnosticLog.Reason(readings.Latest),snapshotTime=readings.Latest.time==default(DateTimeOffset)?null:readings.Latest.time.ToString("o"),mode=maximum?"max":"live",sensors=readings.Latest.values.Count});}

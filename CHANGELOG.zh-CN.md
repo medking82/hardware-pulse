@@ -4,6 +4,12 @@
 
 日期为发布日期。未发布条目仅描述源代码变化，不代表已有可下载版本。作者：[Marck Wong](https://github.com/medking82)。
 
+## 0.6.68 — 2026-10-23
+
+- 保留在运行中的 App 之外被修改的 settings。保存前比较 file content，避免旧窗口覆盖已检测到的 external changes 或丢失新增 settings，即使 file timestamp 没有变化。
+- Settings 打开或 refresh 时显示 **Settings Changed · Not Saving**，保留 pending UI values，并提示从 tray 退出后重新打开，以载入保留的文件。
+- Native persistence 和真实 WPF regression 覆盖 external replacement、deletion、creation、formatting changes、normal save/reopen 及 temporary read-lock recovery。未改变 settings schema 或 Claude authentication behavior。
+
 ## 0.6.67 — 2026-10-23
 
 - 使用 pinned directory handles 和 atomic replacement 保护 runtime publication；拒绝 redirected paths，将 installed runtime permissions 限于目标 account，并保留 unrelated files 和 ACLs。

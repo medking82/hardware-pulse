@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -48,10 +49,14 @@ namespace HardwarePulse {
             e.Handled=true;
         }
         void UpdateSettingsSaveStatus() {
+            bool unreadable=settings.LoadFailed;
+            try{settings.CheckForChanges();}
+            catch(IOException){unreadable=true;}catch(UnauthorizedAccessException){unreadable=true;}catch(InvalidDataException){unreadable=true;}
             var status=Control<TextBlock>("SettingsSaveStatus");
-            status.Text=language.T(settings.LoadFailed?"Settings Unreadable · Not Saving":settingsSaveStatus);
-            status.ToolTip=language.T(settings.LoadFailed?
+            status.Text=language.T(unreadable?"Settings Unreadable · Not Saving":settings.ChangedOnDisk?"Settings Changed · Not Saving":settingsSaveStatus);
+            status.ToolTip=language.T(unreadable?
                 "The original settings file is preserved. Changes will not be saved. Restore the file and reopen Hardware Pulse.":
+                settings.ChangedOnDisk?"Settings Changed Outside This Window. The File Is Preserved. Exit Hardware Pulse From The Tray, Then Reopen To Load It.":
                 settingsSaveStatus=="Could Not Save Changes"?"Check folder permissions and available disk space, then try saving again.":
                 "Changes are saved automatically on this device.");
         }

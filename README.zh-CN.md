@@ -8,7 +8,7 @@
 
 [更新记录](CHANGELOG.zh-CN.md) · [操作示意图](docs/QUICKSTART.zh-CN.md)
 
-**[下载 Windows stable release 0.6.67](https://github.com/medking82/hardware-pulse/releases/download/v0.6.67/HardwarePulse-Setup.exe)**，或使用 App 内的 update check。
+**[下载 Windows stable release 0.6.68](https://github.com/medking82/hardware-pulse/releases/download/v0.6.68/HardwarePulse-Setup.exe)**，或使用 App 内的 update check。
 
 macOS 可测试 [0.7.0-macos-rc.1 — Apple Silicon／Intel](https://github.com/medking82/hardware-pulse/releases/tag/v0.7.0-macos-rc.1)。此 RC 尚未完成 Developer ID signing 与 notarization，真实 Mac 的 Gatekeeper、温度和风扇 acceptance 仍未完成，不是 macOS stable release。
 
@@ -20,7 +20,7 @@ macOS 可测试 [0.7.0-macos-rc.1 — Apple Silicon／Intel](https://github.com/
 - **锁定位置与大小** 禁用移动、调整大小和卡片排序。锁定监控页面的背景不透明度降为原设置的四分之一并关闭模糊；设置保持可读。从托盘或设置解锁后恢复；纯色／高对比度设置优先。这还不是桌面层嵌入。
 - 应用程序默认 **自动（跟随系统）**，安装程序也根据 Windows UI 语言预选英语、简体或繁体中文。
 
-当前版本 **0.6.67** 更新 Jev 的 pinned read-only balance action，适配当前 TypeSafe console deployment，修复旧 action ID 导致的 HTTP 404 / Console Changed。已有且仍有效的 saved Cookie 可继续使用：upgrade 后点击 Jev 卡片的 **↻** 或 **Settings → AI Quota → Refresh Quota**。手动 Refresh 保留 0.6.65 引入的立即发起 attempt 行为。[Validation 与待完成的 acceptance](VALIDATION.md)。Pulse 保持只读硬件监控边界；[Resources 与进程清理功能已退役](docs/MEMORY-CLEANUP.zh-CN.md)。
+当前版本 **0.6.68** 保留在运行中的 App 之外被修改的 settings。当文件内容与 loaded 或 last saved content 不一致时，Settings 显示 **Settings Changed · Not Saving** 并停止保存。请从 tray 退出 Hardware Pulse，再重新打开以载入该文件。Normal autosave 和已有 unknown settings 继续受支持。[Validation 与待完成的 acceptance](VALIDATION.md)。Pulse 保持只读硬件监控边界；[Resources 与进程清理功能已退役](docs/MEMORY-CLEANUP.zh-CN.md)。
 
 点击 quota 卡片的 **↻**，force 该 provider 立即发起一次 attempt；**Settings → AI Quota → Refresh Quota** 则作用于所有 enabled providers。enabled provider 处于 idle 时，即使仍在 Pulse cadence、backoff 或 Retry-After wait，卡片 Refresh 也保持可用。request pending 期间禁用，包括 timeout 后 worker 尚未停止的情况；连续点击不会产生 overlapping requests，也不会 queue follow-up。发起手动 attempt 时保留 failure counters；其 outcome 仍决定后续 automatic retry 的 backoff 和 Retry-After。
 
@@ -74,13 +74,13 @@ DIMM 品牌、型号和已安装的槽位来自 SMBIOS。**SPD #1/#3 是传感�
 
 ### 原位升级
 
-可直接安装 0.6.67 覆盖现有版本，无需全新安装。安装程序会停止旧采集器、替换应用程序及其两个启动任务，并清理明确列出的旧脚本/源代码文件。偏好设置和桌面位置与大小保留在 LocalAppData；Windows PowerShell 和共享 PawnIO 保持安装。升级中断或失败时可能需要重新运行安装程序；文件清理不提供事务性回滚。
+可直接安装 0.6.68 覆盖现有版本，无需全新安装。安装程序会停止旧采集器、替换应用程序及其两个启动任务，并清理明确列出的旧脚本/源代码文件。偏好设置和桌面位置与大小保留在 LocalAppData；Windows PowerShell 和共享 PawnIO 保持安装。升级中断或失败时可能需要重新运行安装程序；文件清理不提供事务性回滚。
 
 ### 安装程序与自动启动
 
 安装程序会预先检查 .NET Framework 4.8。PawnIO 库或驱动注册缺失时，会自动运行内置的官方安装程序，并在完成后再次检查；失败时不会继续注册自动启动。Windows 自带的组件若缺失或损坏，需要先修复 Windows；安装程序不会自动修改 Windows 功能或安全设置。这些检查验证安装状态，不保证驱动能在所有安全策略下加载。
 
-发行版中的 `HardwarePulse-Setup.exe`（版本 0.6.67）包含应用程序、固定版本的 LibreHardwareMonitor 库、许可声明/源代码归档，以及官方 PawnIO 2.2.0 前置依赖安装包，无需在运行时下载依赖项。目标 Windows 版本自带 .NET Framework 4.8 和 Windows PowerShell 5.1；安装程序会检查 .NET 要求。
+发行版中的 `HardwarePulse-Setup.exe`（版本 0.6.68）包含应用程序、固定版本的 LibreHardwareMonitor 库、许可声明/源代码归档，以及官方 PawnIO 2.2.0 前置依赖安装包，无需在运行时下载依赖项。目标 Windows 版本自带 .NET Framework 4.8 和 Windows PowerShell 5.1；安装程序会检查 .NET 要求。
 
 请使用当前 Windows 管理员账户安装，并确认 UAC。代码安装到 Program Files；安装程序会注册当前用户的交互式采集器任务，以及普通权限的组件任务。组件在登录后延迟 10 秒启动。卸载会保留共享 PawnIO 和用户设置。此版本不支持使用另一个管理员账户，为标准用户代为安装。
 

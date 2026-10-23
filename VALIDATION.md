@@ -1,5 +1,67 @@
 # Local validation — 2026-09-13
 
+## 0.6.68 release validation — 2026-10-23
+
+- Full `scripts/Validate.ps1 -ModernCore` passed on the 0.6.68 source, including
+  Framework/.NET 10 Core, Windows adapters/collector, quota, native WPF, settings,
+  startup, package and updater checks. The existing SDK 10.0.401 was selected
+  without installing a runtime or changing the stable Framework target.
+- `scripts/Build.ps1 -Installer` passed with the existing signing certificate,
+  including compiled modern/Win7 installer contract tests. The Windows 10/11 x64
+  app and installer report 0.6.68. The versioned installer and updater alias are
+  byte-identical, SHA-256
+  `ee5b996f76966a53af6cae067b8957b3a4128d2c3944160281b6576ef7fa4ca8`.
+  The signer remains self-signed `CN=Marck Wong`; no trust-store change was made.
+- Local logs and frozen payload/asset manifests are in `build/release-0.6.68/`.
+  CI, published-asset verification and the requested installed 0.6.67-to-0.6.68
+  acceptance are recorded in the [versioned release notes](https://github.com/medking82/hardware-pulse/releases/tag/v0.6.68)
+  when completed. Pre-release source validation alone does not prove installation.
+
+## Settings and Claude investigation before 0.6.68 — 2026-10-23
+
+- Confirmed a settings conflict bug on the shipped 0.6.67 save path: replacing
+  the file after load leaves the UI showing `Changes Saved`; a later save
+  overwrites external changes and drops newly added unknown fields. The exact
+  opacity values roundtrip correctly. The historical production writer remains
+  unidentified; the reproduction proves a viable trigger, not its past occurrence.
+- `Settings` now compares bounded file content with the last loaded/successfully
+  saved content before saving. External replacement, creation, deletion or
+  formatting changes preserve disk content and block this session's saves.
+  Settings opening and its existing visible poll show `Settings Changed · Not
+  Saving`, with an instruction to exit from the tray and reopen. Pending UI values
+  are retained. A temporary read lock reports unreadable and permits retry when
+  the unchanged file becomes accessible. No watcher, merge engine or schema change.
+  This is an optimistic conflict check, not atomic compare-and-swap against a
+  writer racing between comparison and publication.
+- The expanded `Test-NativeReliability.ps1` failed against the old payload, then
+  passed against the rebuilt candidate. `Build-Native.ps1`, `Test-Native.ps1` and
+  `Test-SettingsQuota.ps1` passed. `Test-WindowsAdapters.ps1` also passed during
+  the Claude investigation; adapter source was unchanged. Actual WPF conflict
+  rendering was inspected at 280px. Evidence: `build/settings-diagnosis-20261023/`,
+  `build/followup-20261023/conflict-red`, `conflict-final`, and
+  `vendor/settings-quota-c0fb5b5594b443a5baf2992a97c0290c/`.
+  These were the pre-release checks; final 0.6.68 validation is recorded above.
+- At 17:28 MYT the installed 0.6.67 Claude provider reproduced HTTP 401 with
+  `Login required`. The selected default Claude Code credential file contained an
+  access token whose recorded expiry was 13:52 MYT; retained 401 diagnostics begin
+  at 13:58. No token/config-directory/provider override was present. This points
+  to stale login state; the exact server explanation for the 401 was not captured.
+  No confirmed request/source-selection code defect was found.
+- A subsequent bounded error-classification request returned HTTP 429 at 17:30;
+  all further quota probes stopped. Native Claude Code 2.1.308 `auth status`
+  reported a saved login but left the expired credential metadata unchanged.
+  That command does not establish remote validity or successful renewal. No raw
+  credentials, identity report or response body was retained, and no login or
+  token write was performed. Recovery remains unverified until Claude Code renews
+  its login and a later permitted quota request succeeds. See the official
+  [authentication documentation](https://code.claude.com/docs/en/authentication).
+- Earlier local acceptance completed a real same-version 0.6.67 in-place reinstall
+  after the user approved UAC: exit 0, all 91 payload files matched, existing
+  settings preserved, normal autosave roundtrip passed, collector restarted and
+  the UI showed 23 live mapped readings from 295 raw sensors. The machine already
+  ran 0.6.67; this was not an observed 0.6.66-to-0.6.67 migration. Evidence is
+  `build/local-upgrade-0.6.67/visible-installer/acceptance.json`.
+
 ## 0.6.67 runtime and settings reliability — 2026-10-23
 
 - The [audit report](docs/AUDIT-2026-10-23.md) records the baseline failures,
@@ -22,8 +84,9 @@
   SHA-256 and size. Windows reports the expected untrusted-root chain status;
   no root certificate was added. Both installer names have identical SHA-256
   `23ac566d17c8d8986d251feafd91ffc44e1cb72b2565effe64e1291d561a8d58`.
-- Real elevated upgrade, cross-account execution, Windows 7 runtime and installed
-  driver/OS advisory applicability remain unverified. The independent review
+- At release validation, real elevated upgrade, cross-account execution, Windows 7
+  runtime and installed driver/OS advisory applicability remained unverified;
+  subsequent local reinstall evidence is recorded above. The independent review
   attempt could not invoke a reviewer because quota metadata preparation failed;
   the separately blocked installer reproduction was not retried. Deterministic
   test success does not imply an independent security verdict. GitHub CI and

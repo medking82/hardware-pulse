@@ -4,6 +4,12 @@
 
 Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
+## 0.6.68 — 2026-10-23
+
+- Preserve settings changed outside the running App. Compare file content before saving so an older window cannot silently overwrite observed external changes or discard newly added settings, even when the file timestamp is unchanged.
+- Show **Settings Changed · Not Saving** when Settings opens or refreshes. Keep pending UI values and explain how to exit from the tray and reopen to load the preserved file.
+- Cover external replacement, deletion, creation and formatting changes, normal save/reopen, and temporary read-lock recovery with native persistence and actual WPF regressions. No settings schema or Claude authentication behavior changes.
+
 ## 0.6.67 — 2026-10-23
 
 - Protect runtime publication with pinned directory handles and atomic replacement. Reject redirected paths, restrict installed runtime permissions to the intended account, and preserve unrelated files and ACLs.

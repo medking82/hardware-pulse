@@ -70,6 +70,26 @@ static class NativeReliabilityTests {
         var newProfile=new Settings(fresh);newProfile.Data["opacity"]=35;newProfile.Save();
         Check(new Settings(fresh).Number("opacity",0,0,100)==35,"A new profile remains writable");
     }
+    static void SettingsConflicts(string root){
+        string path=Path.Combine(root,"settings-conflict.json");
+        File.WriteAllText(path,"{\"opacity\":29.91379310344827}");
+        var first=new Settings(path);first.Data["opacity"]=31.301274392673267;first.Save();
+        DateTime timestamp=File.GetLastWriteTimeUtc(path);
+        var external=new Settings(path);external.Data["opacity"]=29.91379310344827;external.Data["externalOnly"]="preserve";external.Save();
+        File.SetLastWriteTimeUtc(path,timestamp);string replaced=File.ReadAllText(path);
+        bool rejected=false;try{first.Save();}catch(IOException){rejected=true;}
+        Check(rejected&&File.ReadAllText(path)==replaced,"A stale settings writer preserves externally replaced content even with an unchanged timestamp");
+        var reopened=new Settings(path);reopened.Data["fontSize"]=12;reopened.Save();
+        Check(new Settings(path).Text("externalOnly")=="preserve","Reopening loads external settings and permits a normal save");
+        File.Delete(path);rejected=false;try{reopened.Save();}catch(IOException){rejected=true;}
+        Check(rejected&&!File.Exists(path),"A deleted profile must not be silently recreated by a stale writer");
+        var absent=new Settings(path);File.WriteAllText(path,"{\"externalOnly\":true}");
+        rejected=false;try{absent.Save();}catch(IOException){rejected=true;}
+        Check(rejected&&File.ReadAllText(path)=="{\"externalOnly\":true}","A newly created external profile must not be overwritten");
+        var formatted=new Settings(path);string reformatted="{ \"externalOnly\" : true }";File.WriteAllText(path,reformatted);
+        rejected=false;try{formatted.Save();}catch(IOException){rejected=true;}
+        Check(rejected&&File.ReadAllText(path)==reformatted,"Content checks conservatively preserve external formatting changes");
+    }
     static void Directories(string root){
         string linked=Path.Combine(root,"directory-link"),target=Path.Combine(root,"directory-target");
         Check((File.GetAttributes(linked)&FileAttributes.ReparsePoint)!=0,"Directory fixture must be a junction");
@@ -135,6 +155,14 @@ static class NativeReliabilityTests {
                 var saveStatus=shell.Control<TextBlock>("SettingsSaveStatus");
                 Check(saveStatus!=null&&saveStatus.Text=="Could Not Save Changes","Failed save must be visible in Settings");
                 shell.Save();Check(saveStatus!=null&&saveStatus.Text=="Changes Saved","A successful retry clears the save error");
+                string saved=File.ReadAllText(settingsPath);
+                using(var locked=new FileStream(settingsPath,FileMode.Open,FileAccess.Read,FileShare.None)){
+                    Exercise("A temporary settings read lock must not escape the UI poll",shell.UpdatePanel);
+                    Exercise("A temporary settings read lock must not escape Save",shell.Save);
+                    Check(saveStatus.Text=="Settings Unreadable · Not Saving","A read lock must not be presented as successfully saved");
+                }
+                Check(File.ReadAllText(settingsPath)==saved,"A read lock preserves the saved settings");
+                shell.Save();Check(saveStatus.Text=="Changes Saved","An unchanged profile remains writable after a temporary read lock");
                 var tabs=(List<Button>)typeof(Shell).GetField("settingsTabs",Hidden).GetValue(shell);
                 tabs[0].Focus();tabs[0].RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice,PresentationSource.FromVisual(tabs[0]),0,Key.Right){RoutedEvent=Keyboard.KeyDownEvent});Pump();
                 Check(tabs[1].IsKeyboardFocused&&(string)typeof(Shell).GetField("settingsCategory",Hidden).GetValue(shell)=="App Appearance","Settings tabs support arrow-key selection and focus");
@@ -160,17 +188,37 @@ static class NativeReliabilityTests {
             }finally{shell.Exit();}
         }
         Check(File.ReadAllText(Path.Combine(damaged,"widget-settings.json"))==original,"Opening and closing a damaged profile preserves its bytes");
+        foreach(string trigger in new[]{"open","poll"}){
+            string conflict=Path.Combine(root,"conflict-ui-"+trigger);Directory.CreateDirectory(conflict);
+            string path=Path.Combine(conflict,"widget-settings.json");
+            Json.WriteAtomic(path,new Dictionary<string,object>{{"language","en"},{"solid",true},{"width",280},{"height",720},{"opacity",31.301274392673267}});
+            string preserved=null;
+            using(var shell=new Shell(new PulsePaths(app,conflict,Path.Combine(conflict,"runtime")),true)){
+                try{
+                    shell.Window.ShowActivated=false;shell.Show();shell.ShowSettings(trigger=="poll");Pump();shell.Save();
+                    Check(shell.Control<TextBlock>("SettingsSaveStatus").Text=="Changes Saved","Conflict fixture starts with a successfully saved profile");
+                    var external=new Settings(path);external.Data["opacity"]=29.91379310344827;external.Data["externalOnly"]="preserve";external.Save();preserved=File.ReadAllText(path);
+                    if(trigger=="open")shell.ShowSettings(true);else shell.UpdatePanel();
+                    Check(shell.Control<TextBlock>("SettingsSaveStatus").Text=="Settings Changed · Not Saving","External replacement is disclosed when Settings "+(trigger=="open"?"opens":"remains visible"));
+                    Check(shell.Control<Slider>("OpacitySlider").Value==31.301274392673267,"Conflict detection does not silently discard pending UI values");
+                    shell.Save();Check(File.ReadAllText(path)==preserved,"Conflicted Shell.Save preserves external settings");
+                    Capture(shell.Window,Path.Combine(root,"settings-conflict-"+trigger+".png"));
+                }finally{shell.Exit();}
+            }
+            Check(File.ReadAllText(path)==preserved,"Closing a conflicted window preserves external settings");
+        }
     }
     [STAThread]static int Main(string[] args){
         if(args.Length!=3)return 2;Directory.CreateDirectory(args[1]);
         if(args[2]!="ui"){
             Exercise("Persistence",()=>Persistence(args[1]));
+            Exercise("Settings conflicts",()=>SettingsConflicts(args[1]));
             Exercise("Directory handles",()=>Directories(args[1]));
             Exercise("Runtime permissions",()=>RuntimePermissions(args[1]));
         }
         if(args[2]!="persistence")Exercise("UI",()=>Ui(args[0],args[1]));
         foreach(string failure in failures)Console.WriteLine("FAIL audit: "+failure);
         if(failures.Count!=0)return 1;
-        Console.WriteLine("PASS audit: bounded JSON, atomic publication, pinned directories, runtime ACLs, preserved damaged settings, nonfatal diagnostics and keyboard/settings feedback");return 0;
+        Console.WriteLine("PASS audit: bounded JSON, atomic publication, pinned directories, runtime ACLs, preserved damaged/conflicting settings, nonfatal diagnostics and keyboard/settings feedback");return 0;
     }
 }

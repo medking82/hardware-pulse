@@ -7,11 +7,14 @@ using System.Text.RegularExpressions;
 namespace HardwarePulse {
     public sealed class Settings : SettingsValues {
         readonly string path;
+        string savedJson;
         public bool LoadFailed {get;private set;}
+        public bool ChangedOnDisk {get;private set;}
         public Settings(string path):base(null) {
             this.path=path;
             try {
-                var saved=Json.Serializer().DeserializeObject(Json.Read(path)) as Dictionary<string,object>;
+                savedJson=Json.Read(path);
+                var saved=Json.Serializer().DeserializeObject(savedJson) as Dictionary<string,object>;
                 if(saved==null)throw new InvalidDataException("Settings must be a JSON object.");
                 foreach(var entry in saved)Data.Add(entry.Key,entry.Value);
             } catch(FileNotFoundException) {
@@ -22,9 +25,20 @@ namespace HardwarePulse {
                 LoadFailed=true;
             }
         }
+        public void CheckForChanges() {
+            if(LoadFailed||ChangedOnDisk)return;
+            string current=null;
+            try{current=Json.Read(path);}catch(FileNotFoundException){}catch(DirectoryNotFoundException){}
+            // Content, not timestamps: restores can retain an old modification time.
+            ChangedOnDisk=!string.Equals(current,savedJson,StringComparison.Ordinal);
+        }
         public void Save() {
             if(LoadFailed)throw new InvalidDataException("Original settings could not be read; refusing to overwrite them.");
+            CheckForChanges();
+            if(ChangedOnDisk)throw new IOException("Settings changed on disk; reopen Hardware Pulse before saving.");
+            string next=Json.Serializer().Serialize(Data);
             Json.WriteAtomic(path,Data);
+            savedJson=next;
         }
     }
     public sealed class Languages {
