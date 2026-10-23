@@ -9,7 +9,7 @@ static class WindowsLayerTests {
     [DllImport("user32.dll")] static extern nint GetForegroundWindow();
     [DllImport("user32.dll")] static extern nint GetParent(nint window);
     static void Check(bool ok,string text){if(!ok)throw new Exception(text);}
-    static void Pump(){using var stop=new CancellationTokenSource(150);Dispatcher.UIThread.MainLoop(stop.Token);}
+    static void Pump(){TestUiPump.Slice(150);}
     public static void Native() {
         if(!OperatingSystem.IsWindows())return;
         nint host=WindowsDesktopLayer.FindDesktopHost();Check(host!=0,"Desktop layer acceptance requires a running Explorer icon host");

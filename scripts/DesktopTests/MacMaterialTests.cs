@@ -21,7 +21,7 @@ static class MacMaterialTests {
         Check(count<256,"Unexpected native test view hierarchy");
         for(nuint i=0;i<count;i++)foreach(var child in Backdrops(At(children,sel_registerName("objectAtIndex:"),i),depth+1))yield return child;
     }
-    static void Pump(){using var slice=new CancellationTokenSource(TimeSpan.FromMilliseconds(150));Dispatcher.UIThread.MainLoop(slice.Token);}
+    static void Pump(){TestUiPump.Slice(150);}
     public static void Run() {
         if(!OperatingSystem.IsMacOS())return;
         var window=new FloatingMonitorWindow(new UiLanguage("en"),new PreviewSettings{FloatingBackgroundOpacity=35});

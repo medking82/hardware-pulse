@@ -20,7 +20,7 @@ static class LocalContrastTests {
     }
     static void Until(Func<bool> predicate,string message,int milliseconds=5000) {
         var until=DateTime.UtcNow.AddMilliseconds(milliseconds);
-        while(!predicate()&&DateTime.UtcNow<until){using var slice=new CancellationTokenSource(100);Dispatcher.UIThread.MainLoop(slice.Token);}
+        while(!predicate()&&DateTime.UtcNow<until){TestUiPump.Slice(100);}
         Check(predicate(),message);
     }
     public static void Native() {

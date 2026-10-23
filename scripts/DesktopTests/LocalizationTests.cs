@@ -6,7 +6,7 @@ using HardwarePulse.Desktop;
 
 static class LocalizationTests {
     static void Check(bool ok,string message){if(!ok)throw new Exception(message);}
-    static void Until(Func<bool> done){var end=DateTime.UtcNow.AddSeconds(5);while(!done()&&DateTime.UtcNow<end){using var slice=new CancellationTokenSource(TimeSpan.FromMilliseconds(20));Dispatcher.UIThread.MainLoop(slice.Token);}Check(done(),"Localization operation timed out");}
+    static void Until(Func<bool> done){var end=DateTime.UtcNow.AddSeconds(5);while(!done()&&DateTime.UtcNow<end){TestUiPump.Slice(20);}Check(done(),"Localization operation timed out");}
     public static void Run(string? output,bool native=false) {
         void Phase(string step){if(native)Console.WriteLine("NATIVE_SESSION_PHASE "+step);}
         Check(new UiLanguage("auto","zh-CN").T("Memory")=="内存","System Chinese selection");

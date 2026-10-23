@@ -27,7 +27,7 @@ static class WindowsInputTests {
         try{using var owner=System.Diagnostics.Process.GetProcessById((int)process);processName=owner.ProcessName;}catch(ArgumentException){}catch(System.ComponentModel.Win32Exception){}
         return $"hwnd={window} root={GetAncestor(window,2)} class={name} pid={process} process={processName} rect={rect.Left},{rect.Top},{rect.Right},{rect.Bottom} exStyle={GetWindowLongPtrW(window,-20).ToInt64():X}";
     }
-    static void Pump(){using var slice=new CancellationTokenSource(TimeSpan.FromMilliseconds(150));Dispatcher.UIThread.MainLoop(slice.Token);}
+    static void Pump(){TestUiPump.Slice(150);}
     static uint Pixel(Point point){var dc=GetDC(0);try{return GetPixel(dc,point.X,point.Y);}finally{ReleaseDC(0,dc);}}
     static void Until(Func<bool> condition,string message) {
         var deadline=DateTime.UtcNow.AddSeconds(5);
@@ -46,7 +46,8 @@ static class WindowsInputTests {
         try {
             Point Sample(){var point=above.PointToScreen(new Avalonia.Point(120,100));return new Point{X=point.X,Y=point.Y};}
             above.Activate();
-            try {Until(()=>HitWindow(Sample())==handle,"Native fixture is not above the underlying window");}
+            // Native hit testing can precede the first composited frame. Establish red content before changing input policy.
+            try {Until(()=>HitWindow(Sample())==handle&&Pixel(Sample())==0x0000ff,"Native fixture is not above the underlying window with visible red content");}
             finally {
                 var p=Sample();Console.WriteLine($"INPUT_FIXTURE above={handle} below={below.TryGetPlatformHandle()!.Handle} hit={WindowFromPoint(p)} point={p.X},{p.Y} position={above.Position} client={above.ClientSize} scale={above.RenderScaling} active={above.IsActive}");
                 Console.WriteLine("INPUT_WINDOW above "+Describe(handle));

@@ -24,7 +24,7 @@ static class DesktopUpdateTests {
     static void Check(bool ok,string text){if(!ok)throw new Exception(text);}
     static void Wait(Task task) {
         var until=DateTime.UtcNow.AddSeconds(5);
-        while(!task.IsCompleted&&DateTime.UtcNow<until){using var slice=new CancellationTokenSource(20);Dispatcher.UIThread.MainLoop(slice.Token);}
+        while(!task.IsCompleted&&DateTime.UtcNow<until){TestUiPump.Slice(20);}
         Check(task.IsCompleted,"Update operation timed out");task.GetAwaiter().GetResult();
     }
     public static void Run() {

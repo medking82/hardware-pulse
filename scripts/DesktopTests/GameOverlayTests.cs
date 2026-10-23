@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using System.Text.Json;
+using System.Text;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
@@ -11,7 +12,30 @@ using HardwarePulse.Desktop;
 
 static class GameOverlayTests {
     static void Check(bool ok,string message){if(!ok)throw new Exception(message);}
-    static void Until(Func<bool> done,string message){var end=DateTime.UtcNow.AddSeconds(8);while(!done()&&DateTime.UtcNow<end){using var slice=new CancellationTokenSource(TimeSpan.FromMilliseconds(20));Dispatcher.UIThread.MainLoop(slice.Token);}Check(done(),message);}
+    static void Until(Func<bool> done,string message,Func<string>? state=null) {
+        var end=DateTime.UtcNow.AddSeconds(8);
+        while(!done()&&DateTime.UtcNow<end){TestUiPump.Slice(20);}
+        if(!done())throw new Exception(message+(state==null?"":"; "+state()));
+    }
+    static string FixtureState(Window fixture) {
+        nint handle=fixture.TryGetPlatformHandle()?.Handle??0;var foreground=GetForegroundWindow();
+        GetWindowThreadProcessId(foreground,out uint process);
+        bool client=GetClientRect(handle,out var rect);var origin=new NativePoint();bool screen=ClientToScreen(handle,ref origin);
+        var name=new StringBuilder(256);GetClassNameW(foreground,name,name.Capacity);
+        string processState="unavailable";
+        try {using var owner=System.Diagnostics.Process.GetProcessById((int)process);processState=$"{owner.ProcessName}/session={owner.SessionId}";}
+        catch(Exception e) when(e is ArgumentException or InvalidOperationException or System.ComponentModel.Win32Exception) {processState=e.GetType().Name;}
+        nint threadDesktop=GetThreadDesktop(GetCurrentThreadId());
+        bool inputRead=GetUserObjectValue(threadDesktop,6,out int receivingInput,4,out _);
+        nint input=OpenInputDesktop(0,false,1);int inputError=input==0?Marshal.GetLastWin32Error():0;
+        string inputName;
+        try {inputName=ObjectName(input);}finally{if(input!=0)CloseDesktop(input);}
+        return $"hwnd={handle}; foreground={foreground}; foregroundProcess={processState}; foregroundClass={name}; foregroundOwned={process==(uint)Environment.ProcessId}; userInteractive={Environment.UserInteractive}; station={ObjectName(GetProcessWindowStation())}; threadDesktop={ObjectName(threadDesktop)}; desktopInputRead={inputRead}; desktopReceivesInput={receivingInput}; inputDesktop={inputName}; inputDesktopError={inputError}; foregroundRoot={GetAncestor(foreground,2)}; foregroundRootOwner={GetAncestor(foreground,3)}; visible={fixture.IsVisible}; active={fixture.IsActive}; iconic={IsIconic(handle)}; clientOk={client}; client={rect.Right}x{rect.Bottom}; screenOk={screen}; position={origin.X},{origin.Y}; scale={fixture.RenderScaling}";
+    }
+    static string ObjectName(nint handle) {
+        var name=new StringBuilder(256);
+        return handle!=0&&GetUserObjectName(handle,2,name,name.Capacity*2,out _)?name.ToString():"unavailable";
+    }
     sealed class Source : IDesktopGameSource {
         public int Calls,Captures,Disposed;
         public bool Hold;
@@ -79,6 +103,22 @@ static class GameOverlayTests {
         }finally{Directory.Delete(directory,true);}
         Console.WriteLine("PASS game overlay: shared target/metrics, hardware-only capture off, independent lifetime, content, anchors and settings");
     }
+    public static void ForegroundFixtureRegression() {
+        if(!OperatingSystem.IsWindows())return;
+        var target=new Window{Title="Pulse activation fixture",Width=360,Height=260};
+        var other=new Window{Title="Pulse activation peer",Width=360,Height=260};
+        try {
+            target.Show();other.Show();
+            for(int repeat=0;repeat<5;repeat++)foreach(var fixture in new[]{target,other,target}) {
+                var handle=fixture.TryGetPlatformHandle()!.Handle;bool topmost=fixture.Topmost;
+                Until(NativeFixtureActivation.WithClick(fixture,()=>GetForegroundWindow()==handle,requireClick:true),"Owned click did not establish real foreground",()=>FixtureState(fixture));
+                Check(fixture.Topmost==topmost,"Fixture activation retained temporary topmost policy");
+            }
+        }finally{other.Close();target.Close();}
+        // Exercise the original input/content contract in the same process after the real clicks and cleanup.
+        WindowsInputTests.Run();
+        Console.WriteLine("PASS native owned-fixture activation: actual input/foreground, reversible topmost and no foreign-window mutation");
+    }
     public static void Native(string? output=null) {
         if(!OperatingSystem.IsWindows())return;
         var target=new Window{Title="Pulse overlay target fixture",Width=700,Height=480,Background=Brushes.DarkBlue,Position=new(150,150)};
@@ -86,7 +126,8 @@ static class GameOverlayTests {
         var overlay=new GameOverlayWindow();var options=new GameOverlayOptions{Enabled=true};
         try {
             target.Show();target.Activate();nint handle=target.TryGetPlatformHandle()!.Handle;
-            Until(()=>GameOverlayWindow.TargetBounds(handle,out _),"Fixture target could not become foreground");
+            Console.WriteLine("GAME_OVERLAY_ENV "+FixtureState(target));Console.Out.Flush();
+            Until(NativeFixtureActivation.WithClick(target,()=>GameOverlayWindow.TargetBounds(handle,out _)),"Fixture target requires foreground and a valid client area",()=>FixtureState(target));
             overlay.Display(handle,"FPS 73 · CPU 24%",options);
             Until(()=>overlay.IsVisible&&overlay.InputReady&&overlay.Bounds.Width>10,"Overlay not visible/pass-through ready");
             Check(GetForegroundWindow()==handle,"Overlay stole foreground");
@@ -103,16 +144,29 @@ static class GameOverlayTests {
                 Until(()=>overlay.Position==GameOverlayWindow.Anchor(rect,(int)Math.Ceiling(overlay.Bounds.Width*overlay.RenderScaling),(int)Math.Ceiling(overlay.Bounds.Height*overlay.RenderScaling),position),"Native anchor mismatch");
             }
             target.Position=new(230,220);Until(()=>GameOverlayWindow.TargetBounds(handle,out var moved)&&moved.X>=230,"Target move not acknowledged");overlay.Display(handle,"moved",options);
-            other.Show();other.Activate();Until(()=>GetForegroundWindow()==other.TryGetPlatformHandle()!.Handle,"Other fixture foreground");
+            other.Show();other.Activate();Until(NativeFixtureActivation.WithClick(other,()=>GetForegroundWindow()==other.TryGetPlatformHandle()!.Handle),"Other fixture foreground",()=>FixtureState(other));
             overlay.Display(handle,"hidden",options);Check(!overlay.IsVisible,"Overlay remained on another foreground app");
-            target.Activate();Until(()=>GetForegroundWindow()==handle,"Target restore foreground");overlay.Display(handle,"restored",options);
+            target.Activate();Until(NativeFixtureActivation.WithClick(target,()=>GetForegroundWindow()==handle),"Target restore foreground",()=>FixtureState(target));overlay.Display(handle,"restored",options);
             Check(overlay.IsVisible&&overlay.InputReady&&GetForegroundWindow()==handle,"Overlay restore lost pass-through or activation policy");
             target.WindowState=WindowState.Minimized;Until(()=>!GameOverlayWindow.TargetBounds(handle,out _),"Target minimize not observed");overlay.Display(handle,"minimized",options);Check(!overlay.IsVisible,"Overlay visible over minimized target");
         }finally{overlay.Close();other.Close();target.Close();}
         Console.WriteLine("PASS native game overlay: six anchors, move, foreground/minimize hide, restore, no-activation and input flags");
     }
     [DllImport("user32.dll")] static extern nint GetForegroundWindow();
+    [DllImport("user32.dll",CharSet=CharSet.Unicode)] static extern int GetClassNameW(nint window,StringBuilder name,int count);
+    [DllImport("user32.dll")] static extern nint GetThreadDesktop(uint thread);
+    [DllImport("kernel32.dll")] static extern uint GetCurrentThreadId();
+    [DllImport("user32.dll")] static extern nint GetProcessWindowStation();
+    [DllImport("user32.dll",SetLastError=true)] static extern nint OpenInputDesktop(uint flags,bool inherit,uint access);
+    [DllImport("user32.dll")] static extern bool CloseDesktop(nint desktop);
+    [DllImport("user32.dll",EntryPoint="GetUserObjectInformationW",CharSet=CharSet.Unicode)] static extern bool GetUserObjectName(nint handle,int index,StringBuilder value,int length,out int needed);
+    [DllImport("user32.dll",EntryPoint="GetUserObjectInformationW")] static extern bool GetUserObjectValue(nint handle,int index,out int value,int length,out int needed);
+    [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(nint window,out uint process);
     [DllImport("user32.dll")] static extern nint GetWindowLongPtrW(nint window,int index);
+    [StructLayout(LayoutKind.Sequential)] struct NativeRect {public int Left,Top,Right,Bottom;}
+    [DllImport("user32.dll")] static extern bool GetClientRect(nint window,out NativeRect rect);
+    [DllImport("user32.dll")] static extern bool ClientToScreen(nint window,ref NativePoint point);
+    [DllImport("user32.dll")] static extern bool IsIconic(nint window);
     [StructLayout(LayoutKind.Sequential)] struct NativePoint {public int X,Y;}
     [DllImport("user32.dll")] static extern nint WindowFromPoint(NativePoint point);
     [DllImport("user32.dll")] static extern nint GetAncestor(nint window,uint flags);
