@@ -32,7 +32,7 @@ static class WindowsForegroundDiagnostics {
             Console.WriteLine($"WINDOWS_TARGET_IDENTITY stage={stage} unavailable={e.GetType().Name}");
         } finally {Console.Out.Flush();}
     }
-    static (int Code,string Text) ReadId(SafeProcessHandle process,bool application) {
+    internal static (int Code,string Text) ReadId(SafeProcessHandle process,bool application) {
         var value=new StringBuilder(1024);uint length=(uint)value.Capacity;
         int code=application?GetApplicationUserModelId(process,ref length,value):GetPackageFullName(process,ref length,value);
         return (code,code==0?value.ToString():$"unavailable({code})");
@@ -40,8 +40,8 @@ static class WindowsForegroundDiagnostics {
     static string Started(SafeProcessHandle process)=>!process.IsInvalid&&GetProcessTimes(process,out long created,out _,out _,out _)?DateTime.FromFileTimeUtc(created).ToString("O"):"unavailable";
     [DllImport("user32.dll")] static extern nint GetForegroundWindow();
     [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(nint window,out uint process);
-    [DllImport("kernel32.dll",SetLastError=true)] static extern SafeProcessHandle OpenProcess(uint access,bool inherit,uint process);
-    [DllImport("kernel32.dll",SetLastError=true)] static extern bool GetProcessTimes(SafeProcessHandle process,out long creation,out long exit,out long kernel,out long user);
+    [DllImport("kernel32.dll",SetLastError=true)] internal static extern SafeProcessHandle OpenProcess(uint access,bool inherit,uint process);
+    [DllImport("kernel32.dll",SetLastError=true)] internal static extern bool GetProcessTimes(SafeProcessHandle process,out long creation,out long exit,out long kernel,out long user);
     [DllImport("kernel32.dll",CharSet=CharSet.Unicode,ExactSpelling=true)] static extern int GetPackageFullName(SafeProcessHandle process,ref uint length,StringBuilder value);
     [DllImport("kernel32.dll",CharSet=CharSet.Unicode,ExactSpelling=true)] static extern int GetApplicationUserModelId(SafeProcessHandle process,ref uint length,StringBuilder value);
 }
