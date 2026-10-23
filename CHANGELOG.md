@@ -4,6 +4,14 @@
 
 Dates are release dates. Unreleased entries describe source changes, not an available download. Author: [Marck Wong](https://github.com/medking82).
 
+## 0.6.67 — 2026-10-23
+
+- Protect runtime publication with pinned directory handles and atomic replacement. Reject redirected paths, restrict installed runtime permissions to the intended account, and preserve unrelated files and ACLs.
+- Preserve an existing installer STOP signal. Clean up only a signal created by the current setup, after verifying its file identity and contents; leave concurrent changes intact.
+- Preserve unreadable or malformed settings instead of overwriting them with defaults. Bound JSON and encrypted credential reads, retain unknown settings, and prevent optional diagnostic failures from interrupting the UI.
+- Show Settings save, pending, failure and unreadable states. Improve category keyboard navigation, slider focus visibility and narrow localized layouts.
+- Add native file-operation, ACL, persistence, WPF and compiled installer regressions. See [audit evidence and remaining integration limits](docs/AUDIT-2026-10-23.md).
+
 ## 0.6.66 — 2026-10-22
 
 - Update Jev's pinned read-only balance action to match the current console deployment. Fix HTTP 404 / Console Changed without replacing a valid session Cookie; preserve the existing response, redirect and request-isolation checks.

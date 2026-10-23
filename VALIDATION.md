@@ -1,5 +1,34 @@
 # Local validation — 2026-09-13
 
+## 0.6.67 runtime and settings reliability — 2026-10-23
+
+- The [audit report](docs/AUDIT-2026-10-23.md) records the baseline failures,
+  implementation boundaries and evidence. New native checks exercise real Windows
+  directory pinning, atomic replacement with existing readers, runtime ACL migration,
+  settings preservation, bounded reads, nonfatal diagnostics and actual WPF feedback.
+- Final `scripts/Validate.ps1 -ModernCore` passed for 0.6.67 after integrating
+  `9849643` from main. The first attempt stopped because system `dotnet.exe` had
+  no SDK; selecting the existing repository SDK 10.0.401 restored the check.
+  Framework/.NET 10 Core, Windows adapters/collector, quota, startup, FPS, WPF,
+  package and updater suites all passed. No SDK/runtime was installed or bundled
+  into the stable Framework package.
+- `scripts/Build.ps1 -Installer` passed, including compiled modern/Win7 variant
+  contracts and the expanded STOP tests. Existing signals, concurrent changes,
+  file identity, link rejection and directory exclusion are covered by isolated
+  file-operation fixtures. No product installer or UAC flow was launched.
+- The app file version is 0.6.67.0; installer product version is 0.6.67.
+  App and installer use the existing self-signed `CN=Marck Wong` certificate.
+  Its public certificate matches the downloaded 0.6.66 certificate by thumbprint,
+  SHA-256 and size. Windows reports the expected untrusted-root chain status;
+  no root certificate was added. Both installer names have identical SHA-256
+  `23ac566d17c8d8986d251feafd91ffc44e1cb72b2565effe64e1291d561a8d58`.
+- Real elevated upgrade, cross-account execution, Windows 7 runtime and installed
+  driver/OS advisory applicability remain unverified. The independent review
+  attempt could not invoke a reviewer because quota metadata preparation failed;
+  the separately blocked installer reproduction was not retried. Deterministic
+  test success does not imply an independent security verdict. GitHub CI and
+  release download verification are recorded in the versioned release notes.
+
 ## 0.6.66 Jev console compatibility — 2026-10-22
 
 - Installed 0.6.65 diagnostics reported Jev `Console changed`, HTTP 404 and

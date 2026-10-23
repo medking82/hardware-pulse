@@ -4,6 +4,14 @@
 
 日期为发布日期。未发布条目仅描述源代码变化，不代表已有可下载版本。作者：[Marck Wong](https://github.com/medking82)。
 
+## 0.6.67 — 2026-10-23
+
+- 使用 pinned directory handles 和 atomic replacement 保护 runtime publication；拒绝 redirected paths，将 installed runtime permissions 限于目标 account，并保留 unrelated files 和 ACLs。
+- 保留已有 installer STOP signal。Cleanup 仅处理本次 setup 创建、且 file identity 和 contents 仍一致的 signal，保留 concurrent changes。
+- 保留 unreadable 或 malformed settings，避免被 defaults 覆盖；限制 JSON 和 encrypted credential reads，保留 unknown settings，并避免 optional diagnostic failure 中断 UI。
+- 在 Settings 显示 save、pending、failure 和 unreadable states；改善 category keyboard navigation、slider focus visibility 和 narrow localized layouts。
+- 新增 native file-operation、ACL、persistence、WPF 及 compiled installer regression。详见 [audit evidence 与 integration limits](docs/AUDIT-2026-10-23.md)。
+
 ## 0.6.66 — 2026-10-22
 
 - 更新 Jev 的 pinned read-only balance action，适配当前 console deployment。修复 HTTP 404 / Console Changed，无需替换有效的 session Cookie；保留原有 response、redirect 和 request isolation checks。
